@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Cosmic Oracle é seu guia cósmico pessoal",
+    "slug": "cosmic-oracle-seu-guia-c-smico",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wron.app0gg0zwnopp"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      },
+      "package": "com.wron.app0gg0zwnopp"
+    },
+    "experiments": {
+      "baseUrl": "/cosmic-guide"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}

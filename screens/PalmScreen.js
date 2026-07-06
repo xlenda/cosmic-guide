@@ -1,0 +1,269 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, gradients } from '../theme';
+import GradientHeader from '../components/GradientHeader';
+import { getMockPalmReading } from '../lib/palmReadings';
+import { fetchAiPalmReading } from '../lib/aiClient';
+
+const DISCLAIMER =
+  'Esta leitura é só para entretenimento — a IA analisa a foto enviada, mas o texto é uma ' +
+  'reflexão simbólica sobre as linhas da mão, não um exame médico ou uma previsão real.';
+
+// Estados possíveis da tela: intro (sem foto) -> preview (foto escolhida,
+// aguardando "Analisar") -> result (leitura mockada exibida).
+const STEP = { INTRO: 'intro', PREVIEW: 'preview', RESULT: 'result' };
+
+export default function PalmScreen() {
+  const [step, setStep] = useState(STEP.INTRO);
+  const [imageUri, setImageUri] = useState(null);
+  const [imageBase64, setImageBase64] = useState(null);
+  const [reading, setReading] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [permissionError, setPermissionError] = useState(null);
+
+  const resetToIntro = () => {
+    setStep(STEP.INTRO);
+    setImageUri(null);
+    setImageBase64(null);
+    setReading(null);
+    setPermissionError(null);
+  };
+
+  const handlePickedResult = (result) => {
+    if (result.canceled || !result.assets || !result.assets[0]) return;
+    setPermissionError(null);
+    setImageUri(result.assets[0].uri);
+    setImageBase64(result.assets[0].base64 || null);
+    setStep(STEP.PREVIEW);
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        setPermissionError(
+          'Permissão de câmera negada. Você ainda pode escolher uma foto da galeria.'
+        );
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        base64: true,
+        allowsEditing: Platform.OS !== 'web',
+      });
+      handlePickedResult(result);
+    } catch (err) {
+      // Comum em navegadores sem HTTPS/localhost ou sem suporte a getUserMedia.
+      setPermissionError(
+        'Não foi possível acessar a câmera agora. Tente "Escolher da galeria".'
+      );
+    }
+  };
+
+  const handlePickFromGallery = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setPermissionError('Permissão de galeria negada. Não é possível escolher uma foto.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        base64: true,
+        allowsEditing: Platform.OS !== 'web',
+      });
+      handlePickedResult(result);
+    } catch (err) {
+      setPermissionError('Não foi possível abrir a galeria agora. Tente novamente.');
+    }
+  };
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+
+    // Tenta a IA real com visão (proxy no backend); se não houver base64
+    // (galeria web sem suporte) ou o servidor ainda não tiver a chave
+    // configurada, cai pra leitura mockada honesta.
+    let result;
+    try {
+      if (!imageBase64) throw new Error('sem base64 da imagem');
+      result = await fetchAiPalmReading(imageBase64, 'image/jpeg');
+    } catch {
+      result = getMockPalmReading();
+    }
+
+    setReading(result);
+    setIsAnalyzing(false);
+    setStep(STEP.RESULT);
+  };
+
+  return (
+    <View style={styles.root}>
+      <GradientHeader title="Leitura de Mão" subtitle="Quiromancia simbólica" gradient={gradients.purple} />
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+
+        {permissionError ? <Text style={styles.errorText}>{permissionError}</Text> : null}
+
+        {step === STEP.INTRO && (
+          <View style={styles.section}>
+            <Text style={styles.instructions}>
+              Tire uma foto da palma da sua mão bem aberta, com boa luz, ou escolha uma foto já
+              existente na galeria.
+            </Text>
+
+            <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleTakePhoto}>
+              <Ionicons name="camera" size={20} color="#fff" />
+              <Text style={styles.primaryBtnText}>Tirar foto</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.85} onPress={handlePickFromGallery}>
+              <Ionicons name="images" size={20} color={colors.accent} />
+              <Text style={styles.secondaryBtnText}>Escolher da galeria</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {step === STEP.PREVIEW && imageUri && (
+          <View style={styles.section}>
+            <View style={styles.imageBox}>
+              <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+            </View>
+
+            {isAnalyzing ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator color={colors.accent} />
+                <Text style={styles.loadingText}>Analisando…</Text>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleAnalyze}>
+                  <Ionicons name="sparkles" size={18} color="#fff" />
+                  <Text style={styles.primaryBtnText}>Analisar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={resetToIntro}>
+                  <Text style={styles.linkText}>Trocar foto</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+
+        {step === STEP.RESULT && reading && (
+          <View style={styles.section}>
+            {imageUri && (
+              <View style={styles.imageBoxSmall}>
+                <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+              </View>
+            )}
+
+            <View style={styles.resultCard}>
+              <Text style={styles.resultTitle}>{reading.title}</Text>
+              <Text style={styles.resultBody}>{reading.body}</Text>
+            </View>
+
+            <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+
+            <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={resetToIntro}>
+              <Ionicons name="refresh" size={18} color="#fff" />
+              <Text style={styles.primaryBtnText}>Nova leitura</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background },
+  scrollContent: { padding: 20, paddingBottom: 40, gap: 16 },
+  disclaimer: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
+  },
+  errorText: {
+    color: colors.red,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  section: { gap: 14, alignItems: 'stretch' },
+  instructions: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  primaryBtn: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: colors.accent,
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  secondaryBtn: {
+    flexDirection: 'row',
+    gap: 8,
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  secondaryBtnText: { color: colors.accent, fontSize: 15, fontWeight: '700' },
+  imageBox: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  imageBoxSmall: {
+    width: 120,
+    height: 120,
+    borderRadius: 16,
+    overflow: 'hidden',
+    alignSelf: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  image: { width: '100%', height: '100%' },
+  loadingRow: { flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
+  loadingText: { color: colors.textSecondary, fontSize: 14 },
+  linkText: { color: colors.accent, fontSize: 14, textAlign: 'center', fontWeight: '600' },
+  resultCard: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 10,
+  },
+  resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  resultBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+});

@@ -1,0 +1,45 @@
+export const colors = {
+  background: '#0E0821',
+  surface: '#1A1235',
+  surfaceElevated: '#251A46',
+  card: '#1F1640',
+  border: '#2E2352',
+  text: '#F3EEFF',
+  textSecondary: '#C4B8E6',
+  textMuted: '#8A7CB0',
+  accent: '#A66CFF',
+  accent2: '#6C7BFF',
+  purple: '#B57BFF',
+  pink: '#FF7BD5',
+  gold: '#FFC85C',
+  teal: '#5CE0D8',
+  green: '#5FD98C',
+  amber: '#FFB84D',
+  red: '#FF6B7A',
+  blue: '#5CA8FF',
+};
+
+export const gradients = {
+  hero: ['#4A2A8A', '#7B3FB5', '#3A1F6B'],
+  purple: ['#7B3FB5', '#A66CFF'],
+  pink: ['#FF6BA0', '#B57BFF'],
+  gold: ['#FFB84D', '#FF8C5C'],
+  teal: ['#5CE0D8', '#5CA8FF'],
+  night: ['#1A1235', '#0E0821'],
+  card: ['#2A1D52', '#1A1235'],
+};
+
+export const zodiacSigns = [
+  { name: 'Áries', pt: 'Áries', icon: '♈', symbol: 'flame', dates: '21 Mar - 19 Abr', element: 'Fogo', color: '#FF6B7A' },
+  { name: 'Touro', pt: 'Touro', icon: '♉', symbol: 'leaf', dates: '20 Abr - 20 Mai', element: 'Terra', color: '#5FD98C' },
+  { name: 'Gêmeos', pt: 'Gêmeos', icon: '♊', symbol: 'people', dates: '21 Mai - 20 Jun', element: 'Ar', color: '#FFC85C' },
+  { name: 'Câncer', pt: 'Câncer', icon: '♋', symbol: 'water', dates: '21 Jun - 22 Jul', element: 'Água', color: '#5CA8FF' },
+  { name: 'Leão', pt: 'Leão', icon: '♌', symbol: 'sunny', dates: '23 Jul - 22 Ago', element: 'Fogo', color: '#FF8C5C' },
+  { name: 'Virgem', pt: 'Virgem', icon: '♍', symbol: 'flower', dates: '23 Ago - 22 Set', element: 'Terra', color: '#5CE0D8' },
+  { name: 'Libra', pt: 'Libra', icon: '♎', symbol: 'scale', dates: '23 Set - 22 Out', element: 'Ar', color: '#B57BFF' },
+  { name: 'Escorpião', pt: 'Escorpião', icon: '♏', symbol: 'bug', dates: '23 Out - 21 Nov', element: 'Água', color: '#FF6BA0' },
+  { name: 'Sagitário', pt: 'Sagitário', icon: '♐', symbol: 'navigate', dates: '22 Nov - 21 Dez', element: 'Fogo', color: '#FFB84D' },
+  { name: 'Capricórnio', pt: 'Capricórnio', icon: '♑', symbol: 'triangle', dates: '22 Dez - 19 Jan', element: 'Terra', color: '#8A7CB0' },
+  { name: 'Aquário', pt: 'Aquário', icon: '♒', symbol: 'snow', dates: '20 Jan - 18 Fev', element: 'Ar', color: '#5CE0D8' },
+  { name: 'Peixes', pt: 'Peixes', icon: '♓', symbol: 'fish', dates: '19 Fev - 20 Mar', element: 'Água', color: '#6C7BFF' },
+];
