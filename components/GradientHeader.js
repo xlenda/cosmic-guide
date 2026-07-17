@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 
 export default function GradientHeader({ title, subtitle, onBack, right, gradient = gradients.hero }) {
@@ -11,7 +11,13 @@ export default function GradientHeader({ title, subtitle, onBack, right, gradien
     <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.wrap, { paddingTop: insets.top + 8 }]}>
       <View style={styles.row}>
         {onBack ? (
-          <TouchableOpacity onPress={onBack} style={styles.iconBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.iconBtn}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar"
+          >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
         ) : <View style={styles.iconBtn} />}

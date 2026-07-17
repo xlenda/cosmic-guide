@@ -1,11 +1,17 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, Platform, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
+import {
+  isDailyThoughtEnabled,
+  requestNotificationPermission,
+  scheduleDailyThought,
+  cancelDailyThought,
+} from '../lib/notifications';
 
 function MenuRow({ icon, label, onPress, last }) {
   return (
@@ -23,9 +29,49 @@ function MenuRow({ icon, label, onPress, last }) {
   );
 }
 
+function ToggleRow({ icon, label, value, onValueChange, last }) {
+  return (
+    <View style={[styles.row, !last && styles.rowBorder]}>
+      <View style={styles.rowIcon}>
+        <Ionicons name={icon} size={18} color={colors.accent} />
+      </View>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: colors.border, true: colors.accent }}
+        thumbColor="#fff"
+      />
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { coupleData, hasAccess, clearAll } = useCouple();
+  const [thoughtEnabled, setThoughtEnabled] = useState(false);
+
+  useEffect(() => {
+    isDailyThoughtEnabled().then(setThoughtEnabled);
+  }, []);
+
+  async function toggleDailyThought(next) {
+    if (next) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          'Permissão necessária',
+          'Ative as notificações do Cosmic Guide nas configurações do aparelho para receber o pensamento cósmico diário.'
+        );
+        return;
+      }
+      const ok = await scheduleDailyThought();
+      setThoughtEnabled(ok);
+    } else {
+      await cancelDailyThought();
+      setThoughtEnabled(false);
+    }
+  }
 
   return (
     <View style={styles.root}>
@@ -55,6 +101,17 @@ export default function ProfileScreen() {
             label={coupleData ? 'Refazer quiz do casal' : 'Adicionar parceiro(a)'}
             onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
           />
+          {/* Notificação local (expo-notifications) não existe de verdade na
+              web — escondida na versão web em vez de mostrar um toggle que
+              não faz nada. */}
+          {Platform.OS !== 'web' && (
+            <ToggleRow
+              icon="sparkles"
+              label="Pensamento cósmico diário"
+              value={thoughtEnabled}
+              onValueChange={toggleDailyThought}
+            />
+          )}
           <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} last={!coupleData} />
           {/* Assinatura só existe para casais — modo solo fica de fora (ver
               decisão do plano: monetização é a experiência de casal). */}

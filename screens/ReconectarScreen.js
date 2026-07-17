@@ -11,7 +11,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
@@ -132,9 +132,9 @@ export default function ReconectarScreen() {
     if (!voce || !amor) return;
     const [c, descobrir] = await Promise.all([getReconectarChecks(voce, amor), getDescobrirData(voce, amor)]);
     setChecks(c);
+    const rec = trilhaRecomendada(descobrir.apego?.top, null, descobrir.conflictos?.desafio);
+    setRecomendada(rec);
     if (!recomendadaAppliedRef.current) {
-      const rec = trilhaRecomendada(descobrir.apego?.top, null, descobrir.conflictos?.desafio);
-      setRecomendada(rec);
       if (rec) setOpen(rec);
       recomendadaAppliedRef.current = true;
     }

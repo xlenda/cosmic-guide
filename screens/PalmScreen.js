@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,27 +10,58 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import { colors, gradients } from '../theme';
+import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { getMockPalmReading } from '../lib/palmReadings';
 import { fetchAiPalmReading } from '../lib/aiClient';
+import { useCouple } from '../context/CoupleContext';
+import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import OneTimeLock from '../components/OneTimeLock';
+
+const FEATURE_KEY = 'palm';
+
+// Redimensiona pro lado maior no máximo 1024px antes de gerar o base64 —
+// uma foto de câmera moderna (ex.: 4000x3000) vira alguns MB em base64 sem
+// isso, arriscando timeout/limite de tamanho no backend. Ajustar quality
+// aqui (compressão JPEG) não reduz a resolução, só o tamanho do arquivo —
+// por isso o resize explícito, não só um quality mais baixo.
+async function resizeForUpload(uri) {
+  const result = await manipulateAsync(uri, [{ resize: { width: 1024 } }], {
+    compress: 0.7,
+    format: SaveFormat.JPEG,
+    base64: true,
+  });
+  return result;
+}
 
 const DISCLAIMER =
-  'Esta leitura é só para entretenimento — a IA analisa a foto enviada, mas o texto é uma ' +
-  'reflexão simbólica sobre as linhas da mão, não um exame médico ou uma previsão real.';
+  'Esta leitura une IA com milênios de tradição da quiromancia — símbolos das linhas da mão ' +
+  'interpretados e refinados através de gerações. Não substitui exame médico nem garante ' +
+  'resultados; é um espelho simbólico para autoconhecimento.';
 
 // Estados possíveis da tela: intro (sem foto) -> preview (foto escolhida,
 // aguardando "Analisar") -> result (leitura mockada exibida).
 const STEP = { INTRO: 'intro', PREVIEW: 'preview', RESULT: 'result' };
 
 export default function PalmScreen() {
+  const navigation = useNavigation();
+  const { hasAccess } = useCouple();
   const [step, setStep] = useState(STEP.INTRO);
   const [imageUri, setImageUri] = useState(null);
   const [imageBase64, setImageBase64] = useState(null);
   const [reading, setReading] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [permissionError, setPermissionError] = useState(null);
+  const [locked, setLocked] = useState(false);
+
+  useEffect(() => {
+    if (hasAccess) return;
+    hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
+  }, [hasAccess]);
 
   const resetToIntro = () => {
     setStep(STEP.INTRO);
@@ -40,12 +71,30 @@ export default function PalmScreen() {
     setPermissionError(null);
   };
 
-  const handlePickedResult = (result) => {
+  const handlePickedResult = async (result) => {
     if (result.canceled || !result.assets || !result.assets[0]) return;
     setPermissionError(null);
-    setImageUri(result.assets[0].uri);
-    setImageBase64(result.assets[0].base64 || null);
+    const asset = result.assets[0];
+    setImageUri(asset.uri);
     setStep(STEP.PREVIEW);
+
+    // Redimensiona só se a foto for maior que o alvo — evita upscaling
+    // desnecessário de fotos já pequenas (ex.: vindas da galeria web).
+    try {
+      const precisaReduzir = (asset.width || 0) > 1024 || (asset.height || 0) > 1024;
+      if (precisaReduzir) {
+        const resized = await resizeForUpload(asset.uri);
+        setImageBase64(resized.base64 || asset.base64 || null);
+        if (resized.uri) setImageUri(resized.uri);
+      } else {
+        setImageBase64(asset.base64 || null);
+      }
+    } catch {
+      // Se o resize falhar por qualquer motivo, ainda temos o base64 original
+      // do picker como fallback — melhor mandar em resolução alta do que não
+      // mandar nada.
+      setImageBase64(asset.base64 || null);
+    }
   };
 
   const handleTakePhoto = async () => {
@@ -59,7 +108,9 @@ export default function PalmScreen() {
       }
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
+        // Resolução de verdade é tratada em resizeForUpload (expo-image-manipulator,
+        // handlePickedResult) — quality aqui só afeta a prévia local antes do resize.
+        quality: 0.8,
         base64: true,
         allowsEditing: Platform.OS !== 'web',
       });
@@ -81,7 +132,9 @@ export default function PalmScreen() {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
+        // Resolução de verdade é tratada em resizeForUpload (expo-image-manipulator,
+        // handlePickedResult) — quality aqui só afeta a prévia local antes do resize.
+        quality: 0.8,
         base64: true,
         allowsEditing: Platform.OS !== 'web',
       });
@@ -106,9 +159,14 @@ export default function PalmScreen() {
     }
 
     setReading(result);
+    markFeatureUsedOnce(FEATURE_KEY);
     setIsAnalyzing(false);
     setStep(STEP.RESULT);
   };
+
+  if (!hasAccess && locked) {
+    return <OneTimeLock featureTitle="Leitura de Palma" gradient={gradients.purple} />;
+  }
 
   return (
     <View style={styles.root}>
@@ -175,6 +233,21 @@ export default function PalmScreen() {
               <Text style={styles.resultTitle}>{reading.title}</Text>
               <Text style={styles.resultBody}>{reading.body}</Text>
             </View>
+
+            {!hasAccess && (
+              <View style={styles.upsellCard}>
+                <Text style={styles.upsellText}>
+                  Gostou dessa leitura? Assine e desbloqueie a experiência completa do casal — 7 dias grátis
+                </Text>
+                <TouchableOpacity
+                  style={styles.upsellBtn}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
+                >
+                  <Text style={styles.upsellBtnText}>Assinar →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
 
@@ -266,4 +339,16 @@ const styles = StyleSheet.create({
   },
   resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   resultBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  upsellCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 10,
+    alignItems: 'center',
+  },
+  upsellText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  upsellBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 20 },
+  upsellBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });

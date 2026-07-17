@@ -8,11 +8,15 @@
 // montagem: RN's View não aceita `id`, então usamos `nativeID`, que o
 // react-native-web repassa como o atributo `id` do <div> real no DOM.
 //
-// Só existe no export web (Platform.OS === 'web'): checkout embutido nativo fica
-// fora de escopo por ora.
+// No nativo (Platform.OS !== 'web'), o checkout embutido via Elements não é
+// viável (é um script/DOM), então abrirCheckoutNativo abre o fallback Hotmart
+// num navegador in-app (expo-web-browser) e anexa o xcod do correlationCode já
+// criado por initiateCheckout(), pra manter a mesma correlação que o webhook
+// (HotmartPaymentProvider.parseWebhookEvent) já sabe ler em data.purchase.origin.xcod.
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Linking, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors } from '../theme';
 import { useCouple } from '../context/CoupleContext';
@@ -42,25 +46,53 @@ function loadHotmartScript() {
   });
 }
 
-function NativeNotAvailableCard() {
-  const navigation = useNavigation();
+// pt-BR amigável pra cada subscriptionStatus retornado pelo backend
+// (checkSubscriptionStatus / CoupleContext) — 'pending' nunca chega aqui porque
+// quem chama já trata esse caso como "ainda oferecer o checkout".
+const STATUS_LABELS = {
+  active: 'Ativa',
+  past_due: 'Pagamento pendente',
+  pending: 'Aguardando confirmação',
+  canceled: 'Cancelada',
+  expired: 'Expirada',
+};
+
+// Parse simples de um ISO8601 (ex.: "2026-08-07T00:00:00.000Z") pra DD/MM/AAAA,
+// sem lib nova. Retorna null se `iso` vier vazio/inválido.
+function formatarDataBR(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const ano = d.getFullYear();
+  return `${dia}/${mes}/${ano}`;
+}
+
+// Reusado pela versão web e pela nativa: quem já é assinante nunca deve ver o
+// botão de checkout de novo (esse era o bug original de reoferecer "Começar 7
+// dias grátis" pra quem já paga) — por isso este card não tem CTA nenhum.
+function SubscriptionStatusCard({ status, currentPeriodEnd, onBack }) {
+  const label = STATUS_LABELS[status] || status;
+  const dataRenovacao = formatarDataBR(currentPeriodEnd);
   return (
     <View style={styles.root}>
-      <GradientHeader title="Assinatura" onBack={() => navigation.goBack()} />
-      <View style={styles.center}>
-        <Ionicons name="phone-portrait-outline" size={40} color={colors.textMuted} />
-        <Text style={styles.centerTitle}>Ainda não disponível no app nativo</Text>
-        <Text style={styles.centerText}>
-          Abra o Cosmic Guide pelo navegador para assinar — em breve isso chega direto por aqui também.
-        </Text>
-      </View>
+      <GradientHeader title="Assinatura" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.card}>
+          <Ionicons name="checkmark-circle" size={40} color={colors.accent} />
+          <Text style={styles.cardTitle}>Você já é assinante</Text>
+          <Text style={styles.cardText}>Status: {label}</Text>
+          {dataRenovacao && <Text style={styles.cardText}>Renova em {dataRenovacao}</Text>}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 function PlanosScreenWeb() {
   const navigation = useNavigation();
-  const { coupleData, refreshAccess } = useCouple();
+  const { coupleData, refreshAccess, hasAccess, subscriptionStatus, currentPeriodEnd } = useCouple();
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -99,6 +131,20 @@ function PlanosScreenWeb() {
       refreshAccess();
     }, [refreshAccess])
   );
+
+  // Quem já é assinante (trial, ativo, past_due, cancelado, expirado) nunca deve
+  // ver o fluxo de checkout de novo — só 'pending' (aguardando confirmação do
+  // webhook) ainda cai no fluxo normal abaixo, porque nesse ponto o checkout
+  // pode não ter sido concluído de fato.
+  if (hasAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
+    return (
+      <SubscriptionStatusCard
+        status={subscriptionStatus}
+        currentPeriodEnd={currentPeriodEnd}
+        onBack={() => navigation.goBack()}
+      />
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -159,8 +205,85 @@ function PlanosScreenWeb() {
   );
 }
 
+// Fluxo nativo (iOS/Android da loja): o Hotmart Checkout Elements é um script
+// carregado no DOM, então não roda aqui — em vez disso abrimos o fallback
+// (HOTMART_CHECKOUT_FALLBACK) num navegador in-app via expo-web-browser, com o
+// xcod do correlationCode já criado por initiateCheckout() anexado à URL, pra
+// o webhook (HotmartPaymentProvider.parseWebhookEvent) conseguir correlacionar
+// a compra a este casal do mesmo jeito que faz no funil web.
+function PlanosScreenNative() {
+  const navigation = useNavigation();
+  const { coupleData, hasAccess, subscriptionStatus, currentPeriodEnd, refreshAccess } = useCouple();
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshAccess();
+    }, [refreshAccess])
+  );
+
+  const abrirCheckoutNativo = useCallback(async () => {
+    setErro('');
+    setCarregando(true);
+    try {
+      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor);
+      const xcod = data?.checkoutConfig?.xcod;
+      const url = xcod
+        ? `${HOTMART_CHECKOUT_FALLBACK}&xcod=${encodeURIComponent(xcod)}`
+        : HOTMART_CHECKOUT_FALLBACK;
+      await WebBrowser.openBrowserAsync(url);
+      setCarregando(false);
+      // A ativação real só chega pelo webhook (assíncrono) — isso só reflete o
+      // que já processou até agora, igual ao refreshAccess-no-foco da web.
+      refreshAccess();
+    } catch (err) {
+      setErro('Não conseguimos abrir o checkout agora. Tente de novo em instantes.');
+      setCarregando(false);
+      refreshAccess();
+    }
+  }, [coupleData, refreshAccess]);
+
+  if (hasAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
+    return (
+      <SubscriptionStatusCard
+        status={subscriptionStatus}
+        currentPeriodEnd={currentPeriodEnd}
+        onBack={() => navigation.goBack()}
+      />
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <GradientHeader
+        title="Assinatura"
+        subtitle="$5 USD/mês · 7 dias grátis"
+        onBack={() => navigation.goBack()}
+      />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Desbloqueie a experiência completa do casal</Text>
+          <Text style={styles.cardText}>
+            Linha do tempo, cápsulas do tempo, rotas de reconexão, progresso e retrospectiva — tudo isso
+            fica liberado com a assinatura.
+          </Text>
+          {carregando ? (
+            <ActivityIndicator color={colors.accent} size="large" style={styles.nativeLoader} />
+          ) : (
+            <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={abrirCheckoutNativo}>
+              <Text style={styles.btnText}>Começar meus 7 dias grátis →</Text>
+            </TouchableOpacity>
+          )}
+          {erro !== '' && <Text style={[styles.errorText, styles.nativeErrorSpacing]}>{erro}</Text>}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function PlanosScreen() {
-  if (Platform.OS !== 'web') return <NativeNotAvailableCard />;
+  if (Platform.OS !== 'web') return <PlanosScreenNative />;
   return <PlanosScreenWeb />;
 }
 
@@ -179,10 +302,11 @@ const styles = StyleSheet.create({
   btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border },
   btnGhostText: { color: colors.text, fontSize: 14, fontWeight: '700' },
   center: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 16 },
-  centerTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 14, textAlign: 'center' },
   centerText: { color: colors.textMuted, fontSize: 13, marginTop: 8, textAlign: 'center', lineHeight: 19 },
   mount: { minHeight: 480, marginTop: 16 },
   mountHidden: { minHeight: 0 },
   backLink: { alignItems: 'center', marginTop: 20 },
   backLinkText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
+  nativeLoader: { marginTop: 18 },
+  nativeErrorSpacing: { marginTop: 14 },
 });

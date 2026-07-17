@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
@@ -43,7 +43,7 @@ export default function PrivacyScreen() {
     <View style={styles.root}>
       <GradientHeader title="Privacidade" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>O que guardamos</Text>
+        <Text style={styles.sectionTitle}>O que guardamos neste aparelho</Text>
         <View style={styles.card}>
           <PrivacyRow icon="people" text="Nomes de vocês dois" />
           <PrivacyRow icon="calendar" text="Datas de nascimento" />
@@ -51,14 +51,25 @@ export default function PrivacyScreen() {
           <PrivacyRow icon="planet" text="Signos derivados das datas" last />
         </View>
 
+        <Text style={styles.sectionTitle}>O que enviamos para gerar leituras de IA</Text>
+        <View style={styles.card}>
+          <PrivacyRow icon="hand-left" text="Foto da palma da mão (Leitura de Palma)" />
+          <PrivacyRow icon="cafe" text="Foto da borra de café (Ritual do Café)" />
+          <PrivacyRow icon="moon" text="Texto do sonho que você descreve (Sonhos)" />
+          <PrivacyRow icon="chatbubbles" text="Mensagens da conversa (Chat Espiritual)" last />
+        </View>
+
         <Text style={styles.sectionTitle}>Como usamos</Text>
         <View style={styles.card}>
           <View style={styles.cardPad}>
             <Text style={styles.paragraph}>
-              Esses dados servem só para calcular a sinastria (compatibilidade astrológica) e o horóscopo diário de vocês dois.
+              Nomes, datas, horários e signos servem só para calcular a sinastria (compatibilidade astrológica) e o
+              horóscopo diário de vocês dois — ficam guardados só neste aparelho, nunca são enviados para nenhum servidor.
             </Text>
             <Text style={[styles.paragraph, { marginBottom: 0 }]}>
-              Tudo fica guardado localmente neste aparelho — nada é enviado para servidores nem compartilhado com terceiros.
+              Já a foto ou o texto que você envia para uma leitura de Palma, Café, Sonhos ou Chat é enviado para o
+              nosso servidor e processado por um serviço de IA de terceiros (Anthropic) só na hora de gerar aquela
+              interpretação — não fica guardado depois que a resposta é gerada.
             </Text>
           </View>
         </View>

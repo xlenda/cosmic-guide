@@ -7,7 +7,7 @@ export const colors = {
   text: '#F3EEFF',
   textSecondary: '#C4B8E6',
   textMuted: '#8A7CB0',
-  accent: '#A66CFF',
+  accent: '#7B3FB5',
   accent2: '#6C7BFF',
   purple: '#B57BFF',
   pink: '#FF7BD5',

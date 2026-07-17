@@ -1,33 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
-import ScoreBar from '../components/ScoreBar';
+import { compatibility, compatPercent } from '../lib/signs.js';
+import { useCouple } from '../context/CoupleContext';
+import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import OneTimeLock from '../components/OneTimeLock';
+
+const FEATURE_KEY = 'compatibility';
 
 export default function CompatibilityScreen() {
   const navigation = useNavigation();
+  const { hasAccess } = useCouple();
   const [signA, setSignA] = useState(zodiacSigns[0]);
   const [signB, setSignB] = useState(zodiacSigns[5]);
   const [picking, setPicking] = useState(null); // 'A' | 'B' | null
   const [result, setResult] = useState(null);
+  const [locked, setLocked] = useState(false);
+
+  useEffect(() => {
+    if (hasAccess) return;
+    hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
+  }, [hasAccess]);
 
   const compute = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const seed = signA.name.length + signB.name.length + signA.icon.charCodeAt(0) + signB.icon.charCodeAt(0);
-    const base = 50 + (seed % 45);
-    const sameElement = signA.element === signB.element;
-    const overall = Math.min(99, base + (sameElement ? 10 : 0));
-    setResult({
-      overall,
-      love: Math.min(99, overall + (seed % 12) - 5),
-      sex: Math.min(99, overall + (seed % 20) - 8),
-      family: Math.min(99, overall - (seed % 10)),
-      friendship: Math.min(99, overall + (seed % 8) - 2),
-    });
+    const compat = compatibility(signA.name, signB.name);
+    const pct = compatPercent(signA.name, signB.name);
+    if (!compat || pct === null) { setResult(null); return; }
+    setResult({ overall: pct, texto: compat.texto, forte: compat.forte, cuidado: compat.cuidado });
+    markFeatureUsedOnce(FEATURE_KEY);
   };
 
   const pick = (z) => {
@@ -37,6 +43,10 @@ export default function CompatibilityScreen() {
     setPicking(null);
     setResult(null);
   };
+
+  if (!hasAccess && locked) {
+    return <OneTimeLock featureTitle="Compatibilidade" gradient={['#B5286B', '#7B3FB5']} />;
+  }
 
   return (
     <View style={styles.root}>
@@ -83,17 +93,28 @@ export default function CompatibilityScreen() {
                 <Text style={styles.resultTitle}>
                   {result.overall >= 80 ? 'O encontro gera paixão!' : result.overall >= 60 ? 'Uma bela conexão em potencial' : 'Requer dedicação e diálogo'}
                 </Text>
-                <Text style={styles.resultDesc}>
-                  {signA.pt} ({signA.element}) e {signB.pt} ({signB.element}) formam uma dinâmica {signA.element === signB.element ? 'harmoniosa e natural' : 'complementar e cheia de aprendizado'}.
-                </Text>
+                <Text style={styles.resultDesc}>{result.texto}</Text>
               </LinearGradient>
             </View>
 
-            <View style={styles.scoresCard}>
-              <ScoreBar label="Amor" value={result.love} gradient={['#FF6BA0', '#FF8C5C']} />
-              <ScoreBar label="Sexo" value={result.sex} gradient={['#FF6B7A', '#B57BFF']} />
-              <ScoreBar label="Família" value={result.family} gradient={['#5FD98C', '#5CE0D8']} />
-              <ScoreBar label="Amizade" value={result.friendship} gradient={['#5CA8FF', '#6C7BFF']} />
+            <View style={styles.traitCard}>
+              <View style={[styles.traitIcon, { backgroundColor: colors.pink + '22' }]}>
+                <Ionicons name="heart-circle" size={20} color={colors.pink} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.traitLabel}>Ponto forte</Text>
+                <Text style={styles.traitText}>{result.forte}</Text>
+              </View>
+            </View>
+
+            <View style={styles.traitCard}>
+              <View style={[styles.traitIcon, { backgroundColor: colors.accent + '22' }]}>
+                <Ionicons name="alert-circle" size={20} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.traitLabel}>Atenção</Text>
+                <Text style={styles.traitText}>{result.cuidado}</Text>
+              </View>
             </View>
           </>
         )}
@@ -144,5 +165,8 @@ const styles = StyleSheet.create({
   circleLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12 },
   resultTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
   resultDesc: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 8 },
-  scoresCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginTop: 16, borderWidth: 1, borderColor: colors.border },
+  traitCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
+  traitIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  traitLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  traitText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 3 },
 });

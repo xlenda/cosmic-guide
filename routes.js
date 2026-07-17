@@ -14,6 +14,7 @@ export const ROUTES = {
   BIRTH_CHART: 'BirthChart',
   DREAM: 'Dream',
   PALM: 'Palm',
+  LUNAR_CALENDAR: 'LunarCalendar',
   COFFEE: 'Coffee',
   COMPATIBILITY: 'Compatibility',
   QUIZ: 'Quiz',

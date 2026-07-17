@@ -6,13 +6,32 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
 
 import { colors } from './theme';
 import { ROUTES } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CoupleProvider, useCouple } from './context/CoupleContext';
+
+// Sem isso, uma notificação chegando com o app ABERTO (foreground) não mostra
+// nada — o handler decide o comportamento nesse caso (banner + som, sem
+// badge). expo-notifications não existe de verdade na web, por isso o
+// require fica dentro do try/catch (mesmo padrão de lib/notifications.js).
+if (Platform.OS !== 'web') {
+  try {
+    const Notifications = require('expo-notifications');
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  } catch {}
+}
+import { LanguageProvider } from './context/LanguageContext';
 import HomeScreen from './screens/HomeScreen';
 import HoroscopeScreen from './screens/HoroscopeScreen';
 import BirthChartScreen from './screens/BirthChartScreen';
@@ -20,6 +39,7 @@ import TarotScreen from './screens/TarotScreen';
 import CompatibilityScreen from './screens/CompatibilityScreen';
 import DreamScreen from './screens/DreamScreen';
 import PalmScreen from './screens/PalmScreen';
+import LunarCalendarScreen from './screens/LunarCalendarScreen';
 import CoffeeScreen from './screens/CoffeeScreen';
 import ChatScreen from './screens/ChatScreen';
 import ProfileScreen from './screens/ProfileScreen';
@@ -108,6 +128,7 @@ function HomeStack() {
       <Stack.Screen name={ROUTES.BIRTH_CHART} component={BirthChartScreen} />
       <Stack.Screen name={ROUTES.DREAM} component={DreamScreen} />
       <Stack.Screen name={ROUTES.PALM} component={PalmScreen} />
+      <Stack.Screen name={ROUTES.LUNAR_CALENDAR} component={LunarCalendarScreen} />
       <Stack.Screen name={ROUTES.COFFEE} component={CoffeeScreen} />
       <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
       <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
@@ -214,9 +235,11 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <StatusBar style="light" />
-          <CoupleProvider>
-            <Gate />
-          </CoupleProvider>
+          <LanguageProvider>
+            <CoupleProvider>
+              <Gate />
+            </CoupleProvider>
+          </LanguageProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

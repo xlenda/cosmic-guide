@@ -9,7 +9,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, gradients, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
@@ -21,14 +21,22 @@ export default function OnboardingChoiceScreen() {
   const { saveSolo } = useCouple();
   const [showSignPicker, setShowSignPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   async function pickSign(z) {
     if (saving) return;
     Haptics.selectionAsync();
     setSaving(true);
+    setError('');
     // Sem setSaving(false) no caminho feliz: assim que soloSign existir no
     // contexto, o Gate em App.js troca esta tela pelo Tab.Navigator sozinho.
-    await saveSolo(z);
+    // Mas se o storage falhar, saveSolo retorna false e precisamos reverter o
+    // spinner manualmente — senão o usuário fica preso na tela para sempre.
+    const ok = await saveSolo(z);
+    if (!ok) {
+      setSaving(false);
+      setError('Não foi possível salvar seu signo. Tente novamente.');
+    }
   }
 
   return (
@@ -89,6 +97,8 @@ export default function OnboardingChoiceScreen() {
 
             <Text style={styles.pickerTitle}>Qual é o seu signo?</Text>
 
+            {!!error && <Text style={styles.errorText}>{error}</Text>}
+
             {saving ? (
               <View style={styles.savingWrap}>
                 <ActivityIndicator color={colors.accent} size="large" />
@@ -142,4 +152,5 @@ const styles = StyleSheet.create({
   pickerGlyph: { fontSize: 26 },
   pickerName: { color: colors.textSecondary, fontSize: 12, marginTop: 6, fontWeight: '600' },
   savingWrap: { paddingVertical: 40, alignItems: 'center' },
+  errorText: { color: colors.red, fontSize: 13, textAlign: 'center', marginBottom: 12 },
 });

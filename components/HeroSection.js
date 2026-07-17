@@ -4,7 +4,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { gradients, zodiacSigns } from '../theme';
 import { streakEmoji } from '../lib/coupleData';
 

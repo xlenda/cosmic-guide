@@ -37,8 +37,11 @@ import {
 } from '../lib/signs';
 import { searchCities, cityLabel } from '../lib/cities';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 
-const STEPS = ['Vocês', 'Signo e Nascimento', 'Energia', 'Cartas', 'Astros'];
+// Chaves de tradução (não os nomes exibidos) — a exibição real passa por
+// t(STEPS[idx]) onde for mostrado; aqui só serve de key/índice estável.
+const STEPS = ['quiz.step.voces', 'quiz.step.signoNascimento', 'quiz.step.energia', 'quiz.step.cartas', 'quiz.step.astros'];
 const TOTAL = 5;
 
 const ENERGIAS = [
@@ -260,6 +263,7 @@ export default function QuizScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { save } = useCouple();
+  const { t } = useLanguage();
 
   const [step, setStep] = useState(1);
   const [voce, setVoce] = useState('');
@@ -289,6 +293,20 @@ export default function QuizScreen() {
   const [saving, setSaving] = useState(false);
 
   const amorInputRef = useRef(null);
+  // Guarda os ids do setInterval/setTimeout do loading do passo 4->5 para
+  // poder cancelá-los se a tela desmontar (voltar pelo hardware back, reset de
+  // stack) enquanto a animação de ~1.4s ainda está rodando — sem isso, os
+  // timers seguem disparando setState num componente já desmontado.
+  const timersRef = useRef([]);
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(({ type, id }) => {
+        if (type === 'interval') clearInterval(id);
+        else clearTimeout(id);
+      });
+      timersRef.current = [];
+    };
+  }, []);
   const flipAnimsRef = useRef(null);
   if (!flipAnimsRef.current) {
     flipAnimsRef.current = {};
@@ -338,20 +356,29 @@ export default function QuizScreen() {
 
   function onNascVoceChange(dateStr) {
     setNascVoce(dateStr);
+    // DatePickerModal chama onConfirm a cada toque em "Confirmar", mesmo sem
+    // mudar a data. Se o usuário já tocou em "não é esse o signo" e escolheu
+    // manualmente, não pode reconfirmar a data e apagar essa escolha.
+    if (signoManualVoce) return;
     const auto = signoFromDate(dateStr);
     if (auto) setSignoVoce(auto);
   }
 
   function onNascAmorChange(dateStr) {
     setNascAmor(dateStr);
+    if (signoManualAmor) return;
     const auto = signoFromDate(dateStr);
     if (auto) setSignoAmor(auto);
   }
 
+  // Uma vez escolhida, a carta fica travada — sem voltar atrás e trocar por
+  // outra. Antes, tocar numa carta já escolhida a desmarcava (permitindo
+  // reescolher); agora só adiciona novas cartas até completar as 3.
   function toggleCarta(name) {
-    setCartas((prev) =>
-      prev.includes(name) ? prev.filter((c) => c !== name) : prev.length < 3 ? [...prev, name] : prev
-    );
+    setCartas((prev) => {
+      if (prev.includes(name) || prev.length >= 3) return prev;
+      return [...prev, name];
+    });
   }
 
   const compat = signoVoce && signoAmor ? compatibility(signoVoce, signoAmor) : null;
@@ -399,14 +426,16 @@ export default function QuizScreen() {
         phase += 1;
         if (phase >= msgs.length) {
           clearInterval(id);
-          setTimeout(() => {
+          const timeoutId = setTimeout(() => {
             setAnalisando(false);
             setStep(5);
           }, 350);
+          timersRef.current.push({ type: 'timeout', id: timeoutId });
         } else {
           setLoadingPhase(phase);
         }
       }, 350);
+      timersRef.current.push({ type: 'interval', id });
     } else {
       setStep((s) => s + 1);
     }
@@ -434,7 +463,7 @@ export default function QuizScreen() {
   async function finalizarQuiz() {
     if (saving) return;
     setSaving(true);
-    await save({
+    const ok = await save({
       voce,
       amor,
       sa: signoVoce,
@@ -443,6 +472,12 @@ export default function QuizScreen() {
       birthB: { date: nascAmor, time: nascHoraAmor || null },
     });
     setSaving(false);
+    if (!ok) {
+      // Perfil e/ou datas de nascimento falharam ao salvar — não navega como
+      // se tivesse dado certo. O botão volta a ficar habilitado para retry.
+      setAviso('Não foi possível salvar. Tente novamente.');
+      return;
+    }
     // No gate automático (usuário sem perfil) este Stack não tem pai — o
     // Gate em App.js já troca para o Tab.Navigator sozinho assim que
     // coupleData deixa de ser null. Como tela normal empurrada a partir do
@@ -467,7 +502,11 @@ export default function QuizScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <GradientHeader title="Quiz do Casal" subtitle={`Passo ${step} de ${TOTAL} · ${STEPS[step - 1]}`} onBack={handleBack} />
+      <GradientHeader
+        title={t('quiz.headerTitle')}
+        subtitle={t('quiz.headerSubtitle', { step, total: TOTAL, stepName: t(STEPS[step - 1]) })}
+        onBack={handleBack}
+      />
 
       <View style={styles.stepper}>
         {STEPS.map((label, idx) => {
@@ -518,24 +557,26 @@ export default function QuizScreen() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.scrollFlex}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         {step === 1 && (
           <View style={styles.hero}>
-            <Text style={styles.heroEyebrow}>Astrologia do casal</Text>
+            <Text style={styles.heroEyebrow}>{t('quiz.hero.eyebrow')}</Text>
             <Text style={styles.heroStar}>✴</Text>
-            <Text style={styles.heroTitle}>Trio Cósmico do Casal</Text>
-            <Text style={styles.heroGold}>em construção</Text>
-            <Text style={styles.heroSub}>
-              Sol + Ascendente + Lua. Cartas. Compatibilidade do casal. O mapa cósmico de vocês, completo.
-            </Text>
+            <Text style={styles.heroTitle}>{t('quiz.hero.title')}</Text>
+            <Text style={styles.heroGold}>{t('quiz.hero.gold')}</Text>
+            <Text style={styles.heroSub}>{t('quiz.hero.sub')}</Text>
           </View>
         )}
 
         {step === 1 && (
           <View>
-            <Text style={styles.sectionTitle}>Como vocês se chamam?</Text>
+            <Text style={styles.sectionTitle}>{t('quiz.names.title')}</Text>
             <View style={styles.field}>
-              <Text style={styles.label}>Seu nome</Text>
+              <Text style={styles.label}>{t('quiz.names.yourName')}</Text>
               <TextInput
                 style={styles.input}
                 autoFocus
@@ -545,12 +586,12 @@ export default function QuizScreen() {
                 value={voce}
                 onChangeText={setVoce}
                 onSubmitEditing={() => amorInputRef.current?.focus()}
-                placeholder="Ex.: Ana"
+                placeholder={t('quiz.names.yourNamePlaceholder')}
                 placeholderTextColor={colors.textMuted}
               />
             </View>
             <View style={styles.field}>
-              <Text style={styles.label}>Nome do seu amor</Text>
+              <Text style={styles.label}>{t('quiz.names.partnerName')}</Text>
               <TextInput
                 ref={amorInputRef}
                 style={styles.input}
@@ -562,7 +603,7 @@ export default function QuizScreen() {
                 onSubmitEditing={() => {
                   if (voce && amor) handleContinuar();
                 }}
-                placeholder="Ex.: Léo"
+                placeholder={t('quiz.names.partnerNamePlaceholder')}
                 placeholderTextColor={colors.textMuted}
               />
             </View>
@@ -684,7 +725,7 @@ export default function QuizScreen() {
 
         {step === 3 && (
           <View>
-            <Text style={styles.sectionTitle}>{voce} e {amor}: qual é a energia de vocês agora?</Text>
+            <Text style={styles.sectionTitle}>{t('quiz.energy.title', { voce, amor })}</Text>
             <View style={styles.energyGrid}>
               {ENERGIAS.map((d) => {
                 const sel = desejo === d;
@@ -706,17 +747,26 @@ export default function QuizScreen() {
 
         {step === 4 && (
           <View>
-            <Text style={styles.sectionTitle}>{voce} e {amor}, escolham 3 cartas</Text>
+            <Text style={styles.sectionTitle}>{t('quiz.cards.title', { voce, amor })}</Text>
             <Text style={styles.mutedCenter}>
               {cartas.length < 3
-                ? `Agora escolham a carta do ${['Passado', 'Presente', 'Futuro'][cartas.length]} · ${cartas.length}/3`
-                : `O passado, o presente e o futuro de ${voce} & ${amor} já estão sobre a mesa.`}
+                ? t('quiz.cards.progress', {
+                    position: t([
+                      'quiz.cards.position.past',
+                      'quiz.cards.position.present',
+                      'quiz.cards.position.future',
+                    ][cartas.length]),
+                    count: cartas.length,
+                  })
+                : t('quiz.cards.done', { voce, amor })}
             </Text>
 
             <View style={styles.tarotGrid}>
               {CARDS.map((c) => {
                 const flipped = cartas.includes(c.name);
-                const disabled = !flipped && cartas.length >= 3;
+                // Travada assim que virada (não dá pra tocar de novo pra desmarcar) e
+                // as demais desabilitam quando as 3 já foram escolhidas.
+                const disabled = flipped || cartas.length >= 3;
                 const anim = flipAnims[c.name];
                 const rotateBack = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
                 const rotateFront = anim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
@@ -728,7 +778,7 @@ export default function QuizScreen() {
                     activeOpacity={0.85}
                     disabled={disabled}
                     onPress={() => toggleCarta(c.name)}
-                    style={[styles.tarotCardWrap, disabled && styles.tarotCardDisabled]}
+                    style={[styles.tarotCardWrap, !flipped && disabled && styles.tarotCardDisabled]}
                   >
                     <Animated.View
                       style={[
@@ -755,12 +805,12 @@ export default function QuizScreen() {
             </View>
 
             <View style={styles.tray}>
-              {['Passado', 'Presente', 'Futuro'].map((rol, i) => {
+              {['quiz.cards.position.past', 'quiz.cards.position.present', 'quiz.cards.position.future'].map((rolKey, i) => {
                 const name = cartas[i];
                 const c = name && CARDS.find((x) => x.name === name);
                 return (
-                  <View key={rol} style={[styles.traySlot, c && styles.traySlotFilled]}>
-                    <Text style={styles.trayLabel}>{rol}</Text>
+                  <View key={rolKey} style={[styles.traySlot, c && styles.traySlotFilled]}>
+                    <Text style={styles.trayLabel}>{t(rolKey)}</Text>
                     <Text style={styles.trayEmoji}>{c ? c.emoji : '·'}</Text>
                   </View>
                 );
@@ -883,7 +933,7 @@ export default function QuizScreen() {
                 O mapa astral completo do casal — com mais camadas sobre como vocês se comunicam e se aproximam — continua se construindo agora, no painel de vocês.
               </Text>
               <TouchableOpacity style={[styles.btn, { marginTop: 16 }]} onPress={finalizarQuiz} disabled={saving}>
-                <Text style={styles.btnText}>{saving ? 'Salvando…' : 'Salvar e ver nosso início →'}</Text>
+                <Text style={styles.btnText}>{saving ? t('quiz.nav.saving') : t('quiz.nav.saveAndSee')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -900,7 +950,7 @@ export default function QuizScreen() {
         )}
         {step < TOTAL && (
           <TouchableOpacity style={styles.btn} onPress={handleContinuar}>
-            <Text style={styles.btnText}>{step === 4 ? 'Ver a revelação' : 'Continuar'}</Text>
+            <Text style={styles.btnText}>{step === 4 ? t('quiz.nav.seeReveal') : t('quiz.nav.continue')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -958,6 +1008,19 @@ const styles = StyleSheet.create({
   chip: { backgroundColor: colors.surfaceElevated, borderRadius: 12, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.border },
   chipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
 
+  // Sem isso, o ScrollView não fica limitado à altura disponível na tela — no
+  // React Native Web ele pode simplesmente crescer com o conteúdo em vez de
+  // rolar internamente, empurrando o navRow (fixo, fora do ScrollView) pra fora
+  // da área visível. Fica mais visível no passo 4 (Cartas), quando o buildStrip
+  // já acumulou o maior número de chips (nomes, 2 signos, energia) de todos os passos.
+  // minHeight: 0 é o pedaço que faltava: no CSS flexbox (react-native-web), um
+  // filho flex:1 não encolhe abaixo do tamanho do seu próprio conteúdo por
+  // padrão (min-height:auto do browser) — ele empurra os irmãos/a página
+  // inteira em vez de ativar o scroll interno. Sem isso, e como o Expo
+  // desativa o scroll da página (body{overflow:hidden}, ver expo-reset no
+  // index.html), não sobra nenhum jeito de rolar quando o conteúdo é alto o
+  // bastante — como no passo 5 (Astros), que empilha 6 blocos de conteúdo.
+  scrollFlex: { flex: 1, minHeight: 0 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 24, paddingTop: 8 },
 
   hero: { alignItems: 'center', marginBottom: 20 },

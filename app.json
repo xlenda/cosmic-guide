@@ -23,7 +23,17 @@
       "baseUrl": "/cosmic-guide"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Permitir acesso à câmera para fotografar sua palma da mão ou a borra do café para a leitura simbólica.",
+          "photosPermission": "Permitir acesso às fotos para escolher uma imagem da palma da mão ou da borra do café para a leitura simbólica.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

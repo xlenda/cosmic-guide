@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme';
 
@@ -14,8 +14,11 @@ export default function FeatureCard({ title, subtitle, icon, gradient, onPress, 
         onPress && onPress();
       }}
       style={styles.card}
+      accessibilityRole="button"
+      accessibilityLabel={locked ? `${title}, recurso bloqueado, requer assinatura` : title}
     >
       <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.grad, locked && styles.gradLocked]}>
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <View style={styles.iconWrap}>
           <Ionicons name={icon} size={24} color="#fff" />
         </View>
