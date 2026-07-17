@@ -2,7 +2,7 @@
 // referência já validadas em test/lunarCalendar.test.js), não frase solta.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { getThoughtForDate } = require("../lib/dailyThought.js");
+const { getThoughtForDate, rulerOfDay } = require("../lib/dailyThought.js");
 
 test("lua cheia conhecida (25/jan/2024) aparece de verdade no texto", () => {
   const thought = getThoughtForDate(new Date("2024-01-25T17:54:00Z"));
@@ -43,4 +43,26 @@ test("sem signo pessoal, o texto continua igual ao de antes (compatibilidade)", 
   const semSigno = getThoughtForDate(date);
   const comSignoNulo = getThoughtForDate(date, null);
   assert.equal(semSigno, comSignoNulo);
+});
+
+test("rulerOfDay bate com a regência tradicional real do dia da semana (calendário real, não chutado)", () => {
+  assert.equal(rulerOfDay(new Date(2024, 0, 7)).planet, "Sol", "07/jan/2024 é domingo");
+  assert.equal(rulerOfDay(new Date(2024, 0, 10)).planet, "Mercúrio", "10/jan/2024 é quarta");
+  assert.equal(rulerOfDay(new Date(2024, 0, 12)).planet, "Vênus", "12/jan/2024 é sexta");
+  assert.equal(rulerOfDay(new Date(2024, 0, 13)).planet, "Saturno", "13/jan/2024 é sábado");
+});
+
+test("o texto sempre inclui a frase do regente do dia", () => {
+  const thought = getThoughtForDate(new Date(2024, 0, 12, 12, 0, 0));
+  assert.ok(thought.includes("Hoje é dia de Vênus"), thought);
+});
+
+test("inclui aviso de Mercúrio retrógrado quando a data cai num período retrógrado real (15/abr/2024)", () => {
+  const thought = getThoughtForDate(new Date(2024, 3, 15, 12, 0, 0));
+  assert.ok(thought.includes("Mercúrio está retrógrado"), thought);
+});
+
+test("não inclui aviso de Mercúrio retrógrado fora dos períodos reais (01/jun/2024)", () => {
+  const thought = getThoughtForDate(new Date(2024, 5, 1, 12, 0, 0));
+  assert.ok(!thought.includes("Mercúrio está retrógrado"), thought);
 });

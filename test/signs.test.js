@@ -11,6 +11,7 @@ const {
   aspects,
   planetPositions,
   cosmicNumbers,
+  isMercuryRetrograde,
   SIGNS,
 } = require("../lib/signs.js");
 
@@ -88,4 +89,17 @@ test("cosmicNumbers é determinístico pro mesmo seed (mesma leitura ao reabrir 
   const a = cosmicNumbers("casal-x", 5);
   const b = cosmicNumbers("casal-x", 5);
   assert.deepEqual(a, b);
+});
+
+test("isMercuryRetrograde nunca fabrica: sem data real devolve null", () => {
+  assert.equal(isMercuryRetrograde(null), null);
+  assert.equal(isMercuryRetrograde("data-invalida"), null);
+});
+
+test("isMercuryRetrograde(15/abr/2024) é true — dentro do período retrógrado real confirmado (1-25/abr/2024)", () => {
+  assert.equal(isMercuryRetrograde("2024-04-15"), true);
+});
+
+test("isMercuryRetrograde(01/jun/2024) é false — bem fora dos 3 períodos retrógrados reais de 2024", () => {
+  assert.equal(isMercuryRetrograde("2024-06-01"), false);
 });
