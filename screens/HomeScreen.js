@@ -106,8 +106,10 @@ export default function HomeScreen() {
   // Determinístico por data (lib/dailyThought.js) — mesmo texto pra todo
   // mundo que abrir o app hoje, muda sozinho à meia-noite. Mesmo conteúdo
   // que a notificação diária (Perfil > Pensamento cósmico diário) só avisa
-  // que chegou — o texto de verdade sempre vive aqui dentro.
-  const todaysThought = getTodaysThought();
+  // que chegou — o texto de verdade sempre vive aqui dentro. Passa o `sign`
+  // já calculado acima (real, casal ou solo — nunca inventado aqui) pra
+  // personalizar o endereçamento da frase.
+  const todaysThought = getTodaysThought(sign);
 
   if (loading) {
     return (

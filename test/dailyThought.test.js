@@ -30,3 +30,17 @@ test("datas diferentes tendem a gerar textos diferentes (fase/signo mudam de ver
   const d2 = getThoughtForDate(new Date("2024-01-25T12:00:00Z"));
   assert.notEqual(d1, d2);
 });
+
+test("signo pessoal (opcional) aparece no início do texto quando informado", () => {
+  const date = new Date("2024-01-25T17:54:00Z");
+  const thought = getThoughtForDate(date, { name: "Touro", icon: "♉" });
+  assert.ok(thought.startsWith("♉ Touro,"), thought);
+  assert.ok(thought.includes("Lua Cheia"), thought);
+});
+
+test("sem signo pessoal, o texto continua igual ao de antes (compatibilidade)", () => {
+  const date = new Date("2024-01-25T17:54:00Z");
+  const semSigno = getThoughtForDate(date);
+  const comSignoNulo = getThoughtForDate(date, null);
+  assert.equal(semSigno, comSignoNulo);
+});
