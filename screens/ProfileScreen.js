@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, Platform, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../theme';
+import { colors, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
@@ -12,6 +12,7 @@ import {
   scheduleDailyThought,
   cancelDailyThought,
 } from '../lib/notifications';
+import { isWebPushSupported, isWebPushEnabled, subscribeToWebPush, unsubscribeFromWebPush } from '../lib/webPush';
 
 function MenuRow({ icon, label, onPress, last }) {
   return (
@@ -48,11 +49,18 @@ function ToggleRow({ icon, label, value, onValueChange, last }) {
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { coupleData, hasAccess, clearAll } = useCouple();
+  const { coupleData, soloSign, hasAccess, clearAll } = useCouple();
   const [thoughtEnabled, setThoughtEnabled] = useState(false);
+  const [webPushEnabled, setWebPushEnabled] = useState(false);
+
+  // Mesmo "meu signo" já calculado em HomeScreen.js (casal usa coupleData.sa,
+  // solo usa soloSign) — reaproveitado aqui só pra personalizar o texto que o
+  // Web Push manda todo dia (ver lib/webPush.js).
+  const mySign = (coupleData?.sa && zodiacSigns.find((z) => z.name === coupleData.sa)) || soloSign || null;
 
   useEffect(() => {
     isDailyThoughtEnabled().then(setThoughtEnabled);
+    if (Platform.OS === 'web') isWebPushEnabled().then(setWebPushEnabled);
   }, []);
 
   async function toggleDailyThought(next) {
@@ -70,6 +78,22 @@ export default function ProfileScreen() {
     } else {
       await cancelDailyThought();
       setThoughtEnabled(false);
+    }
+  }
+
+  async function toggleWebPush(next) {
+    if (next) {
+      const ok = await subscribeToWebPush(mySign);
+      if (!ok) {
+        Alert.alert(
+          'Não foi possível ativar',
+          'Permita notificações para o Cosmic Guide nas configurações do navegador (ou, no iPhone, adicione o app à Tela de Início primeiro) e tente de novo.'
+        );
+      }
+      setWebPushEnabled(ok);
+    } else {
+      await unsubscribeFromWebPush();
+      setWebPushEnabled(false);
     }
   }
 
@@ -102,14 +126,22 @@ export default function ProfileScreen() {
             onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
           />
           {/* Notificação local (expo-notifications) não existe de verdade na
-              web — escondida na versão web em vez de mostrar um toggle que
-              não faz nada. */}
+              web — nesse caso mostramos o toggle de Web Push em vez dele
+              (mesma ideia, tecnologia diferente por trás). */}
           {Platform.OS !== 'web' && (
             <ToggleRow
               icon="sparkles"
               label="Pensamento cósmico diário"
               value={thoughtEnabled}
               onValueChange={toggleDailyThought}
+            />
+          )}
+          {Platform.OS === 'web' && isWebPushSupported() && (
+            <ToggleRow
+              icon="sparkles"
+              label="Pensamento cósmico diário"
+              value={webPushEnabled}
+              onValueChange={toggleWebPush}
             />
           )}
           <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} last={!coupleData} />
