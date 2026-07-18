@@ -41,14 +41,45 @@ export function LockedCard() {
   );
 }
 
-// HOC — casais sem acesso confirmado veem o LockedCard; solo (sem coupleData) e
-// casais com hasAccess=true renderizam a tela normalmente. hasAccess é otimista
-// (default true) até o contexto confirmar com o servidor, então nunca pisca um
-// bloqueio falso para quem já tem acesso.
+// Solo (sem par) vê um convite em vez do LockedCard de assinatura — essas 5
+// rotas são feitas pra fazer a dois (rotas de reconexão, jogos, ideias de
+// encontro), então travar por "assinatura" não faz sentido ainda; o convite
+// certo aqui é chamar o par pro app primeiro.
+export function SoloInviteCard() {
+  const navigation = useNavigation();
+  return (
+    <View style={styles.root}>
+      <LinearGradient colors={gradients.card} style={styles.card}>
+        <View style={styles.sealWrap}>
+          <Ionicons name="people" size={28} color={colors.gold} />
+        </View>
+        <Text style={styles.title}>Isso é pra fazer em casal</Text>
+        <Text style={styles.text}>
+          Rotas de reconexão, jogos, ideias de encontro e retrospectiva só fazem sentido com os dois —
+          chame seu par pra formarem um casal no app e desbloqueiem isso juntos.
+        </Text>
+        <TouchableOpacity
+          style={styles.btn}
+          activeOpacity={0.85}
+          onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
+        >
+          <Text style={styles.btnText}>Convidar meu par →</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+    </View>
+  );
+}
+
+// HOC — solo (sem coupleData) vê o convite pra chamar o par; casal sem acesso
+// confirmado vê o LockedCard de assinatura; casal com hasAccess=true renderiza
+// a tela normalmente. hasAccess é otimista (default true) até o contexto
+// confirmar com o servidor, então nunca pisca um bloqueio falso pra quem já
+// tem acesso.
 export function withFeatureGate(Screen) {
   return function GatedScreen(props) {
     const { coupleData, hasAccess } = useCouple();
-    if (!coupleData || hasAccess) return <Screen {...props} />;
+    if (!coupleData) return <SoloInviteCard />;
+    if (hasAccess) return <Screen {...props} />;
     return <LockedCard />;
   };
 }

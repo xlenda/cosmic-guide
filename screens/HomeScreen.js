@@ -70,15 +70,19 @@ export default function HomeScreen() {
     ? t('home.greetingCouple', { voce: coupleData.voce, amor: coupleData.amor })
     : t('home.greetingSolo', { sign: sign.pt });
 
-  // Cards exclusivos do casal ficam escondidos por completo para usuários solo
-  // (em vez de um prompt morto) — o upsell do card de compatibilidade acima já
-  // cobre a conversão sem repetir a mensagem quatro vezes.
-  const COUPLE_ONLY = ['timeline', 'reconectar', 'descobrir', 'agir', 'progresso', 'retrospectiva'];
+  // Timeline exige memórias reais do casal — não faz sentido pra quem ainda
+  // não tem par, fica escondida por completo pra usuário solo. As outras 5
+  // aparecem pra solo também, mas como convite: mostram o cadeado e, ao tocar,
+  // o withFeatureGate (App.js) exibe "isso é pra fazer em casal" convidando a
+  // pessoa a chamar o par — induz a trazer o parceiro pro app pra reconectar,
+  // jogar junto, etc., em vez de esconder a existência da feature.
+  const COUPLE_ONLY = ['timeline'];
 
   // Exclusivas de assinantes (mesmas 5 rotas bloqueadas por withFeatureGate em
   // App.js) — timeline fica de fora, é livre pra qualquer casal. Mostra o badge
   // de cadeado no grid (FeatureCard.js já tinha o prop `locked` pronto, só não
   // era usado ainda); o bloqueio real acontece na tela em si, via feature gate.
+  // Solo também vê o cadeado aqui (ainda não tem par pra desbloquear).
   const LOCKED_KEYS = ['reconectar', 'descobrir', 'agir', 'progresso', 'retrospectiva'];
 
   const ALL_ITEMS = [
@@ -100,7 +104,7 @@ export default function HomeScreen() {
   ];
 
   const cardItems = ALL_ITEMS.filter((c) => isCouple || !COUPLE_ONLY.includes(c.key)).map((c) =>
-    isCouple && !hasAccess && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
+    (!isCouple || !hasAccess) && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
   );
 
   // Determinístico por data (lib/dailyThought.js) — mesmo texto pra todo
