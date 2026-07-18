@@ -12,17 +12,100 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { getMockPalmReading } from '../lib/palmReadings';
-import { fetchAiPalmReading } from '../lib/aiClient';
+import { getMockFaceReading } from '../lib/faceReadings';
+import { getMockFootReading } from '../lib/footReadings';
+import { getMockMolesReading } from '../lib/molesReadings';
+import {
+  fetchAiPalmReading,
+  fetchAiFaceReading,
+  fetchAiFootReading,
+  fetchAiMolesReading,
+} from '../lib/aiClient';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import OneTimeLock from '../components/OneTimeLock';
 
+// FEATURE_KEY único pra tela inteira (hub de 4 modos) — NÃO varia por modo.
+// O bloqueio de 1 uso grátis (lib/featureUsage.js) é vitalício por FEATURE_KEY,
+// então trocar de modo (Palma/Rosto/Pé/Pintas) nunca reseta nem contorna o
+// paywall: quem já gastou a leitura grátis em qualquer modo fica bloqueado
+// nos outros também.
 const FEATURE_KEY = 'palm';
+
+// Hub de 4 modos de leitura simbólica, todos usando a mesma câmera/galeria e
+// o mesmo fluxo intro -> preview -> result. Cada modo só muda o texto de
+// instrução, o disclaimer, o cabeçalho e qual função de IA/mock é chamada em
+// handleAnalyze — mesmo padrão visual de seletor de chips de THEMES em
+// screens/TarotScreen.js.
+const MODES = [
+  {
+    key: 'palma',
+    label: 'Palma',
+    icon: 'hand-left',
+    color: colors.purple,
+    grad: gradients.purple,
+    headerTitle: 'Leitura de Mão',
+    headerSubtitle: 'Quiromancia simbólica',
+    instructions:
+      'Tire uma foto da palma da sua mão bem aberta, com boa luz, ou escolha uma foto já existente na galeria.',
+    disclaimer:
+      'Esta leitura une IA com milênios de tradição da quiromancia — símbolos das linhas da mão ' +
+      'interpretados e refinados através de gerações. Não substitui exame médico nem garante ' +
+      'resultados; é um espelho simbólico para autoconhecimento.',
+  },
+  {
+    key: 'rosto',
+    label: 'Rosto',
+    icon: 'happy',
+    color: colors.pink,
+    grad: gradients.pink,
+    headerTitle: 'Leitura de Rosto',
+    headerSubtitle: 'Fisiognomonia simbólica',
+    instructions:
+      'Aponte a câmera pro seu rosto, de frente e com boa luz, ou escolha uma foto já existente na galeria.',
+    disclaimer:
+      'Esta leitura une IA com a fisiognomonia — tradição milenar de interpretar traços do rosto ' +
+      'como espelho de temperamento e caráter. Não substitui exame médico nem garante resultados; ' +
+      'é um espelho simbólico para autoconhecimento.',
+  },
+  {
+    key: 'pe',
+    label: 'Pé',
+    icon: 'footsteps',
+    color: colors.teal,
+    grad: gradients.teal,
+    headerTitle: 'Leitura de Pé',
+    headerSubtitle: 'Podomancia simbólica',
+    instructions:
+      'Tire uma foto da sola do seu pé bem aberta, com boa luz, ou escolha uma foto já existente na galeria.',
+    disclaimer:
+      'Esta leitura une IA com a podomancia — tradição de interpretar as linhas e formas da planta ' +
+      'do pé como espelho simbólico da jornada de vida. Não substitui exame médico nem garante ' +
+      'resultados; é um espelho simbólico para autoconhecimento.',
+  },
+  {
+    key: 'pintas',
+    label: 'Pintas',
+    icon: 'ellipse',
+    color: colors.gold,
+    grad: gradients.gold,
+    headerTitle: 'Leitura de Pintas',
+    headerSubtitle: 'Moleosofia simbólica',
+    instructions:
+      'Tire uma foto nítida da região do corpo com as pintas que você quer interpretar, com boa luz, ' +
+      'ou escolha uma foto já existente na galeria.',
+    disclaimer:
+      'Esta leitura une IA com a moleosofia — tradição popular de interpretar a posição das pintas ' +
+      'no corpo como símbolos de sorte, temperamento e destino. Não substitui exame dermatológico ' +
+      'nem garante resultados; é um espelho simbólico para autoconhecimento.',
+  },
+];
 
 // Redimensiona pro lado maior no máximo 1024px antes de gerar o base64 —
 // uma foto de câmera moderna (ex.: 4000x3000) vira alguns MB em base64 sem
@@ -38,11 +121,6 @@ async function resizeForUpload(uri) {
   return result;
 }
 
-const DISCLAIMER =
-  'Esta leitura une IA com milênios de tradição da quiromancia — símbolos das linhas da mão ' +
-  'interpretados e refinados através de gerações. Não substitui exame médico nem garante ' +
-  'resultados; é um espelho simbólico para autoconhecimento.';
-
 // Estados possíveis da tela: intro (sem foto) -> preview (foto escolhida,
 // aguardando "Analisar") -> result (leitura mockada exibida).
 const STEP = { INTRO: 'intro', PREVIEW: 'preview', RESULT: 'result' };
@@ -50,6 +128,7 @@ const STEP = { INTRO: 'intro', PREVIEW: 'preview', RESULT: 'result' };
 export default function PalmScreen() {
   const navigation = useNavigation();
   const { hasAccess } = useCouple();
+  const [mode, setMode] = useState(MODES[0].key);
   const [step, setStep] = useState(STEP.INTRO);
   const [imageUri, setImageUri] = useState(null);
   const [imageBase64, setImageBase64] = useState(null);
@@ -57,6 +136,8 @@ export default function PalmScreen() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [permissionError, setPermissionError] = useState(null);
   const [locked, setLocked] = useState(false);
+
+  const activeMode = MODES.find((m) => m.key === mode) || MODES[0];
 
   useEffect(() => {
     if (hasAccess) return;
@@ -69,6 +150,16 @@ export default function PalmScreen() {
     setImageBase64(null);
     setReading(null);
     setPermissionError(null);
+  };
+
+  // Troca de modo (Palma/Rosto/Pé/Pintas) só muda qual leitura será feita —
+  // nunca mexe em `locked`/FEATURE_KEY, então o paywall de 1 uso grátis
+  // continua valendo pra tela inteira, independente do modo escolhido.
+  const handleSelectMode = (key) => {
+    if (key === mode) return;
+    Haptics.selectionAsync();
+    setMode(key);
+    resetToIntro();
   };
 
   const handlePickedResult = async (result) => {
@@ -147,42 +238,70 @@ export default function PalmScreen() {
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
 
-    // Tenta a IA real com visão (proxy no backend); se não houver base64
-    // (galeria web sem suporte) ou o servidor ainda não tiver a chave
-    // configurada, cai pra leitura mockada honesta.
+    // Tenta a IA real com visão (proxy no backend), escolhendo a função certa
+    // pro modo ativo; se não houver base64 (galeria web sem suporte) ou o
+    // servidor ainda não tiver a chave configurada, cai pro mock do mesmo modo.
     let result;
     try {
       if (!imageBase64) throw new Error('sem base64 da imagem');
-      result = await fetchAiPalmReading(imageBase64, 'image/jpeg');
+      if (mode === 'palma') result = await fetchAiPalmReading(imageBase64, 'image/jpeg');
+      else if (mode === 'rosto') result = await fetchAiFaceReading(imageBase64, 'image/jpeg');
+      else if (mode === 'pe') result = await fetchAiFootReading(imageBase64, 'image/jpeg');
+      else result = await fetchAiMolesReading(imageBase64, 'image/jpeg');
     } catch {
-      result = getMockPalmReading();
+      if (mode === 'palma') result = getMockPalmReading();
+      else if (mode === 'rosto') result = getMockFaceReading();
+      else if (mode === 'pe') result = getMockFootReading();
+      else result = getMockMolesReading();
     }
 
     setReading(result);
     markFeatureUsedOnce(FEATURE_KEY);
+    // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
+    // tela — trocar de modo (Palma/Rosto/Pé/Pintas) ou tocar "Nova leitura"
+    // na mesma sessão deixaria repetir o uso grátis várias vezes antes do
+    // bloqueio realmente pegar (achado por verificação adversarial).
+    if (!hasAccess) setLocked(true);
     setIsAnalyzing(false);
     setStep(STEP.RESULT);
   };
 
-  if (!hasAccess && locked) {
+  // `step !== STEP.RESULT` importa aqui: marcamos `locked=true` no instante em
+  // que a leitura grátis é consumida (handleAnalyze), mas a pessoa ainda
+  // precisa VER o resultado que acabou de ganhar — só bloqueamos de fato na
+  // próxima tentativa (troca de modo ou nova leitura, que chamam
+  // resetToIntro() e voltam pro STEP.INTRO).
+  if (!hasAccess && locked && step !== STEP.RESULT) {
     return <OneTimeLock featureTitle="Leitura de Palma" gradient={gradients.purple} />;
   }
 
   return (
     <View style={styles.root}>
-      <GradientHeader title="Leitura de Mão" subtitle="Quiromancia simbólica" gradient={gradients.purple} />
+      <GradientHeader title={activeMode.headerTitle} subtitle={activeMode.headerSubtitle} gradient={activeMode.grad} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+        <Text style={styles.sectionLabel}>Escolha o tipo de leitura</Text>
+        <View style={styles.modeRow}>
+          {MODES.map((m) => (
+            <TouchableOpacity
+              key={m.key}
+              style={[styles.modeChip, mode === m.key && { borderColor: m.color, backgroundColor: m.color + '22' }]}
+              activeOpacity={0.85}
+              onPress={() => handleSelectMode(m.key)}
+            >
+              <Ionicons name={m.icon} size={20} color={m.color} />
+              <Text style={styles.modeChipText}>{m.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.disclaimer}>{activeMode.disclaimer}</Text>
 
         {permissionError ? <Text style={styles.errorText}>{permissionError}</Text> : null}
 
         {step === STEP.INTRO && (
           <View style={styles.section}>
-            <Text style={styles.instructions}>
-              Tire uma foto da palma da sua mão bem aberta, com boa luz, ou escolha uma foto já
-              existente na galeria.
-            </Text>
+            <Text style={styles.instructions}>{activeMode.instructions}</Text>
 
             <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleTakePhoto}>
               <Ionicons name="camera" size={20} color="#fff" />
@@ -249,7 +368,7 @@ export default function PalmScreen() {
               </View>
             )}
 
-            <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+            <Text style={styles.disclaimer}>{activeMode.disclaimer}</Text>
 
             <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={resetToIntro}>
               <Ionicons name="refresh" size={18} color="#fff" />
@@ -277,6 +396,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
+  sectionLabel: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  modeRow: { flexDirection: 'row', gap: 8 },
+  modeChip: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 6,
+  },
+  modeChipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
   section: { gap: 14, alignItems: 'stretch' },
   instructions: {
     color: colors.textSecondary,

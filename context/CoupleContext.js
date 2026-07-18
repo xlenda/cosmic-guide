@@ -12,10 +12,20 @@ import {
   saveUserSign,
   checkSubscriptionStatus,
 } from '../lib/coupleData';
+import { useAuth } from './AuthContext';
 
 const CoupleContext = createContext(null);
 
+// Bypass de revisão pro dono do produto — libera as telas exclusivas de
+// assinante (withFeatureGate) só pra essa conta específica, sem tocar em
+// hasAccess/subscriptionStatus real nem no que qualquer outro usuário vê.
+// Pedido explícito (17/07/2026): poder ver Reconectar/Descobrir/Agir/
+// Progresso/Retrospectiva sem precisar assinar de verdade.
+const OWNER_EMAIL = 'sanches925@gmail.com';
+
 export function CoupleProvider({ children }) {
+  const { user } = useAuth();
+  const isOwnerAccount = user?.email === OWNER_EMAIL;
   const [coupleData, setCoupleData] = useState(null);
   const [soloSign, setSoloSign] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -121,6 +131,7 @@ export function CoupleProvider({ children }) {
         soloSign,
         loading,
         hasAccess,
+        isOwnerAccount,
         subscriptionStatus,
         currentPeriodEnd,
         refresh,

@@ -28,12 +28,23 @@ export default function CompatibilityScreen() {
   }, [hasAccess]);
 
   const compute = () => {
+    // Guarda o uso-único-na-vida aqui dentro, não só no gate de render — sem
+    // isso, reapertar "Calcular Compatibilidade" sem trocar de signo nunca
+    // zera `result` (compatibility()/compatPercent() são determinísticas),
+    // então o gate baseado em `!result` nunca voltaria a bloquear (achado por
+    // verificação adversarial: dava cálculos grátis infinitos no mesmo par).
+    if (!hasAccess && locked) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const compat = compatibility(signA.name, signB.name);
     const pct = compatPercent(signA.name, signB.name);
     if (!compat || pct === null) { setResult(null); return; }
     setResult({ overall: pct, texto: compat.texto, forte: compat.forte, cuidado: compat.cuidado });
     markFeatureUsedOnce(FEATURE_KEY);
+    // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
+    // tela — trocar de signo e calcular de novo na mesma sessão deixaria
+    // repetir o uso grátis várias vezes antes do bloqueio realmente pegar
+    // (achado por verificação adversarial).
+    if (!hasAccess) setLocked(true);
   };
 
   const pick = (z) => {
@@ -44,7 +55,11 @@ export default function CompatibilityScreen() {
     setResult(null);
   };
 
-  if (!hasAccess && locked) {
+  // `!result` importa aqui: marcamos `locked=true` no instante em que a
+  // leitura grátis é consumida (compute), mas a pessoa ainda precisa VER o
+  // resultado que acabou de ganhar — só bloqueamos de fato na próxima
+  // tentativa (troca de signo, que chama setResult(null) em pick()).
+  if (!hasAccess && locked && !result) {
     return <OneTimeLock featureTitle="Compatibilidade" gradient={['#B5286B', '#7B3FB5']} />;
   }
 
@@ -71,7 +86,15 @@ export default function CompatibilityScreen() {
           </View>
         )}
 
-        {!picking && (
+        {!picking && !hasAccess && locked && result && (
+          // compute() já recusa recalcular nesse caso — aqui é só pra não
+          // deixar um botão "morto" que não faz nada visível ao tocar.
+          <Text style={styles.lockedNote}>
+            Essa foi sua leitura grátis — assine para calcular outras combinações quando quiser.
+          </Text>
+        )}
+
+        {!picking && !(!hasAccess && locked && result) && (
           <TouchableOpacity activeOpacity={0.85} onPress={compute} style={styles.btnWrap}>
             <LinearGradient colors={gradients.pink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
               <Ionicons name="analytics" size={18} color="#fff" />
@@ -141,6 +164,7 @@ function SignSlot({ sign, onPress, active }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  lockedNote: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 10, marginTop: 4 },
   pairRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   slot: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1.5, borderColor: colors.border },
   slotGlyphWrap: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },

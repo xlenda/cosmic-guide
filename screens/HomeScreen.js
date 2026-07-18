@@ -20,7 +20,7 @@ function pad2(n) {
 export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { coupleData, soloSign, loading, hasAccess, refresh } = useCouple();
+  const { coupleData, soloSign, loading, hasAccess, isOwnerAccount, refresh } = useCouple();
   const { lang, t } = useLanguage();
 
   // O handoff de URL (?voce=&amor=&sa=&sb=) agora roda uma vez em App.js
@@ -104,7 +104,7 @@ export default function HomeScreen() {
   ];
 
   const cardItems = ALL_ITEMS.filter((c) => isCouple || !COUPLE_ONLY.includes(c.key)).map((c) =>
-    (!isCouple || !hasAccess) && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
+    !isOwnerAccount && (!isCouple || !hasAccess) && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
   );
 
   // Determinístico por data (lib/dailyThought.js) — mesmo texto pra todo

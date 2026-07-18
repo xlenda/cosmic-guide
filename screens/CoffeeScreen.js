@@ -165,6 +165,11 @@ export default function CoffeeScreen() {
 
     setReading(result);
     markFeatureUsedOnce(FEATURE_KEY);
+    // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
+    // tela — tocar "Nova leitura" na mesma sessão deixaria repetir o uso
+    // grátis várias vezes antes do bloqueio realmente pegar (achado por
+    // verificação adversarial).
+    if (!hasAccess) setLocked(true);
     setIsAnalyzing(false);
     setStep(STEP.RESULT);
 
@@ -191,7 +196,12 @@ export default function CoffeeScreen() {
     setIsGeneratingSummary(false);
   };
 
-  if (!hasAccess && locked) {
+  // `step !== STEP.RESULT` importa aqui: marcamos `locked=true` no instante em
+  // que a leitura grátis é consumida (handleAnalyze), mas a pessoa ainda
+  // precisa VER o resultado que acabou de ganhar — só bloqueamos de fato na
+  // próxima tentativa (nova leitura, que chama resetToIntro() e volta pro
+  // STEP.INTRO).
+  if (!hasAccess && locked && step !== STEP.RESULT) {
     return <OneTimeLock featureTitle="Ritual do Café" gradient={COFFEE_GRADIENT} />;
   }
 

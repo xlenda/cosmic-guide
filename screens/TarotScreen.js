@@ -55,6 +55,12 @@ export default function TarotScreen() {
   }, [hasAccess]);
 
   const drawCards = () => {
+    // Guarda o uso-único-na-vida aqui dentro, não só no gate de render — sem
+    // isso, "Nova Tiragem" reatribui `drawn` diretamente (nunca passa por
+    // null), então o gate baseado em `!drawn` nunca voltaria a bloquear
+    // (achado por verificação adversarial: dava tiragens grátis infinitas
+    // no mesmo tema, sem sair da tela).
+    if (!hasAccess && locked) return;
     // Guarda também aqui, não só no botão inicial — sem isso, "Nova Tiragem"
     // (que chama esta mesma função) deixaria redesenhar à vontade num tema
     // com limite diário, mesmo já tendo consultado hoje.
@@ -67,6 +73,12 @@ export default function TarotScreen() {
     setOrientations(newOrientations);
     recordDraw(theme.key);
     markFeatureUsedOnce(FEATURE_KEY);
+    // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
+    // tela — trocar de tema ou tocar "Nova Tiragem" na mesma sessão deixaria
+    // repetir o uso grátis várias vezes antes do bloqueio realmente pegar
+    // (achado por verificação adversarial). Independente do dailyBlocked
+    // abaixo, que é o limite diário de Dinheiro/Saúde — não mexer nele aqui.
+    if (!hasAccess) setLocked(true);
     if (DAILY_LIMIT_THEMES.includes(theme.key)) setDailyBlocked(true);
   };
 
@@ -75,7 +87,11 @@ export default function TarotScreen() {
     setRevealed((prev) => prev.map((v, idx) => (idx === i ? true : v)));
   };
 
-  if (!hasAccess && locked) {
+  // `!drawn` importa aqui: marcamos `locked=true` no instante em que a
+  // tiragem grátis é consumida (drawCards), mas a pessoa ainda precisa VER
+  // as cartas que acabou de ganhar — só bloqueamos de fato na próxima
+  // tentativa (troca de tema ou nova tiragem, que zeram `drawn`).
+  if (!hasAccess && locked && !drawn) {
     return <OneTimeLock featureTitle="Tarô por Tema" gradient={gradients.hero} />;
   }
 
@@ -174,6 +190,12 @@ export default function TarotScreen() {
             {dailyBlocked ? (
               <Text style={styles.dailyLimitNote}>
                 Essa foi a sua tiragem de {theme.key} de hoje — volta amanhã pra uma nova.
+              </Text>
+            ) : !hasAccess && locked ? (
+              // drawCards() já recusa redesenhar nesse caso — aqui é só pra não
+              // deixar um botão "morto" que não faz nada visível ao tocar.
+              <Text style={styles.dailyLimitNote}>
+                Essa foi sua tiragem grátis — assine para tirar novas cartas quando quiser.
               </Text>
             ) : (
               <TouchableOpacity activeOpacity={0.85} onPress={drawCards} style={[styles.btnWrap, { marginTop: 16 }]}>

@@ -64,11 +64,21 @@ export default function DreamScreen() {
 
     setReading(result);
     markFeatureUsedOnce('dream');
+    // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
+    // tela — tocar "Novo sonho" na mesma sessão deixaria repetir o uso grátis
+    // várias vezes antes do bloqueio realmente pegar (achado por verificação
+    // adversarial).
+    if (!hasAccess) setLocked(true);
     setIsAnalyzing(false);
     setStep(STEP.RESULT);
   };
 
-  if (!hasAccess && locked) {
+  // `step !== STEP.RESULT` importa aqui: marcamos `locked=true` no instante em
+  // que a leitura grátis é consumida (handleInterpret), mas a pessoa ainda
+  // precisa VER o resultado que acabou de ganhar — só bloqueamos de fato na
+  // próxima tentativa (tocar "Novo sonho", que chama resetToIntro() e volta
+  // pro STEP.INTRO).
+  if (!hasAccess && locked && step !== STEP.RESULT) {
     return <OneTimeLock featureTitle="Sonhos" gradient={gradients.teal} />;
   }
 

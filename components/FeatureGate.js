@@ -70,14 +70,17 @@ export function SoloInviteCard() {
   );
 }
 
-// HOC — solo (sem coupleData) vê o convite pra chamar o par; casal sem acesso
-// confirmado vê o LockedCard de assinatura; casal com hasAccess=true renderiza
-// a tela normalmente. hasAccess é otimista (default true) até o contexto
-// confirmar com o servidor, então nunca pisca um bloqueio falso pra quem já
-// tem acesso.
+// HOC — dono do produto logado (isOwnerAccount) vê a tela real direto, sem
+// nenhum bloqueio, pra poder revisar o conteúdo sem precisar assinar; depois
+// disso, solo (sem coupleData) vê o convite pra chamar o par; casal sem
+// acesso confirmado vê o LockedCard de assinatura; casal com hasAccess=true
+// renderiza a tela normalmente. hasAccess é otimista (default true) até o
+// contexto confirmar com o servidor, então nunca pisca um bloqueio falso pra
+// quem já tem acesso.
 export function withFeatureGate(Screen) {
   return function GatedScreen(props) {
-    const { coupleData, hasAccess } = useCouple();
+    const { coupleData, hasAccess, isOwnerAccount } = useCouple();
+    if (isOwnerAccount) return <Screen {...props} />;
     if (!coupleData) return <SoloInviteCard />;
     if (hasAccess) return <Screen {...props} />;
     return <LockedCard />;
