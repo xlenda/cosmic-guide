@@ -13,6 +13,13 @@ import {
   cancelDailyThought,
 } from '../lib/notifications';
 import { isWebPushSupported, isWebPushEnabled, subscribeToWebPush, unsubscribeFromWebPush } from '../lib/webPush';
+import {
+  isInstallPromptAvailable,
+  onInstallPromptChange,
+  promptInstall,
+  isIOS,
+  isRunningStandalone,
+} from '../lib/installPrompt';
 
 function MenuRow({ icon, label, onPress, last }) {
   return (
@@ -52,6 +59,7 @@ export default function ProfileScreen() {
   const { coupleData, soloSign, hasAccess, clearAll } = useCouple();
   const [thoughtEnabled, setThoughtEnabled] = useState(false);
   const [webPushEnabled, setWebPushEnabled] = useState(false);
+  const [canInstall, setCanInstall] = useState(false);
 
   // Mesmo "meu signo" já calculado em HomeScreen.js (casal usa coupleData.sa,
   // solo usa soloSign) — reaproveitado aqui só pra personalizar o texto que o
@@ -60,8 +68,31 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     isDailyThoughtEnabled().then(setThoughtEnabled);
-    if (Platform.OS === 'web') isWebPushEnabled().then(setWebPushEnabled);
+    if (Platform.OS === 'web') {
+      isWebPushEnabled().then(setWebPushEnabled);
+      setCanInstall(isInstallPromptAvailable());
+      return onInstallPromptChange(setCanInstall);
+    }
   }, []);
+
+  async function handleInstallApp() {
+    if (canInstall) {
+      const outcome = await promptInstall();
+      if (outcome === 'accepted') setCanInstall(false);
+      return;
+    }
+    if (isIOS()) {
+      Alert.alert(
+        'Instalar no iPhone',
+        'Toque no ícone de Compartilhar (□↑) na barra do Safari e depois em "Adicionar à Tela de Início".'
+      );
+      return;
+    }
+    Alert.alert(
+      'Instalar o app',
+      'Abra o menu do navegador e procure por "Instalar app" ou "Adicionar à Tela de Início".'
+    );
+  }
 
   async function toggleDailyThought(next) {
     if (next) {
@@ -143,6 +174,11 @@ export default function ProfileScreen() {
               value={webPushEnabled}
               onValueChange={toggleWebPush}
             />
+          )}
+          {/* "Instalar app" só faz sentido na web (nativo já é instalado por
+              definição) e só quando ainda não está rodando como app instalado. */}
+          {Platform.OS === 'web' && !isRunningStandalone() && (
+            <MenuRow icon="download" label="Instalar app" onPress={handleInstallApp} />
           )}
           <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} last={!coupleData} />
           {/* Assinatura só existe para casais — modo solo fica de fora (ver

@@ -17,9 +17,15 @@ import { colors } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { getMockCoffeeReading } from '../lib/coffeeReadings';
-import { fetchAiCoffeeReading } from '../lib/aiClient';
+import { fetchAiCoffeeReading, fetchAiCoffeeWeeklySummary } from '../lib/aiClient';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import {
+  saveCoffeeReading,
+  getReadingsForSummary,
+  markWeeklySummaryShown,
+  getFallbackWeeklySummary,
+} from '../lib/coffeeHistory';
 import OneTimeLock from '../components/OneTimeLock';
 
 const FEATURE_KEY = 'coffee';
@@ -57,6 +63,9 @@ export default function CoffeeScreen() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [permissionError, setPermissionError] = useState(null);
   const [locked, setLocked] = useState(false);
+  const [readyForWeeklySummary, setReadyForWeeklySummary] = useState(false);
+  const [weeklySummary, setWeeklySummary] = useState(null);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   useEffect(() => {
     if (hasAccess) return;
@@ -158,6 +167,28 @@ export default function CoffeeScreen() {
     markFeatureUsedOnce(FEATURE_KEY);
     setIsAnalyzing(false);
     setStep(STEP.RESULT);
+
+    // Só quem assina chega a acumular 7 leituras reais (quem não assina fica
+    // travado em 1 uso vitalício antes disso pelo OneTimeLock).
+    const { readyForSummary } = await saveCoffeeReading({ title: result.title, body: result.body });
+    setReadyForWeeklySummary(readyForSummary);
+  };
+
+  const handleGenerateWeeklySummary = async () => {
+    setIsGeneratingSummary(true);
+    const readings = await getReadingsForSummary();
+
+    let summary;
+    try {
+      summary = await fetchAiCoffeeWeeklySummary(readings);
+    } catch {
+      summary = getFallbackWeeklySummary(readings);
+    }
+
+    setWeeklySummary(summary);
+    setReadyForWeeklySummary(false);
+    await markWeeklySummaryShown();
+    setIsGeneratingSummary(false);
   };
 
   if (!hasAccess && locked) {
@@ -172,6 +203,34 @@ export default function CoffeeScreen() {
         <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
 
         {permissionError ? <Text style={styles.errorText}>{permissionError}</Text> : null}
+
+        {readyForWeeklySummary && !weeklySummary && (
+          <View style={styles.weeklyCard}>
+            <Ionicons name="calendar" size={22} color={colors.gold} />
+            <Text style={styles.weeklyTitle}>Sua conclusão da semana está pronta</Text>
+            <Text style={styles.weeklyText}>
+              Você já tem 7 leituras — dá pra ver o que se repetiu entre elas essa semana.
+            </Text>
+            {isGeneratingSummary ? (
+              <ActivityIndicator color={colors.gold} />
+            ) : (
+              <TouchableOpacity style={styles.weeklyBtn} activeOpacity={0.85} onPress={handleGenerateWeeklySummary}>
+                <Text style={styles.weeklyBtnText}>Ver conclusão da semana</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {weeklySummary && (
+          <View style={styles.weeklyCard}>
+            <Ionicons name="calendar" size={22} color={colors.gold} />
+            <Text style={styles.weeklyTitle}>{weeklySummary.title}</Text>
+            <Text style={styles.weeklyText}>{weeklySummary.body}</Text>
+            <TouchableOpacity onPress={() => setWeeklySummary(null)}>
+              <Text style={styles.linkText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {step === STEP.INTRO && (
           <View style={styles.section}>
@@ -347,4 +406,17 @@ const styles = StyleSheet.create({
   upsellText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   upsellBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 20 },
   upsellBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  weeklyCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    gap: 8,
+    alignItems: 'center',
+  },
+  weeklyTitle: { color: colors.text, fontSize: 15, fontWeight: '800', textAlign: 'center' },
+  weeklyText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  weeklyBtn: { backgroundColor: colors.gold, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 20, marginTop: 4 },
+  weeklyBtnText: { color: '#1A1A1A', fontSize: 13, fontWeight: '700' },
 });
