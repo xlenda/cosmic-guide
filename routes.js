@@ -25,6 +25,7 @@ export const ROUTES = {
   PROGRESSO: 'Progresso',
   RETROSPECTIVA: 'Retrospectiva',
   PLANOS: 'Planos',
+  LOGIN: 'Login',
 
   TAROT_MAIN: 'TarotMain',
 

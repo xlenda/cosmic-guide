@@ -13,6 +13,7 @@ import { colors } from './theme';
 import { ROUTES } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CoupleProvider, useCouple } from './context/CoupleContext';
+import { AuthProvider } from './context/AuthContext';
 
 // Sem isso, uma notificação chegando com o app ABERTO (foreground) não mostra
 // nada — o handler decide o comportamento nesse caso (banner + som, sem
@@ -53,6 +54,7 @@ import AgirScreen from './screens/AgirScreen';
 import ProgressoScreen from './screens/ProgressoScreen';
 import RetrospectivaScreen from './screens/RetrospectivaScreen';
 import PlanosScreen from './screens/PlanosScreen';
+import LoginScreen from './screens/LoginScreen';
 import { withFeatureGate } from './components/FeatureGate';
 
 const Tab = createBottomTabNavigator();
@@ -142,6 +144,7 @@ function HomeStack() {
       <Stack.Screen name={ROUTES.PROGRESSO} component={withFeatureGate(ProgressoScreen)} />
       <Stack.Screen name={ROUTES.RETROSPECTIVA} component={withFeatureGate(RetrospectivaScreen)} />
       <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
+      <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
     </Stack.Navigator>
   );
 }
@@ -159,6 +162,7 @@ function ProfileStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name={ROUTES.PROFILE_MAIN} component={ProfileScreen} />
       <Stack.Screen name={ROUTES.PRIVACY} component={PrivacyScreen} />
+      <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
     </Stack.Navigator>
   );
 }
@@ -236,9 +240,11 @@ export default function App() {
         <SafeAreaProvider>
           <StatusBar style="light" />
           <LanguageProvider>
-            <CoupleProvider>
-              <Gate />
-            </CoupleProvider>
+            <AuthProvider>
+              <CoupleProvider>
+                <Gate />
+              </CoupleProvider>
+            </AuthProvider>
           </LanguageProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>

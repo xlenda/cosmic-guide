@@ -6,6 +6,7 @@ import { colors, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
+import { useAuth } from '../context/AuthContext';
 import {
   isDailyThoughtEnabled,
   requestNotificationPermission,
@@ -57,6 +58,7 @@ function ToggleRow({ icon, label, value, onValueChange, last }) {
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { coupleData, soloSign, hasAccess, clearAll } = useCouple();
+  const { user, signOut } = useAuth();
   const [thoughtEnabled, setThoughtEnabled] = useState(false);
   const [webPushEnabled, setWebPushEnabled] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
@@ -180,16 +182,23 @@ export default function ProfileScreen() {
           {Platform.OS === 'web' && !isRunningStandalone() && (
             <MenuRow icon="download" label="Instalar app" onPress={handleInstallApp} />
           )}
-          {/* Placeholder — login real (Supabase) ainda não está implementado,
-              esperando o Lenda criar o projeto e passar URL + chave anon. Só
-              reserva o lugar na UI e explica o estado atual quando tocado. */}
-          <MenuRow
-            icon="log-in"
-            label="Fazer login"
-            onPress={() =>
-              Alert.alert('Em breve', 'O login com conta ainda está sendo construído — por enquanto o app funciona sem ele.')
-            }
-          />
+          {/* Login opcional pra uso grátis — só vira obrigatório na hora de
+              assinar (ver PlanosScreen.js). Aqui é só conveniência (sincronizar
+              entre aparelhos, recuperar acesso). */}
+          {user ? (
+            <MenuRow
+              icon="log-out"
+              label={`Sair (${user.email})`}
+              onPress={() =>
+                Alert.alert('Sair da conta', 'Tem certeza que quer sair?', [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Sair', style: 'destructive', onPress: signOut },
+                ])
+              }
+            />
+          ) : (
+            <MenuRow icon="log-in" label="Fazer login" onPress={() => navigation.navigate(ROUTES.LOGIN)} />
+          )}
           <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} last={!coupleData} />
           {/* Assinatura só existe para casais — modo solo fica de fora (ver
               decisão do plano: monetização é a experiência de casal). */}

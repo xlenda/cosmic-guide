@@ -19,7 +19,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors } from '../theme';
+import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
+import { useAuth } from '../context/AuthContext';
 import { initiateCheckout } from '../lib/coupleData';
 import GradientHeader from '../components/GradientHeader';
 
@@ -282,7 +284,51 @@ function PlanosScreenNative() {
   );
 }
 
+// Login só é exigido AQUI, na hora de assinar — o resto do app funciona sem
+// conta nenhuma. Motivo: sincronizar a assinatura com uma conta recuperável
+// em vez de depender só do correlationCode local (frágil se a pessoa trocar
+// de aparelho/limpar dados).
+function LoginRequiredCard({ onLogin, onBack }) {
+  return (
+    <View style={styles.root}>
+      <GradientHeader title="Assinatura" subtitle="$5 USD/mês · 7 dias grátis" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.card}>
+          <Ionicons name="lock-closed" size={32} color={colors.gold} />
+          <Text style={styles.cardTitle}>Faça login para assinar</Text>
+          <Text style={styles.cardText}>
+            Precisamos de uma conta pra ligar sua assinatura a você — assim, se trocar de aparelho, seu
+            acesso continua junto.
+          </Text>
+          <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={onLogin}>
+            <Text style={styles.btnText}>Fazer login →</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function PlanosScreen() {
+  const navigation = useNavigation();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={[styles.root, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color={colors.accent} size="large" />
+      </View>
+    );
+  }
+  if (!user) {
+    return (
+      <LoginRequiredCard
+        onLogin={() => navigation.navigate(ROUTES.LOGIN)}
+        onBack={() => navigation.goBack()}
+      />
+    );
+  }
+
   if (Platform.OS !== 'web') return <PlanosScreenNative />;
   return <PlanosScreenWeb />;
 }
