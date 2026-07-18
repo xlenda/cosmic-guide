@@ -7,6 +7,7 @@ import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   isDailyThoughtEnabled,
   requestNotificationPermission,
@@ -38,6 +39,33 @@ function MenuRow({ icon, label, onPress, last }) {
   );
 }
 
+const LANGUAGE_LABELS = { pt: '🇧🇷 PT', es: '🇪🇸 ES', en: '🇺🇸 EN' };
+
+function LanguageRow({ lang, onChange, last }) {
+  return (
+    <View style={[styles.row, !last && styles.rowBorder]}>
+      <View style={styles.rowIcon}>
+        <Ionicons name="language" size={18} color={colors.accent} />
+      </View>
+      <Text style={styles.rowLabel}>Idioma</Text>
+      <View style={styles.langPills}>
+        {Object.keys(LANGUAGE_LABELS).map((code) => (
+          <TouchableOpacity
+            key={code}
+            style={[styles.langPill, lang === code && styles.langPillActive]}
+            onPress={() => onChange(code)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.langPillText, lang === code && styles.langPillTextActive]}>
+              {LANGUAGE_LABELS[code]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function ToggleRow({ icon, label, value, onValueChange, last }) {
   return (
     <View style={[styles.row, !last && styles.rowBorder]}>
@@ -59,6 +87,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const { coupleData, soloSign, hasAccess, clearAll } = useCouple();
   const { user, signOut } = useAuth();
+  const { lang, changeLanguage } = useLanguage();
   const [thoughtEnabled, setThoughtEnabled] = useState(false);
   const [webPushEnabled, setWebPushEnabled] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
@@ -158,6 +187,7 @@ export default function ProfileScreen() {
             label={coupleData ? 'Refazer quiz do casal' : 'Adicionar parceiro(a)'}
             onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
           />
+          <LanguageRow lang={lang} onChange={changeLanguage} />
           {/* Notificação local (expo-notifications) não existe de verdade na
               web — nesse caso mostramos o toggle de Web Push em vez dele
               (mesma ideia, tecnologia diferente por trás). */}
@@ -239,4 +269,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginRight: 12,
   },
   rowLabel: { color: colors.text, fontSize: 14, fontWeight: '600', flex: 1 },
+  langPills: { flexDirection: 'row', gap: 6 },
+  langPill: {
+    paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10,
+    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface,
+  },
+  langPillActive: { borderColor: colors.accent, backgroundColor: colors.accent + '22' },
+  langPillText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  langPillTextActive: { color: colors.accent },
 });
