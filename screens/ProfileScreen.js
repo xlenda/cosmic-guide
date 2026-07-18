@@ -198,8 +198,8 @@ export default function ProfileScreen() {
     }
     if (isIOS()) {
       Alert.alert(
-        'Instalar no iPhone',
-        'Toque no ícone de Compartilhar (□↑) na barra do Safari e depois em "Adicionar à Tela de Início".'
+        'Instalar no iPhone ou iPad',
+        'Abra este site no Safari (precisa ser o Safari, não funciona em outro navegador). Toque no ícone de Compartilhar (□↑) na barra inferior, deslize a lista de opções até achar "Adicionar à Tela de Início" e confirme tocando em "Adicionar" no canto superior.'
       );
       return;
     }

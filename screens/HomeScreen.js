@@ -120,9 +120,11 @@ export default function HomeScreen() {
     { key: 'palm', title: t('home.card.palm.title'), subtitle: t('home.card.palm.subtitle'), icon: 'hand-left', gradient: ['#FFB84D', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.PALM) },
     { key: 'coffee', title: t('home.card.coffee.title'), subtitle: t('home.card.coffee.subtitle'), icon: 'cafe', gradient: ['#B57BFF', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.COFFEE) },
     { key: 'chat', title: t('home.card.chat.title'), subtitle: t('home.card.chat.subtitle'), icon: 'chatbubbles', gradient: ['#6C7BFF', '#5CE0D8'], onPress: () => navigation.getParent()?.navigate(ROUTES.CHAT_TAB) },
-    { key: 'diary', title: t('home.card.diary.title'), subtitle: t('home.card.diary.subtitle'), icon: 'book', gradient: ['#B57BFF', '#6C7BFF'], onPress: () => navigation.navigate(ROUTES.DIARY) },
     { key: 'social', title: t('home.card.social.title'), subtitle: t('home.card.social.subtitle'), icon: 'people', gradient: ['#5CE0D8', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.SOCIAL) },
   ];
+  // Diário Cósmico saiu do grid — vira uma faixa inteira fixa no topo (ver
+  // abaixo, logo depois do HeroSection), sempre visível em vez de ser só
+  // mais um card entre os outros.
 
   // Feed social é só pra quem usa o app sozinho (sem parceiro pareado) —
   // conteúdo de casal nunca aparece lá, então o card nem existe pra casal.
@@ -152,6 +154,21 @@ export default function HomeScreen() {
     <View style={styles.root}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <HeroSection greeting={greeting} dateStr={dateStr} sign={sign} streak={coupleData?.streak} insetTop={insets.top} />
+
+        {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
+            explícito: não ficar escondido junto dos outros cards do grid). */}
+        <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate(ROUTES.DIARY)} style={styles.diaryBar}>
+          <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.diaryBarInner}>
+            <View style={styles.diaryBarIcon}>
+              <Ionicons name="book" size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.diaryBarTitle}>{t('home.card.diary.title')}</Text>
+              <Text style={styles.diaryBarSubtitle}>{t('home.card.diary.subtitle')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* Sequência da semana (lib/streak.js) — leva pros Relatórios (calendário
             de sequência completo) ao tocar. */}
@@ -269,6 +286,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   loader: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+  diaryBar: { marginHorizontal: 16, marginTop: -14, marginBottom: 14, borderRadius: 16, overflow: 'hidden' },
+  diaryBarInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  diaryBarIcon: {
+    width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  diaryBarTitle: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  diaryBarSubtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
   streakCard: {
     marginHorizontal: 16, marginTop: -14, marginBottom: 14, padding: 16,
     backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
