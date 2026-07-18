@@ -59,10 +59,10 @@ test("o texto sempre inclui a frase do regente do dia", () => {
 
 test("inclui aviso de Mercúrio retrógrado quando a data cai num período retrógrado real (15/abr/2024)", () => {
   const thought = getThoughtForDate(new Date(2024, 3, 15, 12, 0, 0));
-  assert.ok(thought.includes("Mercúrio está retrógrado"), thought);
+  assert.ok(thought.includes("Mercúrio está em movimento retrógrado"), thought);
 });
 
 test("não inclui aviso de Mercúrio retrógrado fora dos períodos reais (01/jun/2024)", () => {
   const thought = getThoughtForDate(new Date(2024, 5, 1, 12, 0, 0));
-  assert.ok(!thought.includes("Mercúrio está retrógrado"), thought);
+  assert.ok(!thought.includes("Mercúrio está em movimento retrógrado"), thought);
 });
