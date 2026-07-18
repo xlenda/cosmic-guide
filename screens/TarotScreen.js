@@ -12,6 +12,8 @@ import { canDrawToday, recordDraw, DAILY_LIMIT_THEMES } from '../lib/tarotDailyL
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import OneTimeLock from '../components/OneTimeLock';
+import { recordReadingCompletion } from '../lib/readingCompletion';
+import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 
 const FEATURE_KEY = 'tarot';
 
@@ -34,6 +36,7 @@ export default function TarotScreen() {
   const [orientations, setOrientations] = useState([false, false, false]);
   const [dailyBlocked, setDailyBlocked] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [journalEntryId, setJournalEntryId] = useState(null);
 
   // Dinheiro e Saúde liberam só 1 tiragem por dia (ver lib/tarotDailyLimit) —
   // recheca sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
@@ -54,7 +57,7 @@ export default function TarotScreen() {
     hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
   }, [hasAccess]);
 
-  const drawCards = () => {
+  const drawCards = async () => {
     // Guarda o uso-único-na-vida aqui dentro, não só no gate de render — sem
     // isso, "Nova Tiragem" reatribui `drawn` diretamente (nunca passa por
     // null), então o gate baseado em `!drawn` nunca voltaria a bloquear
@@ -71,6 +74,7 @@ export default function TarotScreen() {
     setDrawn(shuffled);
     setRevealed([false, false, false]);
     setOrientations(newOrientations);
+    setJournalEntryId(null); // nova tiragem: solta o gravador de voz da entrada anterior
     recordDraw(theme.key);
     markFeatureUsedOnce(FEATURE_KEY);
     // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
@@ -80,6 +84,20 @@ export default function TarotScreen() {
     // abaixo, que é o limite diário de Dinheiro/Saúde — não mexer nele aqui.
     if (!hasAccess) setLocked(true);
     if (DAILY_LIMIT_THEMES.includes(theme.key)) setDailyBlocked(true);
+
+    const body = shuffled
+      .map((card, i) => {
+        const orientationTag = newOrientations[i] ? ' (invertida)' : '';
+        return `${POSITIONS[i]} — ${card.name}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i])}`;
+      })
+      .join('\n\n');
+    const { entryId } = await recordReadingCompletion({
+      type: 'tarot',
+      typeLabel: 'Leitura de Tarô',
+      title: `Tarô de ${theme.key} — Passado, Presente e Futuro`,
+      body,
+    });
+    setJournalEntryId(entryId);
   };
 
   const reveal = (i) => {
@@ -109,7 +127,7 @@ export default function TarotScreen() {
             <TouchableOpacity
               key={t.key}
               style={[styles.themeChip, theme.key === t.key && { borderColor: t.color, backgroundColor: t.color + '22' }]}
-              onPress={() => { Haptics.selectionAsync(); setTheme(t); setDrawn(null); }}
+              onPress={() => { Haptics.selectionAsync(); setTheme(t); setDrawn(null); setJournalEntryId(null); }}
             >
               <Ionicons name={t.icon} size={20} color={t.color} />
               <Text style={styles.themeText}>{t.key}</Text>
@@ -186,6 +204,14 @@ export default function TarotScreen() {
                 </View>
               </View>
             ))}
+
+            {journalEntryId && (
+              <VoiceInsightRecorder
+                entryId={journalEntryId}
+                readingType="tarot"
+                readingTitle={`Tarô de ${theme.key} — Passado, Presente e Futuro`}
+              />
+            )}
 
             {dailyBlocked ? (
               <Text style={styles.dailyLimitNote}>

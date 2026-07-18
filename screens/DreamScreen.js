@@ -16,9 +16,11 @@ import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
+import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import { getMockDreamReading } from '../lib/dreamReadings';
 import { fetchAiDreamReading } from '../lib/aiClient';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
 
 const DISCLAIMER =
@@ -36,6 +38,7 @@ export default function DreamScreen() {
   const [reading, setReading] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [journalEntryId, setJournalEntryId] = useState(null);
 
   useEffect(() => {
     if (hasAccess) return;
@@ -46,6 +49,7 @@ export default function DreamScreen() {
     setStep(STEP.INTRO);
     setDreamText('');
     setReading(null);
+    setJournalEntryId(null);
   };
 
   const handleInterpret = async () => {
@@ -69,6 +73,15 @@ export default function DreamScreen() {
     // várias vezes antes do bloqueio realmente pegar (achado por verificação
     // adversarial).
     if (!hasAccess) setLocked(true);
+
+    const { entryId } = await recordReadingCompletion({
+      type: 'dream',
+      typeLabel: 'Interpretação de Sonho',
+      title: result.title,
+      body: result.body,
+    });
+    setJournalEntryId(entryId);
+
     setIsAnalyzing(false);
     setStep(STEP.RESULT);
   };
@@ -137,6 +150,14 @@ export default function DreamScreen() {
                 <Text style={styles.resultTitle}>{reading.title}</Text>
                 <Text style={styles.resultBody}>{reading.body}</Text>
               </View>
+
+              {journalEntryId && (
+                <VoiceInsightRecorder
+                  entryId={journalEntryId}
+                  readingType="dream"
+                  readingTitle={reading.title}
+                />
+              )}
 
               {!hasAccess && (
                 <View style={styles.upsellCard}>

@@ -31,4 +31,11 @@ export const ROUTES = {
 
   PROFILE_MAIN: 'ProfileMain',
   PRIVACY: 'Privacy',
+  DIARY: 'Diary',
+  TOKENS: 'Tokens',
+  LOJA: 'Loja',
+  HELP_SUPPORT: 'HelpSupport',
+  TERMS: 'Terms',
+  REPORTS: 'Reports',
+  SOCIAL: 'Social',
 };

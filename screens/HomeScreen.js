@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,8 +10,12 @@ import HeroSection from '../components/HeroSection';
 import CardGrid from '../components/CardGrid';
 import { compatibility, compatPercent, aspects } from '../lib/signs';
 import { getTodaysThought } from '../lib/dailyThought';
+import { getWeekActivity, getStreakInfo } from '../lib/streak';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
+
+// Segunda a domingo — mesma ordem que getWeekActivity() já retorna.
+const WEEK_LABELS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -31,6 +35,21 @@ export default function HomeScreen() {
   }, [refresh]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // Widget "sequência da semana" (lib/streak.js) — só leitura/exibição, quem
+  // marca o dia como ativo é recordActiveDay() em outro lugar do app. Recarrega
+  // toda vez que a Home ganha foco pra refletir uma atividade que acabou de
+  // acontecer em outra tela (ex.: acabou de completar uma leitura e voltou).
+  const [weekActivity, setWeekActivity] = useState([]);
+  const [streakInfo, setStreakInfo] = useState({ currentStreak: 0, totalActiveDays: 0 });
+
+  const loadStreak = useCallback(async () => {
+    const [week, info] = await Promise.all([getWeekActivity(), getStreakInfo()]);
+    setWeekActivity(week);
+    setStreakInfo(info);
+  }, []);
+
+  useFocusEffect(useCallback(() => { loadStreak(); }, [loadStreak]));
 
   const today = new Date();
   const dateStr = today.toLocaleDateString(lang === 'es' ? 'es-ES' : 'pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -101,9 +120,15 @@ export default function HomeScreen() {
     { key: 'palm', title: t('home.card.palm.title'), subtitle: t('home.card.palm.subtitle'), icon: 'hand-left', gradient: ['#FFB84D', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.PALM) },
     { key: 'coffee', title: t('home.card.coffee.title'), subtitle: t('home.card.coffee.subtitle'), icon: 'cafe', gradient: ['#B57BFF', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.COFFEE) },
     { key: 'chat', title: t('home.card.chat.title'), subtitle: t('home.card.chat.subtitle'), icon: 'chatbubbles', gradient: ['#6C7BFF', '#5CE0D8'], onPress: () => navigation.getParent()?.navigate(ROUTES.CHAT_TAB) },
+    { key: 'diary', title: t('home.card.diary.title'), subtitle: t('home.card.diary.subtitle'), icon: 'book', gradient: ['#B57BFF', '#6C7BFF'], onPress: () => navigation.navigate(ROUTES.DIARY) },
+    { key: 'social', title: t('home.card.social.title'), subtitle: t('home.card.social.subtitle'), icon: 'people', gradient: ['#5CE0D8', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.SOCIAL) },
   ];
 
-  const cardItems = ALL_ITEMS.filter((c) => isCouple || !COUPLE_ONLY.includes(c.key)).map((c) =>
+  // Feed social é só pra quem usa o app sozinho (sem parceiro pareado) —
+  // conteúdo de casal nunca aparece lá, então o card nem existe pra casal.
+  const SOLO_ONLY = ['social'];
+
+  const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key))).map((c) =>
     !isOwnerAccount && (!isCouple || !hasAccess) && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
   );
 
@@ -127,6 +152,31 @@ export default function HomeScreen() {
     <View style={styles.root}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <HeroSection greeting={greeting} dateStr={dateStr} sign={sign} streak={coupleData?.streak} insetTop={insets.top} />
+
+        {/* Sequência da semana (lib/streak.js) — leva pros Relatórios (calendário
+            de sequência completo) ao tocar. */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.streakCard}
+          onPress={() => navigation.navigate(ROUTES.REPORTS)}
+        >
+          <View style={styles.streakCardHead}>
+            <Text style={styles.streakCardTitle}>
+              {streakInfo.currentStreak > 0
+                ? `🔥 ${streakInfo.currentStreak} ${streakInfo.currentStreak === 1 ? 'dia seguido' : 'dias seguidos'}`
+                : 'Comece sua sequência hoje'}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </View>
+          <View style={styles.weekRow}>
+            {(weekActivity.length ? weekActivity : WEEK_LABELS.map((_, i) => ({ date: String(i), active: false, isToday: false }))).map((day, i) => (
+              <View key={day.date} style={styles.weekDayWrap}>
+                <Text style={styles.weekDayLabel}>{WEEK_LABELS[i]}</Text>
+                <View style={[styles.weekDot, day.active && styles.weekDotActive, day.isToday && styles.weekDotToday]} />
+              </View>
+            ))}
+          </View>
+        </TouchableOpacity>
 
         {/* Pensamento cósmico do dia — mesmo formato de app de versículo
             diário, mas com o mesmo tom simbólico/honesto do resto do app. */}
@@ -219,9 +269,24 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   loader: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+  streakCard: {
+    marginHorizontal: 16, marginTop: -14, marginBottom: 14, padding: 16,
+    backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+  },
+  streakCardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  streakCardTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
+  weekDayWrap: { alignItems: 'center', gap: 6 },
+  weekDayLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
+  weekDot: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: colors.surfaceElevated, borderWidth: 1.5, borderColor: colors.border,
+  },
+  weekDotActive: { backgroundColor: colors.teal, borderColor: colors.teal },
+  weekDotToday: { borderWidth: 2, borderColor: colors.gold },
   thoughtCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    marginHorizontal: 16, marginTop: -14, marginBottom: 14, padding: 16,
+    marginHorizontal: 16, marginTop: 0, marginBottom: 14, padding: 16,
     backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
   },
   thoughtIcon: {

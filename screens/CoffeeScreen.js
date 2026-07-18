@@ -26,7 +26,9 @@ import {
   markWeeklySummaryShown,
   getFallbackWeeklySummary,
 } from '../lib/coffeeHistory';
+import { recordReadingCompletion } from '../lib/readingCompletion';
 import OneTimeLock from '../components/OneTimeLock';
+import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 
 const FEATURE_KEY = 'coffee';
 
@@ -66,6 +68,7 @@ export default function CoffeeScreen() {
   const [readyForWeeklySummary, setReadyForWeeklySummary] = useState(false);
   const [weeklySummary, setWeeklySummary] = useState(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [journalEntryId, setJournalEntryId] = useState(null);
 
   useEffect(() => {
     if (hasAccess) return;
@@ -78,6 +81,7 @@ export default function CoffeeScreen() {
     setImageBase64(null);
     setReading(null);
     setPermissionError(null);
+    setJournalEntryId(null);
   };
 
   const handlePickedResult = async (result) => {
@@ -170,6 +174,15 @@ export default function CoffeeScreen() {
     // grátis várias vezes antes do bloqueio realmente pegar (achado por
     // verificação adversarial).
     if (!hasAccess) setLocked(true);
+
+    const { entryId } = await recordReadingCompletion({
+      type: 'coffee',
+      typeLabel: 'Ritual do Café',
+      title: result.title,
+      body: result.body,
+    });
+    setJournalEntryId(entryId);
+
     setIsAnalyzing(false);
     setStep(STEP.RESULT);
 
@@ -298,6 +311,14 @@ export default function CoffeeScreen() {
               <Text style={styles.resultTitle}>{reading.title}</Text>
               <Text style={styles.resultBody}>{reading.body}</Text>
             </View>
+
+            {journalEntryId && (
+              <VoiceInsightRecorder
+                entryId={journalEntryId}
+                readingType="coffee"
+                readingTitle={reading.title}
+              />
+            )}
 
             {!hasAccess && (
               <View style={styles.upsellCard}>

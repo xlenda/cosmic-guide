@@ -55,6 +55,13 @@ import ProgressoScreen from './screens/ProgressoScreen';
 import RetrospectivaScreen from './screens/RetrospectivaScreen';
 import PlanosScreen from './screens/PlanosScreen';
 import LoginScreen from './screens/LoginScreen';
+import DiaryScreen from './screens/DiaryScreen';
+import ReportsScreen from './screens/ReportsScreen';
+import SocialScreen from './screens/SocialScreen';
+import TokensScreen from './screens/TokensScreen';
+import LojaScreen from './screens/LojaScreen';
+import HelpSupportScreen from './screens/HelpSupportScreen';
+import TermsScreen from './screens/TermsScreen';
 import { withFeatureGate } from './components/FeatureGate';
 
 const Tab = createBottomTabNavigator();
@@ -135,6 +142,9 @@ function HomeStack() {
       <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
       <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
       <Stack.Screen name={ROUTES.TIMELINE} component={TimelineScreen} />
+      <Stack.Screen name={ROUTES.DIARY} component={DiaryScreen} />
+      <Stack.Screen name={ROUTES.REPORTS} component={ReportsScreen} />
+      <Stack.Screen name={ROUTES.SOCIAL} component={SocialScreen} />
       {/* Exclusivas de assinantes — bloqueadas para casais sem hasAccess via
           withFeatureGate (components/FeatureGate.js), mesma altitude do
           FeatureGate do funil web (aplicado na borda da rota). */}
@@ -163,6 +173,10 @@ function ProfileStack() {
       <Stack.Screen name={ROUTES.PROFILE_MAIN} component={ProfileScreen} />
       <Stack.Screen name={ROUTES.PRIVACY} component={PrivacyScreen} />
       <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
+      <Stack.Screen name={ROUTES.TOKENS} component={TokensScreen} />
+      <Stack.Screen name={ROUTES.LOJA} component={LojaScreen} />
+      <Stack.Screen name={ROUTES.HELP_SUPPORT} component={HelpSupportScreen} />
+      <Stack.Screen name={ROUTES.TERMS} component={TermsScreen} />
     </Stack.Navigator>
   );
 }

@@ -30,6 +30,8 @@ import {
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import OneTimeLock from '../components/OneTimeLock';
+import { recordReadingCompletion } from '../lib/readingCompletion';
+import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 
 // FEATURE_KEY único pra tela inteira (hub de 4 modos) — NÃO varia por modo.
 // O bloqueio de 1 uso grátis (lib/featureUsage.js) é vitalício por FEATURE_KEY,
@@ -107,6 +109,17 @@ const MODES = [
   },
 ];
 
+// type/typeLabel enviados pro Diário Cósmico (lib/readingCompletion.js) por
+// modo — mesmas featureKeys de lib/featureUsage.js, reaproveitadas só como
+// rótulo (o Diário não interfere no bloqueio de 1 uso grátis, que é único
+// pro FEATURE_KEY 'palm' da tela inteira, independente do modo).
+const READING_TYPE_INFO = {
+  palma: { type: 'palma', typeLabel: 'Leitura de Palma' },
+  rosto: { type: 'rosto', typeLabel: 'Leitura de Rosto' },
+  pe: { type: 'pe', typeLabel: 'Leitura de Pé' },
+  pintas: { type: 'pintas', typeLabel: 'Leitura de Pintas' },
+};
+
 // Redimensiona pro lado maior no máximo 1024px antes de gerar o base64 —
 // uma foto de câmera moderna (ex.: 4000x3000) vira alguns MB em base64 sem
 // isso, arriscando timeout/limite de tamanho no backend. Ajustar quality
@@ -136,6 +149,7 @@ export default function PalmScreen() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [permissionError, setPermissionError] = useState(null);
   const [locked, setLocked] = useState(false);
+  const [journalEntryId, setJournalEntryId] = useState(null);
 
   const activeMode = MODES.find((m) => m.key === mode) || MODES[0];
 
@@ -150,6 +164,7 @@ export default function PalmScreen() {
     setImageBase64(null);
     setReading(null);
     setPermissionError(null);
+    setJournalEntryId(null); // nova leitura/troca de modo: solta o gravador de voz da entrada anterior
   };
 
   // Troca de modo (Palma/Rosto/Pé/Pintas) só muda qual leitura será feita —
@@ -262,6 +277,16 @@ export default function PalmScreen() {
     // na mesma sessão deixaria repetir o uso grátis várias vezes antes do
     // bloqueio realmente pegar (achado por verificação adversarial).
     if (!hasAccess) setLocked(true);
+
+    const typeInfo = READING_TYPE_INFO[mode];
+    const { entryId } = await recordReadingCompletion({
+      type: typeInfo.type,
+      typeLabel: typeInfo.typeLabel,
+      title: result.title,
+      body: result.body,
+    });
+    setJournalEntryId(entryId);
+
     setIsAnalyzing(false);
     setStep(STEP.RESULT);
   };
@@ -352,6 +377,14 @@ export default function PalmScreen() {
               <Text style={styles.resultTitle}>{reading.title}</Text>
               <Text style={styles.resultBody}>{reading.body}</Text>
             </View>
+
+            {journalEntryId && (
+              <VoiceInsightRecorder
+                entryId={journalEntryId}
+                readingType={READING_TYPE_INFO[mode].type}
+                readingTitle={reading.title}
+              />
+            )}
 
             {!hasAccess && (
               <View style={styles.upsellCard}>
