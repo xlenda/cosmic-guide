@@ -57,12 +57,22 @@ test("o texto sempre inclui a frase do regente do dia", () => {
   assert.ok(thought.includes("Hoje é dia de Vênus"), thought);
 });
 
+test("a ponte pro dia seguinte aponta pro regente real de amanhã (sexta -> sábado = Saturno)", () => {
+  const thought = getThoughtForDate(new Date(2024, 0, 12, 12, 0, 0));
+  assert.ok(thought.includes("Amanhã Saturno"), thought);
+});
+
+test("a ponte do sábado fecha o ciclo real da semana apontando pro Sol de domingo", () => {
+  const thought = getThoughtForDate(new Date(2024, 0, 13, 12, 0, 0));
+  assert.ok(thought.includes("Amanhã o ciclo recomeça com o Sol"), thought);
+});
+
 test("inclui aviso de Mercúrio retrógrado quando a data cai num período retrógrado real (15/abr/2024)", () => {
   const thought = getThoughtForDate(new Date(2024, 3, 15, 12, 0, 0));
-  assert.ok(thought.includes("Mercúrio está em movimento retrógrado"), thought);
+  assert.ok(thought.includes("Mercúrio retrógrado"), thought);
 });
 
 test("não inclui aviso de Mercúrio retrógrado fora dos períodos reais (01/jun/2024)", () => {
   const thought = getThoughtForDate(new Date(2024, 5, 1, 12, 0, 0));
-  assert.ok(!thought.includes("Mercúrio está em movimento retrógrado"), thought);
+  assert.ok(!thought.includes("Mercúrio retrógrado"), thought);
 });
