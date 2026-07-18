@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, gradients } from '../theme';
 import { TAROT_DECK } from '../lib/tarotDeck';
+import { getTarotImage } from '../lib/tarotImages';
 import { getThemedMeaning } from '../lib/tarotThemes';
 import { canDrawToday, recordDraw, DAILY_LIMIT_THEMES } from '../lib/tarotDailyLimit';
 import { useCouple } from '../context/CoupleContext';
@@ -134,11 +135,19 @@ export default function TarotScreen() {
               {drawn.map((card, i) => (
                 <TouchableOpacity key={i} activeOpacity={0.9} onPress={() => reveal(i)} style={styles.tarotCard}>
                   {revealed[i] ? (
-                    <LinearGradient colors={theme.grad} style={[styles.tarotFace, orientations[i] && { transform: [{ rotate: "180deg" }] }]}>
-                      <Ionicons name={card.icon} size={30} color="#fff" />
-                      <Text style={styles.tarotName}>{card.name}</Text>
-                      {orientations[i] && <Text style={styles.tarotName}>Invertida</Text>}
-                    </LinearGradient>
+                    <>
+                      <View style={styles.tarotFace}>
+                        <Image
+                          source={getTarotImage(card.id)}
+                          style={[styles.tarotImage, orientations[i] && { transform: [{ rotate: '180deg' }] }]}
+                          resizeMode="cover"
+                        />
+                      </View>
+                      <Text style={styles.tarotName} numberOfLines={2}>
+                        {card.name}
+                        {orientations[i] ? ' (invertida)' : ''}
+                      </Text>
+                    </>
                   ) : (
                     <LinearGradient colors={['#2A1D52', '#1A1235']} style={styles.tarotBack}>
                       <Ionicons name="sparkles" size={26} color={theme.color} />
@@ -200,9 +209,13 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   cardsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   tarotCard: { alignItems: 'center', width: '31%' },
-  tarotFace: { width: '100%', height: 150, borderRadius: 14, justifyContent: 'center', alignItems: 'center', padding: 8 },
+  tarotFace: {
+    width: '100%', height: 150, borderRadius: 14, overflow: 'hidden',
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+  },
+  tarotImage: { width: '100%', height: '100%' },
   tarotBack: { width: '100%', height: 150, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border, gap: 8 },
-  tarotName: { color: '#fff', fontSize: 12, fontWeight: '800', marginTop: 8, textAlign: 'center' },
+  tarotName: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 8, textAlign: 'center' },
   tapText: { color: colors.textMuted, fontSize: 11 },
   posLabel: { color: colors.textMuted, fontSize: 12, marginTop: 8, fontWeight: '600' },
   meaningCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },

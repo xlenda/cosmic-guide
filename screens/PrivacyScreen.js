@@ -74,6 +74,28 @@ export default function PrivacyScreen() {
           </View>
         </View>
 
+        <Text style={styles.sectionTitle}>Seus direitos (LGPD)</Text>
+        <View style={styles.card}>
+          <PrivacyRow icon="eye" text="Confirmar se tratamos algum dado seu e acessá-lo" />
+          <PrivacyRow icon="create" text="Corrigir dados incompletos, inexatos ou desatualizados" />
+          <PrivacyRow icon="trash-bin" text="Pedir a eliminação dos dados tratados com seu consentimento" />
+          <PrivacyRow icon="information-circle" text="Saber com quem compartilhamos seus dados (hoje, só a Anthropic, e só na hora de gerar uma leitura)" last />
+        </View>
+
+        <Text style={styles.sectionTitle}>Fale conosco</Text>
+        <View style={styles.card}>
+          <View style={styles.cardPad}>
+            <Text style={styles.paragraph}>
+              Para exercer qualquer um desses direitos, ou tirar dúvidas sobre como tratamos seus dados, escreva para{' '}
+              <Text style={styles.emailText}>contato@cosmicguide.cloud</Text>.
+            </Text>
+            <Text style={[styles.paragraph, { marginBottom: 0 }]}>
+              Nomes, datas e signos ficam só no seu aparelho enquanto você usa o app — apagá-los aqui embaixo remove
+              tudo de vez. Fotos e textos enviados para leituras de IA não ficam guardados depois da resposta gerada.
+            </Text>
+          </View>
+        </View>
+
         <TouchableOpacity style={styles.dangerBtn} onPress={confirmDelete} activeOpacity={0.85}>
           <Ionicons name="trash" size={18} color="#fff" />
           <Text style={styles.dangerBtnText}>Apagar todos os dados do casal</Text>
@@ -100,6 +122,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginRight: 12,
   },
   rowText: { color: colors.textSecondary, fontSize: 14, flex: 1 },
+  emailText: { color: colors.accent, fontWeight: '700' },
   dangerBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: colors.red, borderRadius: 14, paddingVertical: 14, marginTop: 4,

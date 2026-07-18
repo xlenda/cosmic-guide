@@ -180,6 +180,16 @@ export default function ProfileScreen() {
           {Platform.OS === 'web' && !isRunningStandalone() && (
             <MenuRow icon="download" label="Instalar app" onPress={handleInstallApp} />
           )}
+          {/* Placeholder — login real (Supabase) ainda não está implementado,
+              esperando o Lenda criar o projeto e passar URL + chave anon. Só
+              reserva o lugar na UI e explica o estado atual quando tocado. */}
+          <MenuRow
+            icon="log-in"
+            label="Fazer login"
+            onPress={() =>
+              Alert.alert('Em breve', 'O login com conta ainda está sendo construído — por enquanto o app funciona sem ele.')
+            }
+          />
           <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} last={!coupleData} />
           {/* Assinatura só existe para casais — modo solo fica de fora (ver
               decisão do plano: monetização é a experiência de casal). */}
