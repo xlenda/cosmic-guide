@@ -14,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { useAuth } from '../context/AuthContext';
@@ -22,13 +23,28 @@ const MODE = { SIGN_IN: 'signin', SIGN_UP: 'signup' };
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithGoogle } = useAuth();
   const [mode, setMode] = useState(MODE.SIGN_IN);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+
+  // O navegador inteiro sai da página nesse redirect (é assim que OAuth
+  // funciona na web) — então não tem "voltar" pra tratar aqui: se der erro
+  // ANTES de sair da página (ex.: provedor Google desativado no painel do
+  // Supabase), mostramos; se der certo, a página inteira troca de URL e essa
+  // tela nem existe mais quando a pessoa volta já logada.
+  async function handleGoogle() {
+    setError('');
+    setInfo('');
+    setGoogleLoading(true);
+    const result = await signInWithGoogle();
+    setGoogleLoading(false);
+    if (result.error) setError(result.error);
+  }
 
   function toggleMode() {
     setMode(mode === MODE.SIGN_IN ? MODE.SIGN_UP : MODE.SIGN_IN);
@@ -100,6 +116,21 @@ export default function LoginScreen() {
             </TouchableOpacity>
           )}
 
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {googleLoading ? (
+            <ActivityIndicator color={colors.text} />
+          ) : (
+            <TouchableOpacity style={styles.googleBtn} activeOpacity={0.85} onPress={handleGoogle} disabled={loading}>
+              <Ionicons name="logo-google" size={18} color={colors.text} />
+              <Text style={styles.googleBtnText}>Continuar com Google</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity onPress={toggleMode} style={styles.switchLink} disabled={loading}>
             <Text style={styles.switchText}>
               {mode === MODE.SIGN_IN ? 'Não tem conta? Criar uma' : 'Já tem conta? Entrar'}
@@ -135,6 +166,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
+  googleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface,
+    paddingVertical: 14, marginTop: 14,
+  },
+  googleBtnText: { color: colors.text, fontSize: 15, fontWeight: '700' },
   switchLink: { alignItems: 'center', marginTop: 18 },
   switchText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
 });

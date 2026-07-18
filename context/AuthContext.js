@@ -3,7 +3,7 @@
 // pessoa pode usar o app inteiro sem nunca logar (login só é exigido na hora
 // de assinar, ver PlanosScreen.js). `user`/`session` ficam null até logar.
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, signInWithEmail, signUpWithEmail, signOut as signOutSupabase } from '../lib/supabaseClient';
+import { supabase, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut as signOutSupabase } from '../lib/supabaseClient';
 
 const AuthContext = createContext(null);
 
@@ -37,6 +37,7 @@ export function AuthProvider({ children }) {
     loading,
     signIn: signInWithEmail,
     signUp: signUpWithEmail,
+    signInWithGoogle,
     signOut: signOutSupabase,
   };
 
