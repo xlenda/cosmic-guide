@@ -267,14 +267,28 @@ export default function SocialScreen() {
   const [activeComments, setActiveComments] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
 
+  // Try/catch separado por chamada (achado real de auditoria, 18/07/2026): um
+  // único try/catch envolvendo as duas chamadas fazia uma falha de rede só do
+  // feed (getSocialFeed) derrubar um perfil que tinha acabado de carregar com
+  // sucesso — jogando a pessoa de volta pra tela "Criar perfil social" por
+  // causa de um hiccup que não tinha nada a ver com o perfil em si.
   const load = useCallback(async () => {
     if (!user) return;
+    let p;
     try {
-      const p = await getMySocialProfile();
-      setProfile(p);
-      if (p) setPosts(await getSocialFeed());
+      p = await getMySocialProfile();
     } catch {
       setProfile(null);
+      return;
+    }
+    setProfile(p);
+    if (p) {
+      try {
+        setPosts(await getSocialFeed());
+      } catch {
+        // Feed não carregou agora — mantém o perfil válido e os posts
+        // antigos na tela, em vez de resetar tudo por uma falha só do feed.
+      }
     }
   }, [user]);
 

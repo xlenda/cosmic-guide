@@ -167,6 +167,11 @@ export default function DiaryScreen() {
   }
 
   async function share(entry) {
+    // Sem essa guarda síncrona (achado real de auditoria, 18/07/2026), dois
+    // toques rápidos no botão antes do primeiro re-render disparavam duas
+    // chamadas concorrentes a shareToFeed, publicando a mesma leitura
+    // duplicada no Feed Social (POST /posts não é idempotente).
+    if (sharingId) return;
     setSharingId(entry.id);
     try {
       await shareToFeed({ readingType: entry.type, title: entry.title, body: entry.body });

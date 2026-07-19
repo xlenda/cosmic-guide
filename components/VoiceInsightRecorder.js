@@ -5,7 +5,7 @@
 // transcrito vai pro endpoint /api/enhance-insight, que só organiza a fala,
 // nunca inventa conteúdo. Se o navegador não suportar a API (Firefox, por
 // exemplo), cai num campo de texto manual — nunca deixa a pessoa sem opção.
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -29,9 +29,34 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
   const [enhanced, setEnhanced] = useState(null);
   const [manualText, setManualText] = useState('');
   const [error, setError] = useState(null);
+  // Evita a corrida achada em auditoria (18/07/2026): "Salvar assim" não
+  // trocava de step antes do await, então "Lapidar com IA" ficava clicável
+  // ao mesmo tempo — as duas chamadas concorrentes ao mesmo
+  // attachVoiceInsight (read-modify-write sem lock) podiam apagar uma à
+  // outra silenciosamente. `busy` desabilita os dois botões assim que
+  // qualquer um dos dois é acionado.
+  const [busy, setBusy] = useState(false);
   const recognitionRef = useRef(null);
 
   const speechSupported = !!getSpeechRecognitionCtor();
+
+  // Sem isso (achado real de auditoria, 18/07/2026), trocar de tema ou tirar
+  // nova leitura enquanto step ainda é RECORDING desmontava o componente sem
+  // nunca chamar stop() — o microfone continuava ouvindo em segundo plano,
+  // sem nenhuma indicação visual, até expirar sozinho. Zera os handlers antes
+  // de parar pra nenhum callback tardio (onend/onresult) tocar state depois
+  // do componente já ter desmontado.
+  useEffect(() => {
+    return () => {
+      const recognition = recognitionRef.current;
+      if (recognition) {
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+        recognition.stop();
+      }
+    };
+  }, []);
 
   const startRecording = () => {
     const Ctor = getSpeechRecognitionCtor();
@@ -72,12 +97,16 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
   };
 
   const saveOriginalOnly = async () => {
+    if (busy) return;
+    setBusy(true);
     await attachVoiceInsight(entryId, { voiceTranscript: transcript });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setStep(STEP.DONE);
   };
 
   const enhanceWithAi = async () => {
+    if (busy) return;
+    setBusy(true);
     setStep(STEP.ENHANCING);
     setError(null);
     try {
@@ -121,10 +150,10 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
         <Text style={styles.label}>Seu insight</Text>
         <Text style={styles.transcriptText}>{transcript}</Text>
         <View style={styles.rowButtons}>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={saveOriginalOnly}>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={saveOriginalOnly} disabled={busy}>
             <Text style={styles.secondaryBtnText}>Salvar assim</Text>
           </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.85} onPress={enhanceWithAi} style={{ flex: 1, borderRadius: 12, overflow: 'hidden' }}>
+          <TouchableOpacity activeOpacity={0.85} onPress={enhanceWithAi} disabled={busy} style={{ flex: 1, borderRadius: 12, overflow: 'hidden' }}>
             <LinearGradient colors={gradients.teal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
               <Ionicons name="sparkles" size={16} color="#0E0821" />
               <Text style={styles.primaryBtnText}>Lapidar com IA</Text>
