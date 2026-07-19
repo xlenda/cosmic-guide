@@ -82,6 +82,7 @@ function ProfileSetup({ onCreated }) {
           placeholder="Nome de exibição"
           placeholderTextColor={colors.textMuted}
           style={styles.input}
+          maxLength={60}
         />
         <TextInput
           value={username}
@@ -90,6 +91,7 @@ function ProfileSetup({ onCreated }) {
           placeholderTextColor={colors.textMuted}
           style={styles.input}
           autoCapitalize="none"
+          maxLength={20}
         />
         {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -109,11 +111,11 @@ function PostCard({ post, onToggleLike, onOpenComments }) {
       <View style={styles.postHeader}>
         <Text style={styles.postAvatar}>{post.avatar_emoji || '✨'}</Text>
         <View style={{ flex: 1 }}>
-          <Text style={styles.postAuthor}>{post.display_name}</Text>
-          <Text style={styles.postMeta}>@{post.username} · {timeAgo(post.created_at)}</Text>
+          <Text style={styles.postAuthor} numberOfLines={1}>{post.display_name}</Text>
+          <Text style={styles.postMeta} numberOfLines={1}>@{post.username} · {timeAgo(post.created_at)}</Text>
         </View>
       </View>
-      <Text style={styles.postTitle}>{post.title}</Text>
+      <Text style={styles.postTitle} numberOfLines={2}>{post.title}</Text>
       <Text style={styles.postBody} numberOfLines={4}>{post.body}</Text>
       <View style={styles.postActions}>
         <TouchableOpacity style={styles.postActionBtn} onPress={() => onToggleLike(post)}>
@@ -175,7 +177,7 @@ function CommentsPanel({ post, onClose }) {
               <View style={styles.commentRow}>
                 <Text style={styles.postAvatar}>{item.avatar_emoji || '✨'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.commentAuthor}>{item.display_name}</Text>
+                  <Text style={styles.commentAuthor} numberOfLines={1}>{item.display_name}</Text>
                   <Text style={styles.commentBody}>{item.body}</Text>
                 </View>
               </View>
