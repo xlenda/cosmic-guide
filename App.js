@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { ROUTES } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CoupleProvider, useCouple } from './context/CoupleContext';
 import { AuthProvider } from './context/AuthContext';
+import { initConversionTracking } from './lib/conversionTracking';
 
 // Sem isso, uma notificação chegando com o app ABERTO (foreground) não mostra
 // nada — o handler decide o comportamento nesse caso (banner + som, sem
@@ -44,25 +45,39 @@ import LunarCalendarScreen from './screens/LunarCalendarScreen';
 import CoffeeScreen from './screens/CoffeeScreen';
 import ChatScreen from './screens/ChatScreen';
 import ProfileScreen from './screens/ProfileScreen';
-import PrivacyScreen from './screens/PrivacyScreen';
 import QuizScreen from './screens/QuizScreen';
-import OnboardingChoiceScreen from './screens/OnboardingChoiceScreen';
-import TimelineScreen from './screens/TimelineScreen';
-import ReconectarScreen from './screens/ReconectarScreen';
-import DescobrirScreen from './screens/DescobrirScreen';
-import AgirScreen from './screens/AgirScreen';
-import ProgressoScreen from './screens/ProgressoScreen';
-import RetrospectivaScreen from './screens/RetrospectivaScreen';
 import PlanosScreen from './screens/PlanosScreen';
 import LoginScreen from './screens/LoginScreen';
 import DiaryScreen from './screens/DiaryScreen';
-import ReportsScreen from './screens/ReportsScreen';
 import SocialScreen from './screens/SocialScreen';
-import TokensScreen from './screens/TokensScreen';
-import LojaScreen from './screens/LojaScreen';
-import HelpSupportScreen from './screens/HelpSupportScreen';
-import TermsScreen from './screens/TermsScreen';
 import { withFeatureGate } from './components/FeatureGate';
+
+// Telas raramente visitadas (config/legal, ou exclusivas de assinante e já
+// gated por withFeatureGate) — não precisam entrar no parse inicial do bundle
+// web (~29 telas eram importadas eagerly antes disso, achado real de
+// auditoria de performance, 19/07/2026). Cada Stack.Navigator que renderiza
+// alguma destas precisa de um <Suspense> ancestral (ver LoadingFallback).
+const PrivacyScreen = lazy(() => import('./screens/PrivacyScreen'));
+const OnboardingChoiceScreen = lazy(() => import('./screens/OnboardingChoiceScreen'));
+const TimelineScreen = lazy(() => import('./screens/TimelineScreen'));
+const ReconectarScreen = lazy(() => import('./screens/ReconectarScreen'));
+const DescobrirScreen = lazy(() => import('./screens/DescobrirScreen'));
+const AgirScreen = lazy(() => import('./screens/AgirScreen'));
+const ProgressoScreen = lazy(() => import('./screens/ProgressoScreen'));
+const RetrospectivaScreen = lazy(() => import('./screens/RetrospectivaScreen'));
+const ReportsScreen = lazy(() => import('./screens/ReportsScreen'));
+const TokensScreen = lazy(() => import('./screens/TokensScreen'));
+const LojaScreen = lazy(() => import('./screens/LojaScreen'));
+const HelpSupportScreen = lazy(() => import('./screens/HelpSupportScreen'));
+const TermsScreen = lazy(() => import('./screens/TermsScreen'));
+
+function LoadingFallback() {
+  return (
+    <View style={styles.loader}>
+      <ActivityIndicator color={colors.accent} size="large" />
+    </View>
+  );
+}
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -131,31 +146,33 @@ function useUrlBootstrap() {
 
 function HomeStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name={ROUTES.HOME_MAIN} component={HomeScreen} />
-      <Stack.Screen name={ROUTES.HOROSCOPE} component={HoroscopeScreen} />
-      <Stack.Screen name={ROUTES.BIRTH_CHART} component={BirthChartScreen} />
-      <Stack.Screen name={ROUTES.DREAM} component={DreamScreen} />
-      <Stack.Screen name={ROUTES.PALM} component={PalmScreen} />
-      <Stack.Screen name={ROUTES.LUNAR_CALENDAR} component={LunarCalendarScreen} />
-      <Stack.Screen name={ROUTES.COFFEE} component={CoffeeScreen} />
-      <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
-      <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
-      <Stack.Screen name={ROUTES.TIMELINE} component={TimelineScreen} />
-      <Stack.Screen name={ROUTES.DIARY} component={DiaryScreen} />
-      <Stack.Screen name={ROUTES.REPORTS} component={ReportsScreen} />
-      <Stack.Screen name={ROUTES.SOCIAL} component={SocialScreen} />
-      {/* Exclusivas de assinantes — bloqueadas para casais sem hasAccess via
-          withFeatureGate (components/FeatureGate.js), mesma altitude do
-          FeatureGate do funil web (aplicado na borda da rota). */}
-      <Stack.Screen name={ROUTES.RECONECTAR} component={withFeatureGate(ReconectarScreen)} />
-      <Stack.Screen name={ROUTES.DESCOBRIR} component={withFeatureGate(DescobrirScreen)} />
-      <Stack.Screen name={ROUTES.AGIR} component={withFeatureGate(AgirScreen)} />
-      <Stack.Screen name={ROUTES.PROGRESSO} component={withFeatureGate(ProgressoScreen)} />
-      <Stack.Screen name={ROUTES.RETROSPECTIVA} component={withFeatureGate(RetrospectivaScreen)} />
-      <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
-      <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
-    </Stack.Navigator>
+    <Suspense fallback={<LoadingFallback />}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name={ROUTES.HOME_MAIN} component={HomeScreen} />
+        <Stack.Screen name={ROUTES.HOROSCOPE} component={HoroscopeScreen} />
+        <Stack.Screen name={ROUTES.BIRTH_CHART} component={BirthChartScreen} />
+        <Stack.Screen name={ROUTES.DREAM} component={DreamScreen} />
+        <Stack.Screen name={ROUTES.PALM} component={PalmScreen} />
+        <Stack.Screen name={ROUTES.LUNAR_CALENDAR} component={LunarCalendarScreen} />
+        <Stack.Screen name={ROUTES.COFFEE} component={CoffeeScreen} />
+        <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
+        <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
+        <Stack.Screen name={ROUTES.TIMELINE} component={TimelineScreen} />
+        <Stack.Screen name={ROUTES.DIARY} component={DiaryScreen} />
+        <Stack.Screen name={ROUTES.REPORTS} component={ReportsScreen} />
+        <Stack.Screen name={ROUTES.SOCIAL} component={SocialScreen} />
+        {/* Exclusivas de assinantes — bloqueadas para casais sem hasAccess via
+            withFeatureGate (components/FeatureGate.js), mesma altitude do
+            FeatureGate do funil web (aplicado na borda da rota). */}
+        <Stack.Screen name={ROUTES.RECONECTAR} component={withFeatureGate(ReconectarScreen)} />
+        <Stack.Screen name={ROUTES.DESCOBRIR} component={withFeatureGate(DescobrirScreen)} />
+        <Stack.Screen name={ROUTES.AGIR} component={withFeatureGate(AgirScreen)} />
+        <Stack.Screen name={ROUTES.PROGRESSO} component={withFeatureGate(ProgressoScreen)} />
+        <Stack.Screen name={ROUTES.RETROSPECTIVA} component={withFeatureGate(RetrospectivaScreen)} />
+        <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
+        <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
+      </Stack.Navigator>
+    </Suspense>
   );
 }
 
@@ -169,15 +186,17 @@ function TarotStack() {
 
 function ProfileStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name={ROUTES.PROFILE_MAIN} component={ProfileScreen} />
-      <Stack.Screen name={ROUTES.PRIVACY} component={PrivacyScreen} />
-      <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
-      <Stack.Screen name={ROUTES.TOKENS} component={TokensScreen} />
-      <Stack.Screen name={ROUTES.LOJA} component={LojaScreen} />
-      <Stack.Screen name={ROUTES.HELP_SUPPORT} component={HelpSupportScreen} />
-      <Stack.Screen name={ROUTES.TERMS} component={TermsScreen} />
-    </Stack.Navigator>
+    <Suspense fallback={<LoadingFallback />}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name={ROUTES.PROFILE_MAIN} component={ProfileScreen} />
+        <Stack.Screen name={ROUTES.PRIVACY} component={PrivacyScreen} />
+        <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
+        <Stack.Screen name={ROUTES.TOKENS} component={TokensScreen} />
+        <Stack.Screen name={ROUTES.LOJA} component={LojaScreen} />
+        <Stack.Screen name={ROUTES.HELP_SUPPORT} component={HelpSupportScreen} />
+        <Stack.Screen name={ROUTES.TERMS} component={TermsScreen} />
+      </Stack.Navigator>
+    </Suspense>
   );
 }
 
@@ -204,10 +223,12 @@ function Gate() {
   if (!coupleData && !soloSign) {
     return (
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name={ROUTES.ONBOARDING_CHOICE} component={OnboardingChoiceScreen} />
-          <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
-        </Stack.Navigator>
+        <Suspense fallback={<LoadingFallback />}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name={ROUTES.ONBOARDING_CHOICE} component={OnboardingChoiceScreen} />
+            <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
+          </Stack.Navigator>
+        </Suspense>
       </NavigationContainer>
     );
   }
@@ -248,6 +269,10 @@ function Gate() {
 }
 
 export default function App() {
+  useEffect(() => {
+    initConversionTracking();
+  }, []);
+
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>

@@ -17,9 +17,9 @@ import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { useAuth } from '../context/AuthContext';
 import {
-  getMySocialProfile, upsertSocialProfile, getSocialFeed,
+  getMySocialProfile, upsertSocialProfile, getSocialFeed, deleteSocialPost,
   likeSocialPost, unlikeSocialPost, getSocialComments, addSocialComment,
-  searchSocialUsers, followSocialUser, unfollowSocialUser,
+  searchSocialUsers, followSocialUser, unfollowSocialUser, getSocialUserProfile,
 } from '../lib/socialClient';
 
 const AVATAR_OPTIONS = ['🌙', '✨', '🔮', '🌟', '☀️', '🪐', '🦋', '🌊'];
@@ -105,15 +105,22 @@ function ProfileSetup({ onCreated }) {
   );
 }
 
-function PostCard({ post, onToggleLike, onOpenComments }) {
+function PostCard({ post, myUserId, onToggleLike, onOpenComments, onOpenProfile, onDeletePost }) {
   return (
     <View style={styles.postCard}>
       <View style={styles.postHeader}>
-        <Text style={styles.postAvatar}>{post.avatar_emoji || '✨'}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.postAuthor} numberOfLines={1}>{post.display_name}</Text>
-          <Text style={styles.postMeta} numberOfLines={1}>@{post.username} · {timeAgo(post.created_at)}</Text>
-        </View>
+        <TouchableOpacity style={styles.postHeaderTouchable} onPress={() => onOpenProfile(post)}>
+          <Text style={styles.postAvatar}>{post.avatar_emoji || '✨'}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.postAuthor} numberOfLines={1}>{post.display_name}</Text>
+            <Text style={styles.postMeta} numberOfLines={1}>@{post.username} · {timeAgo(post.created_at)}</Text>
+          </View>
+        </TouchableOpacity>
+        {post.user_id === myUserId && (
+          <TouchableOpacity onPress={() => onDeletePost(post)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
       </View>
       <Text style={styles.postTitle} numberOfLines={2}>{post.title}</Text>
       <Text style={styles.postBody} numberOfLines={4}>{post.body}</Text>
@@ -126,6 +133,92 @@ function PostCard({ post, onToggleLike, onOpenComments }) {
           <Ionicons name="chatbubble-outline" size={17} color={colors.textMuted} />
           <Text style={styles.postActionText}>{post.comment_count}</Text>
         </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// Painel de perfil de outro leitor — mesma estrutura de overlay do
+// CommentsPanel (sem rota nova no navigator, self-contained aqui). Mostra
+// contagens, botão seguir/deixar de seguir e as leituras compartilhadas
+// visíveis (o backend já filtra: só aparece o body dos posts se for o dono ou
+// quem segue — GET /users/:userId, canViewPosts).
+function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
+  const [data, setData] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      getSocialUserProfile(userId).then(setData).catch(() => setData(null));
+    }, [userId])
+  );
+
+  const toggleFollow = async () => {
+    if (!data) return;
+    setBusy(true);
+    try {
+      if (data.isFollowing) await unfollowSocialUser(userId);
+      else await followSocialUser(userId);
+      setData((prev) => ({
+        ...prev,
+        isFollowing: !prev.isFollowing,
+        followers: prev.followers + (prev.isFollowing ? -1 : 1),
+      }));
+      onFollowChange?.();
+    } catch (e) {
+      Alert.alert('Não deu', e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={styles.commentsOverlay}>
+      <View style={styles.commentsPanel}>
+        <View style={styles.commentsHeader}>
+          <Text style={styles.commentsTitle}>Perfil</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Ionicons name="close" size={24} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+        {!data ? (
+          <ActivityIndicator color={colors.accent} style={{ marginTop: 20, marginBottom: 20 }} />
+        ) : (
+          <>
+            <View style={styles.profilePanelHeader}>
+              <Text style={styles.profilePanelAvatar}>{data.profile.avatar_emoji || '✨'}</Text>
+              <Text style={styles.postAuthor}>{data.profile.display_name}</Text>
+              <Text style={styles.postMeta}>@{data.profile.username}</Text>
+              <View style={styles.profilePanelStats}>
+                <Text style={styles.profilePanelStat}>{data.followers} seguidores</Text>
+                <Text style={styles.profilePanelStat}>{data.following} seguindo</Text>
+              </View>
+              {userId !== myUserId && (
+                <TouchableOpacity disabled={busy} onPress={toggleFollow} style={[styles.followBtn, { marginTop: 10 }]}>
+                  <Text style={styles.followBtnText}>{data.isFollowing ? 'Deixar de seguir' : 'Seguir'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <FlatList
+              data={data.posts}
+              keyExtractor={(p) => String(p.id)}
+              style={{ maxHeight: 260 }}
+              ListEmptyComponent={
+                <Text style={styles.emptyComments}>
+                  {data.isFollowing || userId === myUserId ? 'Nenhuma leitura compartilhada ainda.' : 'Siga essa pessoa pra ver as leituras compartilhadas.'}
+                </Text>
+              }
+              renderItem={({ item }) => (
+                <View style={styles.commentRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.postTitle} numberOfLines={1}>{item.title}</Text>
+                    <Text style={styles.postBody} numberOfLines={2}>{item.body}</Text>
+                  </View>
+                </View>
+              )}
+            />
+          </>
+        )}
       </View>
     </View>
   );
@@ -263,8 +356,12 @@ export default function SocialScreen() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(undefined); // undefined=carregando, null=não criado
   const [posts, setPosts] = useState([]);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeComments, setActiveComments] = useState(null);
+  const [activeProfileUserId, setActiveProfileUserId] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
 
   // Try/catch separado por chamada (achado real de auditoria, 18/07/2026): um
@@ -284,7 +381,10 @@ export default function SocialScreen() {
     setProfile(p);
     if (p) {
       try {
-        setPosts(await getSocialFeed());
+        const { posts: firstPage, meta } = await getSocialFeed();
+        setPosts(firstPage);
+        setNextCursor(meta?.next_cursor ?? null);
+        setHasMore(!!meta?.has_next);
       } catch {
         // Feed não carregou agora — mantém o perfil válido e os posts
         // antigos na tela, em vez de resetar tudo por uma falha só do feed.
@@ -304,6 +404,24 @@ export default function SocialScreen() {
     setRefreshing(false);
   };
 
+  // Antes o feed ignorava has_next/next_cursor que o backend já expõe — a
+  // FlatList nunca buscava além da primeira página. Achado real de auditoria
+  // (19/07/2026).
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || !nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const { posts: nextPage, meta } = await getSocialFeed(nextCursor);
+      setPosts((prev) => [...prev, ...nextPage]);
+      setNextCursor(meta?.next_cursor ?? null);
+      setHasMore(!!meta?.has_next);
+    } catch {
+      // falha ao paginar — mantém o que já tem carregado, tenta de novo no próximo onEndReached
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, loadingMore, nextCursor]);
+
   const toggleLike = async (post) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPosts((prev) =>
@@ -319,6 +437,27 @@ export default function SocialScreen() {
     } catch {
       load();
     }
+  };
+
+  // Antes deleteSocialPost existia no client mas nenhuma tela chamava —
+  // quem compartilhava uma leitura não tinha como apagar depois. Achado real
+  // de auditoria (19/07/2026).
+  const handleDeletePost = (post) => {
+    Alert.alert('Apagar publicação?', 'Essa ação não pode ser desfeita.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Apagar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteSocialPost(post.id);
+            setPosts((prev) => prev.filter((p) => p.id !== post.id));
+          } catch (e) {
+            Alert.alert('Não deu', e.message);
+          }
+        },
+      },
+    ]);
   };
 
   if (!user) {
@@ -367,13 +506,31 @@ export default function SocialScreen() {
               Seu feed está vazio — siga outros leitores (ícone no topo) ou compartilhe uma leitura do seu Diário Cósmico.
             </Text>
           }
+          onEndReachedThreshold={0.4}
+          onEndReached={loadMore}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.accent} style={{ marginTop: 12 }} /> : null}
           renderItem={({ item }) => (
-            <PostCard post={item} onToggleLike={toggleLike} onOpenComments={setActiveComments} />
+            <PostCard
+              post={item}
+              myUserId={profile?.user_id}
+              onToggleLike={toggleLike}
+              onOpenComments={setActiveComments}
+              onOpenProfile={(p) => setActiveProfileUserId(p.user_id)}
+              onDeletePost={handleDeletePost}
+            />
           )}
         />
       )}
 
       {activeComments && <CommentsPanel post={activeComments} onClose={() => setActiveComments(null)} />}
+      {activeProfileUserId && (
+        <UserProfilePanel
+          userId={activeProfileUserId}
+          myUserId={profile?.user_id}
+          onClose={() => setActiveProfileUserId(null)}
+          onFollowChange={load}
+        />
+      )}
     </View>
   );
 }
@@ -397,7 +554,12 @@ const styles = StyleSheet.create({
   emptyText: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20, marginTop: 40, paddingHorizontal: 20 },
   postCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 },
   postHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  postHeaderTouchable: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   postAvatar: { fontSize: 24 },
+  profilePanelHeader: { alignItems: 'center', paddingBottom: 14, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  profilePanelAvatar: { fontSize: 40, marginBottom: 6 },
+  profilePanelStats: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  profilePanelStat: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
   postAuthor: { color: colors.text, fontWeight: '700', fontSize: 13 },
   postMeta: { color: colors.textMuted, fontSize: 11 },
   postTitle: { color: colors.text, fontWeight: '800', fontSize: 15, marginBottom: 4 },

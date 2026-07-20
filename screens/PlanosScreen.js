@@ -23,6 +23,7 @@ import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useAuth } from '../context/AuthContext';
 import { initiateCheckout } from '../lib/coupleData';
+import { trackInitiateCheckout } from '../lib/conversionTracking';
 import GradientHeader from '../components/GradientHeader';
 
 const HOTMART_CHECKOUT_ELEMENTS_SRC = 'https://checkout.hotmart.com/lib/hotmart-checkout-elements.js';
@@ -101,6 +102,7 @@ function PlanosScreenWeb() {
   const [erro, setErro] = useState('');
 
   const abrirCheckout = useCallback(async () => {
+    trackInitiateCheckout();
     setErro('');
     setCarregando(true);
     setAberto(true);
@@ -228,6 +230,7 @@ function PlanosScreenNative() {
   );
 
   const abrirCheckoutNativo = useCallback(async () => {
+    trackInitiateCheckout();
     setErro('');
     setCarregando(true);
     try {
