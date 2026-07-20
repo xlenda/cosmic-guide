@@ -4,12 +4,19 @@
 // Recarrega a cada foco de tela (useFocusEffect) porque a pessoa normalmente
 // chega aqui vindo de uma leitura que acabou de salvar uma entrada nova.
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../theme';
+import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
-import { getJournalEntries, deleteJournalEntry } from '../lib/journal';
+import {
+  getJournalEntries,
+  deleteJournalEntry,
+  getRecentEntriesForWeeklyInsight,
+  getFallbackWeeklyInsight,
+} from '../lib/journal';
+import { fetchAiWeeklyInsight } from '../lib/aiClient';
 import { useAuth } from '../context/AuthContext';
 import { useCouple } from '../context/CoupleContext';
 import { shareToFeed } from '../lib/socialClient';
@@ -134,12 +141,34 @@ export default function DiaryScreen() {
   const [expandedId, setExpandedId] = useState(null);
   const [filter, setFilter] = useState('all');
   const [sharingId, setSharingId] = useState(null);
+  const [weeklyInsight, setWeeklyInsight] = useState(null);
+  const [loadingWeekly, setLoadingWeekly] = useState(false);
+  const [weeklyEligibleCount, setWeeklyEligibleCount] = useState(0);
 
   const load = useCallback(async () => {
     const data = await getJournalEntries();
     setEntries(Array.isArray(data) ? data : []);
     setLoading(false);
+    const recent = await getRecentEntriesForWeeklyInsight();
+    setWeeklyEligibleCount(recent.length);
   }, []);
+
+  async function generateWeeklyInsight() {
+    setLoadingWeekly(true);
+    const recent = await getRecentEntriesForWeeklyInsight();
+    try {
+      const result = await fetchAiWeeklyInsight(
+        recent.map((e) => ({ type: e.type, typeLabel: e.typeLabel, title: e.title, body: e.body }))
+      );
+      setWeeklyInsight(result);
+    } catch {
+      // Nunca mostra erro cru — cai no fallback honesto (só lista o que
+      // realmente aconteceu, sem inventar síntese).
+      setWeeklyInsight(getFallbackWeeklyInsight(recent));
+    } finally {
+      setLoadingWeekly(false);
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -193,6 +222,33 @@ export default function DiaryScreen() {
   return (
     <View style={styles.root}>
       <GradientHeader title="Diário Cósmico" subtitle="Sua jornada até aqui" onBack={() => navigation.goBack()} />
+
+      {!loading && weeklyEligibleCount >= 2 && !weeklyInsight && !loadingWeekly && (
+        <TouchableOpacity activeOpacity={0.9} onPress={generateWeeklyInsight} style={styles.weeklyBtnWrap}>
+          <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.weeklyBtn}>
+            <Ionicons name="sparkles" size={18} color="#2A1D00" />
+            <Text style={styles.weeklyBtnText}>Ver Insight da Semana</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+
+      {loadingWeekly && (
+        <View style={styles.weeklyLoading}>
+          <ActivityIndicator color={colors.gold} />
+          <Text style={styles.weeklyLoadingText}>Buscando o fio condutor da sua semana...</Text>
+        </View>
+      )}
+
+      {weeklyInsight && (
+        <View style={styles.weeklyCard}>
+          <Text style={styles.weeklyCardLabel}>INSIGHT DA SEMANA</Text>
+          <Text style={styles.weeklyCardTitle}>{weeklyInsight.title}</Text>
+          <Text style={styles.weeklyCardBody}>{weeklyInsight.body}</Text>
+          <TouchableOpacity onPress={() => setWeeklyInsight(null)} style={{ marginTop: 10 }}>
+            <Text style={styles.weeklyCardClose}>Fechar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {!loading && entries.length > 0 && visibleFilters.length > 1 && (
         <FlatList
@@ -257,6 +313,20 @@ export default function DiaryScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+
+  weeklyBtnWrap: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, overflow: 'hidden' },
+  weeklyBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 13, gap: 8 },
+  weeklyBtnText: { color: '#2A1D00', fontWeight: '800', fontSize: 14 },
+  weeklyLoading: { alignItems: 'center', paddingVertical: 20, gap: 8 },
+  weeklyLoadingText: { color: colors.textMuted, fontSize: 13 },
+  weeklyCard: {
+    marginHorizontal: 16, marginTop: 16, padding: 16, borderRadius: 16,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.gold + '55',
+  },
+  weeklyCardLabel: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, marginBottom: 6 },
+  weeklyCardTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  weeklyCardBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginTop: 8 },
+  weeklyCardClose: { color: colors.accent, fontSize: 13, fontWeight: '700' },
 
   filterRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   chip: {
