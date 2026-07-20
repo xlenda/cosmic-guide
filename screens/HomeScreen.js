@@ -11,6 +11,7 @@ import CardGrid from '../components/CardGrid';
 import { compatibility, compatPercent, aspects } from '../lib/signs';
 import { getTodaysThought } from '../lib/dailyThought';
 import { getWeekActivity, getStreakInfo } from '../lib/streak';
+import { getAgirData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -50,6 +51,18 @@ export default function HomeScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { loadStreak(); }, [loadStreak]));
+
+  // "Meta da semana" já existe dentro de Agir (texto livre + marcar cumprida)
+  // mas ficava escondida lá — só ler/mostrar aqui, a interação real (definir/
+  // marcar cumprida) continua só em Agir, pra não duplicar a mesma lógica em
+  // dois lugares. Só carrega pra casal com acesso (Agir é feature de assinante).
+  const [agirGoal, setAgirGoal] = useState(null);
+  const loadAgirGoal = useCallback(async () => {
+    if (!coupleData?.voce || !coupleData?.amor) return;
+    const data = await getAgirData(coupleData.voce, coupleData.amor);
+    setAgirGoal({ goalSaved: data.goalSaved || '', goalDone: !!data.goalDone });
+  }, [coupleData]);
+  useFocusEffect(useCallback(() => { loadAgirGoal(); }, [loadAgirGoal]));
 
   const today = new Date();
   const dateStr = today.toLocaleDateString(lang === 'es' ? 'es-ES' : 'pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -195,6 +208,27 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* Meta da semana (já existe dentro de Agir, só ganhou visibilidade
+            aqui) — só pra casal com acesso à feature. */}
+        {isCouple && (isOwnerAccount || hasAccess) && agirGoal && (
+          <TouchableOpacity activeOpacity={0.9} style={styles.goalCard} onPress={() => navigation.navigate(ROUTES.AGIR)}>
+            <View style={styles.goalIcon}>
+              <Ionicons name={agirGoal.goalDone ? 'checkmark-circle' : 'flag'} size={20} color={agirGoal.goalDone ? colors.green : colors.amber} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.goalLabel}>Meta da semana</Text>
+              {agirGoal.goalSaved ? (
+                <Text style={styles.goalText} numberOfLines={2}>
+                  {agirGoal.goalDone ? 'Cumprida: ' : ''}{agirGoal.goalSaved}
+                </Text>
+              ) : (
+                <Text style={styles.goalTextEmpty}>Vocês ainda não definiram uma meta pra essa semana</Text>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+
         {/* Pensamento cósmico do dia — mesmo formato de app de versículo
             diário, mas com o mesmo tom simbólico/honesto do resto do app. */}
         <View style={styles.thoughtCard}>
@@ -309,6 +343,18 @@ const styles = StyleSheet.create({
   },
   weekDotActive: { backgroundColor: colors.teal, borderColor: colors.teal },
   weekDotToday: { borderWidth: 2, borderColor: colors.gold },
+  goalCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 16, marginBottom: 14, padding: 16,
+    backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+  },
+  goalIcon: {
+    width: 36, height: 36, borderRadius: 11, backgroundColor: 'rgba(255,184,77,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  goalLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
+  goalText: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: 3 },
+  goalTextEmpty: { color: colors.textSecondary, fontSize: 13, marginTop: 3 },
   thoughtCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
     marginHorizontal: 16, marginTop: 0, marginBottom: 14, padding: 16,
