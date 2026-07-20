@@ -20,13 +20,13 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero })
   const isCouple = !!coupleData;
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} testID="onetimelock-container">
       <GradientHeader title={featureTitle} onBack={() => navigation.goBack()} gradient={gradient} />
       <View style={styles.center}>
         <View style={styles.iconWrap}>
           <Ionicons name="lock-closed" size={40} color={colors.accent} />
         </View>
-        <Text style={styles.title}>Você já usou sua leitura gratuita de {featureTitle}</Text>
+        <Text style={styles.title} testID="onetimelock-title">Você já usou sua leitura gratuita de {featureTitle}</Text>
         <Text style={styles.text}>
           {isCouple
             ? 'Assine o Cosmic Guide e continue usando esse e todos os outros recursos sem limite, você e seu par.'
@@ -35,6 +35,7 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero })
         <TouchableOpacity
           style={styles.btn}
           activeOpacity={0.85}
+          testID="onetimelock-cta"
           onPress={() =>
             isCouple
               ? navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })

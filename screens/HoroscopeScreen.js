@@ -161,7 +161,7 @@ export default function HoroscopeScreen() {
   }
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} testID="horoscope-reading">
       <GradientHeader
         title="Horóscopo"
         subtitle={sign.pt}

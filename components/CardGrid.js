@@ -25,6 +25,7 @@ export default function CardGrid({ items, columns = 2 }) {
               gradient={item.gradient}
               onPress={item.onPress}
               locked={item.locked}
+              testID={`card-${item.key}`}
             />
           ))}
         </View>

@@ -7,7 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --require ./test/setup.js --test"
+    "test": "node --require ./test/setup.js --test",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/register": "^7.29.7",
+    "@playwright/test": "^1.61.1",
     "babel-preset-expo": "~54.0.0"
   }
 }
