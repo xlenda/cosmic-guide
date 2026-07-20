@@ -95,6 +95,7 @@ function SubscriptionStatusCard({ status, currentPeriodEnd, onBack }) {
 function PlanosScreenWeb() {
   const navigation = useNavigation();
   const { coupleData, refreshAccess, hasAccess, subscriptionStatus, currentPeriodEnd } = useCouple();
+  const { user } = useAuth();
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -104,7 +105,7 @@ function PlanosScreenWeb() {
     setCarregando(true);
     setAberto(true);
     try {
-      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor);
+      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email);
       await loadHotmartScript();
       window.checkoutElements
         .init('inlineCheckout', {
@@ -118,7 +119,7 @@ function PlanosScreenWeb() {
       setErro('Não conseguimos abrir o checkout agora. Tente de novo em instantes.');
       setCarregando(false);
     }
-  }, [coupleData]);
+  }, [coupleData, user]);
 
   const fecharCheckout = useCallback(() => {
     setAberto(false);
@@ -216,6 +217,7 @@ function PlanosScreenWeb() {
 function PlanosScreenNative() {
   const navigation = useNavigation();
   const { coupleData, hasAccess, subscriptionStatus, currentPeriodEnd, refreshAccess } = useCouple();
+  const { user } = useAuth();
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -229,7 +231,7 @@ function PlanosScreenNative() {
     setErro('');
     setCarregando(true);
     try {
-      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor);
+      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email);
       const xcod = data?.checkoutConfig?.xcod;
       const url = xcod
         ? `${HOTMART_CHECKOUT_FALLBACK}&xcod=${encodeURIComponent(xcod)}`
@@ -244,7 +246,7 @@ function PlanosScreenNative() {
       setCarregando(false);
       refreshAccess();
     }
-  }, [coupleData, refreshAccess]);
+  }, [coupleData, refreshAccess, user]);
 
   if (hasAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
     return (
