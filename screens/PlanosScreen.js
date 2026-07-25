@@ -72,6 +72,34 @@ function formatarDataBR(iso) {
   return `${dia}/${mes}/${ano}`;
 }
 
+// Lista real do que a assinatura libera — pedido explícito do Lenda pra
+// deixar claro "tudo que ela vai poder usufruir" antes de assinar (21/07/2026).
+// As 9 primeiras já são grátis (1 uso) sem assinatura; as 5 seguintes hoje
+// também ganharam 1 uso grátis (ver components/FeatureGate.js) — a assinatura
+// é o que torna TODAS elas ilimitadas, não a única forma de ver cada uma.
+const BENEFITS = [
+  '7 dias grátis pra testar, sem compromisso',
+  'Leituras sem limite: Horóscopo, Mapa Astral, Tarô, Compatibilidade, Chat, Palma, Café, Sonhos e Calendário Lunar',
+  'Reconectar — rotas de reconexão pro casal',
+  'Descobrir — jogos e ideias de encontro',
+  'Agir — metas da semana',
+  'Progresso e Retrospectiva da jornada de vocês',
+  'Linha do tempo e cápsulas do tempo guardadas',
+];
+
+function BenefitsList() {
+  return (
+    <View style={styles.benefitsList}>
+      {BENEFITS.map((benefit) => (
+        <View key={benefit} style={styles.benefitRow}>
+          <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
+          <Text style={styles.benefitText}>{benefit}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // Reusado pela versão web e pela nativa: quem já é assinante nunca deve ver o
 // botão de checkout de novo (esse era o bug original de reoferecer "Começar 7
 // dias grátis" pra quem já paga) — por isso este card não tem CTA nenhum.
@@ -162,10 +190,7 @@ function PlanosScreenWeb() {
         {!aberto && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Desbloqueie a experiência completa do casal</Text>
-            <Text style={styles.cardText}>
-              Linha do tempo, cápsulas do tempo, rotas de reconexão, progresso e retrospectiva — tudo isso
-              fica liberado com a assinatura.
-            </Text>
+            <BenefitsList />
             <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={abrirCheckout}>
               <Text style={styles.btnText}>Começar meus 7 dias grátis →</Text>
             </TouchableOpacity>
@@ -271,10 +296,7 @@ function PlanosScreenNative() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Desbloqueie a experiência completa do casal</Text>
-          <Text style={styles.cardText}>
-            Linha do tempo, cápsulas do tempo, rotas de reconexão, progresso e retrospectiva — tudo isso
-            fica liberado com a assinatura.
-          </Text>
+          <BenefitsList />
           {carregando ? (
             <ActivityIndicator color={colors.accent} size="large" style={styles.nativeLoader} />
           ) : (
@@ -346,6 +368,9 @@ const styles = StyleSheet.create({
     borderRadius: 18, padding: 22, alignItems: 'center',
   },
   cardTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
+  benefitsList: { alignSelf: 'stretch', marginTop: 16, gap: 10 },
+  benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  benefitText: { flex: 1, color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
   cardText: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 10 },
   errorText: { color: colors.gold, fontSize: 14, textAlign: 'center', fontWeight: '600' },
   btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 24, marginTop: 18, alignSelf: 'stretch', alignItems: 'center' },

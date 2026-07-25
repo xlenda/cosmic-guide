@@ -6,7 +6,7 @@
 // esmaecer por cima — caro e expo-blur nem está instalado). Em vez disso, um
 // card de estado bloqueado, reaproveitando a linguagem visual do `locked` já
 // parcialmente construído em FeatureCard.js (badge de cadeado + gradiente).
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
+import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 
 export function LockedCard() {
   const navigation = useNavigation();
@@ -72,18 +73,35 @@ export function SoloInviteCard() {
 
 // HOC — dono do produto logado (isOwnerAccount) vê a tela real direto, sem
 // nenhum bloqueio, pra poder revisar o conteúdo sem precisar assinar; depois
-// disso, solo (sem coupleData) vê o convite pra chamar o par; casal sem
-// acesso confirmado vê o LockedCard de assinatura; casal com hasAccess=true
-// renderiza a tela normalmente. hasAccess é otimista (default true) até o
-// contexto confirmar com o servidor, então nunca pisca um bloqueio falso pra
-// quem já tem acesso.
-export function withFeatureGate(Screen) {
+// disso, solo (sem coupleData) vê o convite pra chamar o par; casal com
+// hasAccess=true renderiza a tela normalmente. hasAccess é otimista (default
+// true) até o contexto confirmar com o servidor, então nunca pisca um
+// bloqueio falso pra quem já tem acesso.
+//
+// Casal SEM acesso: mesmo padrão de "1 uso grátis" já usado nas 9 features
+// ilimitadas (lib/featureUsage.js) — na primeira visita vê a tela real
+// (marcando como usada); a partir da segunda, vê o LockedCard de assinatura.
+// featureKey precisa ser único por tela (ex.: 'reconectar', 'agir') — antes
+// essas 5 telas eram 100% bloqueadas sem nenhuma prévia, pedido explícito do
+// Lenda pra deixar provar o valor antes de pedir pra assinar (21/07/2026).
+export function withFeatureGate(Screen, featureKey) {
   return function GatedScreen(props) {
     const { coupleData, hasAccess, isOwnerAccount } = useCouple();
+    const [locked, setLocked] = useState(false);
+
+    useEffect(() => {
+      if (isOwnerAccount || !coupleData || hasAccess) return;
+      hasUsedFeatureOnce(featureKey).then((used) => {
+        if (used) setLocked(true);
+        else markFeatureUsedOnce(featureKey);
+      });
+    }, [isOwnerAccount, coupleData, hasAccess]);
+
     if (isOwnerAccount) return <Screen {...props} />;
     if (!coupleData) return <SoloInviteCard />;
     if (hasAccess) return <Screen {...props} />;
-    return <LockedCard />;
+    if (locked) return <LockedCard />;
+    return <Screen {...props} />;
   };
 }
 

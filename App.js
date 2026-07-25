@@ -161,14 +161,15 @@ function HomeStack() {
         <Stack.Screen name={ROUTES.DIARY} component={DiaryScreen} />
         <Stack.Screen name={ROUTES.REPORTS} component={ReportsScreen} />
         <Stack.Screen name={ROUTES.SOCIAL} component={SocialScreen} />
-        {/* Exclusivas de assinantes — bloqueadas para casais sem hasAccess via
+        {/* Exclusivas de assinantes — 1 uso grátis por vida (mesmo padrão das
+            outras 9 features, lib/featureUsage.js) e depois bloqueadas via
             withFeatureGate (components/FeatureGate.js), mesma altitude do
             FeatureGate do funil web (aplicado na borda da rota). */}
-        <Stack.Screen name={ROUTES.RECONECTAR} component={withFeatureGate(ReconectarScreen)} />
-        <Stack.Screen name={ROUTES.DESCOBRIR} component={withFeatureGate(DescobrirScreen)} />
-        <Stack.Screen name={ROUTES.AGIR} component={withFeatureGate(AgirScreen)} />
-        <Stack.Screen name={ROUTES.PROGRESSO} component={withFeatureGate(ProgressoScreen)} />
-        <Stack.Screen name={ROUTES.RETROSPECTIVA} component={withFeatureGate(RetrospectivaScreen)} />
+        <Stack.Screen name={ROUTES.RECONECTAR} component={withFeatureGate(ReconectarScreen, 'reconectar')} />
+        <Stack.Screen name={ROUTES.DESCOBRIR} component={withFeatureGate(DescobrirScreen, 'descobrir')} />
+        <Stack.Screen name={ROUTES.AGIR} component={withFeatureGate(AgirScreen, 'agir')} />
+        <Stack.Screen name={ROUTES.PROGRESSO} component={withFeatureGate(ProgressoScreen, 'progresso')} />
+        <Stack.Screen name={ROUTES.RETROSPECTIVA} component={withFeatureGate(RetrospectivaScreen, 'retrospectiva')} />
         <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
       </Stack.Navigator>
