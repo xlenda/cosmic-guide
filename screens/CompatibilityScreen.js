@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { compatibility, compatPercent } from '../lib/signs.js';
@@ -11,8 +12,10 @@ import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import OneTimeLock from '../components/OneTimeLock';
+import { ROUTES } from '../routes';
 
 const FEATURE_KEY = 'compatibility';
+const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
 
 export default function CompatibilityScreen() {
   const navigation = useNavigation();
@@ -24,6 +27,10 @@ export default function CompatibilityScreen() {
   const [picking, setPicking] = useState(null); // 'A' | 'B' | null
   const [result, setResult] = useState(null);
   const [locked, setLocked] = useState(false);
+  // Motor de Oferta (pico emocional): compatibilidade alta é O momento de
+  // empolgação — uma única oferta contextual, UMA vez na vida (AsyncStorage),
+  // nunca insistindo. Tom honesto: sem contador falso, sem urgência inventada.
+  const [highCompatOffer, setHighCompatOffer] = useState(false);
 
   useEffect(() => {
     if (hasAccess || !accessConfirmed) return;
@@ -42,6 +49,15 @@ export default function CompatibilityScreen() {
     const pct = compatPercent(signA.name, signB.name);
     if (!compat || pct === null) { setResult(null); return; }
     setResult({ overall: pct, texto: compat.texto, forte: compat.forte, cuidado: compat.cuidado });
+    // Oferta de pico emocional: compatibilidade >= 80 pra quem não assina,
+    // uma vez na vida — checa e marca juntos pra nunca repetir.
+    if (pct >= 80 && !hasAccess) {
+      AsyncStorage.getItem(HIGH_COMPAT_OFFER_KEY).then((shown) => {
+        if (shown) return;
+        AsyncStorage.setItem(HIGH_COMPAT_OFFER_KEY, 'true');
+        setHighCompatOffer(true);
+      });
+    }
     // Vira entrada no Diário Cósmico — antes essa tela não deixava rastro
     // nenhum de uso real (achado real de auditoria de retenção, 25/07/2026).
     recordReadingCompletion({
@@ -150,6 +166,22 @@ export default function CompatibilityScreen() {
                 <Text style={styles.traitText}>{result.cuidado}</Text>
               </View>
             </View>
+
+            {highCompatOffer && (
+              <View style={styles.offerCard}>
+                <Text style={styles.offerTitle}>✨ {result.overall}% de conexão!</Text>
+                <Text style={styles.offerText}>
+                  Uma combinação assim merece ser explorada por inteiro — leituras sem limite, Tarô todo dia e o céu de vocês dois. 7 dias grátis pra testar.
+                </Text>
+                <TouchableOpacity
+                  style={styles.offerBtn}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate(ROUTES.PLANOS)}
+                >
+                  <Text style={styles.offerBtnText}>Começar meus 7 dias grátis →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -204,4 +236,12 @@ const styles = StyleSheet.create({
   traitIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   traitLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
   traitText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  offerCard: {
+    marginTop: 16, padding: 18, borderRadius: 16,
+    backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.pink + '77',
+  },
+  offerTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  offerText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 6 },
+  offerBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 14 },
+  offerBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });

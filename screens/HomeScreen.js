@@ -10,8 +10,10 @@ import HeroSection from '../components/HeroSection';
 import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import { compatibility, compatPercent, aspects } from '../lib/signs';
-import { getTodaysThought } from '../lib/dailyThought';
+import { getTodaysThought, getThoughtForDate } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
+import { personalSkyToday } from '../lib/personalSky';
+import { getAnyBirthData } from '../lib/birthData';
 import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration } from '../lib/streak';
 import { getShieldCount } from '../lib/streakShield';
 import { getAgirData } from '../lib/coupleData';
@@ -28,7 +30,7 @@ function pad2(n) {
 export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { coupleData, soloSign, loading, hasCoupleAccess, isOwnerAccount, refresh } = useCouple();
+  const { coupleData, soloSign, loading, hasAccess, hasCoupleAccess, isOwnerAccount, refresh } = useCouple();
   const { lang, t } = useLanguage();
 
   // O handoff de URL (?voce=&amor=&sa=&sb=) agora roda uma vez em App.js
@@ -81,6 +83,25 @@ export default function HomeScreen() {
     setAgirGoal({ goalSaved: data.goalSaved || '', goalDone: !!data.goalDone });
   }, [coupleData]);
   useFocusEffect(useCallback(() => { loadAgirGoal(); }, [loadAgirGoal]));
+
+  // Céu de hoje pra você (lib/personalSky.js) — trânsitos reais sobre o mapa
+  // natal da pessoa. `undefined` = ainda carregando; `null` = sem data de
+  // nascimento salva (mostra convite pro Mapa Astral); array = aspectos.
+  // Recarrega no foco: a pessoa pode ter acabado de preencher o nascimento
+  // no Mapa Astral e voltado pra cá.
+  const [personalSky, setPersonalSky] = useState(undefined);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getAnyBirthData().then((birth) => {
+        if (!active) return;
+        setPersonalSky(birth ? personalSkyToday(birth) : null);
+      });
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const today = new Date();
   const dateStr = today.toLocaleDateString(lang === 'es' ? 'es-ES' : 'pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -181,6 +202,15 @@ export default function HomeScreen() {
   // personalizar o endereçamento da frase.
   const todaysThought = getTodaysThought(sign);
 
+  // Espiada de Amanhã — o MESMO motor determinístico calcula o pensamento de
+  // amanhã hoje (fase da Lua, regente, aspectos de amanhã são matemática,
+  // não segredo). Assinante espia; quem não assina vê o começo borrado + CTA
+  // — dá um motivo concreto pra assinar E pra voltar amanhã (loop de
+  // reabertura diária, padrão Co-Star, custo zero de IA).
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowsThought = getThoughtForDate(tomorrow, sign);
+
   // Frase do dia de amor (lib/lovePhrase.js) — feita pra compartilhar de
   // verdade com o par (WhatsApp etc.), não só ler dentro do app: dá um motivo
   // concreto pra abrir todo dia E pra expor o app pra quem ainda não usa
@@ -214,6 +244,22 @@ export default function HomeScreen() {
               <Text style={styles.milestoneEmoji}>{milestone.days >= 100 ? '👑' : milestone.days >= 30 ? '🌟' : '🔥'}</Text>
               <Text style={styles.milestoneTitle}>{milestone.days} dias seguidos!</Text>
               <Text style={styles.milestoneSubtitle}>+{milestone.tokens} tokens de bônus</Text>
+              {/* Motor de Oferta (pico emocional): quem sustenta 7+ dias de
+                  sequência sem assinar já provou que o app virou hábito — o
+                  momento certo de oferecer, uma linha só, sem insistência
+                  (o modal de marco já aparece uma única vez por natureza). */}
+              {!hasAccess && !isOwnerAccount && (
+                <TouchableOpacity
+                  style={styles.milestoneOfferBtn}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setMilestone(null);
+                    navigation.navigate(ROUTES.PLANOS);
+                  }}
+                >
+                  <Text style={styles.milestoneOfferText}>Comemorar com 7 dias grátis de assinatura →</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={styles.milestoneBtn} activeOpacity={0.85} onPress={() => setMilestone(null)}>
                 <Text style={styles.milestoneBtnText}>Continuar</Text>
               </TouchableOpacity>
@@ -308,6 +354,78 @@ export default function HomeScreen() {
             <Text style={styles.thoughtText}>{todaysThought}</Text>
           </View>
         </View>
+
+        {/* Espiada de Amanhã — assinante espia o pensamento de amanhã hoje;
+            quem não assina vê o começo + cadeado (motivo pra assinar E pra
+            voltar amanhã). isOwnerAccount espia também (revisão do dono). */}
+        <View style={styles.peekCard}>
+          <View style={styles.peekHead}>
+            <Ionicons name="eye" size={16} color={colors.purple} />
+            <Text style={styles.peekLabel}>Espiada de amanhã</Text>
+          </View>
+          {hasAccess || isOwnerAccount ? (
+            <Text style={styles.peekText}>{tomorrowsThought}</Text>
+          ) : (
+            <>
+              <Text style={styles.peekText} numberOfLines={2}>
+                {tomorrowsThought.slice(0, 70)}…
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.peekBtn}
+                onPress={() => navigation.navigate(ROUTES.PLANOS)}
+              >
+                <Ionicons name="lock-closed" size={13} color={colors.purple} />
+                <Text style={styles.peekBtnText}>Assine pra espiar amanhã hoje →</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        {/* Céu de hoje pra você — trânsitos reais sobre o mapa natal (ver
+            lib/personalSky.js). Sem nascimento salvo, vira convite pro Mapa
+            Astral; o aspecto mais forte é grátis, o resto pede assinatura. */}
+        {personalSky === null && (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.skyCard}
+            onPress={() => navigation.navigate(ROUTES.BIRTH_CHART)}
+          >
+            <View style={styles.peekHead}>
+              <Ionicons name="telescope" size={16} color={colors.teal} />
+              <Text style={[styles.peekLabel, { color: colors.teal }]}>Céu de hoje pra você</Text>
+            </View>
+            <Text style={styles.peekText}>
+              Informe sua data de nascimento no Mapa Astral e veja, todo dia, como o céu de hoje toca o SEU mapa — não o de todo mundo.
+            </Text>
+            <Text style={styles.skyInviteLink}>Preencher meu Mapa Astral →</Text>
+          </TouchableOpacity>
+        )}
+        {Array.isArray(personalSky) && personalSky.length > 0 && (
+          <View style={styles.skyCard}>
+            <View style={styles.peekHead}>
+              <Ionicons name="telescope" size={16} color={colors.teal} />
+              <Text style={[styles.peekLabel, { color: colors.teal }]}>Céu de hoje pra você</Text>
+            </View>
+            {(hasAccess || isOwnerAccount ? personalSky : personalSky.slice(0, 1)).map((a, i) => (
+              <Text key={i} style={[styles.peekText, i > 0 && { marginTop: 8 }]}>
+                {a.text}
+              </Text>
+            ))}
+            {!hasAccess && !isOwnerAccount && personalSky.length > 1 && (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.peekBtn}
+                onPress={() => navigation.navigate(ROUTES.PLANOS)}
+              >
+                <Ionicons name="lock-closed" size={13} color={colors.teal} />
+                <Text style={[styles.peekBtnText, { color: colors.teal }]}>
+                  +{personalSky.length - 1} aspecto(s) no seu céu hoje — assine pra ver →
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Frase do dia de amor — feita pra compartilhar de verdade com o
             par, não só ler (ver handleShareLovePhrase acima). */}
@@ -477,6 +595,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 12, paddingVertical: 10, marginTop: 14, alignSelf: 'flex-start', paddingHorizontal: 18,
   },
   lovePhraseBtnText: { color: colors.accent, fontSize: 13, fontWeight: '800' },
+  peekCard: {
+    marginHorizontal: 16, marginBottom: 14, padding: 16,
+    backgroundColor: colors.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.purple + '55',
+  },
+  skyCard: {
+    marginHorizontal: 16, marginBottom: 14, padding: 16,
+    backgroundColor: colors.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.teal + '55',
+  },
+  peekHead: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
+  peekLabel: { color: colors.purple, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  peekText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  peekBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  peekBtnText: { color: colors.purple, fontSize: 13, fontWeight: '800' },
+  skyInviteLink: { color: colors.teal, fontSize: 13, fontWeight: '800', marginTop: 10 },
   horoCard: { marginHorizontal: 16, marginTop: 0, borderRadius: 18, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
   horoInner: { padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   horoHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -500,6 +634,8 @@ const styles = StyleSheet.create({
   milestoneEmoji: { fontSize: 56 },
   milestoneTitle: { color: '#2A1D00', fontSize: 22, fontWeight: '800', marginTop: 10, textAlign: 'center' },
   milestoneSubtitle: { color: '#4A3300', fontSize: 15, fontWeight: '700', marginTop: 6 },
+  milestoneOfferBtn: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 20, marginTop: 20 },
+  milestoneOfferText: { color: '#7A5A14', fontSize: 13, fontWeight: '800', textAlign: 'center' },
   milestoneBtn: { backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 28, marginTop: 22 },
   milestoneBtnText: { color: '#2A1D00', fontSize: 15, fontWeight: '800' },
 });

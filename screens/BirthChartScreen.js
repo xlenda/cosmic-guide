@@ -14,6 +14,7 @@ import { getBirthData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
+import { saveSoloBirthMirror } from '../lib/birthData';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OneTimeLock from '../components/OneTimeLock';
 
@@ -383,6 +384,9 @@ export default function BirthChartScreen() {
     const data = { date: soloDate, time: soloTime || null, city: soloCity || null };
     setSoloBirth(data);
     await writeSecureItem('birthChartSolo', JSON.stringify(data));
+    // Espelho persistente pra web (SecureStore é stub vazio lá) — é o que o
+    // "Céu de hoje pra você" da Home lê (ver lib/birthData.js).
+    await saveSoloBirthMirror(data);
   }
 
   async function selectCity(city) {
