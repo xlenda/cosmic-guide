@@ -76,26 +76,29 @@ export default function TarotScreen() {
     hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
   }, [hasAccess, accessConfirmed]);
 
-  // viaBonus=true (botão "Usar Leitura Bônus") fura o limite diário do tema
-  // consumindo 1 recompensa comprada na Loja (lib/cosmeticRewards.js) — sem
-  // isso, a recompensa "Leitura Bônus" gastava o token de verdade mas não
-  // tinha nenhum efeito (achado real de bug reportado pelo usuário, 25/07/2026).
+  // viaBonus=true (botão "Usar Leitura Bônus") fura AS DUAS travas — o
+  // limite diário do tema E o bloqueio vitalício de quem não assina —
+  // consumindo 1 recompensa comprada na Loja (lib/cosmeticRewards.js). É um
+  // consumível pago com tokens: quem comprou tem direito de usar, assinante
+  // ou não (antes só furava o limite diário, então quem não assinava e já
+  // tinha gasto a leitura grátis ficava com a recompensa presa pra sempre —
+  // achado real de auditoria adversarial, 26/07/2026).
   const drawCards = async (viaBonus = false) => {
-    // Guarda o uso-único-na-vida aqui dentro, não só no gate de render — sem
-    // isso, "Nova Tiragem" reatribui `drawn` diretamente (nunca passa por
-    // null), então o gate baseado em `!drawn` nunca voltaria a bloquear
-    // (achado por verificação adversarial: dava tiragens grátis infinitas
-    // no mesmo tema, sem sair da tela).
-    if (!hasAccess && locked) return;
-    // Guarda também aqui, não só no botão inicial — sem isso, "Nova Tiragem"
-    // (que chama esta mesma função) deixaria redesenhar à vontade num tema
-    // com limite diário, mesmo já tendo consultado hoje. viaBonus fura essa
-    // trava de propósito, mas só se realmente houver 1 bônus pra consumir.
-    if (dailyBlocked && !viaBonus) return;
-    if (dailyBlocked && viaBonus) {
+    if (viaBonus) {
       const consumed = await consumeBonusTarotReading();
       if (!consumed) return;
       setBonusReadings((n) => Math.max(0, n - 1));
+    } else {
+      // Guarda o uso-único-na-vida aqui dentro, não só no gate de render — sem
+      // isso, "Nova Tiragem" reatribui `drawn` diretamente (nunca passa por
+      // null), então o gate baseado em `!drawn` nunca voltaria a bloquear
+      // (achado por verificação adversarial: dava tiragens grátis infinitas
+      // no mesmo tema, sem sair da tela).
+      if (!hasAccess && locked) return;
+      // Guarda também aqui, não só no botão inicial — sem isso, "Nova Tiragem"
+      // (que chama esta mesma função) deixaria redesenhar à vontade num tema
+      // com limite diário, mesmo já tendo consultado hoje.
+      if (dailyBlocked) return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const shuffled = [...TAROT_DECK].sort(() => Math.random() - 0.5).slice(0, 3);
@@ -138,9 +141,18 @@ export default function TarotScreen() {
   // tiragem grátis é consumida (drawCards), mas a pessoa ainda precisa VER
   // as cartas que acabou de ganhar — só bloqueamos de fato na próxima
   // tentativa (troca de tema ou nova tiragem, que zeram `drawn`).
-  if (!hasAccess && locked && !drawn) {
+  // `bonusReadings === 0` também importa: quem tem Leitura Bônus comprada na
+  // Loja precisa da tela real pra USAR o bônus — este OneTimeLock em tela
+  // cheia escondia o botão de usar e deixava a recompensa presa pra sempre
+  // pra quem não assina (achado real de auditoria adversarial, 26/07/2026).
+  const lockedSemBonus = !hasAccess && locked && bonusReadings === 0;
+  if (lockedSemBonus && !drawn) {
     return <OneTimeLock featureTitle="Tarô por Tema" gradient={gradients.hero} />;
   }
+  // Estado "só com bônus": sem assinatura, leitura grátis já gasta, mas com
+  // Leitura Bônus guardada — a área vazia abaixo mostra o botão de usar o
+  // bônus no lugar do "Tirar 3 Cartas" normal.
+  const soPodeUsarBonus = !hasAccess && locked && bonusReadings > 0;
 
   return (
     <View style={styles.root}>
@@ -172,12 +184,13 @@ export default function TarotScreen() {
                 <Ionicons name="sparkles" size={40} color="rgba(255,255,255,0.6)" />
               </LinearGradient>
             </View>
-            {dailyBlocked ? (
+            {dailyBlocked || soPodeUsarBonus ? (
               <>
                 <Ionicons name="time-outline" size={40} color={theme.color} style={{ marginBottom: 12 }} />
                 <Text style={styles.emptyTitle}>
-                  Você já consultou o tema {theme.key} hoje. Essa tiragem é única por dia — assuntos sérios
-                  como esse merecem uma resposta, não uma repetição até achar a que você quer ouvir. Volta amanhã.
+                  {dailyBlocked
+                    ? `Você já consultou o tema ${theme.key} hoje. Essa tiragem é única por dia — assuntos sérios como esse merecem uma resposta, não uma repetição até achar a que você quer ouvir. Volta amanhã.`
+                    : 'Você já usou sua leitura gratuita de Tarô — mas tem Leitura Bônus guardada da Loja. Use uma agora, ou assine pra tirar cartas todo dia.'}
                 </Text>
                 {bonusReadings > 0 && (
                   <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards(true)} style={styles.btnWrap}>

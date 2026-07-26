@@ -193,8 +193,17 @@ function SubscriptionStatusCard({ status, currentPeriodEnd, onBack }) {
 
 function PlanosScreenWeb() {
   const navigation = useNavigation();
-  const { coupleData, refreshAccess, hasAccess, subscriptionStatus, currentPeriodEnd } = useCouple();
+  const { coupleData, refreshAccess, hasAccess, hasCoupleAccess, subscriptionStatus, currentPeriodEnd } = useCouple();
   const isCouple = !!coupleData;
+  // O que decide se ainda há algo a comprar AQUI: pra casal, só a assinatura
+  // de CASAL conta (uma assinatura solo ativa não desbloqueia as telas de
+  // casal — ver hasCoupleAccess em CoupleContext.js); pra solo, o hasAccess
+  // combinado. Sem essa distinção, um assinante solo que formava casal caía
+  // num beco sem saída: o teaser mandava "Assinar" pra desbloquear as telas
+  // de casal, mas esta tela respondia "Você já é assinante" sem nenhum CTA —
+  // impossível comprar o upgrade (achado real de auditoria adversarial,
+  // confirmado ao vivo, 26/07/2026).
+  const relevantAccess = isCouple ? hasCoupleAccess : hasAccess;
   const { user } = useAuth();
   const { t } = useLanguage();
   const [aberto, setAberto] = useState(false);
@@ -240,11 +249,11 @@ function PlanosScreenWeb() {
     }, [refreshAccess])
   );
 
-  // Quem já é assinante (trial, ativo, past_due, cancelado, expirado) nunca deve
-  // ver o fluxo de checkout de novo — só 'pending' (aguardando confirmação do
-  // webhook) ainda cai no fluxo normal abaixo, porque nesse ponto o checkout
-  // pode não ter sido concluído de fato.
-  if (hasAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
+  // Quem já é assinante DO QUE ESTA TELA VENDE (trial, ativo, past_due,
+  // cancelado, expirado) nunca deve ver o fluxo de checkout de novo — só
+  // 'pending' (aguardando confirmação do webhook) ainda cai no fluxo normal
+  // abaixo, porque nesse ponto o checkout pode não ter sido concluído de fato.
+  if (relevantAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
     return (
       <SubscriptionStatusCard
         status={subscriptionStatus}
@@ -322,8 +331,10 @@ function PlanosScreenWeb() {
 // (confirmados pelo Lenda, 25/07/2026).
 function PlanosScreenNative() {
   const navigation = useNavigation();
-  const { coupleData, hasAccess, subscriptionStatus, currentPeriodEnd, refreshAccess } = useCouple();
+  const { coupleData, hasAccess, hasCoupleAccess, subscriptionStatus, currentPeriodEnd, refreshAccess } = useCouple();
   const isCouple = !!coupleData;
+  // Mesma distinção da versão web (ver comentário em PlanosScreenWeb).
+  const relevantAccess = isCouple ? hasCoupleAccess : hasAccess;
   const { user } = useAuth();
   const { t } = useLanguage();
   const [carregando, setCarregando] = useState(false);
@@ -359,7 +370,7 @@ function PlanosScreenNative() {
     }
   }, [coupleData, refreshAccess, user, selectedPlan, t]);
 
-  if (hasAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
+  if (relevantAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
     return (
       <SubscriptionStatusCard
         status={subscriptionStatus}

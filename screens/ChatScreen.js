@@ -76,6 +76,14 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [locked, setLocked] = useState(false);
   const listRef = useRef(null);
+  // Trava SÍNCRONA de envio em andamento — `isTyping` (state) só atualiza no
+  // próximo render, então dois cliques rápidos no Enviar passavam juntos pelo
+  // guard `if (isTyping)` antes de qualquer setState, e a checagem async do
+  // limite grátis (hasReachedFreeMessageLimit) via a MESMA contagem antiga
+  // pros dois — furava o limite de 2 mensagens (race check-then-act, achado
+  // real de auditoria adversarial, 26/07/2026). Ref muda na hora, sem esperar
+  // render nenhum.
+  const sendingRef = useRef(false);
   // Guarda a persona ativa "de verdade" pra evitar que uma restauração de
   // histórico assíncrona (loadPersonaHistory) sobrescreva a conversa se a
   // pessoa trocar de persona de novo antes da leitura do AsyncStorage terminar.
@@ -140,22 +148,32 @@ export default function ChatScreen() {
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || isTyping) return;
-    // Checa ANTES de mandar, usando a contagem atual (não incrementada ainda)
-    // — assim as mensagens dentro do limite (FREE_MESSAGE_LIMIT) sempre são
-    // enviadas e respondidas por completo; só a tentativa SEGUINTE (a que já
-    // estouraria o limite) é bloqueada antes mesmo de sair do campo de texto,
-    // trocando a tela inteira pro OneTimeLock. Mesmo espírito do guard em
-    // TarotScreen.drawCards — nunca deixa o bloqueio interromper uma resposta
-    // que a pessoa já ganhou o direito de ver.
-    if (!hasAccess) {
-      const reached = await hasReachedFreeMessageLimit();
-      if (reached) {
-        setLocked(true);
-        return;
+    // sendingRef primeiro (síncrono, ver declaração) — isTyping sozinho não
+    // segura dois cliques no mesmo frame de render.
+    if (!text || isTyping || sendingRef.current) return;
+    sendingRef.current = true;
+    try {
+      // Checa ANTES de mandar, usando a contagem atual (não incrementada ainda)
+      // — assim as mensagens dentro do limite (FREE_MESSAGE_LIMIT) sempre são
+      // enviadas e respondidas por completo; só a tentativa SEGUINTE (a que já
+      // estouraria o limite) é bloqueada antes mesmo de sair do campo de texto,
+      // trocando a tela inteira pro OneTimeLock. Mesmo espírito do guard em
+      // TarotScreen.drawCards — nunca deixa o bloqueio interromper uma resposta
+      // que a pessoa já ganhou o direito de ver.
+      if (!hasAccess) {
+        const reached = await hasReachedFreeMessageLimit();
+        if (reached) {
+          setLocked(true);
+          return;
+        }
       }
+      await doSend(text);
+    } finally {
+      sendingRef.current = false;
     }
+  };
 
+  const doSend = async (text) => {
     const userMessage = makeMessage('user', text);
     const history = messages.map((m) => ({
       role: m.from === 'user' ? 'user' : 'assistant',

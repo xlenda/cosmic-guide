@@ -116,8 +116,13 @@ const APP_VERSION = '1.0.0';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { coupleData, soloSign, hasAccess, clearAll } = useCouple();
+  const { coupleData, soloSign, hasAccess, hasCoupleAccess, clearAll } = useCouple();
   const { user, signOut } = useAuth();
+  // Pra casal, só a assinatura de CASAL conta como "já assinou" (uma solo
+  // ativa não desbloqueia as telas de casal) — mesmo critério de
+  // PlanosScreen.js/relevantAccess, senão o menu diria "Gerenciar assinatura"
+  // pra quem ainda precisa comprar o plano de casal.
+  const relevantAccess = coupleData ? hasCoupleAccess : hasAccess;
   const { lang, changeLanguage } = useLanguage();
   const [thoughtEnabled, setThoughtEnabled] = useState(false);
   const [webPushEnabled, setWebPushEnabled] = useState(false);
@@ -273,8 +278,16 @@ export default function ProfileScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.coupleNames}>Casal ainda não cadastrado</Text>
-              <Text style={styles.coupleSigns}>Complete o quiz do casal na aba Início</Text>
+              {/* Selo Cósmico também no modo solo — a Loja vende essa
+                  recompensa pra qualquer usuário, então ela precisa aparecer
+                  pros dois modos (antes só o ramo de casal renderizava o
+                  selo, deixando a compra invisível pra solo — achado real de
+                  auditoria adversarial, 26/07/2026). */}
+              <View style={styles.coupleNamesRow}>
+                <Text style={styles.coupleNames}>{soloSign ? `Seu universo · ${soloSign.pt || soloSign.name}` : 'Casal ainda não cadastrado'}</Text>
+                {seloAtivo && <Ionicons name="ribbon" size={18} color={colors.gold} style={{ marginLeft: 6 }} />}
+              </View>
+              <Text style={styles.coupleSigns}>{soloSign ? 'Convide seu par quando quiser — aba Início' : 'Complete o quiz do casal na aba Início'}</Text>
             </>
           )}
         </View>
@@ -358,8 +371,8 @@ export default function ProfileScreen() {
           {/* Assinatura existe pra casal E solo agora (25/07/2026) — hasAccess
               já cobre os dois (CoupleContext.js checa em paralelo). */}
           <MenuRow
-            icon={hasAccess ? 'diamond' : 'lock-open'}
-            label={hasAccess ? 'Gerenciar assinatura' : 'Assinar'}
+            icon={relevantAccess ? 'diamond' : 'lock-open'}
+            label={relevantAccess ? 'Gerenciar assinatura' : 'Assinar'}
             onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
             last
           />

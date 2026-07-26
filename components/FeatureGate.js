@@ -46,21 +46,22 @@ export function SubscribeTeaser() {
   );
 }
 
-// Solo (sem par) vê a tela real rodando por baixo (mesmo espírito do
-// SubscribeTeaser acima) com um véu por cima oferecendo as DUAS opções juntas
-// — assinar sozinho (desbloqueia as 9 leituras individuais, não estas 5) e
-// convidar o par (única forma de desbloquear ESTA tela específica). Antes
-// era só um card genérico sem conteúdo nenhum embaixo; a ideia agora é gerar
-// curiosidade de verdade (a pessoa vê e mexe no começo real da tela) em vez
-// de esconder tudo — pedido explícito do Lenda (25/07/2026): "deixar ele
-// entrar de alguma forma... pra ele ter curioso quando entrar e ter retenção
-// pra chamar o par".
+// Solo (sem par) vê um cartão de TELA CHEIA com a copy específica da tela +
+// as DUAS opções juntas — assinar sozinho (desbloqueia as 9 leituras
+// individuais, não estas telas) e convidar o par (única forma de desbloquear
+// ESTA tela específica). Cheguei a tentar o mesmo véu-sobre-conteúdo do
+// SubscribeTeaser aqui, mas não funciona pra solo: todas as telas de casal
+// têm um guard próprio `if (!voce || !amor)` que troca o conteúdo real por um
+// cartão "Complete o quiz do casal primeiro" — o resultado era esse cartão
+// genérico duplicado embaixo do véu, com o ícone do teaser sobreposto ao
+// botão dele (achado real de auditoria adversarial, confirmado em screenshot
+// nas 5 telas, 26/07/2026). Sem conteúdo real pra espiar, o véu só gerava
+// bagunça — o cartão único com copy específica da tela comunica melhor.
 export function SoloTeaser({ title, description }) {
   const navigation = useNavigation();
   return (
-    <View style={styles.teaserWrap} pointerEvents="box-none">
-      <LinearGradient colors={['transparent', colors.background]} style={styles.teaserFade} pointerEvents="none" />
-      <View style={styles.teaserCard}>
+    <View style={styles.root}>
+      <LinearGradient colors={gradients.card} style={styles.card}>
         <View style={styles.sealWrap}>
           <Ionicons name="people" size={24} color={colors.gold} />
         </View>
@@ -83,7 +84,7 @@ export function SoloTeaser({ title, description }) {
         >
           <Text style={styles.secondaryBtnText}>ou convide seu par pra desbloquear isso →</Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
     </View>
   );
 }
@@ -94,12 +95,16 @@ export function SoloTeaser({ title, description }) {
 // otimista (default true) até o contexto confirmar com o servidor, então
 // nunca pisca um bloqueio falso pra quem já tem acesso.
 //
-// Casal SEM acesso, e Solo: a tela real monta e roda por baixo em ambos os
-// casos (sem featureKey, sem AsyncStorage, sem "1 uso grátis" — esse
-// rastreamento foi removido daqui porque tinha um bug real: marcava o uso no
-// mount, não no uso de fato, e podia queimar a prévia de um assinante de
-// verdade numa instabilidade de rede). Só muda o véu por cima: SubscribeTeaser
-// (casal, só "assinar") ou SoloTeaser (solo, "assinar" + "convidar par" juntos).
+// Casal SEM acesso: a tela real monta e roda por baixo (sem featureKey, sem
+// AsyncStorage, sem "1 uso grátis" — esse rastreamento foi removido daqui
+// porque tinha um bug real: marcava o uso no mount, não no uso de fato, e
+// podia queimar a prévia de um assinante de verdade numa instabilidade de
+// rede), com o SubscribeTeaser colado por cima.
+//
+// Solo: NÃO monta a tela real — o guard `if (!voce || !amor)` dela renderia
+// só o cartão "Complete o quiz do casal", duplicando a mensagem e brigando
+// visualmente com o teaser (ver comentário do SoloTeaser acima) — mostra
+// direto o SoloTeaser em tela cheia com a copy específica.
 //
 // options.title/description (opcional): copy específica da tela — passada em
 // cada Stack.Screen (App.js), pra o teaser de solo nomear o que tem ali em vez
@@ -114,14 +119,14 @@ export function withFeatureGate(Screen, options = {}) {
 
     if (isOwnerAccount || hasCoupleAccess) return <Screen {...props} />;
 
+    if (!isCouple) {
+      return <SoloTeaser title={options.title} description={options.description} />;
+    }
+
     return (
       <View style={{ flex: 1 }}>
         <Screen {...props} />
-        {isCouple ? (
-          <SubscribeTeaser />
-        ) : (
-          <SoloTeaser title={options.title} description={options.description} />
-        )}
+        <SubscribeTeaser />
       </View>
     );
   };

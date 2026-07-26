@@ -21,7 +21,7 @@ const REWARDS = [
   {
     id: 'selo-cosmico',
     title: 'Selo Cósmico no perfil',
-    description: 'Um selinho especial ao lado do nome do casal, no Perfil.',
+    description: 'Um selinho especial ao lado do seu nome no Perfil — sozinho ou em casal.',
     cost: 50,
     icon: 'ribbon',
   },
