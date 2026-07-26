@@ -86,6 +86,12 @@ cat > deploy-vercel/vercel.json << 'EOF'
 }
 EOF
 
+# Suíte de regressão E2E ANTES de publicar — cada cenário é um bug real já
+# corrigido (25-26/07/2026); se qualquer mudança reintroduzir um deles, o
+# deploy aborta aqui (set -e) em vez de o cliente descobrir primeiro.
+echo "== regressão e2e (bloqueia o deploy se falhar) =="
+node scripts/e2e-regression.js deploy-vercel
+
 echo "== vercel deploy =="
 cd deploy-vercel
 npx vercel link --yes --project cosmic-guide
