@@ -21,7 +21,9 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabaseClient';
 import { getTokenBalance } from '../lib/tokens';
-import { hasSeloCosmico } from '../lib/cosmeticRewards';
+import { hasSeloCosmico, hasGoldTheme } from '../lib/cosmeticRewards';
+import { isGoldThemeActive, setGoldThemeActive } from '../theme';
+import { shareInvite } from '../lib/coupleInvite';
 import {
   isDailyThoughtEnabled,
   requestNotificationPermission,
@@ -132,13 +134,28 @@ export default function ProfileScreen() {
   const [savingName, setSavingName] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [seloAtivo, setSeloAtivo] = useState(false);
+  // Tema dourado (Loja): `owned` decide se o toggle aparece; o ligado/
+  // desligado em si vive no localStorage síncrono (theme.js) porque a paleta
+  // é aplicada no carregamento do módulo, antes de qualquer tela montar.
+  const [goldOwned, setGoldOwned] = useState(false);
+  const [goldActive, setGoldActive] = useState(isGoldThemeActive());
 
   useFocusEffect(
     React.useCallback(() => {
       getTokenBalance().then(setTokenBalance);
       hasSeloCosmico().then(setSeloAtivo);
+      hasGoldTheme().then(setGoldOwned);
     }, [])
   );
+
+  function toggleGoldTheme(next) {
+    setGoldActive(next);
+    setGoldThemeActive(next);
+    // A paleta só é recapturada num carregamento novo (ver theme.js) — volta
+    // pra RAIZ do app (não reload() da URL atual: a rota interna não existe
+    // como arquivo no servidor estático e daria 404 num reload cru).
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.location.href = '/cosmic-guide/';
+  }
 
   // Nome mostrado no card de conta: prioriza o que a pessoa já salvou, senão
   // cai pro início do e-mail (nunca mostra "undefined" ou vazio).
@@ -320,12 +337,32 @@ export default function ProfileScreen() {
             label={coupleData ? 'Refazer quiz do casal' : 'Adicionar parceiro(a)'}
             onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
           />
+          {/* Convite de verdade pro par (lib/coupleInvite.js): link de handoff
+              + código de notificação — quem convidou recebe push na hora em
+              que o par abrir o link. Só faz sentido com o casal já criado. */}
+          {coupleData && (
+            <MenuRow
+              icon="paper-plane"
+              label={`Enviar convite pra ${coupleData.amor}`}
+              onPress={() => shareInvite(coupleData)}
+            />
+          )}
           <MenuRow
             icon="sparkles"
             label={`Meus Tokens (${tokenBalance})`}
             onPress={() => navigation.navigate(ROUTES.TOKENS)}
           />
           <LanguageRow lang={lang} onChange={changeLanguage} />
+          {/* Só aparece pra quem COMPROU o tema na Loja (compra única) —
+              ligar/desligar é grátis a partir daí. Web-only, ver theme.js. */}
+          {goldOwned && Platform.OS === 'web' && (
+            <ToggleRow
+              icon="color-palette"
+              label="Tema dourado"
+              value={goldActive}
+              onValueChange={toggleGoldTheme}
+            />
+          )}
           {/* Notificação local (expo-notifications) não existe de verdade na
               web — nesse caso mostramos o toggle de Web Push em vez dele
               (mesma ideia, tecnologia diferente por trás). */}

@@ -16,6 +16,7 @@ import { AlertHost } from './components/AlertHost';
 import { CoupleProvider, useCouple } from './context/CoupleContext';
 import { AuthProvider } from './context/AuthContext';
 import { initConversionTracking } from './lib/conversionTracking';
+import { acceptInvite } from './lib/coupleInvite';
 // Analytics de visitas da própria Vercel (hospeda o app) — não depende de
 // Pixel/GA (que ainda esperam ID real do Lenda): já conta visita real hoje,
 // sem precisar de nenhuma conta nova (25/07/2026).
@@ -140,8 +141,14 @@ function useUrlBootstrap() {
     }
     const p = new URLSearchParams(window.location.search);
     const voce = p.get('voce'), amor = p.get('amor'), sa = p.get('sa'), sb = p.get('sb');
+    const convite = p.get('convite');
     if (voce && amor && sa && sb) {
       save({ voce, amor, sa: SIGN_ES_TO_PT[sa] || sa, sb: SIGN_ES_TO_PT[sb] || sb }).then(() => {
+        // Convite com código (lib/coupleInvite.js): avisa o servidor que o
+        // par abriu o link, pra notificar o convidador na hora. Depois do
+        // save, nunca antes — a notificação só faz sentido com o perfil já
+        // valendo neste aparelho. Fire-and-forget de propósito.
+        if (convite) acceptInvite(convite);
         window.history.replaceState({}, '', window.location.pathname);
         setChecked(true);
       });

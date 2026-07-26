@@ -61,8 +61,19 @@ EOF
 # 25/07/2026. 'self' (não 'none') porque o próprio app se abre a partir de
 # oddpro.pro/cosmic-guide/ (redirect de topo, não iframe), então não precisa
 # ser mais restrito que isso.
+#
+# rewrites (SPA fallback): as rotas do React Navigation viram paths reais na
+# URL (/Planos, /Loja, /Tarô…) que NÃO existem como arquivo — sem o
+# fallback, apertar F5 (ou abrir um link direto) em qualquer tela interna
+# devolvia o 404 da Vercel (achado real, 26/07/2026, pego pelo teste do Tema
+# dourado que recarregava a página na Loja). O filesystem tem precedência:
+# arquivos reais (/cosmic-guide/*, og-image, ícones) continuam servidos
+# direto, só o que não existe cai no index do app.
 cat > deploy-vercel/vercel.json << 'EOF'
 {
+  "rewrites": [
+    { "source": "/:path*", "destination": "/cosmic-guide/index.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -8,6 +8,7 @@ import { colors, gradients, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import HeroSection from '../components/HeroSection';
 import CardGrid from '../components/CardGrid';
+import NotifPromptCard from '../components/NotifPromptCard';
 import { compatibility, compatPercent, aspects } from '../lib/signs';
 import { getTodaysThought } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
@@ -184,10 +185,13 @@ export default function HomeScreen() {
   // verdade com o par (WhatsApp etc.), não só ler dentro do app: dá um motivo
   // concreto pra abrir todo dia E pra expor o app pra quem ainda não usa
   // (pedido explícito do Lenda, 25/07/2026 — retenção via compartilhamento).
-  const todaysLovePhrase = getTodaysLovePhrase();
+  const todaysLovePhrase = getTodaysLovePhrase(lang);
   const handleShareLovePhrase = async () => {
     try {
-      await Share.share({ message: todaysLovePhrase });
+      // O link vai junto de propósito: é ele que faz o WhatsApp/Telegram
+      // mostrarem a prévia rica (OG tags em public/index.html) e traz quem
+      // recebeu a frase pra dentro do app.
+      await Share.share({ message: `${todaysLovePhrase}\n\n💜 https://cosmicguide.cloud` });
     } catch {
       // usuário cancelou ou o compartilhamento falhou — sem tela de erro, mesmo padrão de RetrospectivaScreen.js
     }
@@ -268,6 +272,10 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* Opt-in de notificação no momento certo: só depois da 1ª atividade
+            real, uma vez só (ver components/NotifPromptCard.js). */}
+        <NotifPromptCard sign={sign} hasActivity={streakInfo.totalActiveDays > 0} />
+
         {/* Meta da semana (já existe dentro de Agir, só ganhou visibilidade
             aqui) — só pra casal com acesso à feature. */}
         {isCouple && (isOwnerAccount || hasCoupleAccess) && agirGoal && (
@@ -307,12 +315,12 @@ export default function HomeScreen() {
           <LinearGradient colors={['#FF6BA0', '#B57BFF']} style={styles.lovePhraseInner}>
             <View style={styles.lovePhraseHead}>
               <Ionicons name="heart" size={18} color="#fff" />
-              <Text style={styles.lovePhraseLabel}>Frase do dia pra compartilhar</Text>
+              <Text style={styles.lovePhraseLabel}>{t('home.lovePhrase.label')}</Text>
             </View>
             <Text style={styles.lovePhraseText}>{todaysLovePhrase}</Text>
             <TouchableOpacity activeOpacity={0.85} style={styles.lovePhraseBtn} onPress={handleShareLovePhrase}>
               <Ionicons name="share-social" size={16} color={colors.accent} />
-              <Text style={styles.lovePhraseBtnText}>Compartilhar</Text>
+              <Text style={styles.lovePhraseBtnText}>{t('home.lovePhrase.share')}</Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>

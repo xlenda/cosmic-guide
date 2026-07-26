@@ -18,6 +18,9 @@ import {
   getFallbackWeeklyInsight,
   saveWeeklyInsight,
   getLatestWeeklyInsight,
+  getActivePin,
+  getPinCredits,
+  pinEntry,
 } from '../lib/journal';
 import { fetchAiWeeklyInsight } from '../lib/aiClient';
 import { useAuth } from '../context/AuthContext';
@@ -65,12 +68,23 @@ function excerpt(body, length = 80) {
   return `${clean.slice(0, length).trim()}...`;
 }
 
-function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sharing }) {
+function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sharing, pinned, canPin, onPin }) {
   const hasInsight = !!(entry.voiceTranscript || entry.aiInsight);
   const iconName = TYPE_ICONS[entry.type] || 'sparkles';
 
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onToggle} onLongPress={onDelete} style={styles.card}>
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onToggle}
+      onLongPress={onDelete}
+      style={[styles.card, pinned && styles.cardPinned]}
+    >
+      {pinned && (
+        <View style={styles.pinnedBanner}>
+          <Ionicons name="bookmark" size={12} color={colors.gold} />
+          <Text style={styles.pinnedBannerText}>EM DESTAQUE</Text>
+        </View>
+      )}
       <View style={styles.cardHeader}>
         <View style={styles.iconWrap}>
           <Ionicons name={iconName} size={18} color={colors.accent} />
@@ -115,6 +129,13 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
             </View>
           )}
 
+          {canPin && !pinned && (
+            <TouchableOpacity style={styles.pinBtn} onPress={onPin} activeOpacity={0.8}>
+              <Ionicons name="bookmark" size={16} color={colors.gold} />
+              <Text style={styles.pinText}>Fixar no topo por 7 dias</Text>
+            </TouchableOpacity>
+          )}
+
           {canShare && (
             <TouchableOpacity style={styles.shareBtn} onPress={onShare} activeOpacity={0.8} disabled={sharing}>
               <Ionicons name="share-social" size={16} color={colors.teal} />
@@ -147,11 +168,18 @@ export default function DiaryScreen() {
   const [weeklyInsight, setWeeklyInsight] = useState(null);
   const [loadingWeekly, setLoadingWeekly] = useState(false);
   const [weeklyEligibleCount, setWeeklyEligibleCount] = useState(0);
+  // Destaque no Diário (recompensa da Loja, lib/journal.js): a fixação
+  // vigente e quantos créditos ainda dá pra usar.
+  const [activePin, setActivePin] = useState(null);
+  const [pinCredits, setPinCredits] = useState(0);
 
   const load = useCallback(async () => {
     const data = await getJournalEntries();
     setEntries(Array.isArray(data) ? data : []);
     setLoading(false);
+    const [pin, credits] = await Promise.all([getActivePin(), getPinCredits()]);
+    setActivePin(pin);
+    setPinCredits(credits);
     const recent = await getRecentEntriesForWeeklyInsight();
     setWeeklyEligibleCount(recent.length);
     // Se já existe um Insight da Semana gerado nos últimos 7 dias, mostra ele
@@ -226,7 +254,22 @@ export default function DiaryScreen() {
     }
   }
 
-  const visibleEntries = filter === 'all' ? entries : entries.filter((e) => e.type === filter);
+  async function handlePin(entry) {
+    const ok = await pinEntry(entry.id);
+    if (!ok) return;
+    const [pin, credits] = await Promise.all([getActivePin(), getPinCredits()]);
+    setActivePin(pin);
+    setPinCredits(credits);
+    Alert.alert('Fixada!', `"${entry.title}" fica no topo do seu Diário pelos próximos 7 dias.`);
+  }
+
+  const filtered = filter === 'all' ? entries : entries.filter((e) => e.type === filter);
+  // Entrada em destaque sempre primeiro (dentro do filtro atual) — a ordem
+  // original (mais recente primeiro) continua pras demais.
+  const pinnedId = activePin?.entryId || null;
+  const visibleEntries = pinnedId
+    ? [...filtered.filter((e) => e.id === pinnedId), ...filtered.filter((e) => e.id !== pinnedId)]
+    : filtered;
   const usedTypes = new Set(entries.map((e) => e.type));
   const visibleFilters = FILTERS.filter((f) => f.key === 'all' || usedTypes.has(f.key));
 
@@ -307,6 +350,9 @@ export default function DiaryScreen() {
               canShare={canShare}
               sharing={sharingId === item.id}
               onShare={() => share(item)}
+              pinned={item.id === pinnedId}
+              canPin={pinCredits > 0}
+              onPin={() => handlePin(item)}
             />
           )}
           ListEmptyComponent={
@@ -354,6 +400,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     borderRadius: 16, padding: 16, marginBottom: 12,
   },
+  cardPinned: { borderColor: colors.gold + '88', borderWidth: 1.5 },
+  pinnedBanner: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 },
+  pinnedBannerText: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
+  pinBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    marginTop: 16, paddingVertical: 10, borderRadius: 12,
+    borderWidth: 1, borderColor: colors.gold + '55',
+  },
+  pinText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start' },
   iconWrap: {
     width: 36, height: 36, borderRadius: 11, backgroundColor: colors.accent + '22',

@@ -1,22 +1,22 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Alert } from '../lib/webAlert';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, setGoldThemeActive } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { getTokenBalance, spendTokens } from '../lib/tokens';
 import { addShield, getShieldCount } from '../lib/streakShield';
-import { grantSeloCosmico, addBonusTarotReading } from '../lib/cosmeticRewards';
+import { grantSeloCosmico, addBonusTarotReading, grantGoldTheme, hasGoldTheme } from '../lib/cosmeticRewards';
+import { addPinCredit } from '../lib/journal';
 
 // Recompensas cosméticas/digitais do próprio app — nada físico, nada que
-// prometa dinheiro real ou logística que ainda não existe. Só ficam aqui as
-// que têm efeito real implementado (handleRedeem abaixo) — "Destaque no
-// Diário" e "Tema dourado" saíram da lista porque gastavam o token de
-// verdade sem fazer nada de fato (achado real de bug reportado pelo usuário,
-// 25/07/2026: "resgata e não dá pra usar"). Voltam quando tiverem efeito
-// implementado de verdade.
+// prometa dinheiro real ou logística que ainda não existe. REGRA DURA: só
+// entra na lista recompensa com efeito real implementado no handleRedeem
+// (bug real de 25/07/2026: duas recompensas gastavam o token sem fazer nada).
+// `webOnly` esconde a recompensa no nativo quando o efeito só existe na web
+// (ex.: Tema Dourado, que depende de localStorage síncrono — ver theme.js).
 const REWARDS = [
   {
     id: 'selo-cosmico',
@@ -24,6 +24,13 @@ const REWARDS = [
     description: 'Um selinho especial ao lado do seu nome no Perfil — sozinho ou em casal.',
     cost: 50,
     icon: 'ribbon',
+  },
+  {
+    id: 'destaque-diario',
+    title: 'Destaque no Diário',
+    description: 'Fixa uma leitura à sua escolha no topo do Diário Cósmico por 7 dias.',
+    cost: 30,
+    icon: 'bookmark',
   },
   {
     id: 'leitura-bonus',
@@ -38,6 +45,14 @@ const REWARDS = [
     description: 'Protege sua sequência de quebrar se vocês esquecerem de usar o app por 1 dia.',
     cost: 60,
     icon: 'shield-checkmark',
+  },
+  {
+    id: 'tema-dourado',
+    title: 'Tema dourado exclusivo',
+    description: 'O app inteiro em dourado — compra única, liga e desliga quando quiser no Perfil.',
+    cost: 150,
+    icon: 'color-palette',
+    webOnly: true,
   },
 ];
 
@@ -58,6 +73,12 @@ export default function LojaScreen() {
 
   async function handleRedeem(reward) {
     if (redeeming) return;
+    // Tema dourado é compra ÚNICA — recusa antes de gastar token de novo
+    // (quem já tem liga/desliga de graça no Perfil).
+    if (reward.id === 'tema-dourado' && (await hasGoldTheme())) {
+      Alert.alert('Você já tem o Tema dourado', 'Liga e desliga quando quiser em Perfil > Preferências.');
+      return;
+    }
     setRedeeming(reward.id);
     try {
       const result = await spendTokens(reward.cost, reward.title);
@@ -72,6 +93,23 @@ export default function LojaScreen() {
         } else if (reward.id === 'leitura-bonus') {
           const count = await addBonusTarotReading();
           Alert.alert('Leitura Bônus guardada!', `Vá no Tarô, escolha o tema (mesmo já consultado hoje) e use o botão "Usar Leitura Bônus" (${count} disponível).`);
+        } else if (reward.id === 'destaque-diario') {
+          await addPinCredit();
+          Alert.alert('Destaque guardado!', 'Abra o Diário Cósmico, toque na leitura que quiser e use "Fixar no topo por 7 dias".');
+        } else if (reward.id === 'tema-dourado') {
+          await grantGoldTheme();
+          setGoldThemeActive(true);
+          Alert.alert('Tema dourado seu!', 'Recarregando pra aplicar o visual novo…', [
+            {
+              text: 'Aplicar agora',
+              onPress: () => {
+                // Volta pra RAIZ do app de propósito, não reload() da URL
+                // atual — a rota interna (/Loja) não existe como arquivo no
+                // servidor estático e daria 404 num reload cru.
+                if (Platform.OS === 'web' && typeof window !== 'undefined') window.location.href = '/cosmic-guide/';
+              },
+            },
+          ]);
         } else {
           Alert.alert('Resgatado!', `"${reward.title}" resgatado com sucesso.`);
         }
@@ -99,7 +137,7 @@ export default function LojaScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Recompensas</Text>
-        {REWARDS.map((reward) => {
+        {REWARDS.filter((r) => !r.webOnly || Platform.OS === 'web').map((reward) => {
           const affordable = balance >= reward.cost;
           const isRedeeming = redeeming === reward.id;
           return (

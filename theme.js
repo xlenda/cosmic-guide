@@ -29,6 +29,44 @@ export const gradients = {
   card: ['#2A1D52', '#1A1235'],
 };
 
+// ---- Tema Dourado (recompensa da Loja, ver lib/cosmeticRewards.js) ----
+// A troca de paleta acontece AQUI, no próprio módulo do tema, de forma
+// síncrona no carregamento — precisa rodar antes de qualquer
+// StyleSheet.create das telas capturar os valores (todas importam este
+// módulo primeiro). Por isso a flag vive no localStorage (leitura síncrona,
+// só web): AsyncStorage é assíncrono e chegaria tarde demais. No nativo o
+// tema não se aplica ainda — a Loja só oferece a recompensa na web (ver
+// LojaScreen.js), pra nunca vender um efeito que não existe na plataforma.
+export const GOLD_THEME_KEY = 'cosmic-gold-theme';
+
+export function isGoldThemeActive() {
+  try {
+    return typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem(GOLD_THEME_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+// Liga/desliga — quem chama decide recarregar a página (a paleta só é
+// recapturada pelas StyleSheets num carregamento novo).
+export function setGoldThemeActive(active) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(GOLD_THEME_KEY, active ? 'true' : 'false');
+    }
+  } catch {}
+}
+
+if (isGoldThemeActive()) {
+  colors.accent = '#C9962E';
+  colors.accent2 = '#E0B34C';
+  colors.purple = '#E8C878';
+  colors.border = '#4A3A18';
+  gradients.hero = ['#7A5A14', '#C9962E', '#5C4310'];
+  gradients.purple = ['#C9962E', '#E8C878'];
+  gradients.card = ['#3A2D10', '#1A1235'];
+}
+
 export const zodiacSigns = [
   { name: 'Áries', pt: 'Áries', icon: '♈', symbol: 'flame', dates: '21 Mar - 19 Abr', element: 'Fogo', color: '#FF6B7A' },
   { name: 'Touro', pt: 'Touro', icon: '♉', symbol: 'leaf', dates: '20 Abr - 20 Mai', element: 'Terra', color: '#5FD98C' },
