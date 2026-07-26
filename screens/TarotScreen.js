@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -11,6 +12,7 @@ import { getThemedMeaning } from '../lib/tarotThemes';
 import { canDrawToday, recordDraw } from '../lib/tarotDailyLimit';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import { getBonusTarotReadings, consumeBonusTarotReading } from '../lib/cosmeticRewards';
 import OneTimeLock from '../components/OneTimeLock';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
@@ -42,6 +44,10 @@ export default function TarotScreen() {
   const [dailyBlocked, setDailyBlocked] = useState(false);
   const [locked, setLocked] = useState(false);
   const [journalEntryId, setJournalEntryId] = useState(null);
+  // Leitura Bônus, comprada na Loja (lib/cosmeticRewards.js) — deixa furar o
+  // limite diário do tema UMA vez por bônus guardado. Recarrega no foco (não
+  // só no mount) pra refletir uma compra feita na Loja e voltar direto pro Tarô.
+  const [bonusReadings, setBonusReadings] = useState(0);
 
   // Todo tema libera só 1 tiragem por dia (ver lib/tarotDailyLimit) — recheca
   // sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
@@ -55,6 +61,12 @@ export default function TarotScreen() {
     };
   }, [theme.key]);
 
+  useFocusEffect(
+    useCallback(() => {
+      getBonusTarotReadings().then(setBonusReadings);
+    }, [])
+  );
+
   // Bloqueio vitalício (1 uso grátis, pra tela inteira, qualquer tema) — pra
   // quem NÃO tem acesso completo (solo, ou casal sem assinatura). Independente
   // do dailyBlocked acima, que é o limite diário por tema (vale até pra quem
@@ -64,7 +76,11 @@ export default function TarotScreen() {
     hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
   }, [hasAccess, accessConfirmed]);
 
-  const drawCards = async () => {
+  // viaBonus=true (botão "Usar Leitura Bônus") fura o limite diário do tema
+  // consumindo 1 recompensa comprada na Loja (lib/cosmeticRewards.js) — sem
+  // isso, a recompensa "Leitura Bônus" gastava o token de verdade mas não
+  // tinha nenhum efeito (achado real de bug reportado pelo usuário, 25/07/2026).
+  const drawCards = async (viaBonus = false) => {
     // Guarda o uso-único-na-vida aqui dentro, não só no gate de render — sem
     // isso, "Nova Tiragem" reatribui `drawn` diretamente (nunca passa por
     // null), então o gate baseado em `!drawn` nunca voltaria a bloquear
@@ -73,8 +89,14 @@ export default function TarotScreen() {
     if (!hasAccess && locked) return;
     // Guarda também aqui, não só no botão inicial — sem isso, "Nova Tiragem"
     // (que chama esta mesma função) deixaria redesenhar à vontade num tema
-    // com limite diário, mesmo já tendo consultado hoje.
-    if (dailyBlocked) return;
+    // com limite diário, mesmo já tendo consultado hoje. viaBonus fura essa
+    // trava de propósito, mas só se realmente houver 1 bônus pra consumir.
+    if (dailyBlocked && !viaBonus) return;
+    if (dailyBlocked && viaBonus) {
+      const consumed = await consumeBonusTarotReading();
+      if (!consumed) return;
+      setBonusReadings((n) => Math.max(0, n - 1));
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const shuffled = [...TAROT_DECK].sort(() => Math.random() - 0.5).slice(0, 3);
     const newOrientations = shuffled.map(() => Math.random() < 0.5);
@@ -157,11 +179,19 @@ export default function TarotScreen() {
                   Você já consultou o tema {theme.key} hoje. Essa tiragem é única por dia — assuntos sérios
                   como esse merecem uma resposta, não uma repetição até achar a que você quer ouvir. Volta amanhã.
                 </Text>
+                {bonusReadings > 0 && (
+                  <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards(true)} style={styles.btnWrap}>
+                    <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
+                      <Ionicons name="sparkles" size={18} color="#fff" />
+                      <Text style={styles.btnText}>Usar Leitura Bônus ({bonusReadings})</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
               </>
             ) : (
               <>
                 <Text style={styles.emptyTitle}>Concentre-se na sua pergunta sobre {theme.key.toLowerCase()}</Text>
-                <TouchableOpacity activeOpacity={0.85} onPress={drawCards} style={styles.btnWrap}>
+                <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards()} style={styles.btnWrap}>
                   <LinearGradient colors={theme.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                     <Ionicons name="hand-left" size={18} color="#fff" />
                     <Text style={styles.btnText}>Tirar 3 Cartas</Text>
@@ -231,7 +261,7 @@ export default function TarotScreen() {
                 Essa foi sua tiragem grátis — assine para tirar novas cartas quando quiser.
               </Text>
             ) : (
-              <TouchableOpacity activeOpacity={0.85} onPress={drawCards} style={[styles.btnWrap, { marginTop: 16 }]}>
+              <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards()} style={[styles.btnWrap, { marginTop: 16 }]}>
                 <LinearGradient colors={['#2A1D52', '#3A1F6B']} style={styles.btn}>
                   <Ionicons name="refresh" size={18} color="#fff" />
                   <Text style={styles.btnText}>Nova Tiragem</Text>

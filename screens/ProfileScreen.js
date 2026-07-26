@@ -21,6 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabaseClient';
 import { getTokenBalance } from '../lib/tokens';
+import { hasSeloCosmico } from '../lib/cosmeticRewards';
 import {
   isDailyThoughtEnabled,
   requestNotificationPermission,
@@ -125,10 +126,12 @@ export default function ProfileScreen() {
   const [nameInput, setNameInput] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
+  const [seloAtivo, setSeloAtivo] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
       getTokenBalance().then(setTokenBalance);
+      hasSeloCosmico().then(setSeloAtivo);
     }, [])
   );
 
@@ -253,7 +256,10 @@ export default function ProfileScreen() {
           </View>
           {coupleData ? (
             <>
-              <Text style={styles.coupleNames}>{coupleData.voce} & {coupleData.amor}</Text>
+              <View style={styles.coupleNamesRow}>
+                <Text style={styles.coupleNames}>{coupleData.voce} & {coupleData.amor}</Text>
+                {seloAtivo && <Ionicons name="ribbon" size={18} color={colors.gold} style={{ marginLeft: 6 }} />}
+              </View>
               <Text style={styles.coupleSigns}>{coupleData.sa} + {coupleData.sb}</Text>
             </>
           ) : (
@@ -403,6 +409,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginBottom: 12,
     borderWidth: 1, borderColor: colors.border,
   },
+  coupleNamesRow: { flexDirection: 'row', alignItems: 'center' },
   coupleNames: { color: colors.text, fontSize: 18, fontWeight: '800' },
   coupleSigns: { color: colors.textMuted, fontSize: 13, marginTop: 4, textAlign: 'center' },
   sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 10, marginTop: 8 },

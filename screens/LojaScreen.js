@@ -8,20 +8,16 @@ import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { getTokenBalance, spendTokens } from '../lib/tokens';
 import { addShield, getShieldCount } from '../lib/streakShield';
+import { grantSeloCosmico, addBonusTarotReading } from '../lib/cosmeticRewards';
 
 // Recompensas cosméticas/digitais do próprio app — nada físico, nada que
-// prometa dinheiro real ou logística que ainda não existe. Ainda não têm
-// efeito visual implementado no resto do app, então o Alert de sucesso é
-// honesto sobre isso (o gasto do token em si é real, só o "efeito" é que
-// ainda não foi ligado a nada).
+// prometa dinheiro real ou logística que ainda não existe. Só ficam aqui as
+// que têm efeito real implementado (handleRedeem abaixo) — "Destaque no
+// Diário" e "Tema dourado" saíram da lista porque gastavam o token de
+// verdade sem fazer nada de fato (achado real de bug reportado pelo usuário,
+// 25/07/2026: "resgata e não dá pra usar"). Voltam quando tiverem efeito
+// implementado de verdade.
 const REWARDS = [
-  {
-    id: 'destaque-diario',
-    title: 'Destaque no Diário',
-    description: 'Fixa uma entrada do seu Diário do Casal no topo por 7 dias.',
-    cost: 30,
-    icon: 'bookmark',
-  },
   {
     id: 'selo-cosmico',
     title: 'Selo Cósmico no perfil',
@@ -32,16 +28,9 @@ const REWARDS = [
   {
     id: 'leitura-bonus',
     title: 'Leitura Bônus',
-    description: 'Desbloqueia uma leitura extra de Tarô fora da sua sequência normal.',
+    description: 'Desbloqueia uma leitura extra de Tarô fora da sua sequência normal (mesmo tema já consultado hoje).',
     cost: 80,
     icon: 'sparkles',
-  },
-  {
-    id: 'tema-dourado',
-    title: 'Tema dourado exclusivo',
-    description: 'Um visual dourado especial pra deixar o app com a cara de vocês.',
-    cost: 150,
-    icon: 'color-palette',
   },
   {
     id: 'escudo-sequencia',
@@ -77,8 +66,14 @@ export default function LojaScreen() {
         if (reward.id === 'escudo-sequencia') {
           const count = await addShield();
           Alert.alert('Escudo ativado!', `${count} escudo(s) guardado(s) — protege a próxima sequência quebrada.`);
+        } else if (reward.id === 'selo-cosmico') {
+          await grantSeloCosmico();
+          Alert.alert('Selo ativado!', 'Já apareceu ao lado do nome de vocês no Perfil.');
+        } else if (reward.id === 'leitura-bonus') {
+          const count = await addBonusTarotReading();
+          Alert.alert('Leitura Bônus guardada!', `Vá no Tarô, escolha o tema (mesmo já consultado hoje) e use o botão "Usar Leitura Bônus" (${count} disponível).`);
         } else {
-          Alert.alert('Resgatado!', `"${reward.title}" resgatado com sucesso. (em breve isso vai aparecer no seu perfil)`);
+          Alert.alert('Resgatado!', `"${reward.title}" resgatado com sucesso.`);
         }
       } else {
         Alert.alert(
