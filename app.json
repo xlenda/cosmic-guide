@@ -8,7 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/icon.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0E0821"
     },
@@ -22,6 +22,9 @@
         "backgroundColor": "#0E0821"
       },
       "package": "cloud.cosmicguide.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "experiments": {
       "baseUrl": "/cosmic-guide"

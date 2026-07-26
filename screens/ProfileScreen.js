@@ -24,6 +24,7 @@ import { getTokenBalance } from '../lib/tokens';
 import { hasSeloCosmico, hasGoldTheme } from '../lib/cosmeticRewards';
 import { isGoldThemeActive, setGoldThemeActive } from '../theme';
 import { shareInvite } from '../lib/coupleInvite';
+import { recoverSubscriptionFromDevice } from '../lib/accountSubscription';
 import {
   isDailyThoughtEnabled,
   requestNotificationPermission,
@@ -118,7 +119,7 @@ const APP_VERSION = '1.0.0';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { coupleData, soloSign, hasAccess, hasCoupleAccess, clearAll } = useCouple();
+  const { coupleData, soloSign, hasAccess, hasCoupleAccess, clearAll, refreshAccess } = useCouple();
   const { user, signOut } = useAuth();
   // Pra casal, só a assinatura de CASAL conta como "já assinou" (uma solo
   // ativa não desbloqueia as telas de casal) — mesmo critério de
@@ -139,6 +140,7 @@ export default function ProfileScreen() {
   // é aplicada no carregamento do módulo, antes de qualquer tela montar.
   const [goldOwned, setGoldOwned] = useState(false);
   const [goldActive, setGoldActive] = useState(isGoldThemeActive());
+  const [recuperando, setRecuperando] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -269,6 +271,69 @@ export default function ProfileScreen() {
     }
   }
 
+  // "Paguei e não estou vendo a assinatura." Acontece de verdade quando o
+  // e-mail do PAGAMENTO é diferente do e-mail do LOGIN (pagou no PayPal, no
+  // cartão do cônjuge, ou digitou outro e-mail na Hotmart): o vínculo
+  // automático por e-mail nunca dispara. Este botão manda o correlationCode
+  // que ainda está guardado NESTE aparelho (prova de posse) pro backend
+  // vincular a assinatura à conta logada — a partir daí o acesso segue a
+  // conta, não o aparelho.
+  async function handleRecoverSubscription() {
+    if (recuperando) return;
+    setRecuperando(true);
+    const resultado = await recoverSubscriptionFromDevice({
+      voce: coupleData?.voce,
+      amor: coupleData?.amor,
+      email: user?.email,
+    });
+    setRecuperando(false);
+
+    if (resultado.linked > 0) {
+      await refreshAccess();
+      Alert.alert(
+        'Assinatura recuperada',
+        'Sua assinatura agora está ligada a esta conta. Você pode entrar por ela em qualquer aparelho.'
+      );
+      return;
+    }
+    if (resultado.reason === 'no-code') {
+      Alert.alert(
+        'Nada encontrado neste aparelho',
+        'Não há nenhuma assinatura guardada aqui. Se você assinou em outro celular, entre com a mesma conta que usou lá. Se pagou com outro e-mail, escreva pra contato@cosmicguide.cloud com o comprovante.'
+      );
+      return;
+    }
+    if (resultado.alreadyOwned > 0) {
+      Alert.alert(
+        'Essa assinatura já está em outra conta',
+        'A assinatura guardada neste aparelho já pertence a outro login. Entre com aquela conta, ou escreva pra contato@cosmicguide.cloud.'
+      );
+      return;
+    }
+    Alert.alert(
+      'Não foi possível recuperar agora',
+      'Tente de novo em instantes. Se continuar, escreva pra contato@cosmicguide.cloud com o e-mail do pagamento.'
+    );
+  }
+
+  function confirmSignOut() {
+    Alert.alert('Sair da conta', 'Tem certeza que quer sair?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Sair', style: 'destructive', onPress: signOut },
+    ]);
+  }
+
+  // Flags de visibilidade calculadas UMA vez por render. Existem porque a
+  // última linha visível de cada card não pode ter borda de baixo (senão vira
+  // um risco solto colado na borda do card) — e depois da reordenação a última
+  // linha de "Preferências" passou a ser condicional. Ver `last` nos MenuRow.
+  const showInstall = Platform.OS === 'web' && !isRunningStandalone();
+  const showGoldToggle = goldOwned && Platform.OS === 'web';
+  // Exatamente UMA das duas linhas de "pensamento cósmico diário" renderiza:
+  // notificação local no nativo, Web Push na web (quando suportado).
+  const showThought = Platform.OS !== 'web' || isWebPushSupported();
+  const showRecover = Boolean(user) && !relevantAccess;
+
   return (
     <View style={styles.root}>
       <GradientHeader title="Perfil" />
@@ -301,13 +366,24 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Nome só existe pra quem já tem conta (login continua opcional pro
-            resto do app) — editar aqui chama supabase.auth.updateUser, que
-            funciona com a chave publishable pro próprio usuário logado. */}
-        {user && (
-          <>
-            <Text style={styles.sectionTitle}>Conta</Text>
-            <View style={styles.card}>
+        {/* ORDEM DA TELA (convenção iOS/Android, reordenada em 26/07/2026 a
+            partir de relato de tester real): conta/entrada no TOPO → ajustes no
+            meio → suporte → e só então as ações de saída/destrutivas no FIM.
+            Antes "Sair" ficava no MEIO do card de Preferências e o tester
+            procurava no rodapé sem achar. Se for mexer aqui de novo, mantenha
+            os itens de saída depois de tudo. */}
+
+        {/* CARD 1 — CONTA. Nunca fica vazio: ou tem nome+e-mail (logado), ou
+            tem "Fazer login" (deslogado). Sempre termina em "Assinar/Gerenciar
+            assinatura", que é incondicional — por isso `last` aqui pode ser
+            estático, sem risco de sobrar borda solta no rodapé do card. */}
+        <Text style={styles.sectionTitle}>Conta</Text>
+        <View style={styles.card}>
+          {/* Nome só existe pra quem já tem conta (login continua opcional pro
+              resto do app) — editar aqui chama supabase.auth.updateUser, que
+              funciona com a chave publishable pro próprio usuário logado. */}
+          {user ? (
+            <>
               <View style={[styles.row, styles.rowBorder]}>
                 <View style={styles.rowIcon}>
                   <Ionicons name="person" size={18} color={colors.accent} />
@@ -317,11 +393,43 @@ export default function ProfileScreen() {
                   <Ionicons name="create-outline" size={20} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
-              <InfoRow icon="mail" label="E-mail" value={user.email} last />
-            </View>
-          </>
-        )}
+              <InfoRow icon="mail" label="E-mail" value={user.email} />
+            </>
+          ) : (
+            /* Login opcional pra uso grátis — só vira obrigatório na hora de
+               assinar (ver PlanosScreen.js). Aqui é só conveniência (sincronizar
+               entre aparelhos, recuperar acesso). Fica no TOPO porque é uma
+               ação de ENTRADA, não de configuração. */
+            <MenuRow icon="log-in" label="Fazer login" onPress={() => navigation.navigate(ROUTES.LOGIN)} />
+          )}
+          {/* "Instalar app" só faz sentido na web (nativo já é instalado por
+              definição) e só quando ainda não está rodando como app instalado. */}
+          {showInstall && (
+            <MenuRow icon="download" label="Instalar app" onPress={handleInstallApp} />
+          )}
+          {/* Assinatura existe pra casal E solo agora (25/07/2026) — hasAccess
+              já cobre os dois (CoupleContext.js checa em paralelo). */}
+          <MenuRow
+            icon={relevantAccess ? 'diamond' : 'lock-open'}
+            label={relevantAccess ? 'Gerenciar assinatura' : 'Assinar'}
+            onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
+            last={!showRecover}
+          />
+          {/* Só pra quem está logado e NÃO está vendo assinatura nenhuma — é
+              exatamente a tela de quem pagou e ficou sem acesso. Quem já tem
+              acesso não precisa: o vínculo com a conta acontece sozinho
+              (auto-vínculo em CoupleContext.refreshAccess). */}
+          {showRecover && (
+            <MenuRow
+              icon="key"
+              label={recuperando ? 'Recuperando...' : 'Recuperar minha assinatura'}
+              onPress={handleRecoverSubscription}
+              last
+            />
+          )}
+        </View>
 
+        {/* CARD 2 — PREFERÊNCIAS. Só ajustes; nada de entrar/sair aqui. */}
         <Text style={styles.sectionTitle}>Preferências</Text>
         <View style={styles.card}>
           <MenuRow
@@ -344,15 +452,16 @@ export default function ProfileScreen() {
             label={`Meus Tokens (${tokenBalance})`}
             onPress={() => navigation.navigate(ROUTES.TOKENS)}
           />
-          <LanguageRow lang={lang} onChange={changeLanguage} />
+          <LanguageRow lang={lang} onChange={changeLanguage} last={!showGoldToggle && !showThought} />
           {/* Só aparece pra quem COMPROU o tema na Loja (compra única) —
               ligar/desligar é grátis a partir daí. Web-only, ver theme.js. */}
-          {goldOwned && Platform.OS === 'web' && (
+          {showGoldToggle && (
             <ToggleRow
               icon="color-palette"
               label="Tema dourado"
               value={goldActive}
               onValueChange={toggleGoldTheme}
+              last={!showThought}
             />
           )}
           {/* Notificação local (expo-notifications) não existe de verdade na
@@ -364,6 +473,7 @@ export default function ProfileScreen() {
               label="Pensamento cósmico diário"
               value={thoughtEnabled}
               onValueChange={toggleDailyThought}
+              last
             />
           )}
           {Platform.OS === 'web' && isWebPushSupported() && (
@@ -372,47 +482,31 @@ export default function ProfileScreen() {
               label="Pensamento cósmico diário"
               value={webPushEnabled}
               onValueChange={toggleWebPush}
+              last
             />
           )}
-          {/* "Instalar app" só faz sentido na web (nativo já é instalado por
-              definição) e só quando ainda não está rodando como app instalado. */}
-          {Platform.OS === 'web' && !isRunningStandalone() && (
-            <MenuRow icon="download" label="Instalar app" onPress={handleInstallApp} />
-          )}
-          {/* Login opcional pra uso grátis — só vira obrigatório na hora de
-              assinar (ver PlanosScreen.js). Aqui é só conveniência (sincronizar
-              entre aparelhos, recuperar acesso). */}
-          {user ? (
-            <MenuRow
-              icon="log-out"
-              label={`Sair (${user.email})`}
-              onPress={() =>
-                Alert.alert('Sair da conta', 'Tem certeza que quer sair?', [
-                  { text: 'Cancelar', style: 'cancel' },
-                  { text: 'Sair', style: 'destructive', onPress: signOut },
-                ])
-              }
-            />
-          ) : (
-            <MenuRow icon="log-in" label="Fazer login" onPress={() => navigation.navigate(ROUTES.LOGIN)} />
-          )}
-          <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} />
-          {/* Assinatura existe pra casal E solo agora (25/07/2026) — hasAccess
-              já cobre os dois (CoupleContext.js checa em paralelo). */}
-          <MenuRow
-            icon={relevantAccess ? 'diamond' : 'lock-open'}
-            label={relevantAccess ? 'Gerenciar assinatura' : 'Assinar'}
-            onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
-            last
-          />
         </View>
 
+        {/* CARD 3 — SUPORTE. "Privacidade" veio do card de Preferências pra cá:
+            é documento legal, mora junto com "Termos de uso". */}
         <Text style={styles.sectionTitle}>Suporte</Text>
         <View style={styles.card}>
           <MenuRow icon="help-circle" label="Ajuda e suporte" onPress={() => navigation.navigate(ROUTES.HELP_SUPPORT)} />
+          <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} />
           <MenuRow icon="document-text" label="Termos de uso" onPress={() => navigation.navigate(ROUTES.TERMS)} />
           <InfoRow icon="information-circle" label="Versão do app" value={APP_VERSION} last />
         </View>
+
+        {/* RODAPÉ — saída e destruição, fora de qualquer card, onde todo mundo
+            procura. O e-mail não vai mais no rótulo ("Sair (fulano@...)"):
+            ele já aparece no card de Conta lá em cima, e um botão de rodapé com
+            e-mail dentro quebra em telas estreitas. */}
+        {user && (
+          <TouchableOpacity style={styles.logoutBtn} onPress={confirmSignOut} activeOpacity={0.85}>
+            <Ionicons name="log-out-outline" size={18} color={colors.red} />
+            <Text style={styles.logoutBtnText}>Sair da conta</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity style={styles.dangerBtn} onPress={confirmDeleteAccount} activeOpacity={0.85}>
           <Ionicons name="trash" size={18} color="#fff" />
@@ -484,6 +578,15 @@ const styles = StyleSheet.create({
   langPillActive: { borderColor: colors.accent, backgroundColor: colors.accent + '22' },
   langPillText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
   langPillTextActive: { color: colors.accent },
+  // "Sair" é ação de saída, não destrutiva: contorno + texto vermelho, sem
+  // fundo cheio — assim não compete visualmente com "Deletar conta" logo
+  // abaixo, que é a única de verdade irreversível.
+  logoutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 14, paddingVertical: 14, marginBottom: 12,
+  },
+  logoutBtnText: { color: colors.red, fontSize: 15, fontWeight: '800' },
   dangerBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: colors.red, borderRadius: 14, paddingVertical: 14, marginTop: 4,

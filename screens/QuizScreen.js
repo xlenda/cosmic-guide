@@ -24,6 +24,7 @@ import { useNavigation } from '@react-navigation/native';
 import { colors } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+import CityPickerModal from '../components/CityPickerModal';
 import {
   SIGNS,
   compatibility,
@@ -35,7 +36,7 @@ import {
   signoFromDate,
   ascendantSign,
 } from '../lib/signs';
-import { searchCities, cityLabel } from '../lib/cities';
+import { cityLabel } from '../lib/cities';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -201,63 +202,13 @@ function DatePickerModal({ visible, initialDate, onClose, onConfirm }) {
   );
 }
 
-// Cidade de nascimento é opcional (assim como a hora) — modal de busca reaproveita
-// o mesmo Modal/estilo de sheet do DatePickerModal acima, trocando os PickerColumn
-// por um TextInput + FlatList filtrando lib/cities.js (busca acento-insensível).
-function CityPickerModal({ visible, hasSelection, onClose, onSelect, onClear }) {
-  const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    if (visible) setQuery('');
-  }, [visible]);
-
-  const results = searchCities(query);
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalSheet, styles.citySheet]}>
-          <Text style={styles.modalTitle}>Cidade de nascimento</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Buscar cidade..."
-            placeholderTextColor={colors.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-          <FlatList
-            data={results}
-            keyExtractor={(item) => item.id}
-            style={styles.cityList}
-            keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={<Text style={styles.mutedCenter}>Nenhuma cidade encontrada.</Text>}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.cityItem} onPress={() => onSelect(item)}>
-                <Text style={styles.cityItemText}>{cityLabel(item)}</Text>
-              </TouchableOpacity>
-            )}
-          />
-          <View style={styles.modalActions}>
-            {hasSelection ? (
-              <TouchableOpacity style={styles.btnGhost} onPress={onClear}>
-                <Text style={styles.btnGhostText}>Remover cidade</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.btnGhost} onPress={onClose}>
-                <Text style={styles.btnGhostText}>Pular (opcional)</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.btn} onPress={onClose}>
-              <Text style={styles.btnText}>Fechar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
+// A cópia local do CityPickerModal que existia aqui foi removida em
+// 26/07/2026 e virou components/CityPickerModal.js (compartilhado com
+// BirthChartScreen.js). Ela era uma bottom sheet com altura em porcentagem e
+// lista com maxHeight/sem minHeight: ao abrir o teclado, a viewport encolhia e
+// a lista colapsava pra 1-2 linhas — o usuário via só "São Paulo, SP — Brasil"
+// e concluía que o app tinha uma cidade só. Ver o cabeçalho do componente novo
+// para as medições.
 
 export default function QuizScreen() {
   const navigation = useNavigation();
@@ -1151,11 +1102,6 @@ const styles = StyleSheet.create({
   pickerItemText: { color: colors.textSecondary, fontSize: 16 },
   pickerItemTextSel: { color: colors.text, fontWeight: '800' },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, gap: 10 },
-
-  citySheet: { maxHeight: '75%' },
-  cityList: { marginTop: 12, maxHeight: 320 },
-  cityItem: {
-    paddingVertical: 12, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  cityItemText: { color: colors.text, fontSize: 15 },
+  // citySheet/cityList/cityItem/cityItemText saíram daqui junto com o
+  // CityPickerModal local (agora em components/CityPickerModal.js).
 });

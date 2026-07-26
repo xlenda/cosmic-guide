@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Modal, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,8 +8,9 @@ import * as SecureStore from 'expo-secure-store';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import DatePickerModal from '../components/DatePickerModal';
+import CityPickerModal from '../components/CityPickerModal';
 import { signoFromDate, moonSign, ascendantSign, houses, aspects, astrocartographyCities } from '../lib/signs';
-import { searchCities, cityLabel } from '../lib/cities';
+import { cityLabel } from '../lib/cities';
 import { getBirthData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
@@ -239,63 +240,13 @@ function AstroCartographySection({ astro }) {
   );
 }
 
-// Mesmo padrão de busca de cidade do QuizScreen.js (TextInput + FlatList sobre
-// lib/cities.js), reaproveitado aqui num único modal compartilhado entre modo
-// solo e casal (o chamador decide o que fazer com a cidade escolhida).
-function CityPickerModal({ visible, hasSelection, onClose, onSelect, onClear }) {
-  const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    if (visible) setQuery('');
-  }, [visible]);
-
-  const results = searchCities(query);
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalSheet, styles.citySheet]}>
-          <Text style={styles.modalTitle}>Cidade de nascimento</Text>
-          <TextInput
-            style={styles.citySearchInput}
-            placeholder="Buscar cidade..."
-            placeholderTextColor={colors.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-          <FlatList
-            data={results}
-            keyExtractor={(item) => item.id}
-            style={styles.cityList}
-            keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={<Text style={styles.mutedCenter}>Nenhuma cidade encontrada.</Text>}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.cityItem} onPress={() => onSelect(item)}>
-                <Text style={styles.cityItemText}>{cityLabel(item)}</Text>
-              </TouchableOpacity>
-            )}
-          />
-          <View style={styles.modalActions}>
-            {hasSelection ? (
-              <TouchableOpacity style={styles.btnGhost} onPress={onClear}>
-                <Text style={styles.btnGhostText}>Remover cidade</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.btnGhost} onPress={onClose}>
-                <Text style={styles.btnGhostText}>Pular (opcional)</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.modalBtn} onPress={onClose}>
-              <Text style={styles.btnText}>Fechar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
+// A cópia local do CityPickerModal que existia aqui foi removida em
+// 26/07/2026 e virou components/CityPickerModal.js (compartilhado com
+// QuizScreen.js). Ela era uma bottom sheet com altura em porcentagem e lista
+// com maxHeight/sem minHeight: ao abrir o teclado, a viewport encolhia e a
+// lista colapsava pra 1-2 linhas — o usuário via só "São Paulo, SP — Brasil"
+// e concluía que o app tinha uma cidade só (relato real de tester). Ver o
+// cabeçalho do componente novo para as medições.
 
 export default function BirthChartScreen() {
   const navigation = useNavigation();
@@ -628,17 +579,10 @@ const styles = StyleSheet.create({
   aspectRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border },
   aspectText: { color: colors.text, fontSize: 14, flex: 1, marginRight: 8 },
   aspectOrb: { color: colors.textMuted, fontSize: 12 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
-  citySheet: { maxHeight: '80%' },
-  modalTitle: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'center', marginBottom: 12 },
-  citySearchInput: { backgroundColor: colors.surfaceElevated, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: colors.text, fontSize: 15, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
-  cityList: { maxHeight: 260 },
-  cityItem: { paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: colors.border },
-  cityItemText: { color: colors.text, fontSize: 15 },
-  mutedCenter: { color: colors.textMuted, fontSize: 13, textAlign: 'center', paddingVertical: 20 },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
-  modalBtn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 26, alignItems: 'center' },
-  btnGhost: { borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20, borderWidth: 1, borderColor: colors.border },
+  // Os estilos do city picker local (modalOverlay/modalSheet/citySheet/
+  // cityList/cityItem/...) sairam daqui em 26/07/2026 junto com o componente,
+  // que virou components/CityPickerModal.js. Ficaram orfaos e sem nenhuma
+  // referencia — inclusive o citySheet:'80%' + cityList:260 que causavam o
+  // colapso da lista. Removidos pra ninguem reaproveitar o padrao quebrado.
   btnGhostText: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
 });

@@ -24,6 +24,7 @@ import { useCouple } from '../context/CoupleContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { initiateCheckout, initiateSoloCheckout } from '../lib/coupleData';
+import { getAuthToken } from '../lib/accountSubscription';
 import { trackInitiateCheckout } from '../lib/conversionTracking';
 import GradientHeader from '../components/GradientHeader';
 
@@ -210,6 +211,11 @@ function PlanosScreenWeb() {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('trial');
+  // Resposta `alreadyActive: true` do backend — "essa conta já assina ESTE
+  // escopo, não criei pendência nenhuma". Guardado em estado próprio pra tela
+  // trocar pro cartão de assinante na hora, sem depender da corrida do
+  // refreshAccess (que também é disparado, pra manter o contexto coerente).
+  const [jaAssinante, setJaAssinante] = useState(null);
 
   const abrirCheckout = useCallback(async () => {
     trackInitiateCheckout();
@@ -217,9 +223,34 @@ function PlanosScreenWeb() {
     setCarregando(true);
     setAberto(true);
     try {
+      // Token do Supabase: é ele que torna o /api/checkout/initiate
+      // IDEMPOTENTE POR CONTA. Sem ele, cada toque em "Assinar" criava uma
+      // pendência nova E repontava o aparelho pra ela — o laço que fazia o
+      // acesso de quem já tinha pago sumir (26/07/2026, 4 checkouts).
+      const authToken = await getAuthToken();
       const data = isCouple
-        ? await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan)
-        : await initiateSoloCheckout(user?.email, selectedPlan);
+        ? await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan, authToken)
+        : await initiateSoloCheckout(user?.email, selectedPlan, authToken);
+
+      // Já assina: NÃO abre a Hotmart, não cobra de novo e não mexe no
+      // ponteiro local (initiateCheckout já se recusa a sobrescrever quando
+      // alreadyActive). Sem este ramo, `data.checkoutConfig.offerCode`
+      // estouraria um TypeError e a pessoa veria só "erro genérico".
+      if (data?.alreadyActive === true || !data?.checkoutConfig) {
+        setCarregando(false);
+        if (data?.alreadyActive === true) {
+          setAberto(false);
+          setJaAssinante({ status: data.status || 'active', currentPeriodEnd: data.currentPeriodEnd || null });
+        } else {
+          // Sem checkoutConfig e sem alreadyActive é resposta inesperada —
+          // mantém `aberto` pra o card de erro (com o link de outra aba)
+          // aparecer, em vez de voltar pro botão como se nada tivesse havido.
+          setErro(t('planos.errorGeneric'));
+        }
+        refreshAccess();
+        return;
+      }
+
       await loadHotmartScript();
       window.checkoutElements
         .init('inlineCheckout', {
@@ -233,7 +264,7 @@ function PlanosScreenWeb() {
       setErro(t('planos.errorGeneric'));
       setCarregando(false);
     }
-  }, [coupleData, user, selectedPlan, t]);
+  }, [coupleData, isCouple, refreshAccess, user, selectedPlan, t]);
 
   const fecharCheckout = useCallback(() => {
     setAberto(false);
@@ -253,6 +284,18 @@ function PlanosScreenWeb() {
   // cancelado, expirado) nunca deve ver o fluxo de checkout de novo — só
   // 'pending' (aguardando confirmação do webhook) ainda cai no fluxo normal
   // abaixo, porque nesse ponto o checkout pode não ter sido concluído de fato.
+  // `jaAssinante` cobre o caso em que quem descobriu isso foi o próprio
+  // backend, no toque em "Assinar" (alreadyActive) — antes do refreshAccess
+  // voltar com a resposta nova.
+  if (jaAssinante) {
+    return (
+      <SubscriptionStatusCard
+        status={jaAssinante.status}
+        currentPeriodEnd={jaAssinante.currentPeriodEnd}
+        onBack={() => navigation.goBack()}
+      />
+    );
+  }
   if (relevantAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
     return (
       <SubscriptionStatusCard
@@ -340,6 +383,8 @@ function PlanosScreenNative() {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('trial');
+  // Ver comentário do mesmo estado em PlanosScreenWeb.
+  const [jaAssinante, setJaAssinante] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -352,9 +397,20 @@ function PlanosScreenNative() {
     setErro('');
     setCarregando(true);
     try {
+      const authToken = await getAuthToken();
       const data = isCouple
-        ? await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan)
-        : await initiateSoloCheckout(user?.email, selectedPlan);
+        ? await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan, authToken)
+        : await initiateSoloCheckout(user?.email, selectedPlan, authToken);
+
+      // Já assina: não abre navegador nenhum, não cobra de novo e o ponteiro
+      // local fica onde está (ver initiateCheckout).
+      if (data?.alreadyActive === true) {
+        setCarregando(false);
+        setJaAssinante({ status: data.status || 'active', currentPeriodEnd: data.currentPeriodEnd || null });
+        refreshAccess();
+        return;
+      }
+
       const xcod = data?.checkoutConfig?.xcod;
       const baseUrl = HOTMART_PAY_URLS[selectedPlan] || HOTMART_PAY_URLS.trial;
       const url = xcod ? `${baseUrl}&xcod=${encodeURIComponent(xcod)}` : baseUrl;
@@ -368,8 +424,17 @@ function PlanosScreenNative() {
       setCarregando(false);
       refreshAccess();
     }
-  }, [coupleData, refreshAccess, user, selectedPlan, t]);
+  }, [coupleData, isCouple, refreshAccess, user, selectedPlan, t]);
 
+  if (jaAssinante) {
+    return (
+      <SubscriptionStatusCard
+        status={jaAssinante.status}
+        currentPeriodEnd={jaAssinante.currentPeriodEnd}
+        onBack={() => navigation.goBack()}
+      />
+    );
+  }
   if (relevantAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
     return (
       <SubscriptionStatusCard

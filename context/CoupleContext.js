@@ -12,7 +12,9 @@ import {
   saveUserSign,
   checkSubscriptionStatus,
   checkSoloSubscriptionStatus,
+  combineAccessResults,
 } from '../lib/coupleData';
+import { checkAccountAccess, autoLinkDeviceCodes } from '../lib/accountSubscription';
 import { useAuth } from './AuthContext';
 
 const CoupleContext = createContext(null);
@@ -61,36 +63,62 @@ export function CoupleProvider({ children }) {
   // sobrescrever um resultado mais recente e correto.
   const requestIdRef = useRef(0);
 
-  // Existe assinatura tanto pra casal (voce+amor) quanto solo (e-mail de login,
-  // já que não há par) — pedido explícito do Lenda (25/07/2026): monetizar os
-  // dois jeitos de usar o app, não só casal. As duas checagens rodam em
-  // paralelo e sempre em conjunto (não só a que bate com o modo atual): assim,
-  // quem assinou sozinho e depois forma um casal (ou vice-versa) não perde o
-  // acesso que já pagou só porque `coupleData` mudou de estado.
+  // TRÊS fontes em paralelo, resolvidas em UNIÃO (ver combineAccessResults em
+  // lib/coupleData.js):
+  //   1. CONTA logada (GET /api/subscription/me, JWT do Supabase) — a
+  //      autoritativa. É ela que faz o acesso seguir a PESSOA e não o
+  //      aparelho: trocar de celular, limpar o navegador ou abrir no PC deixa
+  //      de tirar o acesso de quem pagou.
+  //   2. código de CASAL guardado neste aparelho;
+  //   3. código SOLO guardado neste aparelho.
+  // As duas últimas continuam existindo e valendo exatamente como antes —
+  // deslogado (a maioria do app), backend antigo sem a rota nova, ou
+  // Supabase/JWKS fora do ar, é o aparelho que sustenta o assinante.
+  // Casal e solo sempre juntos (nunca só o que bate com o modo atual): quem
+  // assinou sozinho e depois forma um casal não perde o que já pagou.
   const refreshAccess = useCallback(async (profile) => {
     const p = profile !== undefined ? profile : coupleData;
     const myId = ++requestIdRef.current;
 
-    const [coupleEstado, soloEstado] = await Promise.all([
+    const [accountEstado, coupleEstado, soloEstado] = await Promise.all([
+      // checkAccountAccess também AUTO-REPARA o ponteiro local: quando a conta
+      // concede acesso e traz o correlationCode, ele é regravado no aparelho —
+      // então um aparelho novo (ou com ponteiro podre) se conserta sozinho no
+      // primeiro login e continua funcionando deslogado depois.
+      user
+        ? checkAccountAccess({ voce: p?.voce, amor: p?.amor, email: user.email })
+        : Promise.resolve({ available: false, hasAccess: false, confirmed: true, entries: [] }),
       p ? checkSubscriptionStatus(p.voce, p.amor) : Promise.resolve({ hasAccess: false, confirmed: true }),
       user?.email ? checkSoloSubscriptionStatus(user.email) : Promise.resolve({ hasAccess: false, confirmed: true }),
     ]);
     if (myId !== requestIdRef.current) return;
 
-    const hasAccessNow = Boolean(coupleEstado?.hasAccess || soloEstado?.hasAccess);
-    // Confirmado de verdade se qualquer um dos dois já confirmou acesso (não
-    // precisa esperar o outro), ou se os dois confirmaram "sem acesso". Só
-    // fica incerto (confirmed=false) se pelo menos um falhou por rede/5xx e
-    // nenhum dos dois confirmou acesso — mesmo espírito do confirmed original,
-    // agora olhando as duas fontes juntas.
-    const confirmedNow = hasAccessNow || (coupleEstado?.confirmed !== false && soloEstado?.confirmed !== false);
-    const winner = coupleEstado?.hasAccess ? coupleEstado : soloEstado?.hasAccess ? soloEstado : coupleEstado;
+    const combinado = combineAccessResults({ account: accountEstado, couple: coupleEstado, solo: soloEstado });
 
-    setHasAccess(hasAccessNow);
-    setHasCoupleAccess(Boolean(coupleEstado?.hasAccess));
-    setAccessConfirmed(confirmedNow);
-    setSubscriptionStatus(winner?.status || null);
-    setCurrentPeriodEnd(winner?.currentPeriodEnd || null);
+    setHasAccess(combinado.hasAccess);
+    setHasCoupleAccess(combinado.hasCoupleAccess);
+    setAccessConfirmed(combinado.confirmed);
+    setSubscriptionStatus(combinado.status);
+    setCurrentPeriodEnd(combinado.currentPeriodEnd);
+
+    // AUTO-VÍNCULO (uma vez por conta+código, silencioso): o aparelho tem
+    // acesso por código mas a conta não conhece esse código — é o caso
+    // "e-mail do pagamento ≠ e-mail do login" (PayPal, cartão do cônjuge,
+    // e-mail digitado errado na Hotmart), que o vínculo por e-mail do /me
+    // nunca alcança. Vinculamos AGORA, enquanto a prova de posse ainda existe
+    // neste aparelho — senão a pessoa só descobre o problema depois de limpar
+    // os dados, quando já não tem mais como provar que é dela.
+    // Não muda nada na tela (o acesso já estava concedido), então roda depois
+    // do setState e nunca reentra em refreshAccess.
+    if (user?.id && accountEstado.available && (coupleEstado?.hasAccess || soloEstado?.hasAccess)) {
+      autoLinkDeviceCodes({
+        userId: user.id,
+        voce: p?.voce,
+        amor: p?.amor,
+        email: user.email,
+        entries: accountEstado.entries,
+      }).catch(() => {});
+    }
   }, [coupleData, user]);
 
   const refresh = useCallback(async () => {
