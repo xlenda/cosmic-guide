@@ -300,11 +300,8 @@ export default function BirthChartScreen() {
   const navigation = useNavigation();
   const { coupleData, loading: coupleLoading, hasAccess, accessConfirmed } = useCouple();
   const isCouple = !!coupleData;
-  // Assinatura só existe pra casal — modo solo fica com hasAccess sempre true
-  // (CoupleContext.js, decisão de produto), o que destravaria o bloqueio de 1
-  // uso grátis abaixo por completo se checássemos hasAccess puro (mesmo bug
-  // achado e corrigido no Tarô).
-  const hasFullAccess = isCouple && hasAccess;
+  // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
+  // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
 
   // ---- Modo casal: data/hora de nascimento já existem (getBirthData) desde o
   // Quiz do casal — só falta a cidade (nunca persistida pelo Quiz hoje) para
@@ -328,9 +325,9 @@ export default function BirthChartScreen() {
   const [locked, setLocked] = useState(false);
 
   useEffect(() => {
-    if (hasFullAccess || !accessConfirmed) return;
+    if (hasAccess || !accessConfirmed) return;
     hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
-  }, [hasFullAccess, accessConfirmed]);
+  }, [hasAccess, accessConfirmed]);
 
   useEffect(() => {
     if (coupleLoading) return;
@@ -453,7 +450,7 @@ export default function BirthChartScreen() {
     });
   }, [activeChart?.sun?.name, activeChart?.moon?.name, activeChart?.asc?.name]);
 
-  if (!hasFullAccess && locked) {
+  if (!hasAccess && locked) {
     return <OneTimeLock featureTitle="Mapa Astral" gradient={['#3A4AB5', '#6C7BFF']} />;
   }
 

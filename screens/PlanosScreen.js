@@ -23,7 +23,7 @@ import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { initiateCheckout } from '../lib/coupleData';
+import { initiateCheckout, initiateSoloCheckout } from '../lib/coupleData';
 import { trackInitiateCheckout } from '../lib/conversionTracking';
 import GradientHeader from '../components/GradientHeader';
 
@@ -99,13 +99,20 @@ function formatarDataBR(iso) {
 // também ganharam 1 uso grátis (ver components/FeatureGate.js) — a assinatura
 // é o que torna TODAS elas ilimitadas, não a única forma de ver cada uma.
 // Traduzido (PT/ES/EN) — chaves planos.benefit.1..7 em lib/i18n.js.
-const BENEFIT_KEYS = [1, 2, 3, 4, 5, 6, 7].map((n) => `planos.benefit.${n}`);
+// Solo (sem coupleData) só vê os benefícios 1-2 (trial + as 9 leituras
+// individuais) — os benefícios 3-7 são as 5 telas exclusivas de casal
+// (Reconectar/Descobrir/Agir/Progresso-Retrospectiva/Linha do tempo), que a
+// assinatura solo não desbloqueia (só formar casal desbloqueia, ver
+// components/FeatureGate.js e OneTimeLock.js).
+const COUPLE_BENEFIT_KEYS = [1, 2, 3, 4, 5, 6, 7].map((n) => `planos.benefit.${n}`);
+const SOLO_BENEFIT_KEYS = [1, 2].map((n) => `planos.benefit.${n}`);
 
-function BenefitsList() {
+function BenefitsList({ isCouple }) {
   const { t } = useLanguage();
+  const keys = isCouple ? COUPLE_BENEFIT_KEYS : SOLO_BENEFIT_KEYS;
   return (
     <View style={styles.benefitsList}>
-      {BENEFIT_KEYS.map((key) => (
+      {keys.map((key) => (
         <View key={key} style={styles.benefitRow}>
           <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
           <Text style={styles.benefitText}>{t(key)}</Text>
@@ -187,6 +194,7 @@ function SubscriptionStatusCard({ status, currentPeriodEnd, onBack }) {
 function PlanosScreenWeb() {
   const navigation = useNavigation();
   const { coupleData, refreshAccess, hasAccess, subscriptionStatus, currentPeriodEnd } = useCouple();
+  const isCouple = !!coupleData;
   const { user } = useAuth();
   const { t } = useLanguage();
   const [aberto, setAberto] = useState(false);
@@ -200,7 +208,9 @@ function PlanosScreenWeb() {
     setCarregando(true);
     setAberto(true);
     try {
-      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan);
+      const data = isCouple
+        ? await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan)
+        : await initiateSoloCheckout(user?.email, selectedPlan);
       await loadHotmartScript();
       window.checkoutElements
         .init('inlineCheckout', {
@@ -254,9 +264,9 @@ function PlanosScreenWeb() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {!aberto && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t('planos.unlockTitle')}</Text>
+            <Text style={styles.cardTitle}>{t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')}</Text>
             <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
-            <BenefitsList />
+            <BenefitsList isCouple={isCouple} />
             <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={abrirCheckout}>
               <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
             </TouchableOpacity>
@@ -313,6 +323,7 @@ function PlanosScreenWeb() {
 function PlanosScreenNative() {
   const navigation = useNavigation();
   const { coupleData, hasAccess, subscriptionStatus, currentPeriodEnd, refreshAccess } = useCouple();
+  const isCouple = !!coupleData;
   const { user } = useAuth();
   const { t } = useLanguage();
   const [carregando, setCarregando] = useState(false);
@@ -330,7 +341,9 @@ function PlanosScreenNative() {
     setErro('');
     setCarregando(true);
     try {
-      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan);
+      const data = isCouple
+        ? await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan)
+        : await initiateSoloCheckout(user?.email, selectedPlan);
       const xcod = data?.checkoutConfig?.xcod;
       const baseUrl = HOTMART_PAY_URLS[selectedPlan] || HOTMART_PAY_URLS.trial;
       const url = xcod ? `${baseUrl}&xcod=${encodeURIComponent(xcod)}` : baseUrl;
@@ -365,9 +378,9 @@ function PlanosScreenNative() {
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('planos.unlockTitle')}</Text>
+          <Text style={styles.cardTitle}>{t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')}</Text>
           <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
-          <BenefitsList />
+          <BenefitsList isCouple={isCouple} />
           {carregando ? (
             <ActivityIndicator color={colors.accent} size="large" style={styles.nativeLoader} />
           ) : (

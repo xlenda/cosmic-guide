@@ -20,9 +20,8 @@ import { getMockReply } from '../lib/chatResponses';
 import { fetchAiChatReply } from '../lib/aiClient';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
-import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import { hasReachedFreeMessageLimit, incrementFreeMessagesSent, FREE_MESSAGE_LIMIT } from '../lib/chatFreeMessages';
 
-const FEATURE_KEY = 'chat';
 const DIARY_RECORDED_KEY = 'cosmic-chat-diary-date';
 // Histórico do Chat ANTES vivia só em useState — sair da tela (ou dar reload
 // na web) apagava a conversa inteira e a pessoa via só a intro de novo, tendo
@@ -67,13 +66,9 @@ function makeMessage(from, text) {
 }
 
 export default function ChatScreen() {
-  const { hasAccess, accessConfirmed, coupleData } = useCouple();
-  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
-  // hasAccess sempre true (CoupleContext.js, decisão de produto), o que
-  // destravaria esta tela por completo pra quem usa sem parceiro se
-  // checássemos hasAccess puro (mesmo bug achado e corrigido no Tarô).
-  const isCouple = !!coupleData;
-  const hasFullAccess = isCouple && hasAccess;
+  // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
+  // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
+  const { hasAccess, accessConfirmed } = useCouple();
   const [personaId, setPersonaId] = useState(ACTIVE_PERSONA_ID);
   const persona = PERSONAS[personaId];
   const [messages, setMessages] = useState([makeMessage('persona', persona.introMessage)]);
@@ -95,16 +90,16 @@ export default function ChatScreen() {
   // só era calculado 1x na montagem inicial: mandar 1 mensagem, trocar de aba
   // e voltar deixava continuar conversando à vontade na mesma sessão, sem
   // nunca ver o bloqueio (só bloqueava reabrindo o app do zero) — achado real
-  // de auditoria, 25/07/2026. useFocusEffect recheca hasUsedFeatureOnce toda
-  // vez que a aba Chat ganha foco de novo, cobrindo esse caminho.
+  // de auditoria, 25/07/2026. useFocusEffect recheca hasReachedFreeMessageLimit
+  // toda vez que a aba Chat ganha foco de novo, cobrindo esse caminho.
   useFocusEffect(
     useCallback(() => {
       // accessConfirmed=false = a checagem de assinatura falhou por rede, não
       // confirmou nada de verdade — nunca marcar a prévia grátis como usada
       // nesse caso (achado real de auditoria, 25/07/2026).
-      if (hasFullAccess || !accessConfirmed) return;
-      hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
-    }, [hasFullAccess, accessConfirmed])
+      if (hasAccess || !accessConfirmed) return;
+      hasReachedFreeMessageLimit().then(setLocked);
+    }, [hasAccess, accessConfirmed])
   );
 
   // No mount, tenta restaurar o histórico já salvo da persona inicial em vez
@@ -146,6 +141,20 @@ export default function ChatScreen() {
   const handleSend = async () => {
     const text = input.trim();
     if (!text || isTyping) return;
+    // Checa ANTES de mandar, usando a contagem atual (não incrementada ainda)
+    // — assim as mensagens dentro do limite (FREE_MESSAGE_LIMIT) sempre são
+    // enviadas e respondidas por completo; só a tentativa SEGUINTE (a que já
+    // estouraria o limite) é bloqueada antes mesmo de sair do campo de texto,
+    // trocando a tela inteira pro OneTimeLock. Mesmo espírito do guard em
+    // TarotScreen.drawCards — nunca deixa o bloqueio interromper uma resposta
+    // que a pessoa já ganhou o direito de ver.
+    if (!hasAccess) {
+      const reached = await hasReachedFreeMessageLimit();
+      if (reached) {
+        setLocked(true);
+        return;
+      }
+    }
 
     const userMessage = makeMessage('user', text);
     const history = messages.map((m) => ({
@@ -167,7 +176,7 @@ export default function ChatScreen() {
     }
 
     setMessages((prev) => [...prev, makeMessage('persona', reply)]);
-    markFeatureUsedOnce(FEATURE_KEY);
+    if (!hasAccess) await incrementFreeMessagesSent();
     // Vira entrada no Diário Cósmico 1x por dia (não por mensagem, senão o
     // Diário enche de dezenas de entradas numa conversa só) — antes o Chat não
     // deixava rastro nenhum (achado real de auditoria de retenção, 25/07/2026).
@@ -204,7 +213,7 @@ export default function ChatScreen() {
     );
   };
 
-  if (!hasFullAccess && locked) {
+  if (!hasAccess && locked) {
     return <OneTimeLock featureTitle="Chat Espiritual" gradient={gradients.hero} />;
   }
 

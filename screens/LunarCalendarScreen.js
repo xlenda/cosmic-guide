@@ -33,13 +33,9 @@ function capitalize(text) {
 
 export default function LunarCalendarScreen() {
   const navigation = useNavigation();
-  const { hasAccess, accessConfirmed, coupleData } = useCouple();
-  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
-  // hasAccess sempre true (CoupleContext.js, decisão de produto), o que
-  // destravaria esta tela por completo pra quem usa sem parceiro se
-  // checássemos hasAccess puro (mesmo bug achado e corrigido no Tarô).
-  const isCouple = !!coupleData;
-  const hasFullAccess = isCouple && hasAccess;
+  // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
+  // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
+  const { hasAccess, accessConfirmed } = useCouple();
   const [refreshTick, setRefreshTick] = useState(0);
   const [locked, setLocked] = useState(false);
 
@@ -50,7 +46,7 @@ export default function LunarCalendarScreen() {
   // bloqueia (setLocked(true)) quando já tinha sido usado antes — nunca na
   // mesma visita em que a pessoa está consumindo seu uso grátis.
   useEffect(() => {
-    if (hasFullAccess || !accessConfirmed) return;
+    if (hasAccess || !accessConfirmed) return;
     hasUsedFeatureOnce(FEATURE_KEY).then((used) => {
       if (used) {
         setLocked(true);
@@ -58,7 +54,7 @@ export default function LunarCalendarScreen() {
         markFeatureUsedOnce(FEATURE_KEY);
       }
     });
-  }, [hasFullAccess, accessConfirmed]);
+  }, [hasAccess, accessConfirmed]);
 
   // A tela fica montada dentro da stack da Tab (não desmonta ao navegar pra
   // outra aba), então "hoje" precisa ser recalculado sempre que ela ganha
@@ -107,7 +103,7 @@ export default function LunarCalendarScreen() {
     });
   }, [today]);
 
-  if (!hasFullAccess && locked) {
+  if (!hasAccess && locked) {
     return <OneTimeLock featureTitle="Calendário Lunar" gradient={gradients.hero} />;
   }
 

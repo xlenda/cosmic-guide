@@ -46,59 +46,82 @@ export function SubscribeTeaser() {
   );
 }
 
-// Solo (sem par) vê um convite em vez do véu de assinatura — essas 5
-// rotas são feitas pra fazer a dois (rotas de reconexão, jogos, ideias de
-// encontro), então travar por "assinatura" não faz sentido ainda; o convite
-// certo aqui é chamar o par pro app primeiro.
-export function SoloInviteCard() {
+// Solo (sem par) vê a tela real rodando por baixo (mesmo espírito do
+// SubscribeTeaser acima) com um véu por cima oferecendo as DUAS opções juntas
+// — assinar sozinho (desbloqueia as 9 leituras individuais, não estas 5) e
+// convidar o par (única forma de desbloquear ESTA tela específica). Antes
+// era só um card genérico sem conteúdo nenhum embaixo; a ideia agora é gerar
+// curiosidade de verdade (a pessoa vê e mexe no começo real da tela) em vez
+// de esconder tudo — pedido explícito do Lenda (25/07/2026): "deixar ele
+// entrar de alguma forma... pra ele ter curioso quando entrar e ter retenção
+// pra chamar o par".
+export function SoloTeaser({ title, description }) {
   const navigation = useNavigation();
   return (
-    <View style={styles.root}>
-      <LinearGradient colors={gradients.card} style={styles.card}>
+    <View style={styles.teaserWrap} pointerEvents="box-none">
+      <LinearGradient colors={['transparent', colors.background]} style={styles.teaserFade} pointerEvents="none" />
+      <View style={styles.teaserCard}>
         <View style={styles.sealWrap}>
-          <Ionicons name="people" size={28} color={colors.gold} />
+          <Ionicons name="people" size={24} color={colors.gold} />
         </View>
-        <Text style={styles.title}>Isso é pra fazer em casal</Text>
+        <Text style={styles.title}>{title || 'Isso é pra fazer em casal'}</Text>
         <Text style={styles.text}>
-          Rotas de reconexão, jogos, ideias de encontro e retrospectiva só fazem sentido com os dois —
-          chame seu par pra formarem um casal no app e desbloqueiem isso juntos.
+          {description ||
+            'Rotas de reconexão, jogos, ideias de encontro e retrospectiva só fazem sentido com os dois.'}
         </Text>
         <TouchableOpacity
           style={styles.btn}
           activeOpacity={0.85}
+          onPress={() => navigation.navigate(ROUTES.PLANOS)}
+        >
+          <Text style={styles.btnText}>Assinar agora →</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryBtn}
+          activeOpacity={0.7}
           onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
         >
-          <Text style={styles.btnText}>Convidar meu par →</Text>
+          <Text style={styles.secondaryBtnText}>ou convide seu par pra desbloquear isso →</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
 
 // HOC — dono do produto logado (isOwnerAccount) vê a tela real direto, sem
 // nenhum bloqueio, pra poder revisar o conteúdo sem precisar assinar; depois
-// disso, solo (sem coupleData) vê o convite pra chamar o par; casal com
-// hasAccess=true renderiza a tela normalmente. hasAccess é otimista (default
-// true) até o contexto confirmar com o servidor, então nunca pisca um
-// bloqueio falso pra quem já tem acesso.
+// disso, casal com hasAccess=true renderiza a tela normalmente. hasAccess é
+// otimista (default true) até o contexto confirmar com o servidor, então
+// nunca pisca um bloqueio falso pra quem já tem acesso.
 //
-// Casal SEM acesso: a tela real monta e roda por baixo (sem featureKey, sem
-// AsyncStorage, sem "1 uso grátis" — esse rastreamento foi removido daqui
-// porque tinha um bug real: marcava o uso no mount, não no uso de fato, e
-// podia queimar a prévia de um assinante de verdade numa instabilidade de
-// rede). O SubscribeTeaser cobre a parte de baixo por cima, sempre.
-export function withFeatureGate(Screen) {
+// Casal SEM acesso, e Solo: a tela real monta e roda por baixo em ambos os
+// casos (sem featureKey, sem AsyncStorage, sem "1 uso grátis" — esse
+// rastreamento foi removido daqui porque tinha um bug real: marcava o uso no
+// mount, não no uso de fato, e podia queimar a prévia de um assinante de
+// verdade numa instabilidade de rede). Só muda o véu por cima: SubscribeTeaser
+// (casal, só "assinar") ou SoloTeaser (solo, "assinar" + "convidar par" juntos).
+//
+// options.title/description (opcional): copy específica da tela — passada em
+// cada Stack.Screen (App.js), pra o teaser de solo nomear o que tem ali em vez
+// de um texto genérico igual pras 5 rotas.
+export function withFeatureGate(Screen, options = {}) {
   return function GatedScreen(props) {
-    const { coupleData, hasAccess, isOwnerAccount } = useCouple();
+    // hasCoupleAccess (não hasAccess) — hasAccess combinado incluiria uma
+    // assinatura SOLO, que não deve desbloquear estas 5 telas exclusivas de
+    // casal (ver comentário em CoupleContext.js).
+    const { coupleData, hasCoupleAccess, isOwnerAccount } = useCouple();
+    const isCouple = !!coupleData;
 
-    if (isOwnerAccount) return <Screen {...props} />;
-    if (!coupleData) return <SoloInviteCard />;
-    if (hasAccess) return <Screen {...props} />;
+    if (isOwnerAccount || hasCoupleAccess) return <Screen {...props} />;
 
     return (
       <View style={{ flex: 1 }}>
         <Screen {...props} />
-        <SubscribeTeaser />
+        {isCouple ? (
+          <SubscribeTeaser />
+        ) : (
+          <SoloTeaser title={options.title} description={options.description} />
+        )}
       </View>
     );
   };
@@ -126,6 +149,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 28, marginTop: 20,
   },
   btnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  secondaryBtn: { marginTop: 12, paddingVertical: 6, paddingHorizontal: 12 },
+  secondaryBtnText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
 
   teaserWrap: {
     position: 'absolute', left: 0, right: 0, bottom: 0, height: '46%',

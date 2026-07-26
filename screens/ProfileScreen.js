@@ -339,17 +339,15 @@ export default function ProfileScreen() {
           ) : (
             <MenuRow icon="log-in" label="Fazer login" onPress={() => navigation.navigate(ROUTES.LOGIN)} />
           )}
-          <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} last={!coupleData} />
-          {/* Assinatura só existe para casais — modo solo fica de fora (ver
-              decisão do plano: monetização é a experiência de casal). */}
-          {coupleData && (
-            <MenuRow
-              icon={hasAccess ? 'diamond' : 'lock-open'}
-              label={hasAccess ? 'Gerenciar assinatura' : 'Assinar'}
-              onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
-              last
-            />
-          )}
+          <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} />
+          {/* Assinatura existe pra casal E solo agora (25/07/2026) — hasAccess
+              já cobre os dois (CoupleContext.js checa em paralelo). */}
+          <MenuRow
+            icon={hasAccess ? 'diamond' : 'lock-open'}
+            label={hasAccess ? 'Gerenciar assinatura' : 'Assinar'}
+            onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
+            last
+          />
         </View>
 
         <Text style={styles.sectionTitle}>Suporte</Text>

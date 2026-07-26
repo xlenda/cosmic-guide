@@ -32,13 +32,9 @@ const STEP = { INTRO: 'intro', RESULT: 'result' };
 
 export default function DreamScreen() {
   const navigation = useNavigation();
-  const { hasAccess, accessConfirmed, coupleData } = useCouple();
-  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
-  // hasAccess sempre true (CoupleContext.js, decisão de produto), o que
-  // destravaria esta tela por completo pra quem usa sem parceiro se
-  // checássemos hasAccess puro (mesmo bug achado e corrigido no Tarô).
-  const isCouple = !!coupleData;
-  const hasFullAccess = isCouple && hasAccess;
+  // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
+  // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
+  const { hasAccess, accessConfirmed } = useCouple();
   const [step, setStep] = useState(STEP.INTRO);
   const [dreamText, setDreamText] = useState('');
   const [reading, setReading] = useState(null);
@@ -47,9 +43,9 @@ export default function DreamScreen() {
   const [journalEntryId, setJournalEntryId] = useState(null);
 
   useEffect(() => {
-    if (hasFullAccess || !accessConfirmed) return;
+    if (hasAccess || !accessConfirmed) return;
     hasUsedFeatureOnce('dream').then(setLocked);
-  }, [hasFullAccess, accessConfirmed]);
+  }, [hasAccess, accessConfirmed]);
 
   const resetToIntro = () => {
     setStep(STEP.INTRO);
@@ -78,7 +74,7 @@ export default function DreamScreen() {
     // tela — tocar "Novo sonho" na mesma sessão deixaria repetir o uso grátis
     // várias vezes antes do bloqueio realmente pegar (achado por verificação
     // adversarial).
-    if (!hasFullAccess) setLocked(true);
+    if (!hasAccess) setLocked(true);
 
     const { entryId } = await recordReadingCompletion({
       type: 'dream',
@@ -97,7 +93,7 @@ export default function DreamScreen() {
   // precisa VER o resultado que acabou de ganhar — só bloqueamos de fato na
   // próxima tentativa (tocar "Novo sonho", que chama resetToIntro() e volta
   // pro STEP.INTRO).
-  if (!hasFullAccess && locked && step !== STEP.RESULT) {
+  if (!hasAccess && locked && step !== STEP.RESULT) {
     return <OneTimeLock featureTitle="Sonhos" gradient={gradients.teal} />;
   }
 
@@ -165,7 +161,7 @@ export default function DreamScreen() {
                 />
               )}
 
-              {!hasFullAccess && (
+              {!hasAccess && (
                 <View style={styles.upsellCard}>
                   <Text style={styles.upsellText}>
                     Gostou dessa leitura? Assine e desbloqueie a experiência completa do casal — 7 dias grátis

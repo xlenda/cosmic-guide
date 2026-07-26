@@ -41,6 +41,12 @@ export function CoupleProvider({ children }) {
   // senão queimam a prévia de um assinante de verdade por causa de uma
   // instabilidade de rede passageira (achado real de auditoria, 25/07/2026).
   const [accessConfirmed, setAccessConfirmed] = useState(true);
+  // Só true com assinatura de CASAL ativa (nunca solo) — usado pelo
+  // FeatureGate.js pras 5 telas exclusivas de casal (Reconectar/Descobrir/
+  // Agir/Progresso/Retrospectiva), que continuam "casal only" mesmo agora que
+  // solo também pode assinar (hasAccess combinado desbloquearia isso por
+  // engano se usado aqui — pedido explícito do Lenda, 25/07/2026).
+  const [hasCoupleAccess, setHasCoupleAccess] = useState(true);
   // status/currentPeriodEnd vêm do mesmo checkSubscriptionStatus que já preenche
   // hasAccess — antes eram descartados, então nenhuma tela sabia se um assinante
   // estava em trial, quando renovava, ou já tinha cancelado. null até a primeira
@@ -81,6 +87,7 @@ export function CoupleProvider({ children }) {
     const winner = coupleEstado?.hasAccess ? coupleEstado : soloEstado?.hasAccess ? soloEstado : coupleEstado;
 
     setHasAccess(hasAccessNow);
+    setHasCoupleAccess(Boolean(coupleEstado?.hasAccess));
     setAccessConfirmed(confirmedNow);
     setSubscriptionStatus(winner?.status || null);
     setCurrentPeriodEnd(winner?.currentPeriodEnd || null);
@@ -118,9 +125,9 @@ export function CoupleProvider({ children }) {
   );
 
   const clearAll = useCallback(async () => {
-    await deleteAllCoupleData();
+    await deleteAllCoupleData(user?.email);
     await refresh();
-  }, [refresh]);
+  }, [refresh, user]);
 
   useEffect(() => {
     refresh();
@@ -154,6 +161,7 @@ export function CoupleProvider({ children }) {
         soloSign,
         loading,
         hasAccess,
+        hasCoupleAccess,
         accessConfirmed,
         isOwnerAccount,
         subscriptionStatus,

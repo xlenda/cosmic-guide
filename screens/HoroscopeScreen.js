@@ -128,13 +128,9 @@ function luckFor(sign) {
 export default function HoroscopeScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { hasAccess, accessConfirmed, coupleData } = useCouple();
-  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
-  // hasAccess sempre true (CoupleContext.js, decisão de produto), o que
-  // destravaria esta tela por completo pra quem usa sem parceiro se
-  // checássemos hasAccess puro (mesmo bug achado e corrigido no Tarô).
-  const isCouple = !!coupleData;
-  const hasFullAccess = isCouple && hasAccess;
+  // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
+  // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
+  const { hasAccess, accessConfirmed } = useCouple();
   const [sign, setSign] = useState(route.params?.sign || zodiacSigns[0]);
   const [tab, setTab] = useState('Hoje');
   const [showPicker, setShowPicker] = useState(false);
@@ -151,7 +147,7 @@ export default function HoroscopeScreen() {
     // accessConfirmed=false = a checagem de assinatura falhou por rede, não
     // confirmou nada de verdade — nunca marcar a prévia grátis como usada
     // nesse caso (achado real de auditoria, 25/07/2026).
-    if (hasFullAccess || !accessConfirmed) return;
+    if (hasAccess || !accessConfirmed) return;
     hasUsedFeatureOnce(FEATURE_KEY).then((used) => {
       if (used) {
         setLocked(true);
@@ -159,7 +155,7 @@ export default function HoroscopeScreen() {
         markFeatureUsedOnce(FEATURE_KEY);
       }
     });
-  }, [hasFullAccess, accessConfirmed]);
+  }, [hasAccess, accessConfirmed]);
 
   // Vira entrada no Diário Cósmico 1x por dia (não a cada troca de aba/signo,
   // senão o Diário enche de quase-duplicatas) — antes o Horóscopo não deixava
@@ -185,7 +181,7 @@ export default function HoroscopeScreen() {
     await AsyncStorage.setItem('userSign', JSON.stringify(z));
   };
 
-  if (!hasFullAccess && locked) {
+  if (!hasAccess && locked) {
     return <OneTimeLock featureTitle="Horóscopo" gradient={['#7B3FB5', '#A66CFF']} />;
   }
 

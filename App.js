@@ -176,12 +176,48 @@ function HomeStack() {
             funil web (aplicado na borda da rota). Timeline entrou aqui porque
             já era vendida como benefício da assinatura na PlanosScreen mas
             estava sem gate nenhum (achado real de auditoria, 25/07/2026). */}
-        <Stack.Screen name={ROUTES.TIMELINE} component={withFeatureGate(TimelineScreen)} />
-        <Stack.Screen name={ROUTES.RECONECTAR} component={withFeatureGate(ReconectarScreen)} />
-        <Stack.Screen name={ROUTES.DESCOBRIR} component={withFeatureGate(DescobrirScreen)} />
-        <Stack.Screen name={ROUTES.AGIR} component={withFeatureGate(AgirScreen)} />
-        <Stack.Screen name={ROUTES.PROGRESSO} component={withFeatureGate(ProgressoScreen)} />
-        <Stack.Screen name={ROUTES.RETROSPECTIVA} component={withFeatureGate(RetrospectivaScreen)} />
+        <Stack.Screen
+          name={ROUTES.TIMELINE}
+          component={withFeatureGate(TimelineScreen, {
+            title: 'Linha do Tempo é pra fazer em casal',
+            description: 'Guardem memórias e cápsulas do tempo juntos — chame seu par pra começarem a linha do tempo de vocês.',
+          })}
+        />
+        <Stack.Screen
+          name={ROUTES.RECONECTAR}
+          component={withFeatureGate(ReconectarScreen, {
+            title: 'Reconectar é pra fazer em casal',
+            description: 'Rotas guiadas de reconexão pro casal — chame seu par pra percorrerem juntos.',
+          })}
+        />
+        <Stack.Screen
+          name={ROUTES.DESCOBRIR}
+          component={withFeatureGate(DescobrirScreen, {
+            title: 'Descobrir é pra fazer em casal',
+            description: 'Jogos e quizzes pra se conhecerem melhor — chame seu par pra jogarem juntos.',
+          })}
+        />
+        <Stack.Screen
+          name={ROUTES.AGIR}
+          component={withFeatureGate(AgirScreen, {
+            title: 'Agir é pra fazer em casal',
+            description: 'Ideias de encontro e metas da semana pro casal — chame seu par pra colocarem em prática.',
+          })}
+        />
+        <Stack.Screen
+          name={ROUTES.PROGRESSO}
+          component={withFeatureGate(ProgressoScreen, {
+            title: 'Progresso é pra fazer em casal',
+            description: 'Acompanhem juntos a evolução da relação de vocês — chame seu par pra começarem.',
+          })}
+        />
+        <Stack.Screen
+          name={ROUTES.RETROSPECTIVA}
+          component={withFeatureGate(RetrospectivaScreen, {
+            title: 'Retrospectiva é pra fazer em casal',
+            description: 'Revivam os melhores momentos de vocês juntos — chame seu par pra desbloquearem isso.',
+          })}
+        />
         <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
       </Stack.Navigator>

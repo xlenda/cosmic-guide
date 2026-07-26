@@ -26,7 +26,7 @@ function pad2(n) {
 export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { coupleData, soloSign, loading, hasAccess, isOwnerAccount, refresh } = useCouple();
+  const { coupleData, soloSign, loading, hasCoupleAccess, isOwnerAccount, refresh } = useCouple();
   const { lang, t } = useLanguage();
 
   // O handoff de URL (?voce=&amor=&sa=&sb=) agora roda uma vez em App.js
@@ -160,8 +160,16 @@ export default function HomeScreen() {
   const SOLO_ONLY = ['social'];
 
   const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key))).map((c) =>
-    !isOwnerAccount && (!isCouple || !hasAccess) && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
+    !isOwnerAccount && (!isCouple || !hasCoupleAccess) && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
   );
+
+  // Separação visual pedida pelo Lenda (25/07/2026): desde que solo também
+  // assina (as 9 leituras individuais), fica confuso misturar no mesmo grid
+  // features que solo pode assinar direto com as 5 que exigem formar casal —
+  // duas seções com título/subtítulo próprios em vez de um grid só.
+  const COUPLE_SECTION_KEYS = [...COUPLE_ONLY, ...LOCKED_KEYS];
+  const individualCardItems = cardItems.filter((c) => !COUPLE_SECTION_KEYS.includes(c.key));
+  const coupleCardItems = cardItems.filter((c) => COUPLE_SECTION_KEYS.includes(c.key));
 
   // Determinístico por data (lib/dailyThought.js) — mesmo texto pra todo
   // mundo que abrir o app hoje, muda sozinho à meia-noite. Mesmo conteúdo
@@ -248,7 +256,7 @@ export default function HomeScreen() {
 
         {/* Meta da semana (já existe dentro de Agir, só ganhou visibilidade
             aqui) — só pra casal com acesso à feature. */}
-        {isCouple && (isOwnerAccount || hasAccess) && agirGoal && (
+        {isCouple && (isOwnerAccount || hasCoupleAccess) && agirGoal && (
           <TouchableOpacity activeOpacity={0.9} style={styles.goalCard} onPress={() => navigation.navigate(ROUTES.AGIR)}>
             <View style={styles.goalIcon}>
               <Ionicons name={agirGoal.goalDone ? 'checkmark-circle' : 'flag'} size={20} color={agirGoal.goalDone ? colors.green : colors.amber} />
@@ -324,9 +332,19 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Feature grid */}
+        {/* Feature grid — individual (solo ou casal, assina direto) */}
         <Text style={styles.sectionTitle}>{t('home.sectionExplore')}</Text>
-        <CardGrid items={cardItems} />
+        <Text style={styles.sectionSubtitle}>{t('home.sectionExploreSubtitle')}</Text>
+        <CardGrid items={individualCardItems} />
+
+        {/* Feature grid — exclusivo de casal (só desbloqueia formando casal) */}
+        {coupleCardItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{t('home.sectionCouple')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('home.sectionCoupleSubtitle')}</Text>
+            <CardGrid items={coupleCardItems} />
+          </>
+        )}
 
         {/* Cosmic event */}
         <Text style={styles.sectionTitle}>{t('home.sectionCosmicEvent')}</Text>
@@ -421,6 +439,7 @@ const styles = StyleSheet.create({
   horoText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
   horoLink: { color: colors.accent, fontSize: 13, fontWeight: '700', marginTop: 12 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 24, marginBottom: 12, marginHorizontal: 16 },
+  sectionSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: -8, marginBottom: 12, marginHorizontal: 16 },
   eventCard: { marginHorizontal: 16, borderRadius: 16, overflow: 'hidden' },
   eventInner: { flexDirection: 'row', padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 16, alignItems: 'flex-start' },
   eventIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(255,200,92,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
