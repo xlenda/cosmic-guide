@@ -23,6 +23,17 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero })
   const { coupleData } = useCouple();
   const isCouple = !!coupleData;
 
+  // Chat (ROUTES.CHAT_TAB) é uma aba direta, sem Stack aninhada dentro dela
+  // (App.js: <Tab.Screen name={CHAT_TAB} component={ChatScreen} />, sem
+  // ChatStack) — diferente das outras 8 telas, que vivem dentro de HomeStack/
+  // TarotStack. Nelas, `navigation` é o navigator da Stack e getParent() sobe
+  // pro Tab.Navigator corretamente; no Chat, `navigation` JÁ é o próprio
+  // Tab.Navigator (é a raiz), então getParent() devolve undefined e o
+  // `?.navigate` nunca disparava — botão "Assinar"/"Convidar par" não fazia
+  // nada no Chat (achado real de bug, 25/07/2026). navigateFromTab cai pro
+  // `navigation` direto quando não há parent.
+  const navigateFromTab = (...args) => (navigation.getParent() || navigation).navigate(...args);
+
   return (
     <View style={styles.root} testID="onetimelock-container">
       <GradientHeader title={featureTitle} onBack={() => navigation.goBack()} gradient={gradient} />
@@ -40,7 +51,7 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero })
           style={styles.btn}
           activeOpacity={0.85}
           testID="onetimelock-cta"
-          onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
+          onPress={() => navigateFromTab(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
         >
           <Text style={styles.btnText}>Assinar agora</Text>
         </TouchableOpacity>
@@ -49,7 +60,7 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero })
             style={styles.secondaryBtn}
             activeOpacity={0.7}
             testID="onetimelock-invite-cta"
-            onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
+            onPress={() => navigateFromTab(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
           >
             <Text style={styles.secondaryBtnText}>ou convide seu par pra assinarem juntos →</Text>
           </TouchableOpacity>
