@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -10,6 +10,7 @@ import HeroSection from '../components/HeroSection';
 import CardGrid from '../components/CardGrid';
 import { compatibility, compatPercent, aspects } from '../lib/signs';
 import { getTodaysThought } from '../lib/dailyThought';
+import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration } from '../lib/streak';
 import { getShieldCount } from '../lib/streakShield';
 import { getAgirData } from '../lib/coupleData';
@@ -179,6 +180,19 @@ export default function HomeScreen() {
   // personalizar o endereçamento da frase.
   const todaysThought = getTodaysThought(sign);
 
+  // Frase do dia de amor (lib/lovePhrase.js) — feita pra compartilhar de
+  // verdade com o par (WhatsApp etc.), não só ler dentro do app: dá um motivo
+  // concreto pra abrir todo dia E pra expor o app pra quem ainda não usa
+  // (pedido explícito do Lenda, 25/07/2026 — retenção via compartilhamento).
+  const todaysLovePhrase = getTodaysLovePhrase();
+  const handleShareLovePhrase = async () => {
+    try {
+      await Share.share({ message: todaysLovePhrase });
+    } catch {
+      // usuário cancelou ou o compartilhamento falhou — sem tela de erro, mesmo padrão de RetrospectivaScreen.js
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loader}>
@@ -285,6 +299,22 @@ export default function HomeScreen() {
             <Text style={styles.thoughtLabel}>Pensamento cósmico do dia</Text>
             <Text style={styles.thoughtText}>{todaysThought}</Text>
           </View>
+        </View>
+
+        {/* Frase do dia de amor — feita pra compartilhar de verdade com o
+            par, não só ler (ver handleShareLovePhrase acima). */}
+        <View style={styles.lovePhraseCard}>
+          <LinearGradient colors={['#FF6BA0', '#B57BFF']} style={styles.lovePhraseInner}>
+            <View style={styles.lovePhraseHead}>
+              <Ionicons name="heart" size={18} color="#fff" />
+              <Text style={styles.lovePhraseLabel}>Frase do dia pra compartilhar</Text>
+            </View>
+            <Text style={styles.lovePhraseText}>{todaysLovePhrase}</Text>
+            <TouchableOpacity activeOpacity={0.85} style={styles.lovePhraseBtn} onPress={handleShareLovePhrase}>
+              <Ionicons name="share-social" size={16} color={colors.accent} />
+              <Text style={styles.lovePhraseBtnText}>Compartilhar</Text>
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
 
         {/* Compatibilidade do casal (sinastria real, lib/signs.js) */}
@@ -429,6 +459,16 @@ const styles = StyleSheet.create({
   },
   thoughtLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   thoughtText: { color: colors.text, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  lovePhraseCard: { marginHorizontal: 16, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
+  lovePhraseInner: { padding: 18 },
+  lovePhraseHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  lovePhraseLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
+  lovePhraseText: { color: '#fff', fontSize: 15, lineHeight: 22, fontWeight: '600' },
+  lovePhraseBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: '#fff', borderRadius: 12, paddingVertical: 10, marginTop: 14, alignSelf: 'flex-start', paddingHorizontal: 18,
+  },
+  lovePhraseBtnText: { color: colors.accent, fontSize: 13, fontWeight: '800' },
   horoCard: { marginHorizontal: 16, marginTop: 0, borderRadius: 18, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
   horoInner: { padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   horoHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },

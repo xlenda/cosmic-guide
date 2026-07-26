@@ -230,14 +230,23 @@ export default function ProfileScreen() {
     }
   }
 
+  // Mensagem específica por motivo (lib/webPush.js) — antes era um texto
+  // genérico pra qualquer falha, o que escondia o motivo real (ex.: aba
+  // anônima/privada nunca funciona, é limitação do próprio navegador, não
+  // dá pra "tentar de novo" e resolver) — achado real de bug reportado pelo
+  // usuário, 25/07/2026: "notificação não funciona no perfil".
+  const WEB_PUSH_FAILURE_MESSAGES = {
+    unsupported: 'Este navegador não suporta notificações push. No iPhone, adicione o app à Tela de Início primeiro (Safari > Compartilhar > Adicionar à Tela de Início) e tente de novo a partir dele.',
+    'permission-denied': 'Você negou a permissão de notificações. Ative manualmente nas configurações do site (ícone de cadeado/informações ao lado do endereço) e tente de novo.',
+    'server-error': 'Não conseguimos confirmar a ativação com o servidor agora. Tente de novo em instantes.',
+    'browser-error': 'Não foi possível ativar. Se estiver numa aba anônima/privada, isso nunca funciona nela (o próprio navegador bloqueia) — tente numa aba normal.',
+  };
+
   async function toggleWebPush(next) {
     if (next) {
-      const ok = await subscribeToWebPush(mySign);
+      const { ok, reason } = await subscribeToWebPush(mySign);
       if (!ok) {
-        Alert.alert(
-          'Não foi possível ativar',
-          'Permita notificações para o Cosmic Guide nas configurações do navegador (ou, no iPhone, adicione o app à Tela de Início primeiro) e tente de novo.'
-        );
+        Alert.alert('Não foi possível ativar', WEB_PUSH_FAILURE_MESSAGES[reason] || WEB_PUSH_FAILURE_MESSAGES['browser-error']);
       }
       setWebPushEnabled(ok);
     } else {
