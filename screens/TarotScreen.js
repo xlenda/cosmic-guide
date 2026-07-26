@@ -8,7 +8,7 @@ import { colors, gradients } from '../theme';
 import { TAROT_DECK } from '../lib/tarotDeck';
 import { getTarotImage } from '../lib/tarotImages';
 import { getThemedMeaning } from '../lib/tarotThemes';
-import { canDrawToday, recordDraw, DAILY_LIMIT_THEMES } from '../lib/tarotDailyLimit';
+import { canDrawToday, recordDraw } from '../lib/tarotDailyLimit';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import OneTimeLock from '../components/OneTimeLock';
@@ -29,7 +29,16 @@ const POSITIONS = ['Passado', 'Presente', 'Futuro'];
 
 export default function TarotScreen() {
   const insets = useSafeAreaInsets();
-  const { hasAccess } = useCouple();
+  const { hasAccess, accessConfirmed, coupleData } = useCouple();
+  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
+  // hasAccess sempre true (CoupleContext.js, decisão de produto: não há
+  // assinatura solo), o que antes destravava o Tarô por completo pra quem
+  // testava/usava sem parceiro (achado real de bug reportado pelo usuário:
+  // dava pra tirar cartas em vários temas, repetidas vezes, sem nunca pedir
+  // assinatura). hasFullAccess é quem realmente decide se o bloqueio abaixo
+  // se aplica — true só pro casal com assinatura ativa de verdade.
+  const isCouple = !!coupleData;
+  const hasFullAccess = isCouple && hasAccess;
   const [theme, setTheme] = useState(THEMES[0]);
   const [drawn, setDrawn] = useState(null);
   const [revealed, setRevealed] = useState([false, false, false]);
@@ -38,8 +47,8 @@ export default function TarotScreen() {
   const [locked, setLocked] = useState(false);
   const [journalEntryId, setJournalEntryId] = useState(null);
 
-  // Dinheiro e Saúde liberam só 1 tiragem por dia (ver lib/tarotDailyLimit) —
-  // recheca sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
+  // Todo tema libera só 1 tiragem por dia (ver lib/tarotDailyLimit) — recheca
+  // sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
   useEffect(() => {
     let active = true;
     canDrawToday(theme.key).then((ok) => {
@@ -50,12 +59,14 @@ export default function TarotScreen() {
     };
   }, [theme.key]);
 
-  // Bloqueio vitalício (1 uso grátis, pra tela inteira, qualquer tema) —
-  // independente do dailyBlocked acima, que é o limite diário de Dinheiro/Saúde.
+  // Bloqueio vitalício (1 uso grátis, pra tela inteira, qualquer tema) — pra
+  // quem NÃO tem acesso completo (solo, ou casal sem assinatura). Independente
+  // do dailyBlocked acima, que é o limite diário por tema (vale até pra quem
+  // já assina).
   useEffect(() => {
-    if (hasAccess) return;
+    if (hasFullAccess || !accessConfirmed) return;
     hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
-  }, [hasAccess]);
+  }, [hasFullAccess, accessConfirmed]);
 
   const drawCards = async () => {
     // Guarda o uso-único-na-vida aqui dentro, não só no gate de render — sem
@@ -63,7 +74,7 @@ export default function TarotScreen() {
     // null), então o gate baseado em `!drawn` nunca voltaria a bloquear
     // (achado por verificação adversarial: dava tiragens grátis infinitas
     // no mesmo tema, sem sair da tela).
-    if (!hasAccess && locked) return;
+    if (!hasFullAccess && locked) return;
     // Guarda também aqui, não só no botão inicial — sem isso, "Nova Tiragem"
     // (que chama esta mesma função) deixaria redesenhar à vontade num tema
     // com limite diário, mesmo já tendo consultado hoje.
@@ -82,8 +93,8 @@ export default function TarotScreen() {
     // repetir o uso grátis várias vezes antes do bloqueio realmente pegar
     // (achado por verificação adversarial). Independente do dailyBlocked
     // abaixo, que é o limite diário de Dinheiro/Saúde — não mexer nele aqui.
-    if (!hasAccess) setLocked(true);
-    if (DAILY_LIMIT_THEMES.includes(theme.key)) setDailyBlocked(true);
+    if (!hasFullAccess) setLocked(true);
+    setDailyBlocked(true);
 
     const body = shuffled
       .map((card, i) => {
@@ -109,7 +120,7 @@ export default function TarotScreen() {
   // tiragem grátis é consumida (drawCards), mas a pessoa ainda precisa VER
   // as cartas que acabou de ganhar — só bloqueamos de fato na próxima
   // tentativa (troca de tema ou nova tiragem, que zeram `drawn`).
-  if (!hasAccess && locked && !drawn) {
+  if (!hasFullAccess && locked && !drawn) {
     return <OneTimeLock featureTitle="Tarô por Tema" gradient={gradients.hero} />;
   }
 
@@ -217,7 +228,7 @@ export default function TarotScreen() {
               <Text style={styles.dailyLimitNote}>
                 Essa foi a sua tiragem de {theme.key} de hoje — volta amanhã pra uma nova.
               </Text>
-            ) : !hasAccess && locked ? (
+            ) : !hasFullAccess && locked ? (
               // drawCards() já recusa redesenhar nesse caso — aqui é só pra não
               // deixar um botão "morto" que não faz nada visível ao tocar.
               <Text style={styles.dailyLimitNote}>

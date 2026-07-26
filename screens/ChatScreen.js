@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,56 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
 import { PERSONAS, ACTIVE_PERSONA_ID } from '../lib/chatPersonas';
 import { getMockReply } from '../lib/chatResponses';
 import { fetchAiChatReply } from '../lib/aiClient';
+import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 
 const FEATURE_KEY = 'chat';
+const DIARY_RECORDED_KEY = 'cosmic-chat-diary-date';
+// Histórico do Chat ANTES vivia só em useState — sair da tela (ou dar reload
+// na web) apagava a conversa inteira e a pessoa via só a intro de novo, tendo
+// que recomeçar do zero. Persistir por persona (mesmo padrão de MAX_ENTRIES
+// do lib/journal.js) resolve sem misturar Luna com Arcano (achado real de
+// auditoria de retenção, 25/07/2026).
+const HISTORY_MAX_MESSAGES = 60; // nunca cresce sem limite
+
+function historyKey(personaId) {
+  return `cosmic-chat-history-${personaId}`;
+}
+
+// Retorna o histórico salvo da persona se existir e tiver ao menos 1
+// mensagem; caso contrário null (fallback pro comportamento de hoje: só intro).
+async function loadPersonaHistory(personaId) {
+  try {
+    const raw = await AsyncStorage.getItem(historyKey(personaId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function savePersonaHistory(personaId, msgs) {
+  try {
+    await AsyncStorage.setItem(historyKey(personaId), JSON.stringify(msgs.slice(-HISTORY_MAX_MESSAGES)));
+  } catch {}
+}
+
+function todayISO() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 let nextId = 1;
 function makeMessage(from, text) {
@@ -28,7 +67,13 @@ function makeMessage(from, text) {
 }
 
 export default function ChatScreen() {
-  const { hasAccess } = useCouple();
+  const { hasAccess, accessConfirmed, coupleData } = useCouple();
+  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
+  // hasAccess sempre true (CoupleContext.js, decisão de produto), o que
+  // destravaria esta tela por completo pra quem usa sem parceiro se
+  // checássemos hasAccess puro (mesmo bug achado e corrigido no Tarô).
+  const isCouple = !!coupleData;
+  const hasFullAccess = isCouple && hasAccess;
   const [personaId, setPersonaId] = useState(ACTIVE_PERSONA_ID);
   const persona = PERSONAS[personaId];
   const [messages, setMessages] = useState([makeMessage('persona', persona.introMessage)]);
@@ -36,18 +81,66 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [locked, setLocked] = useState(false);
   const listRef = useRef(null);
-
+  // Guarda a persona ativa "de verdade" pra evitar que uma restauração de
+  // histórico assíncrona (loadPersonaHistory) sobrescreva a conversa se a
+  // pessoa trocar de persona de novo antes da leitura do AsyncStorage terminar.
+  const activePersonaRef = useRef(personaId);
   useEffect(() => {
-    if (hasAccess) return;
-    hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
-  }, [hasAccess]);
+    activePersonaRef.current = personaId;
+  }, [personaId]);
+
+  // useFocusEffect (não useEffect simples) — a tab bar do app não desmonta
+  // telas ao trocar de aba (unmountOnBlur padrão é false), então ChatScreen
+  // nunca remonta só por sair e voltar pro Chat. Com useEffect puro, `locked`
+  // só era calculado 1x na montagem inicial: mandar 1 mensagem, trocar de aba
+  // e voltar deixava continuar conversando à vontade na mesma sessão, sem
+  // nunca ver o bloqueio (só bloqueava reabrindo o app do zero) — achado real
+  // de auditoria, 25/07/2026. useFocusEffect recheca hasUsedFeatureOnce toda
+  // vez que a aba Chat ganha foco de novo, cobrindo esse caminho.
+  useFocusEffect(
+    useCallback(() => {
+      // accessConfirmed=false = a checagem de assinatura falhou por rede, não
+      // confirmou nada de verdade — nunca marcar a prévia grátis como usada
+      // nesse caso (achado real de auditoria, 25/07/2026).
+      if (hasFullAccess || !accessConfirmed) return;
+      hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
+    }, [hasFullAccess, accessConfirmed])
+  );
+
+  // No mount, tenta restaurar o histórico já salvo da persona inicial em vez
+  // de deixar só a intro (que é o valor inicial de `messages` acima, usado
+  // como fallback honesto enquanto o AsyncStorage ainda não respondeu).
+  useEffect(() => {
+    let cancelled = false;
+    loadPersonaHistory(personaId).then((saved) => {
+      if (!cancelled && saved) setMessages(saved);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Toda mudança em `messages` persiste na chave da persona ATUAL (capado nas
+  // últimas HISTORY_MAX_MESSAGES) — cobre tanto mensagens novas quanto a troca
+  // de persona abaixo.
+  useEffect(() => {
+    savePersonaHistory(personaId, messages);
+  }, [messages, personaId]);
 
   // Trocar de persona reinicia a conversa com a intro da nova persona — evita
-  // misturar histórico de Luna com Arcano na mesma janela de chat/contexto da IA.
+  // misturar histórico de Luna com Arcano na mesma janela de chat/contexto da
+  // IA. Mas se já existir histórico salvo daquela persona (de uma troca
+  // anterior), restaura ele em vez de sempre voltar só pra intro.
   const handleSwitchPersona = (nextPersonaId) => {
     if (nextPersonaId === personaId || isTyping) return;
     setPersonaId(nextPersonaId);
     setMessages([makeMessage('persona', PERSONAS[nextPersonaId].introMessage)]);
+    loadPersonaHistory(nextPersonaId).then((saved) => {
+      if (saved && activePersonaRef.current === nextPersonaId) {
+        setMessages(saved);
+      }
+    });
   };
 
   const handleSend = async () => {
@@ -75,6 +168,20 @@ export default function ChatScreen() {
 
     setMessages((prev) => [...prev, makeMessage('persona', reply)]);
     markFeatureUsedOnce(FEATURE_KEY);
+    // Vira entrada no Diário Cósmico 1x por dia (não por mensagem, senão o
+    // Diário enche de dezenas de entradas numa conversa só) — antes o Chat não
+    // deixava rastro nenhum (achado real de auditoria de retenção, 25/07/2026).
+    const today = todayISO();
+    AsyncStorage.getItem(DIARY_RECORDED_KEY).then((lastDate) => {
+      if (lastDate === today) return;
+      recordReadingCompletion({
+        type: 'chat',
+        typeLabel: `Conversa com ${persona.name}`,
+        title: `Conversa com ${persona.name}`,
+        body: reply,
+      });
+      AsyncStorage.setItem(DIARY_RECORDED_KEY, today);
+    });
     setIsTyping(false);
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
   };
@@ -97,7 +204,7 @@ export default function ChatScreen() {
     );
   };
 
-  if (!hasAccess && locked) {
+  if (!hasFullAccess && locked) {
     return <OneTimeLock featureTitle="Chat Espiritual" gradient={gradients.hero} />;
   }
 

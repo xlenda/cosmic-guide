@@ -55,6 +55,26 @@ cat > deploy-vercel/index.html << 'EOF'
 </html>
 EOF
 
+# X-Frame-Options + frame-ancestors: sem isso, cosmicguide.cloud podia ser
+# aberto dentro de um <iframe> de outro site e sobrepor um botão invisível
+# por cima do login com Google (clickjacking) — achado real de auditoria,
+# 25/07/2026. 'self' (não 'none') porque o próprio app se abre a partir de
+# oddpro.pro/cosmic-guide/ (redirect de topo, não iframe), então não precisa
+# ser mais restrito que isso.
+cat > deploy-vercel/vercel.json << 'EOF'
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'self'" }
+      ]
+    }
+  ]
+}
+EOF
+
 echo "== vercel deploy =="
 cd deploy-vercel
 npx vercel link --yes --project cosmic-guide

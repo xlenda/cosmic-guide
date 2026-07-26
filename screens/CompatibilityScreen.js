@@ -9,13 +9,21 @@ import GradientHeader from '../components/GradientHeader';
 import { compatibility, compatPercent } from '../lib/signs.js';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import { recordReadingCompletion } from '../lib/readingCompletion';
 import OneTimeLock from '../components/OneTimeLock';
 
 const FEATURE_KEY = 'compatibility';
 
 export default function CompatibilityScreen() {
   const navigation = useNavigation();
-  const { hasAccess } = useCouple();
+  const { hasAccess, accessConfirmed, coupleData } = useCouple();
+  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
+  // hasAccess sempre true (CoupleContext.js, decisão de produto: não há
+  // assinatura solo), o que destravaria esta tela por completo pra quem usa
+  // sem parceiro se checássemos hasAccess puro (mesmo bug achado e corrigido
+  // no Tarô). hasFullAccess só é true pro casal com assinatura ativa de fato.
+  const isCouple = !!coupleData;
+  const hasFullAccess = isCouple && hasAccess;
   const [signA, setSignA] = useState(zodiacSigns[0]);
   const [signB, setSignB] = useState(zodiacSigns[5]);
   const [picking, setPicking] = useState(null); // 'A' | 'B' | null
@@ -23,9 +31,9 @@ export default function CompatibilityScreen() {
   const [locked, setLocked] = useState(false);
 
   useEffect(() => {
-    if (hasAccess) return;
+    if (hasFullAccess || !accessConfirmed) return;
     hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
-  }, [hasAccess]);
+  }, [hasFullAccess, accessConfirmed]);
 
   const compute = () => {
     // Guarda o uso-único-na-vida aqui dentro, não só no gate de render — sem
@@ -33,18 +41,26 @@ export default function CompatibilityScreen() {
     // zera `result` (compatibility()/compatPercent() são determinísticas),
     // então o gate baseado em `!result` nunca voltaria a bloquear (achado por
     // verificação adversarial: dava cálculos grátis infinitos no mesmo par).
-    if (!hasAccess && locked) return;
+    if (!hasFullAccess && locked) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const compat = compatibility(signA.name, signB.name);
     const pct = compatPercent(signA.name, signB.name);
     if (!compat || pct === null) { setResult(null); return; }
     setResult({ overall: pct, texto: compat.texto, forte: compat.forte, cuidado: compat.cuidado });
+    // Vira entrada no Diário Cósmico — antes essa tela não deixava rastro
+    // nenhum de uso real (achado real de auditoria de retenção, 25/07/2026).
+    recordReadingCompletion({
+      type: 'compatibility',
+      typeLabel: 'Compatibilidade',
+      title: `${signA.pt} + ${signB.pt} — ${pct}% de combinação`,
+      body: compat.texto,
+    });
     markFeatureUsedOnce(FEATURE_KEY);
     // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
     // tela — trocar de signo e calcular de novo na mesma sessão deixaria
     // repetir o uso grátis várias vezes antes do bloqueio realmente pegar
     // (achado por verificação adversarial).
-    if (!hasAccess) setLocked(true);
+    if (!hasFullAccess) setLocked(true);
   };
 
   const pick = (z) => {
@@ -59,7 +75,7 @@ export default function CompatibilityScreen() {
   // leitura grátis é consumida (compute), mas a pessoa ainda precisa VER o
   // resultado que acabou de ganhar — só bloqueamos de fato na próxima
   // tentativa (troca de signo, que chama setResult(null) em pick()).
-  if (!hasAccess && locked && !result) {
+  if (!hasFullAccess && locked && !result) {
     return <OneTimeLock featureTitle="Compatibilidade" gradient={['#B5286B', '#7B3FB5']} />;
   }
 
@@ -86,7 +102,7 @@ export default function CompatibilityScreen() {
           </View>
         )}
 
-        {!picking && !hasAccess && locked && result && (
+        {!picking && !hasFullAccess && locked && result && (
           // compute() já recusa recalcular nesse caso — aqui é só pra não
           // deixar um botão "morto" que não faz nada visível ao tocar.
           <Text style={styles.lockedNote}>
@@ -94,7 +110,7 @@ export default function CompatibilityScreen() {
           </Text>
         )}
 
-        {!picking && !(!hasAccess && locked && result) && (
+        {!picking && !(!hasFullAccess && locked && result) && (
           <TouchableOpacity activeOpacity={0.85} onPress={compute} style={styles.btnWrap}>
             <LinearGradient colors={gradients.pink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
               <Ionicons name="analytics" size={18} color="#fff" />

@@ -7,10 +7,10 @@ import {
   StyleSheet,
   Switch,
   Platform,
-  Alert,
   Modal,
   TextInput,
 } from 'react-native';
+import { Alert } from '../lib/webAlert';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, zodiacSigns } from '../theme';

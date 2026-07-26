@@ -4,7 +4,8 @@
 // Recarrega a cada foco de tela (useFocusEffect) porque a pessoa normalmente
 // chega aqui vindo de uma leitura que acabou de salvar uma entrada nova.
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { Alert } from '../lib/webAlert';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -15,6 +16,8 @@ import {
   deleteJournalEntry,
   getRecentEntriesForWeeklyInsight,
   getFallbackWeeklyInsight,
+  saveWeeklyInsight,
+  getLatestWeeklyInsight,
 } from '../lib/journal';
 import { fetchAiWeeklyInsight } from '../lib/aiClient';
 import { useAuth } from '../context/AuthContext';
@@ -151,23 +154,31 @@ export default function DiaryScreen() {
     setLoading(false);
     const recent = await getRecentEntriesForWeeklyInsight();
     setWeeklyEligibleCount(recent.length);
+    // Se já existe um Insight da Semana gerado nos últimos 7 dias, mostra ele
+    // direto — antes o insight nascia e morria na mesma sessão (useState
+    // puro), então reabrir o app perdia o que a IA já tinha gerado, mesmo sem
+    // nada de novo ter acontecido na semana (achado real de auditoria de
+    // retenção, 25/07/2026).
+    const persisted = await getLatestWeeklyInsight();
+    if (persisted) setWeeklyInsight(persisted);
   }, []);
 
   async function generateWeeklyInsight() {
     setLoadingWeekly(true);
     const recent = await getRecentEntriesForWeeklyInsight();
+    let result;
     try {
-      const result = await fetchAiWeeklyInsight(
+      result = await fetchAiWeeklyInsight(
         recent.map((e) => ({ type: e.type, typeLabel: e.typeLabel, title: e.title, body: e.body }))
       );
-      setWeeklyInsight(result);
     } catch {
       // Nunca mostra erro cru — cai no fallback honesto (só lista o que
       // realmente aconteceu, sem inventar síntese).
-      setWeeklyInsight(getFallbackWeeklyInsight(recent));
-    } finally {
-      setLoadingWeekly(false);
+      result = getFallbackWeeklyInsight(recent);
     }
+    setWeeklyInsight(result);
+    await saveWeeklyInsight(result);
+    setLoadingWeekly(false);
   }
 
   useFocusEffect(

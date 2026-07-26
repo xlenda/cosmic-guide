@@ -13,9 +13,18 @@ import { searchCities, cityLabel } from '../lib/cities';
 import { getBirthData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import { recordReadingCompletion } from '../lib/readingCompletion';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import OneTimeLock from '../components/OneTimeLock';
 
 const FEATURE_KEY = 'birthchart';
+const DIARY_RECORDED_KEY = 'cosmic-birthchart-diary-date';
+
+function todayISODiary() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 // Reaproveita as mesmas cores/glyphs de theme.js (zodiacSigns) para exibir um
 // nome de signo vindo de lib/signs.js — os nomes batem 1:1 nas duas listas
@@ -289,8 +298,13 @@ function CityPickerModal({ visible, hasSelection, onClose, onSelect, onClear }) 
 
 export default function BirthChartScreen() {
   const navigation = useNavigation();
-  const { coupleData, loading: coupleLoading, hasAccess } = useCouple();
+  const { coupleData, loading: coupleLoading, hasAccess, accessConfirmed } = useCouple();
   const isCouple = !!coupleData;
+  // Assinatura só existe pra casal — modo solo fica com hasAccess sempre true
+  // (CoupleContext.js, decisão de produto), o que destravaria o bloqueio de 1
+  // uso grátis abaixo por completo se checássemos hasAccess puro (mesmo bug
+  // achado e corrigido no Tarô).
+  const hasFullAccess = isCouple && hasAccess;
 
   // ---- Modo casal: data/hora de nascimento já existem (getBirthData) desde o
   // Quiz do casal — só falta a cidade (nunca persistida pelo Quiz hoje) para
@@ -314,9 +328,9 @@ export default function BirthChartScreen() {
   const [locked, setLocked] = useState(false);
 
   useEffect(() => {
-    if (hasAccess) return;
+    if (hasFullAccess || !accessConfirmed) return;
     hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
-  }, [hasAccess]);
+  }, [hasFullAccess, accessConfirmed]);
 
   useEffect(() => {
     if (coupleLoading) return;
@@ -418,7 +432,28 @@ export default function BirthChartScreen() {
     if (coupleChart || soloChart) markFeatureUsedOnce(FEATURE_KEY);
   }, [coupleChart, soloChart]);
 
-  if (!hasAccess && locked) {
+  // Vira entrada no Diário Cósmico 1x por dia — antes essa tela não deixava
+  // rastro nenhum de uso real (achado real de auditoria de retenção, 25/07/2026).
+  const activeChart = coupleChart || soloChart;
+  useEffect(() => {
+    if (!activeChart?.sun?.name) return;
+    const iso = todayISODiary();
+    AsyncStorage.getItem(DIARY_RECORDED_KEY).then((lastDate) => {
+      if (lastDate === iso) return;
+      const partes = [`Sol em ${activeChart.sun.name}`];
+      if (activeChart.moon?.name) partes.push(`Lua em ${activeChart.moon.name}`);
+      if (activeChart.asc?.name) partes.push(`Ascendente em ${activeChart.asc.name}`);
+      recordReadingCompletion({
+        type: 'birthchart',
+        typeLabel: 'Mapa Astral',
+        title: 'Mapa Astral',
+        body: partes.join(', ') + '.',
+      });
+      AsyncStorage.setItem(DIARY_RECORDED_KEY, iso);
+    });
+  }, [activeChart?.sun?.name, activeChart?.moon?.name, activeChart?.asc?.name]);
+
+  if (!hasFullAccess && locked) {
     return <OneTimeLock featureTitle="Mapa Astral" gradient={['#3A4AB5', '#6C7BFF']} />;
   }
 

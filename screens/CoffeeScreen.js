@@ -57,7 +57,13 @@ const STEP = { INTRO: 'intro', PREVIEW: 'preview', RESULT: 'result' };
 
 export default function CoffeeScreen() {
   const navigation = useNavigation();
-  const { hasAccess } = useCouple();
+  const { hasAccess, accessConfirmed, coupleData } = useCouple();
+  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
+  // hasAccess sempre true (CoupleContext.js, decisão de produto), o que
+  // destravaria esta tela por completo pra quem usa sem parceiro se
+  // checássemos hasAccess puro (mesmo bug achado e corrigido no Tarô).
+  const isCouple = !!coupleData;
+  const hasFullAccess = isCouple && hasAccess;
   const [step, setStep] = useState(STEP.INTRO);
   const [imageUri, setImageUri] = useState(null);
   const [imageBase64, setImageBase64] = useState(null);
@@ -71,9 +77,9 @@ export default function CoffeeScreen() {
   const [journalEntryId, setJournalEntryId] = useState(null);
 
   useEffect(() => {
-    if (hasAccess) return;
+    if (hasFullAccess || !accessConfirmed) return;
     hasUsedFeatureOnce(FEATURE_KEY).then(setLocked);
-  }, [hasAccess]);
+  }, [hasFullAccess, accessConfirmed]);
 
   const resetToIntro = () => {
     setStep(STEP.INTRO);
@@ -173,7 +179,7 @@ export default function CoffeeScreen() {
     // tela — tocar "Nova leitura" na mesma sessão deixaria repetir o uso
     // grátis várias vezes antes do bloqueio realmente pegar (achado por
     // verificação adversarial).
-    if (!hasAccess) setLocked(true);
+    if (!hasFullAccess) setLocked(true);
 
     const { entryId } = await recordReadingCompletion({
       type: 'coffee',
@@ -214,7 +220,7 @@ export default function CoffeeScreen() {
   // precisa VER o resultado que acabou de ganhar — só bloqueamos de fato na
   // próxima tentativa (nova leitura, que chama resetToIntro() e volta pro
   // STEP.INTRO).
-  if (!hasAccess && locked && step !== STEP.RESULT) {
+  if (!hasFullAccess && locked && step !== STEP.RESULT) {
     return <OneTimeLock featureTitle="Ritual do Café" gradient={COFFEE_GRADIENT} />;
   }
 
@@ -320,7 +326,7 @@ export default function CoffeeScreen() {
               />
             )}
 
-            {!hasAccess && (
+            {!hasFullAccess && (
               <View style={styles.upsellCard}>
                 <Text style={styles.upsellText}>
                   Gostou dessa leitura? Assine e desbloqueie a experiência completa do casal — 7 dias grátis

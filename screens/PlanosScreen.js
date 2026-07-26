@@ -22,42 +22,63 @@ import { colors } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { initiateCheckout } from '../lib/coupleData';
 import { trackInitiateCheckout } from '../lib/conversionTracking';
 import GradientHeader from '../components/GradientHeader';
 
 const HOTMART_CHECKOUT_ELEMENTS_SRC = 'https://checkout.hotmart.com/lib/hotmart-checkout-elements.js';
-// Mesmo fallback hardcoded do funil web — mesmo produto/oferta Hotmart (ver
-// blocker de "1 produto x 2 ofertas" reportado ao usuário).
-const HOTMART_CHECKOUT_FALLBACK = 'https://pay.hotmart.com/W105128423R?bid=1783049846019';
+// Link avulso de checkout por oferta (confirmado real pelo Lenda, 25/07/2026)
+// — usado no fallback da web (quando o Checkout Elements embutido falha) e no
+// fluxo nativo inteiro (que nunca usa Elements, é sempre um browser in-app).
+// Antes só existia 1 link fixo (?bid=...) pro plano mensal; agora os 3 planos
+// abrem o checkout certo em qualquer um dos dois casos.
+const HOTMART_PAY_URLS = {
+  trial: 'https://pay.hotmart.com/W105128423R?off=aqwv9uci',
+  quarterly: 'https://pay.hotmart.com/W105128423R?off=7b1wqipw',
+  annual: 'https://pay.hotmart.com/W105128423R?off=lb6plj87',
+};
 const MOUNT_ID = 'hotmart-checkout-mount';
 
 function loadHotmartScript() {
   return new Promise((resolve, reject) => {
     if (window.checkoutElements) return resolve();
+    // Se uma tentativa anterior falhou (rede instável), a tag <script> falha
+    // continua no DOM — o browser não redispara load/error num script já
+    // resolvido, então um retry que só reanexasse listeners nela nunca
+    // resolveria nem rejeitaria de novo, travando "Preparando o checkout
+    // seguro…" pra sempre (achado real de auditoria, 25/07/2026). Por isso
+    // toda falha remove a tag: a próxima chamada sempre cria uma tag nova e
+    // ganha eventos load/error de verdade.
     const existente = document.querySelector(`script[src="${HOTMART_CHECKOUT_ELEMENTS_SRC}"]`);
     if (existente) {
       existente.addEventListener('load', () => resolve());
-      existente.addEventListener('error', () => reject(new Error('script falhou')));
+      existente.addEventListener('error', () => {
+        existente.remove();
+        reject(new Error('script falhou'));
+      });
       return;
     }
     const script = document.createElement('script');
     script.src = HOTMART_CHECKOUT_ELEMENTS_SRC;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error('script falhou'));
+    script.onerror = () => {
+      script.remove();
+      reject(new Error('script falhou'));
+    };
     document.body.appendChild(script);
   });
 }
 
-// pt-BR amigável pra cada subscriptionStatus retornado pelo backend
-// (checkSubscriptionStatus / CoupleContext) — 'pending' nunca chega aqui porque
-// quem chama já trata esse caso como "ainda oferecer o checkout".
-const STATUS_LABELS = {
-  active: 'Ativa',
-  past_due: 'Pagamento pendente',
-  pending: 'Aguardando confirmação',
-  canceled: 'Cancelada',
-  expired: 'Expirada',
+// Mapeia o subscriptionStatus (snake_case, vem do backend) pra chave i18n
+// (camelCase) — 'pending' nunca chega aqui porque quem chama já trata esse
+// caso como "ainda oferecer o checkout".
+const STATUS_I18N_KEY = {
+  active: 'planos.status.active',
+  past_due: 'planos.status.pastDue',
+  pending: 'planos.status.pending',
+  canceled: 'planos.status.canceled',
+  expired: 'planos.status.expired',
 };
 
 // Parse simples de um ISO8601 (ex.: "2026-08-07T00:00:00.000Z") pra DD/MM/AAAA,
@@ -77,25 +98,66 @@ function formatarDataBR(iso) {
 // As 9 primeiras já são grátis (1 uso) sem assinatura; as 5 seguintes hoje
 // também ganharam 1 uso grátis (ver components/FeatureGate.js) — a assinatura
 // é o que torna TODAS elas ilimitadas, não a única forma de ver cada uma.
-const BENEFITS = [
-  '7 dias grátis pra testar, sem compromisso',
-  'Leituras sem limite: Horóscopo, Mapa Astral, Tarô, Compatibilidade, Chat, Palma, Café, Sonhos e Calendário Lunar',
-  'Reconectar — rotas de reconexão pro casal',
-  'Descobrir — jogos e ideias de encontro',
-  'Agir — metas da semana',
-  'Progresso e Retrospectiva da jornada de vocês',
-  'Linha do tempo e cápsulas do tempo guardadas',
-];
+// Traduzido (PT/ES/EN) — chaves planos.benefit.1..7 em lib/i18n.js.
+const BENEFIT_KEYS = [1, 2, 3, 4, 5, 6, 7].map((n) => `planos.benefit.${n}`);
 
 function BenefitsList() {
+  const { t } = useLanguage();
   return (
     <View style={styles.benefitsList}>
-      {BENEFITS.map((benefit) => (
-        <View key={benefit} style={styles.benefitRow}>
+      {BENEFIT_KEYS.map((key) => (
+        <View key={key} style={styles.benefitRow}>
           <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
-          <Text style={styles.benefitText}>{benefit}</Text>
+          <Text style={styles.benefitText}>{t(key)}</Text>
         </View>
       ))}
+    </View>
+  );
+}
+
+// As 3 ofertas reais já cadastradas no mesmo produto Hotmart (Forja del amor)
+// — mesmas features pras 3, a diferença é só o compromisso/economia. Preço
+// mensal efetivo calculado só pra deixar a economia óbvia (não é cobrado
+// assim, é sempre cobrado no valor cheio a cada ciclo). Pedido explícito do
+// Lenda: oferecer o benefício de cada plano e deixar a pessoa escolher antes
+// de abrir o checkout (25/07/2026).
+// Os 3 planos têm 7 dias grátis (confirmado no painel Hotmart) — por isso
+// o detalhe de cada card sempre menciona o trial, não só o mensal. price é
+// universal (US$ é o mesmo símbolo nos 3 idiomas) — só label/cycle/detail/
+// badge são traduzidos via lib/i18n.js (planos.plan.<id>.*).
+const PLANS = [
+  { id: 'trial', price: 'US$ 5' },
+  { id: 'quarterly', price: 'US$ 10' },
+  { id: 'annual', price: 'US$ 20' },
+];
+
+function PlanPicker({ selected, onSelect }) {
+  const { t } = useLanguage();
+  return (
+    <View style={styles.planRow}>
+      {PLANS.map((plan) => {
+        const isSelected = plan.id === selected;
+        const badge = t(`planos.plan.${plan.id}.badge`);
+        const hasBadge = badge && badge !== `planos.plan.${plan.id}.badge`;
+        return (
+          <TouchableOpacity
+            key={plan.id}
+            activeOpacity={0.85}
+            onPress={() => onSelect(plan.id)}
+            style={[styles.planCard, isSelected && styles.planCardSelected]}
+          >
+            {hasBadge && (
+              <View style={styles.planBadge}>
+                <Text style={styles.planBadgeText}>{badge}</Text>
+              </View>
+            )}
+            <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>{t(`planos.plan.${plan.id}.label`)}</Text>
+            <Text style={[styles.planPrice, isSelected && styles.planLabelSelected]}>{plan.price}</Text>
+            <Text style={styles.planCycle}>{t(`planos.plan.${plan.id}.cycle`)}</Text>
+            <Text style={styles.planDetail}>{t(`planos.plan.${plan.id}.detail`)}</Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -104,17 +166,18 @@ function BenefitsList() {
 // botão de checkout de novo (esse era o bug original de reoferecer "Começar 7
 // dias grátis" pra quem já paga) — por isso este card não tem CTA nenhum.
 function SubscriptionStatusCard({ status, currentPeriodEnd, onBack }) {
-  const label = STATUS_LABELS[status] || status;
+  const { t } = useLanguage();
+  const label = STATUS_I18N_KEY[status] ? t(STATUS_I18N_KEY[status]) : status;
   const dataRenovacao = formatarDataBR(currentPeriodEnd);
   return (
     <View style={styles.root}>
-      <GradientHeader title="Assinatura" onBack={onBack} />
+      <GradientHeader title={t('planos.header.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Ionicons name="checkmark-circle" size={40} color={colors.accent} />
-          <Text style={styles.cardTitle}>Você já é assinante</Text>
+          <Text style={styles.cardTitle}>{t('planos.alreadySubscriber')}</Text>
           <Text style={styles.cardText}>Status: {label}</Text>
-          {dataRenovacao && <Text style={styles.cardText}>Renova em {dataRenovacao}</Text>}
+          {dataRenovacao && <Text style={styles.cardText}>{t('planos.renewsOn', { date: dataRenovacao })}</Text>}
         </View>
       </ScrollView>
     </View>
@@ -125,9 +188,11 @@ function PlanosScreenWeb() {
   const navigation = useNavigation();
   const { coupleData, refreshAccess, hasAccess, subscriptionStatus, currentPeriodEnd } = useCouple();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState('trial');
 
   const abrirCheckout = useCallback(async () => {
     trackInitiateCheckout();
@@ -135,7 +200,7 @@ function PlanosScreenWeb() {
     setCarregando(true);
     setAberto(true);
     try {
-      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email);
+      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan);
       await loadHotmartScript();
       window.checkoutElements
         .init('inlineCheckout', {
@@ -146,10 +211,10 @@ function PlanosScreenWeb() {
         .mount(`#${MOUNT_ID}`);
       setCarregando(false);
     } catch (err) {
-      setErro('Não conseguimos abrir o checkout agora. Tente de novo em instantes.');
+      setErro(t('planos.errorGeneric'));
       setCarregando(false);
     }
-  }, [coupleData, user]);
+  }, [coupleData, user, selectedPlan, t]);
 
   const fecharCheckout = useCallback(() => {
     setAberto(false);
@@ -182,17 +247,18 @@ function PlanosScreenWeb() {
   return (
     <View style={styles.root}>
       <GradientHeader
-        title="Assinatura"
-        subtitle="$5 USD/mês · 7 dias grátis"
+        title={t('planos.header.title')}
+        subtitle={t('planos.header.subtitle')}
         onBack={() => (aberto ? fecharCheckout() : navigation.goBack())}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {!aberto && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Desbloqueie a experiência completa do casal</Text>
+            <Text style={styles.cardTitle}>{t('planos.unlockTitle')}</Text>
+            <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
             <BenefitsList />
             <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={abrirCheckout}>
-              <Text style={styles.btnText}>Começar meus 7 dias grátis →</Text>
+              <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -200,7 +266,7 @@ function PlanosScreenWeb() {
         {aberto && carregando && (
           <View style={styles.center}>
             <ActivityIndicator color={colors.accent} size="large" />
-            <Text style={styles.centerText}>Preparando o checkout seguro…</Text>
+            <Text style={styles.centerText}>{t('planos.preparing')}</Text>
           </View>
         )}
 
@@ -210,9 +276,9 @@ function PlanosScreenWeb() {
             <TouchableOpacity
               style={[styles.btn, styles.btnGhost]}
               activeOpacity={0.85}
-              onPress={() => Linking.openURL(HOTMART_CHECKOUT_FALLBACK)}
+              onPress={() => Linking.openURL(HOTMART_PAY_URLS[selectedPlan] || HOTMART_PAY_URLS.trial)}
             >
-              <Text style={styles.btnGhostText}>Abrir o checkout em outra aba →</Text>
+              <Text style={styles.btnGhostText}>{t('planos.openOtherTab')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -227,7 +293,7 @@ function PlanosScreenWeb() {
 
         {aberto && !carregando && (
           <TouchableOpacity style={styles.backLink} onPress={fecharCheckout}>
-            <Text style={styles.backLinkText}>← Voltar</Text>
+            <Text style={styles.backLinkText}>{t('planos.back')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -236,17 +302,22 @@ function PlanosScreenWeb() {
 }
 
 // Fluxo nativo (iOS/Android da loja): o Hotmart Checkout Elements é um script
-// carregado no DOM, então não roda aqui — em vez disso abrimos o fallback
-// (HOTMART_CHECKOUT_FALLBACK) num navegador in-app via expo-web-browser, com o
-// xcod do correlationCode já criado por initiateCheckout() anexado à URL, pra
-// o webhook (HotmartPaymentProvider.parseWebhookEvent) conseguir correlacionar
-// a compra a este casal do mesmo jeito que faz no funil web.
+// carregado no DOM, então não roda aqui — em vez disso abrimos o link avulso
+// da oferta escolhida (HOTMART_PAY_URLS[selectedPlan]) num navegador in-app
+// via expo-web-browser, com o xcod do correlationCode já criado por
+// initiateCheckout() anexado à URL, pra o webhook
+// (HotmartPaymentProvider.parseWebhookEvent) conseguir correlacionar a compra
+// a este casal do mesmo jeito que faz no funil web. Antes os 3 planos abriam
+// o mesmo link fixo do mensal — corrigido com os links reais de cada oferta
+// (confirmados pelo Lenda, 25/07/2026).
 function PlanosScreenNative() {
   const navigation = useNavigation();
   const { coupleData, hasAccess, subscriptionStatus, currentPeriodEnd, refreshAccess } = useCouple();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState('trial');
 
   useFocusEffect(
     useCallback(() => {
@@ -259,22 +330,21 @@ function PlanosScreenNative() {
     setErro('');
     setCarregando(true);
     try {
-      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email);
+      const data = await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan);
       const xcod = data?.checkoutConfig?.xcod;
-      const url = xcod
-        ? `${HOTMART_CHECKOUT_FALLBACK}&xcod=${encodeURIComponent(xcod)}`
-        : HOTMART_CHECKOUT_FALLBACK;
+      const baseUrl = HOTMART_PAY_URLS[selectedPlan] || HOTMART_PAY_URLS.trial;
+      const url = xcod ? `${baseUrl}&xcod=${encodeURIComponent(xcod)}` : baseUrl;
       await WebBrowser.openBrowserAsync(url);
       setCarregando(false);
       // A ativação real só chega pelo webhook (assíncrono) — isso só reflete o
       // que já processou até agora, igual ao refreshAccess-no-foco da web.
       refreshAccess();
     } catch (err) {
-      setErro('Não conseguimos abrir o checkout agora. Tente de novo em instantes.');
+      setErro(t('planos.errorGeneric'));
       setCarregando(false);
       refreshAccess();
     }
-  }, [coupleData, refreshAccess, user]);
+  }, [coupleData, refreshAccess, user, selectedPlan, t]);
 
   if (hasAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
     return (
@@ -289,19 +359,20 @@ function PlanosScreenNative() {
   return (
     <View style={styles.root}>
       <GradientHeader
-        title="Assinatura"
-        subtitle="$5 USD/mês · 7 dias grátis"
+        title={t('planos.header.title')}
+        subtitle={t('planos.header.subtitle')}
         onBack={() => navigation.goBack()}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Desbloqueie a experiência completa do casal</Text>
+          <Text style={styles.cardTitle}>{t('planos.unlockTitle')}</Text>
+          <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
           <BenefitsList />
           {carregando ? (
             <ActivityIndicator color={colors.accent} size="large" style={styles.nativeLoader} />
           ) : (
             <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={abrirCheckoutNativo}>
-              <Text style={styles.btnText}>Começar meus 7 dias grátis →</Text>
+              <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
             </TouchableOpacity>
           )}
           {erro !== '' && <Text style={[styles.errorText, styles.nativeErrorSpacing]}>{erro}</Text>}
@@ -316,19 +387,17 @@ function PlanosScreenNative() {
 // em vez de depender só do correlationCode local (frágil se a pessoa trocar
 // de aparelho/limpar dados).
 function LoginRequiredCard({ onLogin, onBack }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.root}>
-      <GradientHeader title="Assinatura" subtitle="$5 USD/mês · 7 dias grátis" onBack={onBack} />
+      <GradientHeader title={t('planos.header.title')} subtitle={t('planos.header.subtitle')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Ionicons name="lock-closed" size={32} color={colors.gold} />
-          <Text style={styles.cardTitle}>Faça login para assinar</Text>
-          <Text style={styles.cardText}>
-            Precisamos de uma conta pra ligar sua assinatura a você — assim, se trocar de aparelho, seu
-            acesso continua junto.
-          </Text>
+          <Text style={styles.cardTitle}>{t('planos.loginRequired.title')}</Text>
+          <Text style={styles.cardText}>{t('planos.loginRequired.text')}</Text>
           <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={onLogin}>
-            <Text style={styles.btnText}>Fazer login →</Text>
+            <Text style={styles.btnText}>{t('planos.loginRequired.cta')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -385,4 +454,21 @@ const styles = StyleSheet.create({
   backLinkText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
   nativeLoader: { marginTop: 18 },
   nativeErrorSpacing: { marginTop: 14 },
+
+  planRow: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 16 },
+  planCard: {
+    flex: 1, borderWidth: 1.5, borderColor: colors.border, borderRadius: 14,
+    paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center', backgroundColor: colors.surfaceElevated,
+  },
+  planCardSelected: { borderColor: colors.accent, backgroundColor: colors.accent + '18' },
+  planBadge: {
+    position: 'absolute', top: -10, backgroundColor: colors.gold, borderRadius: 8,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  planBadgeText: { color: '#2A1D00', fontSize: 9, fontWeight: '800' },
+  planLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '700', marginTop: 6 },
+  planLabelSelected: { color: colors.text },
+  planPrice: { color: colors.textSecondary, fontSize: 18, fontWeight: '800', marginTop: 4 },
+  planCycle: { color: colors.textMuted, fontSize: 11 },
+  planDetail: { color: colors.gold, fontSize: 11, fontWeight: '700', marginTop: 6, textAlign: 'center' },
 });

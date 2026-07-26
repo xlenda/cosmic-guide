@@ -11,6 +11,7 @@ import {
   getUserSign,
   saveUserSign,
   checkSubscriptionStatus,
+  checkSoloSubscriptionStatus,
 } from '../lib/coupleData';
 import { useAuth } from './AuthContext';
 
@@ -32,6 +33,14 @@ export function CoupleProvider({ children }) {
   // Otimista (mesmo padrão do FeatureGate/AppNavInner do funil web): não bloqueia
   // nada até confirmar, via servidor, que o casal realmente não tem acesso.
   const [hasAccess, setHasAccess] = useState(true);
+  // true até a primeira resposta real do servidor chegar, e sempre que
+  // checkSubscriptionStatus conseguir confirmar de verdade (mesmo que a
+  // resposta seja "sem acesso"). Só vira false no fallback final de rede
+  // (3 tentativas falhas, lib/coupleData.js) — telas que marcam "prévia
+  // grátis usada" (lib/featureUsage.js) devem checar isto antes de marcar,
+  // senão queimam a prévia de um assinante de verdade por causa de uma
+  // instabilidade de rede passageira (achado real de auditoria, 25/07/2026).
+  const [accessConfirmed, setAccessConfirmed] = useState(true);
   // status/currentPeriodEnd vêm do mesmo checkSubscriptionStatus que já preenche
   // hasAccess — antes eram descartados, então nenhuma tela sabia se um assinante
   // estava em trial, quando renovava, ou já tinha cancelado. null até a primeira
@@ -46,22 +55,36 @@ export function CoupleProvider({ children }) {
   // sobrescrever um resultado mais recente e correto.
   const requestIdRef = useRef(0);
 
-  // Só existe assinatura para casais (o produto monetizado é a experiência de
-  // casal) — modo solo nunca chama o backend e fica sempre com hasAccess=true.
+  // Existe assinatura tanto pra casal (voce+amor) quanto solo (e-mail de login,
+  // já que não há par) — pedido explícito do Lenda (25/07/2026): monetizar os
+  // dois jeitos de usar o app, não só casal. As duas checagens rodam em
+  // paralelo e sempre em conjunto (não só a que bate com o modo atual): assim,
+  // quem assinou sozinho e depois forma um casal (ou vice-versa) não perde o
+  // acesso que já pagou só porque `coupleData` mudou de estado.
   const refreshAccess = useCallback(async (profile) => {
     const p = profile !== undefined ? profile : coupleData;
     const myId = ++requestIdRef.current;
-    if (!p) {
-      if (myId === requestIdRef.current) setHasAccess(true);
-      return;
-    }
-    const estado = await checkSubscriptionStatus(p.voce, p.amor);
-    if (myId === requestIdRef.current) {
-      setHasAccess(Boolean(estado?.hasAccess));
-      setSubscriptionStatus(estado?.status || null);
-      setCurrentPeriodEnd(estado?.currentPeriodEnd || null);
-    }
-  }, [coupleData]);
+
+    const [coupleEstado, soloEstado] = await Promise.all([
+      p ? checkSubscriptionStatus(p.voce, p.amor) : Promise.resolve({ hasAccess: false, confirmed: true }),
+      user?.email ? checkSoloSubscriptionStatus(user.email) : Promise.resolve({ hasAccess: false, confirmed: true }),
+    ]);
+    if (myId !== requestIdRef.current) return;
+
+    const hasAccessNow = Boolean(coupleEstado?.hasAccess || soloEstado?.hasAccess);
+    // Confirmado de verdade se qualquer um dos dois já confirmou acesso (não
+    // precisa esperar o outro), ou se os dois confirmaram "sem acesso". Só
+    // fica incerto (confirmed=false) se pelo menos um falhou por rede/5xx e
+    // nenhum dos dois confirmou acesso — mesmo espírito do confirmed original,
+    // agora olhando as duas fontes juntas.
+    const confirmedNow = hasAccessNow || (coupleEstado?.confirmed !== false && soloEstado?.confirmed !== false);
+    const winner = coupleEstado?.hasAccess ? coupleEstado : soloEstado?.hasAccess ? soloEstado : coupleEstado;
+
+    setHasAccess(hasAccessNow);
+    setAccessConfirmed(confirmedNow);
+    setSubscriptionStatus(winner?.status || null);
+    setCurrentPeriodEnd(winner?.currentPeriodEnd || null);
+  }, [coupleData, user]);
 
   const refresh = useCallback(async () => {
     const [profile, sign] = await Promise.all([getCoupleData(), getUserSign()]);
@@ -131,6 +154,7 @@ export function CoupleProvider({ children }) {
         soloSign,
         loading,
         hasAccess,
+        accessConfirmed,
         isOwnerAccount,
         subscriptionStatus,
         currentPeriodEnd,

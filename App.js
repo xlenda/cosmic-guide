@@ -12,9 +12,14 @@ import { StatusBar } from 'expo-status-bar';
 import { colors } from './theme';
 import { ROUTES } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AlertHost } from './components/AlertHost';
 import { CoupleProvider, useCouple } from './context/CoupleContext';
 import { AuthProvider } from './context/AuthContext';
 import { initConversionTracking } from './lib/conversionTracking';
+// Analytics de visitas da própria Vercel (hospeda o app) — não depende de
+// Pixel/GA (que ainda esperam ID real do Lenda): já conta visita real hoje,
+// sem precisar de nenhuma conta nova (25/07/2026).
+import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 
 // Sem isso, uma notificação chegando com o app ABERTO (foreground) não mostra
 // nada — o handler decide o comportamento nesse caso (banner + som, sem
@@ -35,21 +40,9 @@ if (Platform.OS !== 'web') {
 }
 import { LanguageProvider } from './context/LanguageContext';
 import HomeScreen from './screens/HomeScreen';
-import HoroscopeScreen from './screens/HoroscopeScreen';
-import BirthChartScreen from './screens/BirthChartScreen';
 import TarotScreen from './screens/TarotScreen';
-import CompatibilityScreen from './screens/CompatibilityScreen';
-import DreamScreen from './screens/DreamScreen';
-import PalmScreen from './screens/PalmScreen';
-import LunarCalendarScreen from './screens/LunarCalendarScreen';
-import CoffeeScreen from './screens/CoffeeScreen';
 import ChatScreen from './screens/ChatScreen';
 import ProfileScreen from './screens/ProfileScreen';
-import QuizScreen from './screens/QuizScreen';
-import PlanosScreen from './screens/PlanosScreen';
-import LoginScreen from './screens/LoginScreen';
-import DiaryScreen from './screens/DiaryScreen';
-import SocialScreen from './screens/SocialScreen';
 import { withFeatureGate } from './components/FeatureGate';
 
 // Telas raramente visitadas (config/legal, ou exclusivas de assinante e já
@@ -70,6 +63,23 @@ const TokensScreen = lazy(() => import('./screens/TokensScreen'));
 const LojaScreen = lazy(() => import('./screens/LojaScreen'));
 const HelpSupportScreen = lazy(() => import('./screens/HelpSupportScreen'));
 const TermsScreen = lazy(() => import('./screens/TermsScreen'));
+// Lote 2 (25/07/2026, achado real de auditoria de performance): mais 12 telas
+// que ainda carregavam eager dentro do HomeStack, que já tem <Suspense>
+// próprio — Home/Tarot/Chat/Profile ficam de fora de propósito (são as raízes
+// das 4 abas, Profile tem timing crítico do listener de instalar, ver
+// components/AlertHost.js/lib/installPrompt.js).
+const HoroscopeScreen = lazy(() => import('./screens/HoroscopeScreen'));
+const BirthChartScreen = lazy(() => import('./screens/BirthChartScreen'));
+const CompatibilityScreen = lazy(() => import('./screens/CompatibilityScreen'));
+const DreamScreen = lazy(() => import('./screens/DreamScreen'));
+const PalmScreen = lazy(() => import('./screens/PalmScreen'));
+const LunarCalendarScreen = lazy(() => import('./screens/LunarCalendarScreen'));
+const CoffeeScreen = lazy(() => import('./screens/CoffeeScreen'));
+const QuizScreen = lazy(() => import('./screens/QuizScreen'));
+const DiaryScreen = lazy(() => import('./screens/DiaryScreen'));
+const SocialScreen = lazy(() => import('./screens/SocialScreen'));
+const PlanosScreen = lazy(() => import('./screens/PlanosScreen'));
+const LoginScreen = lazy(() => import('./screens/LoginScreen'));
 
 function LoadingFallback() {
   return (
@@ -83,7 +93,7 @@ const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 const linking = {
-  prefixes: ['https://oddpro.pro/cosmic-guide'],
+  prefixes: ['https://cosmicguide.cloud/cosmic-guide', 'https://oddpro.pro/cosmic-guide'],
   config: {
     screens: {
       [ROUTES.HOME_TAB]: {
@@ -157,19 +167,21 @@ function HomeStack() {
         <Stack.Screen name={ROUTES.COFFEE} component={CoffeeScreen} />
         <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
         <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
-        <Stack.Screen name={ROUTES.TIMELINE} component={TimelineScreen} />
         <Stack.Screen name={ROUTES.DIARY} component={DiaryScreen} />
         <Stack.Screen name={ROUTES.REPORTS} component={ReportsScreen} />
         <Stack.Screen name={ROUTES.SOCIAL} component={SocialScreen} />
-        {/* Exclusivas de assinantes — 1 uso grátis por vida (mesmo padrão das
-            outras 9 features, lib/featureUsage.js) e depois bloqueadas via
-            withFeatureGate (components/FeatureGate.js), mesma altitude do
-            FeatureGate do funil web (aplicado na borda da rota). */}
-        <Stack.Screen name={ROUTES.RECONECTAR} component={withFeatureGate(ReconectarScreen, 'reconectar')} />
-        <Stack.Screen name={ROUTES.DESCOBRIR} component={withFeatureGate(DescobrirScreen, 'descobrir')} />
-        <Stack.Screen name={ROUTES.AGIR} component={withFeatureGate(AgirScreen, 'agir')} />
-        <Stack.Screen name={ROUTES.PROGRESSO} component={withFeatureGate(ProgressoScreen, 'progresso')} />
-        <Stack.Screen name={ROUTES.RETROSPECTIVA} component={withFeatureGate(RetrospectivaScreen, 'retrospectiva')} />
+        {/* Exclusivas de assinantes — a tela real roda de verdade por baixo,
+            com o SubscribeTeaser (components/FeatureGate.js) colado na parte
+            de baixo pra quem não tem acesso; mesma altitude do FeatureGate do
+            funil web (aplicado na borda da rota). Timeline entrou aqui porque
+            já era vendida como benefício da assinatura na PlanosScreen mas
+            estava sem gate nenhum (achado real de auditoria, 25/07/2026). */}
+        <Stack.Screen name={ROUTES.TIMELINE} component={withFeatureGate(TimelineScreen)} />
+        <Stack.Screen name={ROUTES.RECONECTAR} component={withFeatureGate(ReconectarScreen)} />
+        <Stack.Screen name={ROUTES.DESCOBRIR} component={withFeatureGate(DescobrirScreen)} />
+        <Stack.Screen name={ROUTES.AGIR} component={withFeatureGate(AgirScreen)} />
+        <Stack.Screen name={ROUTES.PROGRESSO} component={withFeatureGate(ProgressoScreen)} />
+        <Stack.Screen name={ROUTES.RETROSPECTIVA} component={withFeatureGate(RetrospectivaScreen)} />
         <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
       </Stack.Navigator>
@@ -279,6 +291,8 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <StatusBar style="light" />
+          {Platform.OS === 'web' && <VercelAnalytics />}
+          <AlertHost />
           <LanguageProvider>
             <AuthProvider>
               <CoupleProvider>

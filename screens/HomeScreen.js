@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -10,7 +10,8 @@ import HeroSection from '../components/HeroSection';
 import CardGrid from '../components/CardGrid';
 import { compatibility, compatPercent, aspects } from '../lib/signs';
 import { getTodaysThought } from '../lib/dailyThought';
-import { getWeekActivity, getStreakInfo } from '../lib/streak';
+import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration } from '../lib/streak';
+import { getShieldCount } from '../lib/streakShield';
 import { getAgirData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -43,11 +44,26 @@ export default function HomeScreen() {
   // acontecer em outra tela (ex.: acabou de completar uma leitura e voltou).
   const [weekActivity, setWeekActivity] = useState([]);
   const [streakInfo, setStreakInfo] = useState({ currentStreak: 0, totalActiveDays: 0 });
+  // Escudo(s) da Sequência disponíveis (lib/streakShield.js, comprados na
+  // Loja) — só pra mostrar o indicadorzinho ao lado do streak, quem consome
+  // de verdade é computeCurrentStreak() (lib/streak.js).
+  const [shieldCount, setShieldCount] = useState(0);
+  // Marco de sequência (7/30/100 dias) batido em QUALQUER tela de leitura —
+  // fica pendente em AsyncStorage (lib/streak.js) até a Home, que é onde
+  // sempre se volta depois de uma leitura, consumir e celebrar uma vez só.
+  const [milestone, setMilestone] = useState(null);
 
   const loadStreak = useCallback(async () => {
-    const [week, info] = await Promise.all([getWeekActivity(), getStreakInfo()]);
+    const [week, info, pendingMilestone, shields] = await Promise.all([
+      getWeekActivity(),
+      getStreakInfo(),
+      consumePendingMilestoneCelebration(),
+      getShieldCount(),
+    ]);
     setWeekActivity(week);
     setStreakInfo(info);
+    if (pendingMilestone) setMilestone(pendingMilestone);
+    setShieldCount(shields);
   }, []);
 
   useFocusEffect(useCallback(() => { loadStreak(); }, [loadStreak]));
@@ -165,6 +181,20 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
+      {milestone && (
+        <Modal transparent animationType="fade" visible onRequestClose={() => setMilestone(null)}>
+          <View style={styles.milestoneBackdrop}>
+            <LinearGradient colors={gradients.gold} style={styles.milestoneCard}>
+              <Text style={styles.milestoneEmoji}>{milestone.days >= 100 ? '👑' : milestone.days >= 30 ? '🌟' : '🔥'}</Text>
+              <Text style={styles.milestoneTitle}>{milestone.days} dias seguidos!</Text>
+              <Text style={styles.milestoneSubtitle}>+{milestone.tokens} tokens de bônus</Text>
+              <TouchableOpacity style={styles.milestoneBtn} activeOpacity={0.85} onPress={() => setMilestone(null)}>
+                <Text style={styles.milestoneBtnText}>Continuar</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+        </Modal>
+      )}
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <HeroSection greeting={greeting} dateStr={dateStr} sign={sign} streak={coupleData?.streak} insetTop={insets.top} />
 
@@ -191,11 +221,19 @@ export default function HomeScreen() {
           onPress={() => navigation.navigate(ROUTES.REPORTS)}
         >
           <View style={styles.streakCardHead}>
-            <Text style={styles.streakCardTitle}>
-              {streakInfo.currentStreak > 0
-                ? `🔥 ${streakInfo.currentStreak} ${streakInfo.currentStreak === 1 ? 'dia seguido' : 'dias seguidos'}`
-                : 'Comece sua sequência hoje'}
-            </Text>
+            <View style={styles.streakCardTitleRow}>
+              <Text style={styles.streakCardTitle}>
+                {streakInfo.currentStreak > 0
+                  ? `🔥 ${streakInfo.currentStreak} ${streakInfo.currentStreak === 1 ? 'dia seguido' : 'dias seguidos'}`
+                  : 'Comece sua sequência hoje'}
+              </Text>
+              {shieldCount > 0 && (
+                <View style={styles.shieldBadge}>
+                  <Ionicons name="shield-checkmark" size={13} color={colors.teal} />
+                  <Text style={styles.shieldBadgeText}>{shieldCount}</Text>
+                </View>
+              )}
+            </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </View>
           <View style={styles.weekRow}>
@@ -333,7 +371,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
   },
   streakCardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  streakCardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   streakCardTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  shieldBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: colors.teal + '22', borderRadius: 10,
+    paddingHorizontal: 7, paddingVertical: 3,
+  },
+  shieldBadgeText: { color: colors.teal, fontSize: 12, fontWeight: '800' },
   weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
   weekDayWrap: { alignItems: 'center', gap: 6 },
   weekDayLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
@@ -382,4 +427,12 @@ const styles = StyleSheet.create({
   eventTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
   eventDesc: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 4 },
   eventDate: { color: colors.gold, fontSize: 12, fontWeight: '700', marginTop: 8 },
+
+  milestoneBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 28 },
+  milestoneCard: { width: '100%', maxWidth: 340, borderRadius: 24, padding: 32, alignItems: 'center' },
+  milestoneEmoji: { fontSize: 56 },
+  milestoneTitle: { color: '#2A1D00', fontSize: 22, fontWeight: '800', marginTop: 10, textAlign: 'center' },
+  milestoneSubtitle: { color: '#4A3300', fontSize: 15, fontWeight: '700', marginTop: 6 },
+  milestoneBtn: { backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 28, marginTop: 22 },
+  milestoneBtnText: { color: '#2A1D00', fontSize: 15, fontWeight: '800' },
 });

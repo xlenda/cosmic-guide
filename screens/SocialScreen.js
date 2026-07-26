@@ -7,8 +7,9 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  ActivityIndicator, RefreshControl, Alert, FlatList,
+  ActivityIndicator, RefreshControl, FlatList,
 } from 'react-native';
+import { Alert } from '../lib/webAlert';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';

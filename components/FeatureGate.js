@@ -6,7 +6,7 @@
 // esmaecer por cima — caro e expo-blur nem está instalado). Em vez disso, um
 // card de estado bloqueado, reaproveitando a linguagem visual do `locked` já
 // parcialmente construído em FeatureCard.js (badge de cadeado + gradiente).
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,22 +14,26 @@ import { useNavigation } from '@react-navigation/native';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
-import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 
-export function LockedCard() {
+// Véu de assinatura: fica colado na parte de baixo da tela, por cima do
+// conteúdo real (que continua rodando e interativo por trás, atrás do
+// gradiente). Não veda com um sólido — o degradê deixa o topo do conteúdo
+// visível e "sangrando" por trás, de propósito: cria curiosidade (a pessoa vê
+// e usa o começo de verdade) sem deixar avançar até o fim. Substitui o
+// esquema antigo de "1ª visita grátis inteira, trava da 2ª em diante"
+// (pedido explícito do Lenda, 25/07/2026 — queria que desse pra começar a
+// usar mas travasse no meio do caminho, não tudo ou nada).
+export function SubscribeTeaser() {
   const navigation = useNavigation();
   return (
-    <View style={styles.root}>
-      <LinearGradient colors={gradients.card} style={styles.card}>
+    <View style={styles.teaserWrap} pointerEvents="box-none">
+      <LinearGradient colors={['transparent', colors.background]} style={styles.teaserFade} pointerEvents="none" />
+      <View style={styles.teaserCard}>
         <View style={styles.sealWrap}>
-          <Ionicons name="lock-closed" size={28} color={colors.gold} />
+          <Ionicons name="lock-closed" size={24} color={colors.gold} />
         </View>
-        <Text style={styles.title}>Isso se abre com a assinatura</Text>
+        <Text style={styles.title}>Continue com a assinatura</Text>
         <Text style={styles.price}>$5 USD/mês · 7 dias grátis, sem compromisso</Text>
-        <Text style={styles.text}>
-          Linha do tempo, cápsulas do tempo, rotas de reconexão, progresso e retrospectiva ficam guardados
-          aqui — é só assinar para abrir.
-        </Text>
         <TouchableOpacity
           style={styles.btn}
           activeOpacity={0.85}
@@ -37,12 +41,12 @@ export function LockedCard() {
         >
           <Text style={styles.btnText}>Assinar →</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
 
-// Solo (sem par) vê um convite em vez do LockedCard de assinatura — essas 5
+// Solo (sem par) vê um convite em vez do véu de assinatura — essas 5
 // rotas são feitas pra fazer a dois (rotas de reconexão, jogos, ideias de
 // encontro), então travar por "assinatura" não faz sentido ainda; o convite
 // certo aqui é chamar o par pro app primeiro.
@@ -78,30 +82,25 @@ export function SoloInviteCard() {
 // true) até o contexto confirmar com o servidor, então nunca pisca um
 // bloqueio falso pra quem já tem acesso.
 //
-// Casal SEM acesso: mesmo padrão de "1 uso grátis" já usado nas 9 features
-// ilimitadas (lib/featureUsage.js) — na primeira visita vê a tela real
-// (marcando como usada); a partir da segunda, vê o LockedCard de assinatura.
-// featureKey precisa ser único por tela (ex.: 'reconectar', 'agir') — antes
-// essas 5 telas eram 100% bloqueadas sem nenhuma prévia, pedido explícito do
-// Lenda pra deixar provar o valor antes de pedir pra assinar (21/07/2026).
-export function withFeatureGate(Screen, featureKey) {
+// Casal SEM acesso: a tela real monta e roda por baixo (sem featureKey, sem
+// AsyncStorage, sem "1 uso grátis" — esse rastreamento foi removido daqui
+// porque tinha um bug real: marcava o uso no mount, não no uso de fato, e
+// podia queimar a prévia de um assinante de verdade numa instabilidade de
+// rede). O SubscribeTeaser cobre a parte de baixo por cima, sempre.
+export function withFeatureGate(Screen) {
   return function GatedScreen(props) {
     const { coupleData, hasAccess, isOwnerAccount } = useCouple();
-    const [locked, setLocked] = useState(false);
-
-    useEffect(() => {
-      if (isOwnerAccount || !coupleData || hasAccess) return;
-      hasUsedFeatureOnce(featureKey).then((used) => {
-        if (used) setLocked(true);
-        else markFeatureUsedOnce(featureKey);
-      });
-    }, [isOwnerAccount, coupleData, hasAccess]);
 
     if (isOwnerAccount) return <Screen {...props} />;
     if (!coupleData) return <SoloInviteCard />;
     if (hasAccess) return <Screen {...props} />;
-    if (locked) return <LockedCard />;
-    return <Screen {...props} />;
+
+    return (
+      <View style={{ flex: 1 }}>
+        <Screen {...props} />
+        <SubscribeTeaser />
+      </View>
+    );
   };
 }
 
@@ -127,4 +126,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 28, marginTop: 20,
   },
   btnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+
+  teaserWrap: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: '46%',
+    alignItems: 'center', justifyContent: 'flex-end',
+  },
+  teaserFade: { ...StyleSheet.absoluteFillObject },
+  teaserCard: {
+    alignItems: 'center', paddingHorizontal: 28, paddingBottom: 36, paddingTop: 12, width: '100%',
+  },
 });

@@ -1,14 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
 import { getMoonPhaseToday, getMoonPhaseForCurrentMonth } from '../lib/lunarCalendar';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
 
 const FEATURE_KEY = 'lunarCalendar';
+const DIARY_RECORDED_KEY = 'cosmic-lunar-diary-date';
+
+function todayISO() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 // Mesmo tom honesto de lib/palmReadings.js / lib/chatResponses.js: a fase em
 // si é astronomia real (astronomy-engine), mas a reflexão que a acompanha é
@@ -24,7 +33,13 @@ function capitalize(text) {
 
 export default function LunarCalendarScreen() {
   const navigation = useNavigation();
-  const { hasAccess } = useCouple();
+  const { hasAccess, accessConfirmed, coupleData } = useCouple();
+  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
+  // hasAccess sempre true (CoupleContext.js, decisão de produto), o que
+  // destravaria esta tela por completo pra quem usa sem parceiro se
+  // checássemos hasAccess puro (mesmo bug achado e corrigido no Tarô).
+  const isCouple = !!coupleData;
+  const hasFullAccess = isCouple && hasAccess;
   const [refreshTick, setRefreshTick] = useState(0);
   const [locked, setLocked] = useState(false);
 
@@ -35,7 +50,7 @@ export default function LunarCalendarScreen() {
   // bloqueia (setLocked(true)) quando já tinha sido usado antes — nunca na
   // mesma visita em que a pessoa está consumindo seu uso grátis.
   useEffect(() => {
-    if (hasAccess) return;
+    if (hasFullAccess || !accessConfirmed) return;
     hasUsedFeatureOnce(FEATURE_KEY).then((used) => {
       if (used) {
         setLocked(true);
@@ -43,7 +58,7 @@ export default function LunarCalendarScreen() {
         markFeatureUsedOnce(FEATURE_KEY);
       }
     });
-  }, [hasAccess]);
+  }, [hasFullAccess, accessConfirmed]);
 
   // A tela fica montada dentro da stack da Tab (não desmonta ao navegar pra
   // outra aba), então "hoje" precisa ser recalculado sempre que ela ganha
@@ -75,7 +90,24 @@ export default function LunarCalendarScreen() {
   );
   const todayNumber = new Date().getDate();
 
-  if (!hasAccess && locked) {
+  // Vira entrada no Diário Cósmico 1x por dia — antes essa tela não deixava
+  // rastro nenhum de uso real (achado real de auditoria de retenção, 25/07/2026).
+  useEffect(() => {
+    if (!today) return;
+    const iso = todayISO();
+    AsyncStorage.getItem(DIARY_RECORDED_KEY).then((lastDate) => {
+      if (lastDate === iso) return;
+      recordReadingCompletion({
+        type: 'lunarCalendar',
+        typeLabel: 'Calendário Lunar',
+        title: `${today.emoji} ${today.name}`,
+        body: today.reflexao,
+      });
+      AsyncStorage.setItem(DIARY_RECORDED_KEY, iso);
+    });
+  }, [today]);
+
+  if (!hasFullAccess && locked) {
     return <OneTimeLock featureTitle="Calendário Lunar" gradient={gradients.hero} />;
   }
 

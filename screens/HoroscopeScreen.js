@@ -10,7 +10,10 @@ import GradientHeader from '../components/GradientHeader';
 import ScoreBar from '../components/ScoreBar';
 import OneTimeLock from '../components/OneTimeLock';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
+import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
+
+const DIARY_RECORDED_KEY = 'cosmic-horoscope-diary-date';
 
 const FEATURE_KEY = 'horoscope';
 
@@ -125,7 +128,13 @@ function luckFor(sign) {
 export default function HoroscopeScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { hasAccess } = useCouple();
+  const { hasAccess, accessConfirmed, coupleData } = useCouple();
+  // Assinatura só existe pra casal — modo solo (sem par pareado) fica com
+  // hasAccess sempre true (CoupleContext.js, decisão de produto), o que
+  // destravaria esta tela por completo pra quem usa sem parceiro se
+  // checássemos hasAccess puro (mesmo bug achado e corrigido no Tarô).
+  const isCouple = !!coupleData;
+  const hasFullAccess = isCouple && hasAccess;
   const [sign, setSign] = useState(route.params?.sign || zodiacSigns[0]);
   const [tab, setTab] = useState('Hoje');
   const [showPicker, setShowPicker] = useState(false);
@@ -139,7 +148,10 @@ export default function HoroscopeScreen() {
   // confirma que ainda não tinha sido usado, garantindo que a pessoa sempre veja
   // o conteúdo completo nessa primeira visita (não bloqueia na mesma passada).
   useEffect(() => {
-    if (hasAccess) return;
+    // accessConfirmed=false = a checagem de assinatura falhou por rede, não
+    // confirmou nada de verdade — nunca marcar a prévia grátis como usada
+    // nesse caso (achado real de auditoria, 25/07/2026).
+    if (hasFullAccess || !accessConfirmed) return;
     hasUsedFeatureOnce(FEATURE_KEY).then((used) => {
       if (used) {
         setLocked(true);
@@ -147,7 +159,24 @@ export default function HoroscopeScreen() {
         markFeatureUsedOnce(FEATURE_KEY);
       }
     });
-  }, [hasAccess]);
+  }, [hasFullAccess, accessConfirmed]);
+
+  // Vira entrada no Diário Cósmico 1x por dia (não a cada troca de aba/signo,
+  // senão o Diário enche de quase-duplicatas) — antes o Horóscopo não deixava
+  // rastro nenhum de uso real (achado real de auditoria de retenção, 25/07/2026).
+  useEffect(() => {
+    const today = todayISO();
+    AsyncStorage.getItem(DIARY_RECORDED_KEY).then((lastDate) => {
+      if (lastDate === today) return;
+      const todayReading = readingFor(sign, 'Hoje');
+      recordReadingCompletion({
+        type: 'horoscope',
+        typeLabel: 'Horóscopo',
+        title: `Horóscopo de ${sign.pt} — hoje`,
+        body: todayReading.text,
+      }).then(() => AsyncStorage.setItem(DIARY_RECORDED_KEY, today));
+    });
+  }, [sign]);
 
   const pickSign = async (z) => {
     Haptics.selectionAsync();
@@ -156,7 +185,7 @@ export default function HoroscopeScreen() {
     await AsyncStorage.setItem('userSign', JSON.stringify(z));
   };
 
-  if (!hasAccess && locked) {
+  if (!hasFullAccess && locked) {
     return <OneTimeLock featureTitle="Horóscopo" gradient={['#7B3FB5', '#A66CFF']} />;
   }
 

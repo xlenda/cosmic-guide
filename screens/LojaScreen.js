@@ -1,11 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert } from '../lib/webAlert';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { getTokenBalance, spendTokens } from '../lib/tokens';
+import { addShield, getShieldCount } from '../lib/streakShield';
 
 // Recompensas cosméticas/digitais do próprio app — nada físico, nada que
 // prometa dinheiro real ou logística que ainda não existe. Ainda não têm
@@ -41,6 +43,13 @@ const REWARDS = [
     cost: 150,
     icon: 'color-palette',
   },
+  {
+    id: 'escudo-sequencia',
+    title: 'Escudo da Sequência',
+    description: 'Protege sua sequência de quebrar se vocês esquecerem de usar o app por 1 dia.',
+    cost: 60,
+    icon: 'shield-checkmark',
+  },
 ];
 
 export default function LojaScreen() {
@@ -65,7 +74,12 @@ export default function LojaScreen() {
       const result = await spendTokens(reward.cost, reward.title);
       if (result.ok) {
         setBalance(result.balance);
-        Alert.alert('Resgatado!', `"${reward.title}" resgatado com sucesso. (em breve isso vai aparecer no seu perfil)`);
+        if (reward.id === 'escudo-sequencia') {
+          const count = await addShield();
+          Alert.alert('Escudo ativado!', `${count} escudo(s) guardado(s) — protege a próxima sequência quebrada.`);
+        } else {
+          Alert.alert('Resgatado!', `"${reward.title}" resgatado com sucesso. (em breve isso vai aparecer no seu perfil)`);
+        }
       } else {
         Alert.alert(
           'Saldo insuficiente',
