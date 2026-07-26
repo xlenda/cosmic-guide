@@ -14,6 +14,8 @@ import { getTodaysThought, getThoughtForDate } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { personalSkyToday } from '../lib/personalSky';
 import { getAnyBirthData } from '../lib/birthData';
+import { activeCelestialEvents } from '../lib/celestialSeasons';
+import { computeMonthlyWrapped, getWrappedMonth, isWrappedAvailable } from '../lib/monthlyWrapped';
 import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration } from '../lib/streak';
 import { getShieldCount } from '../lib/streakShield';
 import { getAgirData } from '../lib/coupleData';
@@ -56,6 +58,8 @@ export default function HomeScreen() {
   // fica pendente em AsyncStorage (lib/streak.js) até a Home, que é onde
   // sempre se volta depois de uma leitura, consumir e celebrar uma vez só.
   const [milestone, setMilestone] = useState(null);
+  // Pensamento do dia recolhido por padrão — 2 linhas + "ler completo".
+  const [thoughtExpanded, setThoughtExpanded] = useState(false);
 
   const loadStreak = useCallback(async () => {
     const [week, info, pendingMilestone, shields] = await Promise.all([
@@ -83,6 +87,26 @@ export default function HomeScreen() {
     setAgirGoal({ goalSaved: data.goalSaved || '', goalDone: !!data.goalDone });
   }, [coupleData]);
   useFocusEffect(useCallback(() => { loadAgirGoal(); }, [loadAgirGoal]));
+
+  // Retrospectiva Cósmica mensal — só na janela dos dias 1-7, e só se o mês
+  // anterior teve uso real (computeMonthlyWrapped devolve null se não teve).
+  const [wrappedReady, setWrappedReady] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!isWrappedAvailable()) {
+        setWrappedReady(false);
+        return;
+      }
+      let active = true;
+      const { year, month } = getWrappedMonth();
+      computeMonthlyWrapped(year, month).then((w) => {
+        if (active) setWrappedReady(!!w);
+      });
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   // Céu de hoje pra você (lib/personalSky.js) — trânsitos reais sobre o mapa
   // natal da pessoa. `undefined` = ainda carregando; `null` = sem data de
@@ -201,6 +225,11 @@ export default function HomeScreen() {
   // já calculado acima (real, casal ou solo — nunca inventado aqui) pra
   // personalizar o endereçamento da frase.
   const todaysThought = getTodaysThought(sign);
+
+  // Temporadas do Céu (lib/celestialSeasons.js) — eventos celestes REAIS
+  // ativos (retrógrado, lua cheia/nova chegando, temporada zodiacal).
+  // Memoizado por dia: trigonometria só roda de novo quando o dia muda.
+  const celestialEvents = useMemo(() => activeCelestialEvents().slice(0, 2), [todayISO]);
 
   // Espiada de Amanhã — o MESMO motor determinístico calcula o pensamento de
   // amanhã hoje (fase da Lua, regente, aspectos de amanhã são matemática,
@@ -343,17 +372,62 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Pensamento cósmico do dia — mesmo formato de app de versículo
-            diário, mas com o mesmo tom simbólico/honesto do resto do app. */}
-        <View style={styles.thoughtCard}>
+        {/* Pensamento cósmico do dia — recolhido por padrão (2 linhas + "ler
+            completo"): o texto inteiro é longo e dominava a tela inicial
+            (pedido do dono do produto, 26/07/2026). O conteúdo não muda,
+            só o quanto aparece antes do toque. */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.thoughtCard}
+          onPress={() => setThoughtExpanded((v) => !v)}
+        >
           <View style={styles.thoughtIcon}>
             <Ionicons name="sparkles" size={18} color={colors.gold} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.thoughtLabel}>Pensamento cósmico do dia</Text>
-            <Text style={styles.thoughtText}>{todaysThought}</Text>
+            <Text style={styles.thoughtText} numberOfLines={thoughtExpanded ? undefined : 2}>
+              {todaysThought}
+            </Text>
+            <Text style={styles.thoughtToggle}>{thoughtExpanded ? 'Recolher ↑' : 'Ler completo ↓'}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
+
+        {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
+            só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}
+        {wrappedReady && (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.wrappedBar}
+            onPress={() => navigation.navigate(ROUTES.MONTHLY_WRAPPED)}
+          >
+            <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.wrappedBarInner}>
+              <Text style={styles.wrappedBarEmoji}>🔮</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.wrappedBarTitle}>Sua Retrospectiva Cósmica chegou</Text>
+                <Text style={styles.wrappedBarSubtitle}>O resumo do seu mês — pra ver e compartilhar</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#2A1D00" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* Temporadas do Céu — o que está acontecendo AGORA no céu real
+            (retrógrado, lua chegando, temporada do signo). Mostra os 2 mais
+            quentes; datas vêm do cálculo astronômico, nunca de contador falso. */}
+        {celestialEvents.length > 0 && (
+          <View style={styles.seasonCard}>
+            {celestialEvents.map((ev, i) => (
+              <View key={ev.title} style={[styles.seasonRow, i > 0 && styles.seasonRowBorder]}>
+                <Text style={styles.seasonEmoji}>{ev.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.seasonTitle}>{ev.title}</Text>
+                  <Text style={styles.seasonDetail}>{ev.detail}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Espiada de Amanhã — assinante espia o pensamento de amanhã hoje;
             quem não assina vê o começo + cadeado (motivo pra assinar E pra
@@ -585,6 +659,7 @@ const styles = StyleSheet.create({
   },
   thoughtLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   thoughtText: { color: colors.text, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  thoughtToggle: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: 6 },
   lovePhraseCard: { marginHorizontal: 16, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   lovePhraseInner: { padding: 18 },
   lovePhraseHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
@@ -611,6 +686,20 @@ const styles = StyleSheet.create({
   peekBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   peekBtnText: { color: colors.purple, fontSize: 13, fontWeight: '800' },
   skyInviteLink: { color: colors.teal, fontSize: 13, fontWeight: '800', marginTop: 10 },
+  wrappedBar: { marginHorizontal: 16, marginBottom: 14, borderRadius: 16, overflow: 'hidden' },
+  wrappedBarInner: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
+  wrappedBarEmoji: { fontSize: 24 },
+  wrappedBarTitle: { color: '#2A1D00', fontSize: 14, fontWeight: '800' },
+  wrappedBarSubtitle: { color: 'rgba(42,29,0,0.75)', fontSize: 12, marginTop: 1 },
+  seasonCard: {
+    marginHorizontal: 16, marginBottom: 14, paddingHorizontal: 16, paddingVertical: 6,
+    backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+  },
+  seasonRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
+  seasonRowBorder: { borderTopWidth: 1, borderTopColor: colors.border },
+  seasonEmoji: { fontSize: 22, marginTop: 1 },
+  seasonTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  seasonDetail: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 2 },
   horoCard: { marginHorizontal: 16, marginTop: 0, borderRadius: 18, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
   horoInner: { padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   horoHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },

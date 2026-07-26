@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -13,6 +13,8 @@ import { canDrawToday, recordDraw } from '../lib/tarotDailyLimit';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { getBonusTarotReadings, consumeBonusTarotReading } from '../lib/cosmeticRewards';
+import { recordCardsSeen } from '../lib/tarotCollection';
+import { ROUTES } from '../routes';
 import OneTimeLock from '../components/OneTimeLock';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
@@ -31,6 +33,7 @@ const POSITIONS = ['Passado', 'Presente', 'Futuro'];
 
 export default function TarotScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — antes só cobria casal, o que destravava o Tarô por completo
   // pra quem usava sem parceiro (achado real de bug: dava pra tirar cartas em
@@ -108,6 +111,9 @@ export default function TarotScreen() {
     setOrientations(newOrientations);
     setJournalEntryId(null); // nova tiragem: solta o gravador de voz da entrada anterior
     recordDraw(theme.key);
+    // Álbum das 78 Cartas (lib/tarotCollection.js) — toda carta tirada fica
+    // colecionada; fire-and-forget, nunca atrasa a tiragem em si.
+    recordCardsSeen(shuffled.map((c) => c.id));
     markFeatureUsedOnce(FEATURE_KEY);
     // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
     // tela — trocar de tema ou tocar "Nova Tiragem" na mesma sessão deixaria
@@ -157,8 +163,23 @@ export default function TarotScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.title}>Tarô por Tema</Text>
-        <Text style={styles.subtitle}>Tarô que não dourá a pílula — Passado · Presente · Futuro</Text>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>Tarô por Tema</Text>
+            <Text style={styles.subtitle}>Tarô que não dourá a pílula — Passado · Presente · Futuro</Text>
+          </View>
+          {/* Álbum das 78 Cartas — cada carta tirada fica colecionada lá. */}
+          <TouchableOpacity
+            style={styles.albumBtn}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate(ROUTES.TAROT_ALBUM)}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir Álbum de Cartas"
+          >
+            <Ionicons name="albums" size={20} color="#fff" />
+            <Text style={styles.albumBtnText}>Álbum</Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -291,6 +312,12 @@ export default function TarotScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { paddingHorizontal: 20, paddingBottom: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  albumBtn: {
+    alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12, gap: 2,
+  },
+  albumBtnText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   title: { color: '#fff', fontSize: 24, fontWeight: '800' },
   subtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 4 },
   sectionLabel: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 12 },

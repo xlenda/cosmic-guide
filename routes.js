@@ -28,6 +28,8 @@ export const ROUTES = {
   LOGIN: 'Login',
 
   TAROT_MAIN: 'TarotMain',
+  TAROT_ALBUM: 'TarotAlbum',
+  MONTHLY_WRAPPED: 'MonthlyWrapped',
 
   PROFILE_MAIN: 'ProfileMain',
   PRIVACY: 'Privacy',

@@ -12,9 +12,10 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from '../lib/webAlert';
 import { colors } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
-import { isWebPushSupported, isWebPushEnabled, subscribeToWebPush } from '../lib/webPush';
+import { isWebPushSupported, isWebPushEnabled, subscribeToWebPush, webPushFailureMessage } from '../lib/webPush';
 
 const PROMPT_DECIDED_KEY = 'notif-prompt-decided';
 
@@ -51,7 +52,13 @@ export default function NotifPromptCard({ sign, hasActivity }) {
     if (busy) return;
     setBusy(true);
     try {
-      await subscribeToWebPush(sign && sign.name ? { name: sign.name, icon: sign.icon } : null);
+      const { ok, reason } = await subscribeToWebPush(sign && sign.name ? { name: sign.name, icon: sign.icon } : null);
+      if (!ok) {
+        // NUNCA falhar em silêncio — antes o card sumia sem explicação
+        // nenhuma quando a ativação falhava (achado real: bug reportado pelo
+        // dono do produto no Brave, que bloqueia push por padrão, 26/07/2026).
+        Alert.alert('Não foi possível ativar', webPushFailureMessage(reason) + '\n\nDepois de resolver, ative em Perfil > Pensamento cósmico diário.');
+      }
     } finally {
       // Decidiu (deu certo ou não) — não insiste de novo; quem mudar de ideia
       // tem o toggle de sempre em Perfil > Preferências.

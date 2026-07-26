@@ -81,6 +81,8 @@ const DiaryScreen = lazy(() => import('./screens/DiaryScreen'));
 const SocialScreen = lazy(() => import('./screens/SocialScreen'));
 const PlanosScreen = lazy(() => import('./screens/PlanosScreen'));
 const LoginScreen = lazy(() => import('./screens/LoginScreen'));
+const TarotAlbumScreen = lazy(() => import('./screens/TarotAlbumScreen'));
+const MonthlyWrappedScreen = lazy(() => import('./screens/MonthlyWrappedScreen'));
 
 function LoadingFallback() {
   return (
@@ -227,6 +229,7 @@ function HomeStack() {
         />
         <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
+        <Stack.Screen name={ROUTES.MONTHLY_WRAPPED} component={MonthlyWrappedScreen} />
       </Stack.Navigator>
     </Suspense>
   );
@@ -234,9 +237,12 @@ function HomeStack() {
 
 function TarotStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name={ROUTES.TAROT_MAIN} component={TarotScreen} />
-    </Stack.Navigator>
+    <Suspense fallback={<LoadingFallback />}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name={ROUTES.TAROT_MAIN} component={TarotScreen} />
+        <Stack.Screen name={ROUTES.TAROT_ALBUM} component={TarotAlbumScreen} />
+      </Stack.Navigator>
+    </Suspense>
   );
 }
 
