@@ -10,6 +10,7 @@ import { ROUTES } from '../routes';
 import HeroSection from '../components/HeroSection';
 import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
+import DailyMissionsCard from '../components/DailyMissionsCard';
 import { compatibility, compatPercent, aspects } from '../lib/signs';
 import { getTodaysThought, getThoughtForDate } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
@@ -18,6 +19,7 @@ import { getAnyBirthData } from '../lib/birthData';
 import { activeCelestialEvents } from '../lib/celestialSeasons';
 import { computeMonthlyWrapped, getWrappedMonth, isWrappedAvailable } from '../lib/monthlyWrapped';
 import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration, recordActiveDay } from '../lib/streak';
+import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
 import { localDayStr } from '../lib/localDay';
 import { getShieldCount } from '../lib/streakShield';
 import { getAgirData } from '../lib/coupleData';
@@ -293,7 +295,14 @@ export default function HomeScreen() {
       // O link vai junto de propósito: é ele que faz o WhatsApp/Telegram
       // mostrarem a prévia rica (OG tags em public/index.html) e traz quem
       // recebeu a frase pra dentro do app.
-      await Share.share({ message: `${todaysLovePhrase}\n\n💜 https://cosmicguide.cloud` });
+      const result = await Share.share({ message: `${todaysLovePhrase}\n\n💜 https://cosmicguide.cloud` });
+      // Missão 'compartilhar-frase' (lib/missions.js): marca a ação SÓ quando
+      // o share não foi descartado (iOS reporta dismissedAction; Android e web
+      // só resolvem em sucesso; cancelar na web rejeita e cai no catch). O
+      // crédito continua exclusivo de completeMission, que re-verifica.
+      if (!result || result.action !== Share.dismissedAction) {
+        recordMissionAction(MISSION_ACTIONS.FRASE_COMPARTILHADA);
+      }
     } catch {
       // usuário cancelou ou o compartilhamento falhou — sem tela de erro, mesmo padrão de RetrospectivaScreen.js
     }
@@ -447,6 +456,16 @@ export default function HomeScreen() {
             </Text>
           </View>
         </TouchableOpacity>
+
+        {/* Missões de hoje (motor lib/missions.js) — na Home SÓ pra quem está
+            solo: casal vê o MESMO card dentro de Agir (a tela de "fazer"),
+            mas solo nunca chega lá (SoloTeaser na borda da rota, App.js) e
+            ficaria sem o loop missão→token→Loja pedido pelo dono. */}
+        {!isCouple && (
+          <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+            <DailyMissionsCard />
+          </View>
+        )}
 
         {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
             só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}

@@ -276,6 +276,134 @@ test('recordMissionAction: idempotente e recusa chave desconhecida (typo em tela
   assert.deepStrictEqual(state.actions, { [key]: true });
 });
 
+// ---------------------------------------------------------------------------
+// Ataques da auditoria anti-farm (27/07/2026) — cada teste reproduz o golpe
+// e prova que ele rende ZERO tokens.
+
+test('ataque de relógio: voltar o aparelho pra ontem NÃO zera o estado nem recredita (flip rende 0)', async () => {
+  reset();
+
+  // Dia B (o "futuro"): dia perfeito, teto batido.
+  await completeAll(DAY_B);
+  await missions.claimDailyBonus(DAY_B);
+  const balanceAfterB = await tokens.getTokenBalance();
+  assert.strictEqual(balanceAfterB, missions.MISSIONS_DAILY_TOKEN_CAP);
+
+  // Golpe: relógio volta pro dia A. Antes do fix, stored.date !== today
+  // zerava tudo e o ciclo B→A→B rendia +25 por flip, sem limite.
+  const listA = await missions.getTodaysMissions(DAY_A_MORNING);
+  let farmed = 0;
+  for (const m of listA) {
+    await provideEvidence(m, DAY_A_MORNING);
+    const res = await missions.completeMission(m.id, DAY_A_MORNING);
+    farmed += res.awarded; // pode ser ok:true com 0, ou 'ja-concluida' — nunca > 0
+  }
+  const bonus = await missions.claimDailyBonus(DAY_A_MORNING);
+  farmed += bonus.awarded;
+
+  assert.strictEqual(farmed, 0, 'rollback de relógio não pode render nenhum token');
+  assert.strictEqual(await tokens.getTokenBalance(), balanceAfterB, 'saldo intocado após o flip');
+
+  // E voltando pro dia B (relógio "conserta"): também nada — já foi tudo pago.
+  const listB = await missions.getTodaysMissions(DAY_B);
+  for (const m of listB) {
+    const res = await missions.completeMission(m.id, DAY_B);
+    assert.strictEqual(res.awarded, 0);
+  }
+  assert.strictEqual(await tokens.getTokenBalance(), balanceAfterB);
+});
+
+test('ataque de wipe: apagar só cosmic-missions-daily mantendo o saldo não recredita (extrato segura o teto)', async () => {
+  reset();
+
+  await completeAll(DAY_A_NIGHT);
+  await missions.claimDailyBonus(DAY_A_NIGHT);
+  const balance = await tokens.getTokenBalance();
+  assert.strictEqual(balance, missions.MISSIONS_DAILY_TOKEN_CAP);
+
+  // Golpe: some só o estado do dia; saldo, histórico e Diário ficam.
+  mem.delete('cosmic-missions-daily');
+
+  const list = await missions.getTodaysMissions(DAY_A_NIGHT);
+  assert.ok(list.every((m) => !m.done), 'wipe zera os flags — é exatamente o golpe');
+
+  let farmed = 0;
+  for (const m of list) {
+    await provideEvidence(m, DAY_A_NIGHT); // refaz as evidências (trivial pro atacante)
+    const res = await missions.completeMission(m.id, DAY_A_NIGHT);
+    farmed += res.awarded;
+  }
+  const bonus = await missions.claimDailyBonus(DAY_A_NIGHT);
+  farmed += bonus.awarded;
+
+  assert.strictEqual(farmed, 0, 'com o extrato do dia batendo o teto, o wipe não pode render nada');
+  assert.strictEqual(await tokens.getTokenBalance(), balance, 'saldo idêntico ao de antes do wipe');
+
+  const missionCredits = (await tokens.getTokenHistory()).filter((h) => h.meta && h.meta.kind === 'mission');
+  assert.strictEqual(missionCredits.length, 4, 'continuam exatamente os 4 créditos legítimos (3 missões + bônus)');
+});
+
+test('trava cross-aba (web): reivindicação síncrona em localStorage bloqueia crédito duplo entre abas', async () => {
+  reset();
+
+  // Simula o ambiente web: window.localStorage síncrono, compartilhado entre
+  // "abas" (a fila serialized é por aba; a trava é o que cruza abas).
+  const webStore = new Map();
+  global.window = {
+    localStorage: {
+      getItem: (k) => (webStore.has(k) ? webStore.get(k) : null),
+      setItem: (k, v) => webStore.set(k, String(v)),
+      removeItem: (k) => webStore.delete(k),
+    },
+  };
+  try {
+    const [first] = await missions.getTodaysMissions(DAY_A_NIGHT);
+    await provideEvidence(first, DAY_A_NIGHT);
+    const one = await missions.completeMission(first.id, DAY_A_NIGHT);
+    assert.strictEqual(one.ok, true);
+    assert.strictEqual(one.awarded, missions.MISSION_REWARD);
+
+    // "Aba B": enxerga um AsyncStorage onde a missão ainda parece pendente
+    // (pior caso: estado E histórico ainda não sincronizados na visão dela).
+    mem.delete('cosmic-missions-daily');
+    mem.delete('cosmic-tokens-history');
+    await provideEvidence(first, DAY_A_NIGHT);
+    const two = await missions.completeMission(first.id, DAY_A_NIGHT);
+    assert.strictEqual(two.ok, false, 'a reivindicação síncrona da aba A tem que barrar a aba B');
+    assert.strictEqual(two.reason, 'ja-concluida');
+    assert.strictEqual(two.awarded, 0);
+    assert.strictEqual(await tokens.getTokenBalance(), missions.MISSION_REWARD, 'crédito único mesmo entre abas');
+  } finally {
+    delete global.window;
+  }
+});
+
+test('crash no meio do claim: flag gravada antes do saldo — nunca duplica, no pior caso deixa de pagar', async () => {
+  reset();
+  await completeAll(DAY_A_NIGHT);
+
+  // Simula "fechou o app" entre a gravação do estado e o crédito no saldo:
+  // o awardTokens falha (storage do saldo morre), mas o estado já foi salvo.
+  const balanceBefore = await tokens.getTokenBalance();
+  const origSetItem = asyncStorageMock.default.setItem;
+  asyncStorageMock.default.setItem = async (k, v) => {
+    if (k === 'cosmic-tokens-balance') throw new Error('app fechado no meio');
+    return origSetItem(k, v);
+  };
+  try {
+    await missions.claimDailyBonus(DAY_A_NIGHT);
+  } finally {
+    asyncStorageMock.default.setItem = origSetItem;
+  }
+
+  // Direção de falha correta: bônus marcado como resgatado, saldo não subiu…
+  assert.strictEqual(await tokens.getTokenBalance(), balanceBefore, 'crash não pode ter creditado');
+  const again = await missions.claimDailyBonus(DAY_A_NIGHT);
+  // …e reabrir o app NÃO permite farmar o bônus de novo.
+  assert.strictEqual(again.ok, false);
+  assert.strictEqual(again.reason, 'ja-resgatado');
+});
+
 test('pool: ~10 tipos, ids únicos e todo verificador é de um tipo conhecido', () => {
   const pool = missions.MISSION_POOL;
   assert.strictEqual(pool.length, 10);

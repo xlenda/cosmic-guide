@@ -19,6 +19,7 @@ import { PERSONAS, ACTIVE_PERSONA_ID } from '../lib/chatPersonas';
 import { getMockReply } from '../lib/chatResponses';
 import { fetchAiChatReply } from '../lib/aiClient';
 import { recordReadingCompletion } from '../lib/readingCompletion';
+import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
 import { useCouple } from '../context/CoupleContext';
 import { hasReachedFreeMessageLimit, incrementFreeMessagesSent, FREE_MESSAGE_LIMIT } from '../lib/chatFreeMessages';
 
@@ -182,6 +183,9 @@ export default function ChatScreen() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
+    // Missão diária 'conversa-mistica' (lib/missions.js) — marca a ação do
+    // dia; o crédito de tokens só acontece via completeMission, com evidência.
+    recordMissionAction(MISSION_ACTIONS.CHAT_MENSAGEM_ENVIADA);
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
 
     // Tenta a IA real (proxy no backend); se o servidor ainda não tiver a

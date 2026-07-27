@@ -23,6 +23,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+import DailyMissionsCard from '../components/DailyMissionsCard';
 import { useCouple } from '../context/CoupleContext';
 import { getAgirData, saveAgirData, getDescobrirData } from '../lib/coupleData';
 
@@ -199,19 +200,25 @@ export default function AgirScreen() {
   }
 
   if (!voce || !amor) {
+    // As missões diárias são PESSOAIS (não dependem do quiz do casal), então
+    // o card aparece mesmo aqui — quem ainda não fez o quiz não fica sem a
+    // parte de "fazer missão, acumular token".
     return (
       <View style={styles.root}>
         <GradientHeader title="Agir" subtitle="Pequenos gestos" onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
-        <View style={styles.emptyProfile}>
-          <Ionicons name="heart-outline" size={40} color={colors.accent} />
-          <Text style={styles.emptyProfileTitle}>Complete o quiz do casal primeiro</Text>
-          <Text style={styles.emptyProfileDesc}>
-            Precisamos saber os nomes de vocês para guardar as ideias, desafios e metas no lugar certo.
-          </Text>
-          <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
-            <Text style={styles.btnText}>Fazer o quiz do casal</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <DailyMissionsCard />
+          <View style={[styles.emptyProfile, { paddingVertical: 36 }]}>
+            <Ionicons name="heart-outline" size={40} color={colors.accent} />
+            <Text style={styles.emptyProfileTitle}>Complete o quiz do casal primeiro</Text>
+            <Text style={styles.emptyProfileDesc}>
+              Precisamos saber os nomes de vocês para guardar as ideias, desafios e metas no lugar certo.
+            </Text>
+            <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
+              <Text style={styles.btnText}>Fazer o quiz do casal</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -220,6 +227,11 @@ export default function AgirScreen() {
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <GradientHeader title="Agir" subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        {/* 0) Missões de hoje — motor em lib/missions.js, card em
+            components/DailyMissionsCard.js (pedido do dono: missões diárias
+            que acumulam token, trocáveis por brindes na Loja). */}
+        <DailyMissionsCard />
+
         {/* 1) Ideia de encontro */}
         <Text style={styles.sectionTitle}>Ideia para um encontro</Text>
         <View style={styles.card}>
