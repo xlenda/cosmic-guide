@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -16,7 +17,7 @@ import { personalSkyToday } from '../lib/personalSky';
 import { getAnyBirthData } from '../lib/birthData';
 import { activeCelestialEvents } from '../lib/celestialSeasons';
 import { computeMonthlyWrapped, getWrappedMonth, isWrappedAvailable } from '../lib/monthlyWrapped';
-import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration } from '../lib/streak';
+import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration, recordActiveDay } from '../lib/streak';
 import { getShieldCount } from '../lib/streakShield';
 import { getAgirData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
@@ -28,6 +29,18 @@ const WEEK_LABELS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
+
+// Dia local em YYYY-MM-DD (nunca toISOString/UTC — perto da meia-noite em
+// fuso negativo como o do Brasil, o dia UTC já virou e a "leitura de hoje"
+// apareceria como lida/não-lida do dia errado).
+function localDayStr(d = new Date()) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+// Último dia (local) em que a pessoa LEU o pensamento do dia — uma chave só,
+// sobrescrita a cada leitura, em vez de uma chave por data (não acumula lixo
+// no AsyncStorage; só interessa saber se o de HOJE já foi lido).
+const THOUGHT_READ_KEY = 'cosmic-daily-thought-last-read';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -60,6 +73,25 @@ export default function HomeScreen() {
   const [milestone, setMilestone] = useState(null);
   // Pensamento do dia recolhido por padrão — 2 linhas + "ler completo".
   const [thoughtExpanded, setThoughtExpanded] = useState(false);
+  // "Leitura do dia" (pedido do dono, 26/07/2026): o pensamento é UMA leitura
+  // diária de verdade, pra pessoa abrir todo dia — tipo devocional. Este flag
+  // diz se o de HOJE já foi lido (expandido); recarrega no foco porque à
+  // meia-noite o dia vira e o card volta a mostrar "leia o de hoje".
+  const [thoughtReadToday, setThoughtReadToday] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      AsyncStorage.getItem(THOUGHT_READ_KEY)
+        .then((v) => {
+          if (active) setThoughtReadToday(v === localDayStr());
+        })
+        .catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const loadStreak = useCallback(async () => {
     const [week, info, pendingMilestone, shields] = await Promise.all([
@@ -75,6 +107,24 @@ export default function HomeScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { loadStreak(); }, [loadStreak]));
+
+  // Marca a leitura do dia como lida (uma vez por dia) quando a pessoa expande
+  // o card. Ler a leitura do dia É atividade real no app, então conta como dia
+  // ativo na sequência — a MESMA recordActiveDay() que as telas de leitura já
+  // usam (via readingCompletion.js), nenhum streak novo inventado. Chamada
+  // direta (sem journal/tokens de leitura): expandir um texto não é gerar uma
+  // leitura de Tarô/Palma, só não pode deixar o dia em branco na sequência.
+  const markThoughtReadToday = useCallback(async () => {
+    if (thoughtReadToday) return;
+    setThoughtReadToday(true);
+    try {
+      await AsyncStorage.setItem(THOUGHT_READ_KEY, localDayStr());
+    } catch {}
+    await recordActiveDay();
+    // Reflete na hora o dot de hoje + contagem no widget da semana (e, se um
+    // marco 7/30/100 acabou de bater, loadStreak consome e celebra já).
+    loadStreak();
+  }, [thoughtReadToday, loadStreak]);
 
   // "Meta da semana" já existe dentro de Agir (texto livre + marcar cumprida)
   // mas ficava escondida lá — só ler/mostrar aqui, a interação real (definir/
@@ -131,11 +181,9 @@ export default function HomeScreen() {
   const dateStr = today.toLocaleDateString(lang === 'es' ? 'es-ES' : 'pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   // Data de hoje em YYYY-MM-DD (mesmo formato que DatePickerModal já monta a
-  // partir de campos locais — `${year}-${pad2(month)}-${pad2(day)}` — e que
-  // aspects()/planetPositions() esperam). Usa getFullYear/getMonth/getDate
-  // locais, não toISOString/UTC, pra não pular de dia perto da meia-noite em
-  // fusos negativos como o do Brasil.
-  const todayISO = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
+  // partir de campos locais e que aspects()/planetPositions() esperam) — ver
+  // localDayStr no topo pro porquê de ser dia LOCAL, nunca toISOString/UTC.
+  const todayISO = localDayStr(today);
 
   // Evento cósmico real (lib/signs.js aspects()) — hora omitida de propósito
   // (aspects/planetPositions já usam meio-dia como aproximação aceitável pra
@@ -372,24 +420,36 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Pensamento cósmico do dia — recolhido por padrão (2 linhas + "ler
-            completo"): o texto inteiro é longo e dominava a tela inicial
-            (pedido do dono do produto, 26/07/2026). O conteúdo não muda,
-            só o quanto aparece antes do toque. */}
+        {/* Pensamento cósmico do dia — a LEITURA DO DIA (pedido do dono,
+            26/07/2026): um insight por dia pra pessoa abrir todo dia, tipo
+            devocional. Recolhido por padrão (2 linhas + "ler completo");
+            expandir marca como lida hoje (AsyncStorage) e conta o dia ativo
+            na sequência — ver markThoughtReadToday acima. */}
         <TouchableOpacity
           activeOpacity={0.85}
-          style={styles.thoughtCard}
-          onPress={() => setThoughtExpanded((v) => !v)}
+          style={[styles.thoughtCard, !thoughtReadToday && styles.thoughtCardUnread]}
+          onPress={() => {
+            if (!thoughtExpanded) markThoughtReadToday();
+            setThoughtExpanded(!thoughtExpanded);
+          }}
         >
           <View style={styles.thoughtIcon}>
             <Ionicons name="sparkles" size={18} color={colors.gold} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.thoughtLabel}>Pensamento cósmico do dia</Text>
+            <View style={styles.thoughtHead}>
+              <Text style={styles.thoughtLabel}>{t('home.thought.label')}</Text>
+              <Text style={thoughtReadToday ? styles.thoughtReadBadge : styles.thoughtUnreadBadge}>
+                {thoughtReadToday ? t('home.thought.readToday') : t('home.thought.unread')}
+              </Text>
+            </View>
+            <Text style={styles.thoughtDate}>{dateStr}</Text>
             <Text style={styles.thoughtText} numberOfLines={thoughtExpanded ? undefined : 2}>
               {todaysThought}
             </Text>
-            <Text style={styles.thoughtToggle}>{thoughtExpanded ? 'Recolher ↑' : 'Ler completo ↓'}</Text>
+            <Text style={styles.thoughtToggle}>
+              {thoughtExpanded ? t('home.thought.collapse') : t('home.thought.expand')}
+            </Text>
           </View>
         </TouchableOpacity>
 
@@ -657,7 +717,17 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(255,200,92,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  thoughtLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
+  // Borda dourada sutil só enquanto a leitura de hoje NÃO foi lida — chama o
+  // olho pro hábito diário sem gritar; depois de lida volta à borda padrão.
+  thoughtCardUnread: { borderColor: colors.gold + '66' },
+  thoughtHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  // flexShrink: 1 é obrigatório aqui: Text em row no RN não encolhe por
+  // padrão (flexShrink 0) e o label uppercase (~27 chars em ES) + badge não
+  // cabem lado a lado em telas de 320pt — sem isso o badge sai da tela.
+  thoughtLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, flexShrink: 1 },
+  thoughtUnreadBadge: { color: colors.gold, fontSize: 11, fontWeight: '800' },
+  thoughtReadBadge: { color: colors.teal, fontSize: 11, fontWeight: '800' },
+  thoughtDate: { color: colors.textMuted, fontSize: 11, marginTop: 2, textTransform: 'capitalize' },
   thoughtText: { color: colors.text, fontSize: 14, lineHeight: 20, marginTop: 4 },
   thoughtToggle: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: 6 },
   lovePhraseCard: { marginHorizontal: 16, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },

@@ -10,6 +10,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from '../lib/webAlert';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -83,20 +84,35 @@ function LanguageRow({ lang, onChange, last }) {
   );
 }
 
+// Linha INTEIRA tocável, não só o Switch — relato real do dono (26/07/2026):
+// "no pensamento cósmico diário não dá pra clicar no ícone". O Switch fica
+// dentro de um View pointerEvents="none" (vira indicador visual) pra existir
+// UM único dono do toque: sem isso, na web o clique no checkbox nativo e o
+// onPress da linha disparariam JUNTOS (toggle duplo na mesma renderização).
+// accessibilityRole/State fazem a linha inteira se anunciar como interruptor
+// pra leitores de tela.
 function ToggleRow({ icon, label, value, onValueChange, last }) {
   return (
-    <View style={[styles.row, !last && styles.rowBorder]}>
+    <TouchableOpacity
+      style={[styles.row, !last && styles.rowBorder]}
+      onPress={() => onValueChange(!value)}
+      activeOpacity={0.7}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+    >
       <View style={styles.rowIcon}>
         <Ionicons name={icon} size={18} color={colors.accent} />
       </View>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: colors.border, true: colors.accent }}
-        thumbColor="#fff"
-      />
-    </View>
+      <View pointerEvents="none">
+        <Switch
+          value={value}
+          onValueChange={onValueChange}
+          trackColor={{ false: colors.border, true: colors.accent }}
+          thumbColor="#fff"
+        />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -141,6 +157,34 @@ export default function ProfileScreen() {
   const [goldOwned, setGoldOwned] = useState(false);
   const [goldActive, setGoldActive] = useState(isGoldThemeActive());
   const [recuperando, setRecuperando] = useState(false);
+  // user==null NÃO garante que não existe sessão pra sair: o supabase guarda
+  // os tokens em AsyncStorage (chave sb-<ref>-auth-token) e, quando o refresh
+  // falha (offline, refresh token expirado), getSession devolve null MAS o
+  // resíduo continua lá — a pessoa "deslogada" via só o botão vermelho de
+  // deletar, sem nenhuma saída. Detectamos o resíduo pela chave pra mostrar
+  // a saída também nesse caso; signOut() do supabase limpa o storage mesmo
+  // sem sessão ativa (o _removeSession roda incondicionalmente).
+  const [authResidue, setAuthResidue] = useState(false);
+  // Releitura da VERDADE no storage — usada no mount e depois de cada
+  // signOut(). Não dá pra assumir setAuthResidue(false) cegamente após sair:
+  // se o aparelho está offline, o auth-js devolve erro retryable e NÃO chega
+  // a remover a chave (o early-return de _signOut vem antes do
+  // _removeSession) — o resíduo continua lá e o botão precisa continuar
+  // visível, senão a sessão pode até "ressuscitar" no auto-refresh quando a
+  // rede voltar, depois da pessoa achar que saiu.
+  const recheckAuthResidue = React.useCallback(() => {
+    AsyncStorage.getAllKeys()
+      .then((keys) => setAuthResidue(keys.some((k) => /^sb-.*-auth-token$/.test(k))))
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (user) {
+      setAuthResidue(false);
+      return;
+    }
+    recheckAuthResidue();
+  }, [user, recheckAuthResidue]);
+  const canSignOut = Boolean(user) || authResidue;
 
   useFocusEffect(
     React.useCallback(() => {
@@ -185,21 +229,37 @@ export default function ProfileScreen() {
   }
 
   function confirmDeleteAccount() {
+    const botoes = [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair e apagar dados locais',
+        style: 'destructive',
+        onPress: async () => {
+          await clearAll();
+          await signOut();
+          navigation.popToTop();
+        },
+      },
+    ];
+    // Pedido do dono (26/07/2026): quem só quer TROCAR de conta acabava
+    // clicando no destrutivo por falta de opção. Entra como botão do MEIO
+    // (Cancelar | Só sair | Sair e apagar) sempre que há sessão pra encerrar
+    // — logada de verdade OU resíduo local de sessão expirada (canSignOut).
+    // Só desloga, sem clearAll: nomes/signos/sequência ficam intactos e o
+    // card de Conta passa a mostrar "Fazer login" pra entrar com outra conta.
+    if (canSignOut) {
+      botoes.splice(1, 0, {
+        text: 'Só sair da conta',
+        onPress: async () => {
+          await signOut();
+          recheckAuthResidue();
+        },
+      });
+    }
     Alert.alert(
       'Deletar conta',
       'Isso vai sair da sua conta e apagar os dados salvos neste aparelho (nomes, signos, datas e sequência do casal). A conta de login em si continua existindo — pra removê-la de vez, escreva pra contato@cosmicguide.cloud.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sair e apagar dados locais',
-          style: 'destructive',
-          onPress: async () => {
-            await clearAll();
-            await signOut();
-            navigation.popToTop();
-          },
-        },
-      ]
+      botoes
     );
   }
 
@@ -319,7 +379,19 @@ export default function ProfileScreen() {
   function confirmSignOut() {
     Alert.alert('Sair da conta', 'Tem certeza que quer sair?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: signOut },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        // Recheca o resíduo na mão: quando o signOut limpa só tokens órfãos
+        // (user já era null), o AuthContext não re-renderiza nada e o botão
+        // ficaria na tela apontando pra uma sessão que não existe mais.
+        // Releitura (e não `false` direto) porque o signOut pode ter falhado
+        // em limpar — ver comentário de recheckAuthResidue.
+        onPress: async () => {
+          await signOut();
+          recheckAuthResidue();
+        },
+      },
     ]);
   }
 
@@ -500,8 +572,10 @@ export default function ProfileScreen() {
         {/* RODAPÉ — saída e destruição, fora de qualquer card, onde todo mundo
             procura. O e-mail não vai mais no rótulo ("Sair (fulano@...)"):
             ele já aparece no card de Conta lá em cima, e um botão de rodapé com
-            e-mail dentro quebra em telas estreitas. */}
-        {user && (
+            e-mail dentro quebra em telas estreitas.
+            canSignOut (não `user`): sessão expirada deixa resíduo no storage
+            com user==null — sem isso, essa pessoa só via o botão vermelho. */}
+        {canSignOut && (
           <TouchableOpacity style={styles.logoutBtn} onPress={confirmSignOut} activeOpacity={0.85}>
             <Ionicons name="log-out-outline" size={18} color={colors.red} />
             <Text style={styles.logoutBtnText}>Sair da conta</Text>

@@ -60,7 +60,10 @@ const styles = StyleSheet.create({
   },
   title: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 8 },
   message: { color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
-  buttonRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 },
+  // flexWrap: o diálogo de deletar conta passou a ter 3 botões (26/07/2026)
+  // e os rótulos não cabem numa linha só em telas estreitas — sem wrap eles
+  // estourariam pra fora do card. rowGap separa as linhas quando quebra.
+  buttonRow: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 10, justifyContent: 'flex-end', marginTop: 20 },
   button: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1 },
   buttonText: { fontWeight: '700', fontSize: 14 },
 });
