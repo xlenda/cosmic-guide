@@ -1,0 +1,123 @@
+==============================================================================
+ ATIVAR A ALLOWLIST DE DONO (OWNER_EMAILS) — Cosmic Guide / forja-backend
+ Passo a passo pro Lenda rodar. 4 comandos, ~2 minutos.
+==============================================================================
+
+O QUE ISSO FAZ
+  O e-mail sanches925@gmail.com passa a ter ACESSO TOTAL ao app (paywall
+  aberto, as 5 telas de casal liberadas, card de "ja e assinante" na tela de
+  Planos), sem pagar e SEM criar assinatura nenhuma no banco.
+
+  Nao existe linha nova em `subscriptions`, nao existe evento de auditoria,
+  nao existe nada em relatorio/receita/funil. Sai do ar apagando uma linha
+  do .env.
+
+AVISO
+  QUALQUER e-mail que estiver nessa lista tem o produto inteiro de graca
+  enquanto estiver listado. Nao e desconto nem trial. So coloque e-mail que
+  voce controla. Ele nao aparece em relatorio nenhum, entao um e-mail listado
+  por engano vira cliente pagante perdido e ninguem percebe.
+
+------------------------------------------------------------------------------
+PASSO 1 — subir o codigo novo (backup automatico + restart incluidos)
+------------------------------------------------------------------------------
+No Git Bash, uma linha:
+
+    bash "C:/Users/XuXa/Downloads/Cosmic Guide/server-patches/deploy.sh"
+
+Isso envia os 4 arquivos desta mudanca:
+    src/application/ownerAllowlist.js              (novo)
+    src/application/GetAccountSubscriptionUseCase.js
+    src/application/ClaimSubscriptionUseCase.js
+    src/http/accountRoutes.js
+(o deploy.sh sobe a pasta src/ inteira; os demais arquivos de la foram
+conferidos por md5 contra a VPS e estao byte-a-byte iguais aos de producao,
+entao nada e regredido.)
+O deploy.sh ja faz backup do banco e do src/ antes, e ja reinicia o pm2.
+Ate aqui NADA mudou de comportamento: sem OWNER_EMAILS no .env, a allowlist
+fica desligada e ninguem entra.
+
+------------------------------------------------------------------------------
+PASSO 2 — ligar: a linha no .env
+------------------------------------------------------------------------------
+    ssh servidor "echo 'OWNER_EMAILS=sanches925@gmail.com' >> /root/forja-backend/.env"
+
+A linha exata que fica no arquivo /root/forja-backend/.env e:
+
+    OWNER_EMAILS=sanches925@gmail.com
+
+Mais de um e-mail (dono + testador), separados por virgula, sem espaco
+obrigatorio (espaco e maiuscula sao normalizados de qualquer jeito):
+
+    OWNER_EMAILS=sanches925@gmail.com,testador@exemplo.com
+
+Nao existe curinga: "*" ou "all" nao liberam ninguem (falha fechada).
+
+------------------------------------------------------------------------------
+PASSO 3 — reiniciar pra ler o .env
+------------------------------------------------------------------------------
+    ssh servidor "pm2 restart forja-backend --update-env"
+
+O processo sobe com `node --env-file=.env`, entao o .env so e lido no
+arranque: TODA mudanca em OWNER_EMAILS exige este restart.
+
+------------------------------------------------------------------------------
+PASSO 4 — conferir
+------------------------------------------------------------------------------
+a) a linha esta no .env e o servico esta de pe:
+
+    ssh servidor "grep OWNER_EMAILS /root/forja-backend/.env; curl -s http://127.0.0.1:3005/health"
+
+   esperado:  OWNER_EMAILS=sanches925@gmail.com
+              {"ok":true}
+
+b) no app, logado com sanches925@gmail.com: fecha e abre o app (ou espera ate
+   5 min — o app rechecha o acesso ao voltar pro primeiro plano). As telas de
+   assinante abrem e a tela de Planos passa a mostrar o card de assinante.
+
+c) o log confirma (uma linha por e-mail, na primeira vez que ele consulta):
+
+    ssh servidor "pm2 logs forja-backend --lines 100 --nostream | grep ownerAllowlist"
+
+   esperado:
+   [ownerAllowlist] acesso total concedido a sanches925@gmail.com por
+   OWNER_EMAILS - NAO e assinatura, nao conta em receita.
+
+------------------------------------------------------------------------------
+DESLIGAR (voltar a ver o paywall como um cliente novo)
+------------------------------------------------------------------------------
+    ssh servidor "sed -i '/^OWNER_EMAILS=/d' /root/forja-backend/.env && pm2 restart forja-backend --update-env"
+
+Confirmar que sumiu:
+
+    ssh servidor "grep -c OWNER_EMAILS /root/forja-backend/.env"   (esperado: 0)
+
+Deixar `OWNER_EMAILS=` vazio tem o mesmo efeito de apagar: lista vazia nao
+libera ninguem.
+
+Detalhe util: com a allowlist LIGADA voce nao consegue ver o paywall nem o
+checkout, porque pra sua conta o app inteiro esta liberado. Pra testar o funil
+de compra, desligue (comando acima) ou teste deslogado / com outra conta.
+
+------------------------------------------------------------------------------
+TESTES (opcional)
+------------------------------------------------------------------------------
+Ja rodaram aqui, 29/29 verdes, sem precisar de servidor (17 do comportamento
+normal + 12 de tentativa de arrombamento: Unicode, homoglifo, e-mail parecido,
+OWNER_EMAILS degenerada, campo forjado no corpo, coerencia da resposta):
+
+    node --test "C:/Users/XuXa/Downloads/Cosmic Guide/server-patches/test/ownerAllowlist.test.js"
+
+Pra deixar esse teste tambem no servidor e rodar junto com a suite de la:
+
+    scp "C:/Users/XuXa/Downloads/Cosmic Guide/server-patches/test/ownerAllowlist.test.js" servidor:/root/forja-backend/test/
+    ssh servidor "cd /root/forja-backend && npm test"
+
+------------------------------------------------------------------------------
+SE ALGO QUEBRAR
+------------------------------------------------------------------------------
+O deploy.sh imprime no fim o comando exato de rollback com o timestamp do
+backup daquele deploy (restaura src/ e o banco e reinicia). Alem disso, a
+allowlist sozinha nao muda nada enquanto OWNER_EMAILS nao existir no .env —
+entao o PASSO 2 e reversivel sozinho, so apagando a linha e reiniciando.
+==============================================================================

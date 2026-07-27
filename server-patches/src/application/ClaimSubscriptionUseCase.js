@@ -20,7 +20,12 @@ class ClaimSubscriptionUseCase {
   }
 
   // Retorna { ok:false, status:<http>, error } ou { ok:true, account }.
-  execute({ userId, email, correlationCode }) {
+  //
+  // emailVerified só existe pra ser REPASSADO ao GetAccountSubscriptionUseCase
+  // no fim (a resposta do /claim é o mesmo objeto de conta que o /me devolve).
+  // Nada aqui decide nada com ele, e ele vem sempre do token já verificado
+  // (isEmailVerified(req.authPayload) em accountRoutes.js) — nunca do corpo.
+  execute({ userId, email, correlationCode, emailVerified }) {
     const code = typeof correlationCode === "string" ? correlationCode.trim() : "";
     if (!CORRELATION_CODE_RE.test(code)) {
       return { ok: false, status: 400, error: "código inválido" };
@@ -60,7 +65,14 @@ class ClaimSubscriptionUseCase {
     // owner === userId cai direto aqui: reivindicar de novo o que já é seu é
     // no-op idempotente (o app pode chamar /claim sem medo depois de um retry).
 
-    return { ok: true, account: this.getAccountSubscription.execute({ userId, email }) };
+    // emailVerified repassado: sem ele o /claim devolveria um objeto de conta
+    // calculado como se o e-mail não fosse verificado — o que, pro dono, quer
+    // dizer "sem acesso" numa resposta que o /me acabou de dar como "com
+    // acesso". Falha fechada, então não é brecha; é DERIVA: duas rotas que
+    // deveriam responder a mesma coisa passam a discordar, e a próxima pessoa
+    // que for consertar essa discordância pode "resolver" afrouxando a
+    // verificação. Melhor as duas usarem a mesma entrada desde o começo.
+    return { ok: true, account: this.getAccountSubscription.execute({ userId, email, emailVerified }) };
   }
 }
 

@@ -6,6 +6,12 @@
 // clicava "Assinar" depois de já ter pago passava a apontar pra uma pendência
 // nova e o acesso sumia (o laço real do cliente Carlos, 26/07/2026).
 
+// ALLOWLIST DE DONO/TESTADOR (OWNER_EMAILS): único ponto deste arquivo que
+// concede acesso sem assinatura. Ela roda DEPOIS de tudo, por cima do resultado
+// real, e não escreve nada — a documentação completa (pra que serve, como
+// ligar/desligar, o aviso de "acesso total de graça") está em ownerAllowlist.js.
+const { parseOwnerEmails, isOwnerEmail, applyOwnerAccess } = require("./ownerAllowlist");
+
 // customer_email é o e-mail do PAGAMENTO — pode ser de outra pessoa (PayPal,
 // cartão do cônjuge). Sai sempre mascarado: reduz o que um token roubado
 // expõe e impede usar a rota como confirmador de e-mail de terceiro.
@@ -77,15 +83,29 @@ function toPublicShape(subscription) {
 }
 
 class GetAccountSubscriptionUseCase {
-  constructor(repository) {
+  // options.ownerEmails existe só pra teste (injeção direta). Em produção nada
+  // é passado e vale process.env.OWNER_EMAILS, lido a cada chamada — assim o
+  // caso de uso continua sendo construído uma única vez no arranque (server.js
+  // não muda) sem congelar a configuração no instante do require.
+  constructor(repository, options = {}) {
     this.repository = repository;
+    this.ownerEmailsRaw = options.ownerEmails;
+  }
+
+  ownerAllowlist() {
+    return parseOwnerEmails(this.ownerEmailsRaw ?? process.env.OWNER_EMAILS);
   }
 
   // userId/email vêm SEMPRE do token verificado (req.userId/req.userEmail) —
   // nunca de body/query. É por isso que não existe rota pública de busca por
   // e-mail: pedir "a assinatura do e-mail X" nunca é possível; só dá pra pedir
   // "a MINHA assinatura", e quem é "eu" é a assinatura do JWT que decide.
-  execute({ userId, email }) {
+  //
+  // emailVerified é o isEmailVerified(req.authPayload) calculado na rota sobre o
+  // payload já verificado (ver accountRoutes.js). Só a allowlist de dono depende
+  // dele; todo o resto do fluxo continua exatamente como estava, protegido pelo
+  // middleware requireVerifiedEmail.
+  execute({ userId, email, emailVerified }) {
     const repo = this.repository;
     let linkedNow = [];
 
@@ -124,7 +144,7 @@ class GetAccountSubscriptionUseCase {
     const withAccess = all.filter((s) => s.hasAccess());
     const best = pickBest(all);
 
-    return {
+    const account = {
       // Fonte autoritativa: quando a conta concede acesso, ela ganha do
       // ponteiro guardado no aparelho (que pode estar velho ou apontando pra
       // linha errada — foi o caso do Carlos, cujo aparelho apontava pra
@@ -143,6 +163,20 @@ class GetAccountSubscriptionUseCase {
       linkedNow: linkedNow.length,
       subscriptions: all.map(toPublicShape),
     };
+
+    // ALLOWLIST DE DONO — por último e POR CIMA, nunca no lugar. O resultado
+    // real acima é calculado igual pra todo mundo (inclusive pro dono), então
+    // nada some da resposta: se ele tiver uma assinatura de verdade um dia, os
+    // dados dela continuam aparecendo. Aqui só se garante que o acesso não pode
+    // ser negado, e a origem sai marcada como owner_allowlist.
+    //
+    // NÃO cria linha em subscriptions, NÃO grava evento, NÃO toca em webhook:
+    // este bloco é uma transformação do objeto de resposta e nada mais.
+    if (isOwnerEmail({ email, emailVerified, allowlist: this.ownerAllowlist() })) {
+      return applyOwnerAccess(account, email);
+    }
+
+    return account;
   }
 }
 

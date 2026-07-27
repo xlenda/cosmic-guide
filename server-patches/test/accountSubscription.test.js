@@ -422,3 +422,66 @@ test("e-mail de login igual ao customer_email de linha JÁ vinculada a outra con
   assert.equal(res.body.linkedNow, 0);
   assert.equal(repo.findByCorrelationCode(CODE_OUTRO_DONO).supabaseUserId, "user-carlos");
 });
+
+// ---------------------------------------------------------------------------
+// 7) ALLOWLIST DE DONO (OWNER_EMAILS) pela ROTA — a costura que nenhum outro
+//    teste toca.
+//
+// test/ownerAllowlist.test.js exercita o caso de uso DIRETO, passando
+// `emailVerified` na mão. Quem calcula esse campo de verdade é o handler do
+// GET /me, com `emailVerified: isEmailVerified(req.authPayload)`. Se esse
+// pedaço quebrar (campo renomeado no req, import trocado, alguém removendo a
+// linha num merge), o caso de uso passa a receber `undefined`, a allowlist
+// falha FECHADA e ninguém percebe: não tem erro, não tem log, o dono só
+// continua vendo paywall e o teste unitário continua verde. Estes dois testes
+// existem só pra isso — provar a ligação de ponta a ponta.
+//
+// OWNER_EMAILS entra por injeção (options.ownerEmails) em vez de process.env
+// pra não deixar estado global vazando entre testes.
+// ---------------------------------------------------------------------------
+
+function buildAppComoDono(repository, ownerEmails) {
+  const getAccountSubscription = new GetAccountSubscriptionUseCase(repository, { ownerEmails });
+  const claimSubscription = new ClaimSubscriptionUseCase(repository, getAccountSubscription);
+  const app = express();
+  app.use(express.json());
+  app.use(
+    "/api/subscription",
+    buildAccountRouter({ getAccountSubscription, claimSubscription, requireAuth: fakeAuth, requireVerifiedEmail })
+  );
+  return app;
+}
+
+test("OWNER_EMAILS pela rota: o dono recebe acesso total em GET /me, sem linha no banco", async () => {
+  const repo = new FakeSubscriptionRepository([]);
+  const app = buildAppComoDono(repo, "sanches925@gmail.com");
+
+  const dono = await supertest(app).get("/api/subscription/me").set(authHeader("user-dono", "sanches925@gmail.com"));
+  assert.equal(dono.status, 200);
+  assert.equal(dono.body.hasAccess, true, "a rota não está repassando emailVerified pro caso de uso");
+  assert.equal(dono.body.hasCoupleAccess, true);
+  assert.equal(dono.body.status, "active");
+  assert.equal(dono.body.ownerAccess, true);
+  // A prova de que não virou receita: nenhuma linha, nenhum evento.
+  assert.equal(repo.rows.length, 0);
+  assert.deepEqual(repo.events, []);
+
+  // Mesma rota, mesmo processo, e-mail de fora: continua no paywall.
+  const outro = await supertest(app).get("/api/subscription/me").set(authHeader("user-x", "outro@gmail.com"));
+  assert.equal(outro.body.hasAccess, false);
+  assert.equal(outro.body.ownerAccess, undefined);
+});
+
+test("OWNER_EMAILS pela rota: e-mail do dono SEM verificação no token não abre nada", async () => {
+  // O 403 do requireVerifiedEmail é a primeira barreira; o isEmailVerified
+  // recalculado no handler é a segunda. Aqui a primeira já responde — e é isso
+  // que tem que continuar acontecendo: quem cria uma conta com o e-mail do dono
+  // e não confirma o e-mail não recebe o produto.
+  const repo = new FakeSubscriptionRepository([]);
+  const res = await supertest(buildAppComoDono(repo, "sanches925@gmail.com"))
+    .get("/api/subscription/me")
+    .set(authHeader("user-impostor", "sanches925@gmail.com", false));
+
+  assert.equal(res.status, 403);
+  assert.equal(res.body.hasAccess, undefined);
+});

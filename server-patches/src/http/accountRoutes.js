@@ -7,6 +7,14 @@
 // nenhum. Nada é depreciado aqui; isto é UNIÃO, não substituição.
 const express = require("express");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+// requireVerifiedEmail continua chegando por injeção (é middleware, e o teste
+// troca o requireAuth por um falso). isEmailVerified vem importado direto de
+// propósito: é uma função PURA sobre o payload já verificado, e o resultado dela
+// é o que autoriza a allowlist de dono (OWNER_EMAILS) — a única concessão de
+// acesso sem assinatura. Calcular no próprio handler, em vez de confiar num
+// efeito colateral do middleware, faz esse caminho continuar FECHADO mesmo que
+// alguém remova o requireVerifiedEmail da rota um dia.
+const { isEmailVerified } = require("./accountAuth");
 
 // Chaveia o balde por usuário quando há sessão, por IP quando não há.
 // POR QUÊ: em rede móvel dezenas de assinantes saem pelo MESMO IP (NAT), e o
@@ -63,7 +71,14 @@ function buildAccountRouter({ getAccountSubscription, claimSubscription, require
   // duas vezes nem duplicam auditoria.
   router.get("/me", preAuthLimiter, requireAuth, requireVerifiedEmail, meLimiter, (req, res) => {
     try {
-      res.json(getAccountSubscription.execute({ userId: req.userId, email: req.userEmail }));
+      res.json(
+        getAccountSubscription.execute({
+          userId: req.userId,
+          email: req.userEmail,
+          // Sempre do token verificado — nunca de body/query. Ver ownerAllowlist.js.
+          emailVerified: isEmailVerified(req.authPayload),
+        })
+      );
     } catch (err) {
       console.error("[api/subscription/me] erro:", err && err.message);
       res.status(500).json({ error: "falha ao consultar assinatura" });
@@ -73,7 +88,15 @@ function buildAccountRouter({ getAccountSubscription, claimSubscription, require
   router.post("/claim", preAuthLimiter, requireAuth, requireVerifiedEmail, claimLimiter, (req, res) => {
     try {
       const { correlationCode } = req.body || {};
-      const result = claimSubscription.execute({ userId: req.userId, email: req.userEmail, correlationCode });
+      const result = claimSubscription.execute({
+        userId: req.userId,
+        email: req.userEmail,
+        correlationCode,
+        // Mesma origem do /me — token verificado, nunca body/query. O /claim
+        // termina devolvendo o MESMO objeto de conta que o /me monta, então ele
+        // precisa das mesmas entradas, senão as duas rotas discordam.
+        emailVerified: isEmailVerified(req.authPayload),
+      });
       if (!result.ok) return res.status(result.status).json({ error: result.error });
       res.json(result.account);
     } catch (err) {
