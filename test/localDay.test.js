@@ -7,9 +7,9 @@
 //   - bolinhas da semana deslocadas depois das 21h (getWeekActivity);
 //   - leitura de 31/07 21h30 caindo no Wrapped de AGOSTO (journal.date).
 //
-// Estes testes travam a convenção única (lib/localDay.js) + a janela de
-// tolerância de migração de 1 dia (chaves antigas gravadas em UTC não podem
-// zerar streak de ninguém na virada de convenção).
+// Estes testes travam a convenção única (lib/localDay.js). NÃO existe janela de
+// tolerância de migração: ela foi tentada e removida em 27/07/2026 (inflava a
+// sequência de todo usuário novo e roubava o papel do Escudo — ver seção 4).
 //
 // TZ fixo em America/Sao_Paulo pro teste valer igual em qualquer máquina —
 // precisa ser setado ANTES de qualquer uso de Date.
@@ -77,7 +77,7 @@ function reset() {
 }
 
 const ACTIVE_DAYS_KEY = 'cosmic-active-days';
-const MIGRATION_KEY = 'cosmic-active-days-local-migrated';
+
 const SHIELDS_KEY = 'cosmic-streak-shields';
 
 function seedDays(days) {
@@ -111,7 +111,6 @@ test('localISOString grava timestamp local (sem Z) que reparseia no mesmo dia/ho
 
 test('seg 9h + ter 22h + qua 9h = sequência de 3, sem buraco e sem gastar escudo', async () => {
   reset();
-  mem.async.set(MIGRATION_KEY, '1'); // instalação já migrada — testa só o fluxo novo
   mem.async.set(SHIELDS_KEY, '2'); // escudos comprados que o bug antigo drenava
 
   setNow('2026-07-20T09:00:00-03:00'); // segunda de manhã
@@ -133,7 +132,6 @@ test('seg 9h + ter 22h + qua 9h = sequência de 3, sem buraco e sem gastar escud
 
 test('getWeekActivity depois das 21h marca HOJE na bolinha de hoje, não na de amanhã', async () => {
   reset();
-  mem.async.set(MIGRATION_KEY, '1');
   seedDays({ '2026-07-21': true }); // terça, gravada pelo próprio uso das 22h
 
   setNow('2026-07-21T22:30:00-03:00'); // terça 22h30 local (quarta em UTC)
@@ -149,51 +147,50 @@ test('getWeekActivity depois das 21h marca HOJE na bolinha de hoje, não na de a
   assert.equal(wednesday.active, false);
 });
 
-// === 4) migração UTC->local: ninguém perde streak na virada ==================
+// === 4) virada UTC->local NÃO ganha tolerância (tentada e removida) ==========
+//
+// Uma "tolerância de migração" que cobria o buraco de ontem quando hoje estava
+// marcado foi escrita e REMOVIDA em 27/07/2026: "ontem vazio + hoje marcado" é
+// indistinguível entre o deslocamento de fuso e uma falta de verdade. Cobrir de
+// graça dava sequência 2 pra todo mundo no primeiro dia de uso e impedia o
+// Escudo comprado de ser consumido justamente no caso pra que ele existe
+// (pego pela regressão E2E [2]). Os testes abaixo trancam a ausência dela.
 
-test('primeira leitura pós-update: buraco de ontem coberto pelo registro UTC-deslocado, sem gastar escudo', async () => {
+test('usuário NOVO no primeiro dia de uso tem sequência 1, nunca 2', async () => {
   reset();
-  mem.async.set(SHIELDS_KEY, '1');
-  // Histórico gravado pelo código antigo (UTC): uso de dia 19 de manhã + uso
-  // de dia 20 às 22h que foi gravado como dia 21 — buraco falso no dia 20.
-  seedDays({ '2026-07-19': true, '2026-07-21': true });
+  seedDays({ '2026-07-21': true }); // só hoje, nenhum histórico
 
   setNow('2026-07-21T12:00:00-03:00');
   const info = await streak.getStreakInfo();
   restoreNow();
 
-  assert.equal(info.currentStreak, 3, 'a virada de convenção não pode zerar streak de quem usou todo dia');
-  assert.equal(storedDays()['2026-07-20'], 'migrated', 'o dia coberto fica gravado permanente (como o shield)');
-  assert.equal(mem.async.get(SHIELDS_KEY), '1', 'a tolerância de migração nunca consome escudo');
-  assert.equal(mem.async.get(MIGRATION_KEY), '1', 'flag setado: a tolerância é de UMA vez só');
+  assert.equal(info.currentStreak, 1, 'cobrir "ontem" de graça inflava a sequência de todo usuário novo');
+  assert.equal(storedDays()['2026-07-20'], undefined, 'nenhum dia é inventado antes do histórico começar');
 });
 
-test('tolerância NÃO se aplica de novo depois da primeira leitura (flag já setado)', async () => {
+test('buraco de ontem consome o Escudo comprado — é exatamente pra isso que ele existe', async () => {
   reset();
-  mem.async.set(MIGRATION_KEY, '1');
+  mem.async.set(SHIELDS_KEY, '1');
+  seedDays({ '2026-07-19': true, '2026-07-21': true }); // buraco no dia 20
+
+  setNow('2026-07-21T12:00:00-03:00');
+  const info = await streak.getStreakInfo();
+  restoreNow();
+
+  assert.equal(info.currentStreak, 3, 'o escudo faz a ponte sobre o dia 20');
+  assert.equal(storedDays()['2026-07-20'], 'shield', 'o dia coberto fica marcado como protegido pelo escudo');
+  assert.equal(mem.async.get(SHIELDS_KEY), '0', 'o escudo foi consumido (3→2 no cenário E2E [2])');
+});
+
+test('sem escudo, buraco real quebra a sequência como sempre quebrou', async () => {
+  reset();
   seedDays({ '2026-07-19': true, '2026-07-21': true }); // mesmo buraco, sem escudo
 
   setNow('2026-07-21T12:00:00-03:00');
   const info = await streak.getStreakInfo();
   restoreNow();
 
-  assert.equal(info.currentStreak, 1, 'falta real depois da migração volta a contar como sempre contou');
-  assert.notEqual(storedDays()['2026-07-20'], 'migrated');
-});
-
-test('tolerância NÃO inventa dia quando não há registro UTC-deslocado cobrindo (hoje vazio)', async () => {
-  reset();
-  // Última atividade há dias — não existe registro de "hoje" que possa ser a
-  // versão UTC-deslocada de ontem, então não há o que perdoar.
-  seedDays({ '2026-07-17': true });
-
-  setNow('2026-07-21T12:00:00-03:00');
-  const info = await streak.getStreakInfo();
-  restoreNow();
-
-  assert.equal(info.currentStreak, 0);
-  assert.equal(storedDays()['2026-07-20'], undefined);
-  assert.equal(mem.async.get(MIGRATION_KEY), '1', 'a janela é a PRIMEIRA leitura — usada ou não, fecha');
+  assert.equal(info.currentStreak, 1, 'falta real conta como sempre contou');
 });
 
 // === 5) journal: leitura noturna fica no mês local (Wrapped certo) ===========
