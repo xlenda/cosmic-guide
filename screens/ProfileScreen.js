@@ -20,6 +20,7 @@ import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import Constants from 'expo-constants';
 import { supabase } from '../lib/supabaseClient';
 import { getTokenBalance } from '../lib/tokens';
 import { hasSeloCosmico, hasGoldTheme } from '../lib/cosmeticRewards';
@@ -128,10 +129,14 @@ function InfoRow({ icon, label, value, last }) {
   );
 }
 
-// App version — hardcoded honestamente (não lê de lugar nenhum que possa
-// divergir do que foi de fato publicado); atualizar manualmente se um dia
-// isso importar de verdade pro usuário.
-const APP_VERSION = '1.0.0';
+// Versão vinda do app.json pelo próprio bundle publicado (expo-constants), em
+// vez de um literal aqui: a versão ficou presa em 1.0.0 enquanto o app.json já
+// tinha avançado, e a tela mostrava um número que não era o que estava no ar
+// (achado do dono, 27/07/2026). Assim ela nunca mais diverge do que foi
+// publicado de verdade. O fallback só existe pro caso de o manifesto não estar
+// disponível (ambiente de teste) — nunca inventa número novo.
+const APP_VERSION =
+  Constants.expoConfig?.version || Constants.manifest?.version || '—';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
