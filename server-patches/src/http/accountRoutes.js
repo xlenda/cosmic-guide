@@ -71,6 +71,19 @@ function buildAccountRouter({ getAccountSubscription, claimSubscription, require
   // duas vezes nem duplicam auditoria.
   router.get("/me", preAuthLimiter, requireAuth, requireVerifiedEmail, meLimiter, (req, res) => {
     try {
+      // Resposta é POR USUÁRIO e o Express põe ETag em todo JSON por padrão —
+      // em produção isso já estava rendendo 304 de verdade (visto no log do
+      // nginx, 27/07/2026). Cache de navegador é indexado por URL, não pelo
+      // Authorization: duas contas no MESMO navegador (ou qualquer proxy no
+      // caminho) podiam receber uma a resposta da outra, incluindo o
+      // correlationCode. `no-store` + `Vary: Authorization` fecham os dois
+      // casos; `Pragma`/`Expires` cobrem proxy velho que ignora Cache-Control.
+      res.set({
+        "Cache-Control": "no-store, no-cache, must-revalidate, private",
+        Pragma: "no-cache",
+        Expires: "0",
+        Vary: "Authorization",
+      });
       res.json(
         getAccountSubscription.execute({
           userId: req.userId,
