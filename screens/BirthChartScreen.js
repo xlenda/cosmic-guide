@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import * as SecureStore from 'expo-secure-store';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import DatePickerModal from '../components/DatePickerModal';
@@ -15,7 +14,7 @@ import { getBirthData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
-import { saveSoloBirthMirror } from '../lib/birthData';
+import { saveSoloBirthMirror, readSecureItemWithMirror, writeSecureItemWithMirror } from '../lib/birthData';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OneTimeLock from '../components/OneTimeLock';
 
@@ -64,22 +63,15 @@ function pad2(n) {
 }
 
 // SecureStore não tem implementação real na web (expo-secure-store/*.web.ts é um
-// stub vazio) — sem try/catch, ler/gravar aqui rejeitaria a Promise sem tratamento
-// e quebraria a tela inteira na build web (este app é publicado como web export).
-// Mesmo padrão de proteção já usado em lib/coupleData.js (readSecureJSON/saveCoupleProfile).
-async function readSecureItem(key) {
-  try {
-    return await SecureStore.getItemAsync(key);
-  } catch {
-    return null;
-  }
-}
-
-async function writeSecureItem(key, value) {
-  try {
-    await SecureStore.setItemAsync(key, value);
-  } catch {}
-}
+// stub vazio) — e as versões antigas destes helpers só engoliam o erro num
+// catch{}: na web NADA persistia, a pessoa preenchia data/hora/cidade, via o
+// mapa, dava F5 e o formulário voltava vazio, pra sempre (bug real reproduzido
+// por tester, 26/07/2026). Agora ambos vêm de lib/birthData.js e espelham em
+// AsyncStorage ('<chave>-mirror') quando o SecureStore falha — mesmo padrão de
+// lib/coupleData.js (writeSecureJSON) e mesmo sufixo que deleteAllCoupleData
+// já apaga em "apagar meus dados". No celular nada muda (Keychain/Keystore).
+const readSecureItem = readSecureItemWithMirror;
+const writeSecureItem = writeSecureItemWithMirror;
 
 function formatDateBR(iso) {
   if (!iso) return '';

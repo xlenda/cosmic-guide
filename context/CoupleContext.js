@@ -4,6 +4,7 @@
 // o AsyncStorage/SecureStore por conta própria e ficar fora de sincronia.
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getCoupleData,
   saveCoupleProfile,
@@ -15,6 +16,8 @@ import {
   combineAccessResults,
 } from '../lib/coupleData';
 import { checkAccountAccess, autoLinkDeviceCodes } from '../lib/accountSubscription';
+import { unsubscribeFromWebPush } from '../lib/webPush';
+import { cancelDailyThought } from '../lib/notifications';
 import { useAuth } from './AuthContext';
 
 const CoupleContext = createContext(null);
@@ -27,7 +30,11 @@ const CoupleContext = createContext(null);
 const OWNER_EMAIL = 'sanches925@gmail.com';
 
 export function CoupleProvider({ children }) {
-  const { user } = useAuth();
+  // authLoading: o AuthProvider resolve a sessão de forma ASSÍNCRONA — no
+  // primeiro render user é SEMPRE null, mesmo pra quem está logado. Enquanto
+  // authLoading for true, "deslogado" ainda não é um fato: nenhuma checagem
+  // de acesso feita nesse intervalo pode contar como resposta definitiva.
+  const { user, loading: authLoading } = useAuth();
   const isOwnerAccount = user?.email === OWNER_EMAIL;
   const [coupleData, setCoupleData] = useState(null);
   const [soloSign, setSoloSign] = useState(null);
@@ -85,11 +92,17 @@ export function CoupleProvider({ children }) {
       // concede acesso e traz o correlationCode, ele é regravado no aparelho —
       // então um aparelho novo (ou com ponteiro podre) se conserta sozinho no
       // primeiro login e continua funcionando deslogado depois.
+      // user=null com a sessão AINDA carregando não é "deslogado", é "não sei
+      // ainda" — por isso confirmed: !authLoading nos dois placeholders que
+      // dependem da conta. Sem isso, a checagem do arranque devolvia
+      // "não assina, CONFIRMADO" pra um assinante solo logado, e as telas
+      // queimavam a prévia grátis vitalícia dele antes da sessão resolver
+      // (bug reproduzido ao vivo pelo tester, 26/07/2026).
       user
         ? checkAccountAccess({ voce: p?.voce, amor: p?.amor, email: user.email })
-        : Promise.resolve({ available: false, hasAccess: false, confirmed: true, entries: [] }),
+        : Promise.resolve({ available: false, hasAccess: false, confirmed: !authLoading, entries: [] }),
       p ? checkSubscriptionStatus(p.voce, p.amor) : Promise.resolve({ hasAccess: false, confirmed: true }),
-      user?.email ? checkSoloSubscriptionStatus(user.email) : Promise.resolve({ hasAccess: false, confirmed: true }),
+      user?.email ? checkSoloSubscriptionStatus(user.email) : Promise.resolve({ hasAccess: false, confirmed: !authLoading }),
     ]);
     if (myId !== requestIdRef.current) return;
 
@@ -119,15 +132,25 @@ export function CoupleProvider({ children }) {
         entries: accountEstado.entries,
       }).catch(() => {});
     }
-  }, [coupleData, user]);
+  }, [coupleData, user, authLoading]);
+
+  // refresh é estável (deps []) de propósito — save/saveSolo/clearAll e o
+  // efeito de arranque dependem dele e não podem re-rodar a cada render. Mas a
+  // versão antiga (eslint-disable + chamada direta) capturava PARA SEMPRE o
+  // refreshAccess do PRIMEIRO render, quando user ainda é null — então o
+  // arranque só consultava o código de CASAL do aparelho e um assinante SOLO
+  // logado abria o app direto no paywall (o bug do "libera uma vez e cai pra
+  // assinatura de novo" reproduzido pelo tester, 26/07/2026). O ref entrega
+  // sempre a versão mais recente sem desestabilizar refresh.
+  const refreshAccessRef = useRef(refreshAccess);
+  refreshAccessRef.current = refreshAccess;
 
   const refresh = useCallback(async () => {
     const [profile, sign] = await Promise.all([getCoupleData(), getUserSign()]);
     setCoupleData(profile);
     setSoloSign(sign);
     setLoading(false);
-    await refreshAccess(profile);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    await refreshAccessRef.current(profile);
   }, []);
 
   const save = useCallback(
@@ -153,6 +176,27 @@ export function CoupleProvider({ children }) {
   );
 
   const clearAll = useCallback(async () => {
+    // LGPD: "apagar meus dados" também precisa desfazer o rastro FORA do
+    // AsyncStorage do casal — a inscrição de Web Push (o servidor guarda
+    // signo/streak/diário vinculados ao endpoint, ver lib/webPush.js) e a
+    // notificação diária agendada no aparelho (lib/notifications.js). Sem
+    // isso, o servidor continuava sabendo o signo e o streak de quem acabou
+    // de pedir pra apagar tudo. Nenhuma das duas pode derrubar o resto da
+    // limpeza se falhar (as duas gravam em storage fora de try/catch).
+    await unsubscribeFromWebPush().catch(() => {});
+    await cancelDailyThought().catch(() => {});
+    try {
+      // Mesmas chaves de lib/webPush.js (ENABLED_KEY) e lib/notifications.js
+      // (ENABLED_KEY/NOTIFICATION_ID_KEY) — as funções acima as deixam como
+      // 'false'; aqui elas saem de vez, como todo o resto dos dados.
+      await AsyncStorage.multiRemove([
+        'web-push-enabled',
+        'daily-thought-notifications-enabled',
+        'daily-thought-notification-id',
+      ]);
+    } catch {
+      // segue — o que importava pro servidor (unsubscribe) já foi tentado acima.
+    }
     await deleteAllCoupleData(user?.email);
     await refresh();
   }, [refresh, user]);
@@ -160,6 +204,19 @@ export function CoupleProvider({ children }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // A sessão do Supabase resolve DEPOIS do arranque (AuthProvider é async) —
+  // o refresh() acima roda com user=null e, portanto, sem consultar a conta
+  // nem o código solo. Quando a sessão resolve (ou a pessoa loga/desloga
+  // depois), reconsulta as três fontes com o user real; sem isso, o assinante
+  // solo ficava preso no paywall do arranque até o recheck de 5 minutos.
+  // Também espera o `loading` do perfil: se disparasse antes de coupleData
+  // existir, esta chamada (a mais nova, ver requestIdRef) descartaria a do
+  // arranque e consultaria as fontes SEM o código de casal do aparelho.
+  useEffect(() => {
+    if (authLoading || loading) return;
+    refreshAccessRef.current();
+  }, [authLoading, loading, user?.id]);
 
   // A checagem do cold start (dentro de refresh()) já tenta 3x sozinha, mas uma
   // falha realmente prolongada (ex.: backend fora do ar por minutos) só seria
@@ -190,7 +247,11 @@ export function CoupleProvider({ children }) {
         loading,
         hasAccess,
         hasCoupleAccess,
-        accessConfirmed,
+        // Enquanto a sessão não resolveu, "ainda não sei" — nenhuma tela pode
+        // marcar prévia grátis usada (lib/featureUsage.js) nem travar no
+        // OneTimeLock com base numa checagem que ignorou a conta logada. As
+        // telas já tratam accessConfirmed=false como "não marcar, não bloquear".
+        accessConfirmed: authLoading ? false : accessConfirmed,
         isOwnerAccount,
         subscriptionStatus,
         currentPeriodEnd,

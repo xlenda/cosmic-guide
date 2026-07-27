@@ -27,6 +27,10 @@ export default function LoginScreen() {
   const [mode, setMode] = useState(MODE.SIGN_IN);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // "Olhinho" de mostrar/esconder a senha — pedido real de tester (26/07/2026):
+  // ele digitou a senha errada, recebeu "E-mail ou senha incorretos." e não
+  // tinha como conferir o que tinha digitado.
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
@@ -95,15 +99,26 @@ export default function LoginScreen() {
           />
 
           <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
-            editable={!loading}
-          />
+          <View style={styles.passwordRow}>
+            <TextInput
+              style={[styles.input, styles.passwordInput]}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry={!showPassword}
+              editable={!loading}
+            />
+            <TouchableOpacity
+              style={styles.eyeBtn}
+              onPress={() => setShowPassword((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Esconder senha' : 'Mostrar senha'}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
 
           {error !== '' && <Text style={styles.errorText}>{error}</Text>}
           {info !== '' && <Text style={styles.infoText}>{info}</Text>}
@@ -155,6 +170,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     paddingHorizontal: 14,
     paddingVertical: 12,
+  },
+  // Campo de senha com o "olhinho" sobreposto à direita — o paddingRight extra
+  // impede a senha digitada de passar por baixo do ícone.
+  passwordRow: { position: 'relative', justifyContent: 'center' },
+  passwordInput: { paddingRight: 46 },
+  eyeBtn: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
   },
   errorText: { color: colors.red, fontSize: 13, marginTop: 14, textAlign: 'center', lineHeight: 19 },
   infoText: { color: colors.gold, fontSize: 13, marginTop: 14, textAlign: 'center', lineHeight: 19 },

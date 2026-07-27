@@ -18,6 +18,7 @@ import { getAnyBirthData } from '../lib/birthData';
 import { activeCelestialEvents } from '../lib/celestialSeasons';
 import { computeMonthlyWrapped, getWrappedMonth, isWrappedAvailable } from '../lib/monthlyWrapped';
 import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration, recordActiveDay } from '../lib/streak';
+import { localDayStr } from '../lib/localDay';
 import { getShieldCount } from '../lib/streakShield';
 import { getAgirData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
@@ -26,16 +27,10 @@ import { useLanguage } from '../context/LanguageContext';
 // Segunda a domingo — mesma ordem que getWeekActivity() já retorna.
 const WEEK_LABELS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
-function pad2(n) {
-  return String(n).padStart(2, '0');
-}
-
 // Dia local em YYYY-MM-DD (nunca toISOString/UTC — perto da meia-noite em
 // fuso negativo como o do Brasil, o dia UTC já virou e a "leitura de hoje"
-// apareceria como lida/não-lida do dia errado).
-function localDayStr(d = new Date()) {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
+// apareceria como lida/não-lida do dia errado). Promovido pra lib/localDay.js,
+// que agora é a convenção única de "dia" do app inteiro.
 
 // Último dia (local) em que a pessoa LEU o pensamento do dia — uma chave só,
 // sobrescrita a cada leitura, em vez de uma chave por data (não acumula lixo
@@ -182,7 +177,7 @@ export default function HomeScreen() {
 
   // Data de hoje em YYYY-MM-DD (mesmo formato que DatePickerModal já monta a
   // partir de campos locais e que aspects()/planetPositions() esperam) — ver
-  // localDayStr no topo pro porquê de ser dia LOCAL, nunca toISOString/UTC.
+  // lib/localDay.js pro porquê de ser dia LOCAL, nunca toISOString/UTC.
   const todayISO = localDayStr(today);
 
   // Evento cósmico real (lib/signs.js aspects()) — hora omitida de propósito
