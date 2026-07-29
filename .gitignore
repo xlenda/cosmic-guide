@@ -22,3 +22,11 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Artefatos de verificação gerados por agentes (builds temporários e
+# scripts de depuração de navegação) — não são fonte, e 20MB de bundle
+# gerado não pertence ao histórico.
+dist-verify/
+verify-build/
+nav-audit.js
+nav-debug*.js
