@@ -25,58 +25,61 @@ import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import DailyMissionsCard from '../components/DailyMissionsCard';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 import { getAgirData, saveAgirData, getDescobrirData } from '../lib/coupleData';
 
 const HEADER_GRADIENT = gradients.gold;
 
 // lang: a qual linguagem do amor (de Descobrir) essa ideia mais fala — pra poder priorizar sem inventar nada novo.
+// tag/text agora são chaves de tradução (t()); os ids seguem estáveis porque
+// são o que o AsyncStorage guarda em favorites/done (ver lib/coupleData.js).
 const DATE_IDEAS = [
-  { id: 'i1', tag: 'em casa', lang: 'tempo', text: 'Noite de cinema em casa: cada um escolhe um filme, o outro prepara a pipoca.' },
-  { id: 'i2', tag: 'em casa', lang: 'servico', text: 'Cozinhem juntos uma receita nova que nenhum dos dois tenha feito antes.' },
-  { id: 'i3', tag: 'em casa', lang: 'toque', text: 'Piquenique no chão da sala, luzes apagadas e velas acesas.' },
-  { id: 'i4', tag: 'em casa', lang: 'toque', text: 'Tarde de jogos: cartas, tabuleiro ou videogame, com um carinho de prêmio.' },
-  { id: 'i5', tag: 'ao ar livre', lang: 'tempo', text: 'Caminhada ao entardecer em um lugar onde nunca estiveram juntos.' },
-  { id: 'i6', tag: 'ao ar livre', lang: 'tempo', text: 'Levem um café e sentem num banco da praça para ver o dia passar.' },
-  { id: 'i7', tag: 'ao ar livre', lang: 'tempo', text: 'Andem de bicicleta por um parque numa manhã ensolarada.' },
-  { id: 'i8', tag: 'ao ar livre', lang: 'toque', text: 'Deitem na grama à noite e tentem encontrar constelações juntos.' },
-  { id: 'i9', tag: 'econômico', lang: 'servico', text: 'Vão a um mercado local: comprem ingredientes e improvisem um jantar.' },
-  { id: 'i10', tag: 'econômico', lang: 'presentes', text: 'Visitem uma livraria e presenteiem um ao outro com um livro econômico.' },
-  { id: 'i11', tag: 'econômico', lang: 'tempo', text: 'Façam um passeio a pé pelo bairro, fingindo ser turistas na própria cidade.' },
-  { id: 'i12', tag: 'econômico', lang: 'tempo', text: 'Tarde de sorvete: provem um sabor que nenhum dos dois pediria sozinho.' },
-  { id: 'i13', tag: 'especial', lang: 'tempo', text: 'Recriem o primeiro encontro de vocês, exatamente como foi.' },
-  { id: 'i14', tag: 'especial', lang: 'palavras', text: 'Escrevam uma carta um para o outro e troquem na hora do jantar.' },
-  { id: 'i15', tag: 'especial', lang: 'tempo', text: 'Planejem juntos uma micro-fuga de um dia para o mês que vem.' },
+  { id: 'i1', tag: 'agir.ideas.tag.casa', lang: 'tempo', text: 'agir.ideas.i1' },
+  { id: 'i2', tag: 'agir.ideas.tag.casa', lang: 'servico', text: 'agir.ideas.i2' },
+  { id: 'i3', tag: 'agir.ideas.tag.casa', lang: 'toque', text: 'agir.ideas.i3' },
+  { id: 'i4', tag: 'agir.ideas.tag.casa', lang: 'toque', text: 'agir.ideas.i4' },
+  { id: 'i5', tag: 'agir.ideas.tag.arLivre', lang: 'tempo', text: 'agir.ideas.i5' },
+  { id: 'i6', tag: 'agir.ideas.tag.arLivre', lang: 'tempo', text: 'agir.ideas.i6' },
+  { id: 'i7', tag: 'agir.ideas.tag.arLivre', lang: 'tempo', text: 'agir.ideas.i7' },
+  { id: 'i8', tag: 'agir.ideas.tag.arLivre', lang: 'toque', text: 'agir.ideas.i8' },
+  { id: 'i9', tag: 'agir.ideas.tag.economico', lang: 'servico', text: 'agir.ideas.i9' },
+  { id: 'i10', tag: 'agir.ideas.tag.economico', lang: 'presentes', text: 'agir.ideas.i10' },
+  { id: 'i11', tag: 'agir.ideas.tag.economico', lang: 'tempo', text: 'agir.ideas.i11' },
+  { id: 'i12', tag: 'agir.ideas.tag.economico', lang: 'tempo', text: 'agir.ideas.i12' },
+  { id: 'i13', tag: 'agir.ideas.tag.especial', lang: 'tempo', text: 'agir.ideas.i13' },
+  { id: 'i14', tag: 'agir.ideas.tag.especial', lang: 'palavras', text: 'agir.ideas.i14' },
+  { id: 'i15', tag: 'agir.ideas.tag.especial', lang: 'tempo', text: 'agir.ideas.i15' },
 ];
 
 const LANG_LABELS_AGIR = {
-  palavras: 'palavras de afirmação',
-  tempo: 'tempo de qualidade',
-  presentes: 'presentes',
-  servico: 'atos de serviço',
-  toque: 'toque físico',
+  palavras: 'agir.lang.palavras',
+  tempo: 'agir.lang.tempo',
+  presentes: 'agir.lang.presentes',
+  servico: 'agir.lang.servico',
+  toque: 'agir.lang.toque',
 };
 
 const CHALLENGE = [
-  { id: 'd1', text: 'Envie uma mensagem dizendo algo que você admira nele(a).' },
-  { id: 'd2', text: 'Dê um abraço de 20 segundos, sem pressa.' },
-  { id: 'd3', text: 'Faça uma pergunta que nunca fez antes e escute de verdade.' },
-  { id: 'd4', text: 'Assuma uma tarefa que costuma ser do outro, sem pedir nada em troca.' },
-  { id: 'd5', text: 'Lembrem juntos um bom momento que vocês viveram.' },
-  { id: 'd6', text: 'Elogie algo pequeno que costuma passar despercebido.' },
-  { id: 'd7', text: 'Planejem juntos algo simples para fazer na próxima semana.' },
+  { id: 'd1', text: 'agir.challenge.d1' },
+  { id: 'd2', text: 'agir.challenge.d2' },
+  { id: 'd3', text: 'agir.challenge.d3' },
+  { id: 'd4', text: 'agir.challenge.d4' },
+  { id: 'd5', text: 'agir.challenge.d5' },
+  { id: 'd6', text: 'agir.challenge.d6' },
+  { id: 'd7', text: 'agir.challenge.d7' },
 ];
 
 const DAILY_GESTURES = [
-  'Prepare o café ou um lanche exatamente como ele(a) gosta.',
-  'Envie uma mensagem no meio da manhã só para dizer que lembrou dele(a).',
-  'Guarde 10 minutos sem celular só para conversar se olhando nos olhos.',
-  'Faça um elogio sincero sobre algo além do físico.',
-  'Deixe um bilhetinho carinhoso onde ele(a) vá encontrar.',
-  'Ofereça um carinho na cabeça ou nas costas, sem motivo nenhum.',
-  'Pergunte como foi o dia dele(a) e escute sem interromper.',
-  'Assuma uma pequena tarefa de casa para aliviar o dia dele(a).',
-  'Lembre um momento engraçado que vocês viveram juntos.',
-  'Agradeça por algo específico que ele(a) tenha feito recentemente.',
+  'agir.gesture.g1',
+  'agir.gesture.g2',
+  'agir.gesture.g3',
+  'agir.gesture.g4',
+  'agir.gesture.g5',
+  'agir.gesture.g6',
+  'agir.gesture.g7',
+  'agir.gesture.g8',
+  'agir.gesture.g9',
+  'agir.gesture.g10',
 ];
 
 function hashStr(s) {
@@ -93,6 +96,7 @@ function todayISO() {
 
 export default function AgirScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const { coupleData } = useCouple();
   const voce = coupleData?.voce;
   const amor = coupleData?.amor;
@@ -205,17 +209,17 @@ export default function AgirScreen() {
     // parte de "fazer missão, acumular token".
     return (
       <View style={styles.root}>
-        <GradientHeader title="Agir" subtitle="Pequenos gestos" onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
+        <GradientHeader title={t('home.card.agir.title')} subtitle={t('home.card.agir.subtitle')} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <DailyMissionsCard />
           <View style={[styles.emptyProfile, { paddingVertical: 36 }]}>
             <Ionicons name="heart-outline" size={40} color={colors.accent} />
-            <Text style={styles.emptyProfileTitle}>Complete o quiz do casal primeiro</Text>
+            <Text style={styles.emptyProfileTitle}>{t('agir.empty.title')}</Text>
             <Text style={styles.emptyProfileDesc}>
-              Precisamos saber os nomes de vocês para guardar as ideias, desafios e metas no lugar certo.
+              {t('agir.empty.desc')}
             </Text>
             <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
-              <Text style={styles.btnText}>Fazer o quiz do casal</Text>
+              <Text style={styles.btnText}>{t('agir.empty.cta')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -225,7 +229,7 @@ export default function AgirScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <GradientHeader title="Agir" subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
+      <GradientHeader title={t('home.card.agir.title')} subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* 0) Missões de hoje — motor em lib/missions.js, card em
             components/DailyMissionsCard.js (pedido do dono: missões diárias
@@ -233,9 +237,9 @@ export default function AgirScreen() {
         <DailyMissionsCard />
 
         {/* 1) Ideia de encontro */}
-        <Text style={styles.sectionTitle}>Ideia para um encontro</Text>
+        <Text style={styles.sectionTitle}>{t('agir.ideas.title')}</Text>
         <View style={styles.card}>
-          <Text style={styles.mutedText}>Sem tempo para pensar? Deixem que a gente sugere.</Text>
+          <Text style={styles.mutedText}>{t('agir.ideas.subtitle')}</Text>
           {loaded && linguagem && (
             <View style={styles.switchRow}>
               <Switch
@@ -245,21 +249,21 @@ export default function AgirScreen() {
                 thumbColor={usarLinguagem ? colors.gold : colors.textMuted}
               />
               <Text style={styles.switchLabel}>
-                Priorizar ideias para a linguagem do amor de vocês: {LANG_LABELS_AGIR[linguagem]}
+                {t('agir.ideas.prioritize', { lang: t(LANG_LABELS_AGIR[linguagem]) })}
               </Text>
             </View>
           )}
           <TouchableOpacity style={[styles.btn, { marginTop: 12, alignSelf: 'flex-start' }]} onPress={sortear}>
-            <Text style={styles.btnText}>Sortear uma ideia ✨</Text>
+            <Text style={styles.btnText}>{t('agir.ideas.draw')}</Text>
           </TouchableOpacity>
         </View>
 
         {idea && (
           <View key={drawKey} style={[styles.card, styles.ideaCard]}>
-            <Text style={styles.fractionBadge}>{idea.tag}</Text>
-            <Text style={styles.ideaText}>{idea.text}</Text>
+            <Text style={styles.fractionBadge}>{t(idea.tag)}</Text>
+            <Text style={styles.ideaText}>{t(idea.text)}</Text>
             <TouchableOpacity style={styles.favBtn} onPress={() => toggleFav(idea.id)}>
-              <Text style={styles.favBtnText}>{favorites.includes(idea.id) ? '💛 Nas favoritas' : '🤍 Adicionar às favoritas'}</Text>
+              <Text style={styles.favBtnText}>{favorites.includes(idea.id) ? t('agir.ideas.inFavs') : t('agir.ideas.addFav')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -269,12 +273,12 @@ export default function AgirScreen() {
             {favList.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateIcon}>🤍</Text>
-                <Text style={styles.emptyStateTitle}>Ainda não há favoritas</Text>
-                <Text style={styles.emptyStateDesc}>Sorteiem uma ideia e guardem aqui as que mais gostarem.</Text>
+                <Text style={styles.emptyStateTitle}>{t('agir.ideas.emptyFavTitle')}</Text>
+                <Text style={styles.emptyStateDesc}>{t('agir.ideas.emptyFavDesc')}</Text>
               </View>
             ) : (
               <>
-                <Text style={styles.overline}>Favoritas ({favList.length})</Text>
+                <Text style={styles.overline}>{t('agir.ideas.favCount', { count: favList.length })}</Text>
                 <View style={{ marginTop: 10 }}>
                   {favList.map((f) => (
                     <View key={f.id} style={styles.listItem}>
@@ -282,8 +286,8 @@ export default function AgirScreen() {
                         <Text style={styles.listItemIcon}>💛</Text>
                       </TouchableOpacity>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.listItemTag}>{f.tag}</Text>
-                        <Text style={styles.listItemText}>{f.text}</Text>
+                        <Text style={styles.listItemTag}>{t(f.tag)}</Text>
+                        <Text style={styles.listItemText}>{t(f.text)}</Text>
                       </View>
                     </View>
                   ))}
@@ -295,11 +299,11 @@ export default function AgirScreen() {
 
         {/* 2) Desafio de 7 dias */}
         <View style={styles.sectionHeadRow}>
-          <Text style={styles.sectionTitle}>Desafio de 7 dias</Text>
+          <Text style={styles.sectionTitle}>{t('agir.challenge.title')}</Text>
           {loaded && <Text style={styles.sectionHeadAction}>{done.length}/{CHALLENGE.length}</Text>}
         </View>
         <View style={styles.card}>
-          <Text style={styles.mutedText}>Um gesto por dia. No ritmo de vocês, vão marcando à medida que fizerem.</Text>
+          <Text style={styles.mutedText}>{t('agir.challenge.subtitle')}</Text>
           {loaded && (
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${progress}%` }]} />
@@ -312,44 +316,44 @@ export default function AgirScreen() {
                 <TouchableOpacity key={c.id} style={[styles.opt, isDone && styles.optSel]} onPress={() => toggleDone(c.id)}>
                   <Text style={styles.optCheck}>{isDone ? '✅' : '⬜'}</Text>
                   <Text style={styles.optText}>
-                    <Text style={styles.optDay}>Dia {idx + 1}. </Text>
-                    {c.text}
+                    <Text style={styles.optDay}>{t('agir.challenge.day', { n: idx + 1 })}</Text>
+                    {t(c.text)}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
           {loaded && progress === 100 && (
-            <Text style={styles.completeText}>Desafio completo! {voce} e {amor} toparam 7 dias de gestos. 💛</Text>
+            <Text style={styles.completeText}>{t('agir.challenge.complete', { voce, amor })}</Text>
           )}
         </View>
 
         {/* 3) Gesto do dia */}
-        <Text style={styles.sectionTitle}>Gesto do dia</Text>
+        <Text style={styles.sectionTitle}>{t('agir.gesture.title')}</Text>
         <View style={[styles.card, { alignItems: 'center' }]}>
-          <Text style={styles.mutedText}>Uma ideia simples, uma por dia — a mesma para vocês dois hoje.</Text>
+          <Text style={styles.mutedText}>{t('agir.gesture.subtitle')}</Text>
           <View style={styles.gestureBox}>
             <Text style={{ fontSize: 26 }}>💛</Text>
-            <Text style={styles.gestureText}>{gesture}</Text>
+            <Text style={styles.gestureText}>{t(gesture)}</Text>
           </View>
         </View>
 
         {/* 4) Meta da semana */}
-        <Text style={styles.sectionTitle}>Meta da semana</Text>
+        <Text style={styles.sectionTitle}>{t('agir.goal.title')}</Text>
         <View style={styles.card}>
-          <Text style={styles.mutedText}>Combinem algo para cuidar juntos esta semana.</Text>
+          <Text style={styles.mutedText}>{t('agir.goal.subtitle')}</Text>
           <View style={styles.field}>
-            <Text style={styles.label}>Nossa meta</Text>
+            <Text style={styles.label}>{t('agir.goal.label')}</Text>
             <TextInput
               style={styles.input}
               value={goal}
               onChangeText={setGoal}
-              placeholder="Ex.: Jantar sem celular duas vezes esta semana"
+              placeholder={t('agir.goal.placeholder')}
               placeholderTextColor={colors.textMuted}
             />
           </View>
           <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={handleSaveGoal}>
-            <Text style={styles.btnText}>Salvar meta</Text>
+            <Text style={styles.btnText}>{t('agir.goal.save')}</Text>
           </TouchableOpacity>
 
           {loaded && goalSaved && (

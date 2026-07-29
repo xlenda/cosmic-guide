@@ -6,14 +6,16 @@
 // esmaecer por cima — caro e expo-blur nem está instalado). Em vez disso, um
 // card de estado bloqueado, reaproveitando a linguagem visual do `locked` já
 // parcialmente construído em FeatureCard.js (badge de cadeado + gradiente).
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
+import { funnel } from '../lib/funnel';
 
 // Véu de assinatura: fica colado na parte de baixo da tela, por cima do
 // conteúdo real (que continua rodando e interativo por trás, atrás do
@@ -25,6 +27,20 @@ import { useCouple } from '../context/CoupleContext';
 // usar mas travasse no meio do caminho, não tudo ou nada).
 export function SubscribeTeaser() {
   const navigation = useNavigation();
+  const route = useRoute();
+  const { t } = useLanguage();
+  // 7º degrau do funil: "bateu no paywall". É AQUI, e não só na tela de
+  // Planos, que a maioria encontra o muro — este véu é o que barra a pessoa no
+  // meio da tela. Sem medir o gate, o relatório mostraria "ninguém viu o
+  // paywall" enquanto todo mundo esbarra nele.
+  // Efeito no MOUNT, nunca no corpo do componente: este teaser re-renderiza a
+  // cada mudança de hasAccess/hasCoupleAccess do CoupleContext — que se
+  // recheca sozinho a cada 5 min e a cada volta pro primeiro plano — e viraria
+  // um evento por re-render. O dedupe de lib/funnel.js (chave
+  // 'paywall_view:gate:<rota>') fecha o resto.
+  useEffect(() => {
+    funnel.paywallView('gate', route?.name);
+  }, [route?.name]);
   return (
     <View style={styles.teaserWrap} pointerEvents="box-none">
       <LinearGradient colors={['transparent', colors.background]} style={styles.teaserFade} pointerEvents="none" />
@@ -32,14 +48,14 @@ export function SubscribeTeaser() {
         <View style={styles.sealWrap}>
           <Ionicons name="lock-closed" size={24} color={colors.gold} />
         </View>
-        <Text style={styles.title}>Continue com a assinatura</Text>
-        <Text style={styles.price}>$5 USD/mês · 7 dias grátis, sem compromisso</Text>
+        <Text style={styles.title}>{t('gate.teaser.title')}</Text>
+        <Text style={styles.price}>{t('gate.teaser.price')}</Text>
         <TouchableOpacity
           style={styles.btn}
           activeOpacity={0.85}
           onPress={() => navigation.navigate(ROUTES.PLANOS)}
         >
-          <Text style={styles.btnText}>Assinar →</Text>
+          <Text style={styles.btnText}>{t('gate.teaser.cta')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -59,30 +75,37 @@ export function SubscribeTeaser() {
 // bagunça — o cartão único com copy específica da tela comunica melhor.
 export function SoloTeaser({ title, description }) {
   const navigation = useNavigation();
+  const route = useRoute();
+  const { t } = useLanguage();
+  // Mesmo degrau (paywall_view) pelo outro caminho do gate: quem está solo vê
+  // este cartão de tela cheia em vez do véu. Mesma chave de dedupe ('gate'),
+  // porque para o funil os dois são "bateu no muro da assinatura".
+  useEffect(() => {
+    funnel.paywallView('gate', route?.name);
+  }, [route?.name]);
   return (
     <View style={styles.root}>
       <LinearGradient colors={gradients.card} style={styles.card}>
         <View style={styles.sealWrap}>
           <Ionicons name="people" size={24} color={colors.gold} />
         </View>
-        <Text style={styles.title}>{title || 'Isso é pra fazer em casal'}</Text>
+        <Text style={styles.title}>{title || t('gate.solo.title')}</Text>
         <Text style={styles.text}>
-          {description ||
-            'Rotas de reconexão, jogos, ideias de encontro e retrospectiva só fazem sentido com os dois.'}
+          {description || t('gate.solo.text')}
         </Text>
         <TouchableOpacity
           style={styles.btn}
           activeOpacity={0.85}
           onPress={() => navigation.navigate(ROUTES.PLANOS)}
         >
-          <Text style={styles.btnText}>Assinar agora →</Text>
+          <Text style={styles.btnText}>{t('gate.solo.cta')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.secondaryBtn}
           activeOpacity={0.7}
           onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
         >
-          <Text style={styles.secondaryBtnText}>ou convide seu par pra desbloquear isso →</Text>
+          <Text style={styles.secondaryBtnText}>{t('gate.solo.inviteCta')}</Text>
         </TouchableOpacity>
       </LinearGradient>
     </View>

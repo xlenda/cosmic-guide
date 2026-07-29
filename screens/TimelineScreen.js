@@ -25,25 +25,28 @@ import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import DatePickerModal from '../components/DatePickerModal';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 import { getTimeline, addMemory, deleteMemory, addCapsule, deleteCapsule, daysUntil } from '../lib/coupleData';
 
 const HEADER_GRADIENT = ['#B5387A', '#FF8C5C'];
 
+// title/text das memórias padrão viram chaves i18n — traduzidas no render
+// (memórias criadas pela pessoa continuam texto livre, nunca passam por t()).
 const DEFAULT_MEMORIES = [
-  { id: 'd1', date: '2023-03-12', title: 'Primeiro encontro', text: 'Aquele café que virou 4 horas de conversa.', photo: null },
-  { id: 'd2', date: '2023-07-28', title: 'Primeira viagem juntos', text: 'Praia, chuva e nós rindo de tudo.', photo: null },
-  { id: 'd3', date: '2024-02-14', title: 'Um "eu te amo" de verdade', text: 'Sem pressa, como devia ser.', photo: null },
+  { id: 'd1', date: '2023-03-12', title: 'timeline.defaultMemory.1.title', text: 'timeline.defaultMemory.1.text', photo: null },
+  { id: 'd2', date: '2023-07-28', title: 'timeline.defaultMemory.2.title', text: 'timeline.defaultMemory.2.text', photo: null },
+  { id: 'd3', date: '2024-02-14', title: 'timeline.defaultMemory.3.title', text: 'timeline.defaultMemory.3.text', photo: null },
 ];
 
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-function fmt(iso) {
+function fmt(iso, t) {
   if (!iso) return '';
   const [y, m, d] = iso.split('-');
-  return `${d} ${MESES[+m - 1]} ${y}`;
+  return t('timeline.dateFormat', { d, month: t(`timeline.month.${+m - 1}`), y });
 }
 
 export default function TimelineScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const { coupleData } = useCouple();
   const voce = coupleData?.voce;
   const amor = coupleData?.amor;
@@ -63,9 +66,9 @@ export default function TimelineScreen() {
 
   const load = useCallback(async () => {
     if (!voce || !amor) return;
-    const t = await getTimeline(voce, amor);
-    setMemories(t.memories || []);
-    setCapsules(t.capsules || []);
+    const tl = await getTimeline(voce, amor);
+    setMemories(tl.memories || []);
+    setCapsules(tl.capsules || []);
   }, [voce, amor]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -100,21 +103,22 @@ export default function TimelineScreen() {
     setCapsules((prev) => prev.filter((c) => c.id !== id));
   }
 
-  const allMemories = [...DEFAULT_MEMORIES, ...memories].sort((a, b) => a.date.localeCompare(b.date));
+  const defaultMemories = DEFAULT_MEMORIES.map((m) => ({ ...m, title: t(m.title), text: t(m.text) }));
+  const allMemories = [...defaultMemories, ...memories].sort((a, b) => a.date.localeCompare(b.date));
   const sign = (coupleData?.sa && zodiacSigns.find((z) => z.name === coupleData.sa)) || zodiacSigns[0];
 
   if (!voce || !amor) {
     return (
       <View style={styles.root}>
-        <GradientHeader title="Linha do tempo" subtitle="Memórias do casal" onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
+        <GradientHeader title={t('timeline.header.title')} subtitle={t('timeline.header.subtitle')} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
         <View style={styles.emptyProfile}>
           <Ionicons name="heart-outline" size={40} color={colors.accent} />
-          <Text style={styles.emptyProfileTitle}>Complete o quiz do casal primeiro</Text>
+          <Text style={styles.emptyProfileTitle}>{t('timeline.gate.title')}</Text>
           <Text style={styles.emptyProfileDesc}>
-            Precisamos saber os nomes de vocês para guardar as memórias no lugar certo.
+            {t('timeline.gate.desc')}
           </Text>
           <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
-            <Text style={styles.btnText}>Fazer o quiz do casal</Text>
+            <Text style={styles.btnText}>{t('timeline.gate.cta')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -123,7 +127,7 @@ export default function TimelineScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <GradientHeader title="Linha do tempo" subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
+      <GradientHeader title={t('timeline.header.title')} subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <TouchableOpacity
@@ -131,41 +135,41 @@ export default function TimelineScreen() {
           style={styles.linkCard}
           onPress={() => navigation.navigate(ROUTES.HOROSCOPE, { sign })}
         >
-          <Text style={styles.linkBadge}>✷ Horóscopo do casal ✷</Text>
-          <Text style={styles.linkText}>Veja a energia de hoje entre {voce} e {amor} →</Text>
+          <Text style={styles.linkBadge}>{t('timeline.link.badge')}</Text>
+          <Text style={styles.linkText}>{t('timeline.link.text', { voce, amor })}</Text>
         </TouchableOpacity>
 
         {/* Linha do tempo — memórias */}
-        <Text style={styles.sectionTitle}>Linha do tempo</Text>
+        <Text style={styles.sectionTitle}>{t('timeline.section.timeline')}</Text>
         <View style={styles.card}>
           <View style={styles.statRow}>
             <View style={styles.stat}>
               <Text style={styles.statValue}>{allMemories.length}</Text>
-              <Text style={styles.statLabel}>📸 memórias</Text>
+              <Text style={styles.statLabel}>{t('timeline.stat.memories')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statValue}>{capsules.length}</Text>
-              <Text style={styles.statLabel}>⏳ cápsulas</Text>
+              <Text style={styles.statLabel}>{t('timeline.stat.capsules')}</Text>
             </View>
           </View>
 
           {allMemories.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>💌</Text>
-              <Text style={styles.emptyStateTitle}>Ainda não há memórias salvas</Text>
-              <Text style={styles.emptyStateDesc}>Adicionem o primeiro capítulo da história de {voce} e {amor} 👇</Text>
+              <Text style={styles.emptyStateTitle}>{t('timeline.empty.memories.title')}</Text>
+              <Text style={styles.emptyStateDesc}>{t('timeline.empty.memories.desc', { voce, amor })}</Text>
             </View>
           ) : (
             <View style={styles.timeline}>
               {allMemories.map((m) => (
                 <View key={m.id} style={[styles.tlItem, m.id === justAddedId && styles.tlItemNew]}>
-                  <Text style={styles.tlDate}>{fmt(m.date)}</Text>
+                  <Text style={styles.tlDate}>{fmt(m.date, t)}</Text>
                   <Text style={styles.tlTitle}>{m.title}</Text>
                   {!!m.text && <Text style={styles.tlText}>{m.text}</Text>}
                   {!String(m.id).startsWith('d') && (
                     <TouchableOpacity style={styles.delBtn} onPress={() => handleDeleteMemory(m.id)}>
-                      <Text style={styles.delText}>eliminar</Text>
+                      <Text style={styles.delText}>{t('timeline.delete')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -175,33 +179,33 @@ export default function TimelineScreen() {
         </View>
 
         {/* Adicionar memória */}
-        <Text style={styles.sectionTitle}>Adicionar uma memória</Text>
+        <Text style={styles.sectionTitle}>{t('timeline.addMemory.section')}</Text>
         <View style={styles.card}>
           <View style={styles.field}>
-            <Text style={styles.label}>Título</Text>
+            <Text style={styles.label}>{t('timeline.addMemory.titleLabel')}</Text>
             <TextInput
               style={styles.input}
               value={mTitle}
               onChangeText={setMTitle}
-              placeholder="Ex.: Nossa primeira viagem"
+              placeholder={t('timeline.addMemory.titlePlaceholder')}
               placeholderTextColor={colors.textMuted}
             />
           </View>
           <View style={styles.field}>
-            <Text style={styles.label}>Data</Text>
+            <Text style={styles.label}>{t('timeline.addMemory.dateLabel')}</Text>
             <TouchableOpacity style={styles.dateBtn} onPress={() => setDatePickerFor('memory')}>
               <Text style={[styles.dateBtnText, !mDate && styles.dateBtnPlaceholder]}>
-                {mDate ? fmt(mDate) : 'Selecionar data'}
+                {mDate ? fmt(mDate, t) : t('timeline.selectDate')}
               </Text>
             </TouchableOpacity>
           </View>
           <View style={styles.field}>
-            <Text style={styles.label}>Descrição</Text>
+            <Text style={styles.label}>{t('timeline.addMemory.descLabel')}</Text>
             <TextInput
               style={styles.input}
               value={mText}
               onChangeText={setMText}
-              placeholder="Um detalhe para nunca esquecer"
+              placeholder={t('timeline.addMemory.descPlaceholder')}
               placeholderTextColor={colors.textMuted}
             />
           </View>
@@ -210,18 +214,18 @@ export default function TimelineScreen() {
             onPress={handleAddMemory}
             disabled={!mTitle.trim() || !mDate}
           >
-            <Text style={styles.btnText}>Salvar memória 💛</Text>
+            <Text style={styles.btnText}>{t('timeline.addMemory.save')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Cápsulas do tempo */}
-        <Text style={styles.sectionTitle}>Cápsulas do tempo ⏳</Text>
+        <Text style={styles.sectionTitle}>{t('timeline.capsules.section')}</Text>
         {capsules.length === 0 ? (
           <View style={styles.card}>
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>⏳</Text>
-              <Text style={styles.emptyStateTitle}>Ainda não há nenhuma cápsula</Text>
-              <Text style={styles.emptyStateDesc}>Grave uma mensagem que se abra no futuro 👇</Text>
+              <Text style={styles.emptyStateTitle}>{t('timeline.capsules.empty.title')}</Text>
+              <Text style={styles.emptyStateDesc}>{t('timeline.capsules.empty.desc')}</Text>
             </View>
           </View>
         ) : (
@@ -231,17 +235,17 @@ export default function TimelineScreen() {
             return (
               <View key={c.id} style={[styles.card, styles.capsuleCard, aberta && styles.capsuleOpened]}>
                 <Text style={styles.capsuleLock}>{aberta ? '💛' : '🔒'}</Text>
-                <Text style={styles.capsuleTitle}>{aberta ? 'Cápsula aberta!' : 'Cápsula selada'}</Text>
+                <Text style={styles.capsuleTitle}>{aberta ? t('timeline.capsule.opened') : t('timeline.capsule.sealed')}</Text>
                 {aberta ? (
                   <Text style={styles.capsuleMsg}>{c.message}</Text>
                 ) : (
                   <>
-                    <Text style={styles.capsuleCount}>{restam} {restam === 1 ? 'dia' : 'dias'}</Text>
-                    <Text style={styles.capsuleSmall}>abre em {fmt(c.unlockAt)}</Text>
+                    <Text style={styles.capsuleCount}>{t(restam === 1 ? 'timeline.capsule.daysLeft_one' : 'timeline.capsule.daysLeft_other', { n: restam })}</Text>
+                    <Text style={styles.capsuleSmall}>{t('timeline.capsule.opensOn', { date: fmt(c.unlockAt, t) })}</Text>
                   </>
                 )}
                 <TouchableOpacity style={styles.delBtn} onPress={() => handleDeleteCapsule(c.id)}>
-                  <Text style={styles.delText}>eliminar</Text>
+                  <Text style={styles.delText}>{t('timeline.delete')}</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -249,23 +253,23 @@ export default function TimelineScreen() {
         )}
 
         {/* Criar cápsula */}
-        <Text style={styles.sectionTitle}>Criar uma cápsula</Text>
+        <Text style={styles.sectionTitle}>{t('timeline.createCapsule.section')}</Text>
         <View style={styles.card}>
           <View style={styles.field}>
-            <Text style={styles.label}>Mensagem para o futuro</Text>
+            <Text style={styles.label}>{t('timeline.createCapsule.msgLabel')}</Text>
             <TextInput
               style={styles.input}
               value={cMsg}
               onChangeText={setCMsg}
-              placeholder="Ex.: Lembra desse dia?"
+              placeholder={t('timeline.createCapsule.msgPlaceholder')}
               placeholderTextColor={colors.textMuted}
             />
           </View>
           <View style={styles.field}>
-            <Text style={styles.label}>Abrir em</Text>
+            <Text style={styles.label}>{t('timeline.createCapsule.openAtLabel')}</Text>
             <TouchableOpacity style={styles.dateBtn} onPress={() => setDatePickerFor('capsule')}>
               <Text style={[styles.dateBtnText, !cDate && styles.dateBtnPlaceholder]}>
-                {cDate ? fmt(cDate) : 'Selecionar data'}
+                {cDate ? fmt(cDate, t) : t('timeline.selectDate')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -274,17 +278,17 @@ export default function TimelineScreen() {
             onPress={handleAddCapsule}
             disabled={!cMsg.trim() || !cDate}
           >
-            <Text style={styles.btnText}>Selar cápsula ⏳</Text>
+            <Text style={styles.btnText}>{t('timeline.createCapsule.seal')}</Text>
           </TouchableOpacity>
-          <Text style={styles.hint}>Dica: para ver uma cápsula "abrir", escolha a data de hoje ou de ontem.</Text>
+          <Text style={styles.hint}>{t('timeline.createCapsule.hint')}</Text>
         </View>
 
-        <Text style={styles.disclaimer}>As memórias e cápsulas de vocês ficam salvas apenas neste aparelho.</Text>
+        <Text style={styles.disclaimer}>{t('timeline.disclaimer')}</Text>
       </ScrollView>
 
       <DatePickerModal
         visible={!!datePickerFor}
-        title={datePickerFor === 'capsule' ? 'Abrir em' : 'Data da memória'}
+        title={datePickerFor === 'capsule' ? t('timeline.createCapsule.openAtLabel') : t('timeline.datePicker.memoryTitle')}
         initialDate={datePickerFor === 'capsule' ? cDate : mDate}
         onClose={() => setDatePickerFor(null)}
         onConfirm={(dateStr) => {

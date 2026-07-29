@@ -1,6 +1,8 @@
 // Extraído de HomeScreen.js — cabeçalho em gradiente com saudação, signo do
 // dia e a pill de sequência do casal. Puramente visual: nenhum acesso a
-// AsyncStorage/contexto aqui, só props.
+// AsyncStorage aqui, só props — a única exceção é o contexto de idioma, que
+// existe só pra traduzir a pill de sequência (o texto é montado aqui dentro,
+// não vem pronto por prop como `greeting`/`dateStr`).
 //
 // Enxugado a pedido do dono do produto em duas rodadas: primeiro a órbita de
 // signos encolheu (200px → ~132px, 26/07/2026 de manhã), depois saiu de vez
@@ -13,8 +15,10 @@ import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradients } from '../theme';
 import { streakEmoji } from '../lib/coupleData';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function HeroSection({ greeting, dateStr, sign, streak, insetTop }) {
+  const { t } = useLanguage();
   return (
     <LinearGradient
       colors={gradients.hero}
@@ -35,9 +39,11 @@ export default function HeroSection({ greeting, dateStr, sign, streak, insetTop 
       {streak && (
         <View style={styles.streakPill}>
           <Text style={styles.streakPillText}>
+            {/* O emoji fica FORA do t(): ele muda conforme o tamanho da
+                sequência (streakEmoji), não é parte do texto traduzível. */}
             {streak.count > 0
-              ? `${streakEmoji(streak.count)} ${streak.count} ${streak.count === 1 ? 'dia seguido' : 'dias seguidos'}`
-              : '✨ Comecem hoje a sequência de vocês'}
+              ? `${streakEmoji(streak.count)} ${t(streak.count === 1 ? 'home.hero.streak.count_one' : 'home.hero.streak.count_other', { count: streak.count })}`
+              : t('home.hero.streak.empty')}
           </Text>
         </View>
       )}

@@ -57,7 +57,10 @@ export default function NotifPromptCard({ sign, hasActivity }) {
         // NUNCA falhar em silêncio — antes o card sumia sem explicação
         // nenhuma quando a ativação falhava (achado real: bug reportado pelo
         // dono do produto no Brave, que bloqueia push por padrão, 26/07/2026).
-        Alert.alert('Não foi possível ativar', webPushFailureMessage(reason) + '\n\nDepois de resolver, ative em Perfil > Pensamento cósmico diário.');
+        // webPushFailureMessage() ainda devolve texto em PT (mora em
+        // lib/webPush.js, fora deste lote) — só a moldura da mensagem
+        // (título + o que fazer depois) passa pelo t() por enquanto.
+        Alert.alert(t('home.notifPrompt.errorTitle'), webPushFailureMessage(reason) + '\n\n' + t('home.notifPrompt.errorHint'));
       }
     } finally {
       // Decidiu (deu certo ou não) — não insiste de novo; quem mudar de ideia

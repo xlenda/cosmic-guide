@@ -6,20 +6,28 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { ROUTES } from '../routes';
+import { useLanguage } from '../context/LanguageContext';
 import { getTokenBalance, getTokenHistory } from '../lib/tokens';
 
-function formatDate(iso) {
+// Data/hora no formato de cada idioma (pt-BR segue DD/MM/AAAA exatamente como
+// antes) e o conector ("às"/"a las"/"at") vindo do dicionário — data crua em
+// formato brasileiro dentro de um app em inglês confunde mais do que ajuda.
+const DATE_LOCALE = { pt: 'pt-BR', es: 'es-ES', en: 'en-US' };
+
+function formatDate(iso, lang, t) {
   try {
+    const locale = DATE_LOCALE[lang] || DATE_LOCALE.pt;
     const d = new Date(iso);
-    const date = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    return `${date} às ${time}`;
+    const date = d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const time = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    return t('tokens.history.dateTime', { date, time });
   } catch {
     return '';
   }
 }
 
 function HistoryRow({ item, last }) {
+  const { lang, t } = useLanguage();
   const positive = item.amount > 0;
   return (
     <View style={[styles.histRow, !last && styles.histRowBorder]}>
@@ -28,7 +36,7 @@ function HistoryRow({ item, last }) {
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.histReason}>{item.reason}</Text>
-        <Text style={styles.histDate}>{formatDate(item.date)}</Text>
+        <Text style={styles.histDate}>{formatDate(item.date, lang, t)}</Text>
       </View>
       <Text style={[styles.histAmount, { color: positive ? colors.green : colors.red }]}>
         {positive ? '+' : ''}
@@ -40,6 +48,7 @@ function HistoryRow({ item, last }) {
 
 export default function TokensScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const [balance, setBalance] = useState(0);
   const [history, setHistory] = useState([]);
 
@@ -61,15 +70,15 @@ export default function TokensScreen() {
   return (
     <View style={styles.root}>
       <GradientHeader
-        title="Meus Tokens"
-        subtitle="Sua energia acumulada"
+        title={t('tokens.header.title')}
+        subtitle={t('tokens.header.subtitle')}
         onBack={() => navigation.goBack()}
         right={
           <TouchableOpacity
             onPress={() => navigation.navigate(ROUTES.LOJA)}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Ver Loja"
+            accessibilityLabel={t('tokens.seeShop')}
           >
             <Ionicons name="storefront" size={22} color={colors.text} />
           </TouchableOpacity>
@@ -82,24 +91,22 @@ export default function TokensScreen() {
               <Ionicons name="sparkles" size={30} color="#fff" />
             </View>
             <Text style={styles.balanceValue}>{balance}</Text>
-            <Text style={styles.balanceLabel}>tokens acumulados</Text>
+            <Text style={styles.balanceLabel}>{t('tokens.balanceLabel')}</Text>
           </LinearGradient>
         </View>
 
         <TouchableOpacity style={styles.shopLink} activeOpacity={0.8} onPress={() => navigation.navigate(ROUTES.LOJA)}>
           <Ionicons name="storefront-outline" size={16} color={colors.accent} />
-          <Text style={styles.shopLinkText}>Ver Loja</Text>
+          <Text style={styles.shopLinkText}>{t('tokens.seeShop')}</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.accent} />
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Histórico</Text>
+        <Text style={styles.sectionTitle}>{t('tokens.historyTitle')}</Text>
         <View style={styles.card}>
           {history.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Ionicons name="hourglass-outline" size={28} color={colors.textMuted} />
-              <Text style={styles.emptyText}>
-                Nenhuma transação ainda — complete uma leitura pra ganhar seus primeiros tokens!
-              </Text>
+              <Text style={styles.emptyText}>{t('tokens.empty')}</Text>
             </View>
           ) : (
             history.map((item, idx) => (

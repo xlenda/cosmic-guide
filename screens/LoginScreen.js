@@ -1,8 +1,14 @@
 // screens/LoginScreen.js
 // Login/criar conta (Supabase) — só é aberta em dois lugares: pelo botão
-// "Fazer login" no Perfil (opcional) e pelo PlanosScreen antes do checkout
-// (obrigatório na hora de assinar). Nunca bloqueia o resto do app.
-import React, { useState } from 'react';
+// "Fazer login" no Perfil (opcional) e pelo PlanosScreen no toque do CTA de
+// assinar (obrigatório só ali). Nunca bloqueia o resto do app.
+//
+// Quando vem do checkout (route.params.reason === 'checkout'), esta tela é um
+// DESVIO no meio de uma compra, não um destino: ela avisa por que a conta é
+// necessária e, ao terminar, devolve a pessoa pra tela de onde veio COM o
+// plano que ela já tinha escolhido (returnTo/returnParams). Antes o login
+// levava sempre pro goBack cego — quem se perdesse aí desistia da compra.
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,17 +19,26 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { funnel } from '../lib/funnel';
 
 const MODE = { SIGN_IN: 'signin', SIGN_UP: 'signup' };
 
 export default function LoginScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { t } = useLanguage();
+  // De onde a pessoa veio e pra onde ela precisa voltar. Só o PlanosScreen
+  // preenche isso hoje (toque no CTA estando deslogado).
+  const veioDoCheckout = route.params?.reason === 'checkout';
+  const returnTo = route.params?.returnTo;
+  const returnParams = route.params?.returnParams;
   const [mode, setMode] = useState(MODE.SIGN_IN);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +50,16 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+
+  // 9º degrau: a tela de login apareceu de fato. Um só evento por execução
+  // (dedupe por nome em lib/funnel.js), e o `source` diz se ela apareceu no
+  // meio de uma compra ('planos' — o único ponto do app que EXIGE conta) ou se
+  // a pessoa entrou por vontade própria pelo Perfil ('login_screen'). Essa
+  // distinção é o que separa "desistiu da compra no login" de "só quis logar".
+  useEffect(() => {
+    funnel.loginView(veioDoCheckout ? 'planos' : 'login_screen');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // O navegador inteiro sai da página nesse redirect (é assim que OAuth
   // funciona na web) — então não tem "voltar" pra tratar aqui: se der erro
@@ -60,7 +85,7 @@ export default function LoginScreen() {
     setError('');
     setInfo('');
     if (!email.trim() || !password) {
-      setError('Preencha e-mail e senha.');
+      setError(t('login.errorEmptyFields'));
       return;
     }
 
@@ -74,7 +99,27 @@ export default function LoginScreen() {
       return;
     }
     if (result.needsConfirmation) {
-      setInfo('Conta criada! Confira seu e-mail para confirmar antes de entrar.');
+      // Ainda NÃO é login_done: a conta existe mas a pessoa não entrou (falta
+      // confirmar o e-mail). Marcar aqui esconderia um funil que morre
+      // justamente na caixa de entrada.
+      setInfo(t('login.infoConfirmEmail'));
+      return;
+    }
+    // 10º degrau: entrou na conta. Só o caminho de e-mail/senha passa por
+    // aqui; o botão do Google sai da página inteira (redirect de OAuth) e
+    // volta com a sessão já pronta, sem esta tela existir — esse caso fica
+    // como buraco conhecido, e o jeito de fechá-lo seria medir no
+    // AuthContext, que hoje não distingue "acabou de logar" de "sessão
+    // restaurada no arranque" (todo assinante recorrente viraria login_done
+    // toda manhã e o degrau perderia o sentido).
+    funnel.loginDone();
+    // Voltar pra ONDE a compra parou, com o plano escolhido junto — um
+    // goBack() cego devolveria a pessoa pra tela de Planos sem o plano
+    // selecionado (e, pior, pra Home nos caminhos em que a pilha mudou).
+    // navigate() com o nome da rota reaproveita a tela que já está na pilha e
+    // só funde os params novos, então não empilha uma segunda cópia.
+    if (returnTo) {
+      navigation.navigate(returnTo, returnParams);
       return;
     }
     navigation.goBack();
@@ -82,15 +127,21 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <GradientHeader title={mode === MODE.SIGN_IN ? 'Entrar' : 'Criar conta'} onBack={() => navigation.goBack()} />
+      <GradientHeader
+        title={mode === MODE.SIGN_IN ? t('login.mode.signIn') : t('login.mode.signUp')}
+        // Quem chegou aqui no meio da compra precisa saber que não perdeu o
+        // plano que escolheu — é o momento de maior risco de desistência.
+        subtitle={veioDoCheckout ? t('login.checkoutSubtitle') : undefined}
+        onBack={() => navigation.goBack()}
+      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.content}>
-          <Text style={styles.label}>E-mail</Text>
+          <Text style={styles.label}>{t('login.emailLabel')}</Text>
           <TextInput
             style={styles.input}
             value={email}
             onChangeText={setEmail}
-            placeholder="seuemail@exemplo.com"
+            placeholder={t('login.emailPlaceholder')}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
@@ -98,7 +149,7 @@ export default function LoginScreen() {
             editable={!loading}
           />
 
-          <Text style={styles.label}>Senha</Text>
+          <Text style={styles.label}>{t('login.passwordLabel')}</Text>
           <View style={styles.passwordRow}>
             <TextInput
               style={[styles.input, styles.passwordInput]}
@@ -113,7 +164,7 @@ export default function LoginScreen() {
               style={styles.eyeBtn}
               onPress={() => setShowPassword((v) => !v)}
               accessibilityRole="button"
-              accessibilityLabel={showPassword ? 'Esconder senha' : 'Mostrar senha'}
+              accessibilityLabel={showPassword ? t('login.hidePassword') : t('login.showPassword')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
@@ -127,13 +178,13 @@ export default function LoginScreen() {
             <ActivityIndicator color={colors.accent} style={{ marginTop: 20 }} />
           ) : (
             <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={handleSubmit}>
-              <Text style={styles.btnText}>{mode === MODE.SIGN_IN ? 'Entrar' : 'Criar conta'}</Text>
+              <Text style={styles.btnText}>{mode === MODE.SIGN_IN ? t('login.mode.signIn') : t('login.mode.signUp')}</Text>
             </TouchableOpacity>
           )}
 
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou</Text>
+            <Text style={styles.dividerText}>{t('login.divider')}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -142,13 +193,13 @@ export default function LoginScreen() {
           ) : (
             <TouchableOpacity style={styles.googleBtn} activeOpacity={0.85} onPress={handleGoogle} disabled={loading}>
               <Ionicons name="logo-google" size={18} color={colors.text} />
-              <Text style={styles.googleBtnText}>Continuar com Google</Text>
+              <Text style={styles.googleBtnText}>{t('login.google')}</Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity onPress={toggleMode} style={styles.switchLink} disabled={loading}>
             <Text style={styles.switchText}>
-              {mode === MODE.SIGN_IN ? 'Não tem conta? Criar uma' : 'Já tem conta? Entrar'}
+              {mode === MODE.SIGN_IN ? t('login.switchToSignUp') : t('login.switchToSignIn')}
             </Text>
           </TouchableOpacity>
         </View>

@@ -13,11 +13,26 @@
 // num navegador in-app (expo-web-browser) e anexa o xcod do correlationCode já
 // criado por initiateCheckout(), pra manter a mesma correlação que o webhook
 // (HotmartPaymentProvider.parseWebhookEvent) já sabe ler em data.purchase.origin.xcod.
-import React, { useCallback, useState } from 'react';
+//
+// ORDEM DOS TOQUES — mudou em 29/07/2026. Antes, quem estava deslogado batia
+// num cartão de cadeado (LoginRequiredCard) e NÃO VIA PREÇO NENHUM: criar
+// conta, digitar e-mail e senha, sair do app pra confirmar o e-mail e voltar
+// — tudo isso ANTES do primeiro número aparecer na tela. Nenhum outro ponto
+// do app mostra o preço, então o visitante deslogado simplesmente nunca
+// descobria quanto custava (~40 visitantes, ZERO checkouts iniciados; medido
+// ao vivo no site publicado). Agora a oferta vem primeiro: qualquer pessoa vê
+// os 3 planos, os preços e os benefícios sem conta nenhuma. A conta só é
+// pedida no TOQUE DO CTA, porque é aí que o backend precisa do token/e-mail
+// pra correlacionar o pagamento (ver initiateCheckout/initiateSoloCheckout) —
+// e o retorno do login cai de volta no MESMO plano escolhido: pela rota
+// (route.params.plan) no login por e-mail, e por lib/checkoutIntent.js no
+// login com Google e na confirmação de e-mail, que recarregam a página
+// inteira e fariam a pessoa reaparecer na Home, longe da oferta.
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Linking, ScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as WebBrowser from 'expo-web-browser';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
@@ -26,6 +41,14 @@ import { useLanguage } from '../context/LanguageContext';
 import { initiateCheckout, initiateSoloCheckout } from '../lib/coupleData';
 import { getAuthToken } from '../lib/accountSubscription';
 import { trackInitiateCheckout } from '../lib/conversionTracking';
+// Funil próprio (lib/funnel.js). Anda LADO A LADO com o trackInitiateCheckout
+// acima, que continua exatamente como estava — aquilo é pro Meta Ads/GA4 no
+// dia em que o dono configurar os IDs; isto grava no banco do próprio dono e
+// funciona hoje, inclusive pra quem usa bloqueador de anúncio.
+import { funnel } from '../lib/funnel';
+// Plano escolhido sobrevive ao login que recarrega a página inteira (Google /
+// confirmação de e-mail) — quem devolve a pessoa pra cá é o App.js.
+import { saveCheckoutIntent, clearCheckoutIntent } from '../lib/checkoutIntent';
 import GradientHeader from '../components/GradientHeader';
 
 const HOTMART_CHECKOUT_ELEMENTS_SRC = 'https://checkout.hotmart.com/lib/hotmart-checkout-elements.js';
@@ -138,6 +161,41 @@ const PLANS = [
   { id: 'quarterly', price: 'US$ 10' },
   { id: 'annual', price: 'US$ 20' },
 ];
+const PLAN_IDS = PLANS.map((p) => p.id);
+const PLANO_PADRAO = 'trial';
+
+// Plano que a tela abre selecionado. Normalmente 'trial', mas quando a pessoa
+// volta do login (route.params.plan, posto lá pelo LoginScreen ou pelo resgate
+// da intenção no App.js) ela reencontra EXATAMENTE o plano que tinha
+// escolhido. Id desconhecido/adulterado cai no padrão em vez de quebrar o
+// checkout com uma oferta que não existe.
+function usePlanoDaRota(route) {
+  const planoDaRota = PLAN_IDS.includes(route?.params?.plan) ? route.params.plan : null;
+  const [selectedPlan, setSelectedPlan] = useState(planoDaRota || PLANO_PADRAO);
+  useEffect(() => {
+    if (planoDaRota) setSelectedPlan(planoDaRota);
+  }, [planoDaRota]);
+  return [selectedPlan, setSelectedPlan];
+}
+
+// O toque no CTA estando deslogado. Guarda o plano nos DOIS lugares que
+// importam, porque são dois caminhos de volta diferentes: nos params da rota
+// (login por e-mail/senha, que volta pela pilha de navegação) e no storage
+// (login com Google e confirmação de e-mail, que recarregam a página e são
+// resgatados pelo App.js). Uma função só, usada pela web e pelo nativo.
+//
+// O 9º degrau do funil ("o app pediu login") é registrado pela própria
+// LoginScreen no mount, com source 'planos' quando o motivo é este —
+// registrar aqui também não somaria nada (o dedupe de lib/funnel.js é por
+// nome de evento, então o segundo seria descartado de qualquer jeito).
+function pedirLogin(navigation, plan) {
+  saveCheckoutIntent(plan);
+  navigation.navigate(ROUTES.LOGIN, {
+    returnTo: ROUTES.PLANOS,
+    returnParams: { plan, resume: true },
+    reason: 'checkout',
+  });
+}
 
 function PlanPicker({ selected, onSelect }) {
   const { t } = useLanguage();
@@ -151,7 +209,15 @@ function PlanPicker({ selected, onSelect }) {
           <TouchableOpacity
             key={plan.id}
             activeOpacity={0.85}
-            onPress={() => onSelect(plan.id)}
+            // 8º degrau do funil: escolheu um plano. Aqui dentro do PlanPicker
+            // (e não em cada tela) porque web e nativo compartilham este mesmo
+            // componente — instrumentar nos dois lugares duplicaria o evento.
+            // Dedupe por plano ('plan_select:annual'), então trocar de card
+            // ida-e-volta não infla o número.
+            onPress={() => {
+              funnel.planSelect(plan.id);
+              onSelect(plan.id);
+            }}
             style={[styles.planCard, isSelected && styles.planCardSelected]}
           >
             {hasBadge && (
@@ -184,7 +250,7 @@ function SubscriptionStatusCard({ status, currentPeriodEnd, onBack }) {
         <View style={styles.card}>
           <Ionicons name="checkmark-circle" size={40} color={colors.accent} />
           <Text style={styles.cardTitle}>{t('planos.alreadySubscriber')}</Text>
-          <Text style={styles.cardText}>Status: {label}</Text>
+          <Text style={styles.cardText}>{t('planos.statusLine', { status: label })}</Text>
           {dataRenovacao && <Text style={styles.cardText}>{t('planos.renewsOn', { date: dataRenovacao })}</Text>}
         </View>
       </ScrollView>
@@ -205,12 +271,13 @@ function PlanosScreenWeb() {
   // impossível comprar o upgrade (achado real de auditoria adversarial,
   // confirmado ao vivo, 26/07/2026).
   const relevantAccess = isCouple ? hasCoupleAccess : hasAccess;
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { t } = useLanguage();
+  const route = useRoute();
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('trial');
+  const [selectedPlan, setSelectedPlan] = usePlanoDaRota(route);
   // Resposta `alreadyActive: true` do backend — "essa conta já assina ESTE
   // escopo, não criei pendência nenhuma". Guardado em estado próprio pra tela
   // trocar pro cartão de assinante na hora, sem depender da corrida do
@@ -218,16 +285,43 @@ function PlanosScreenWeb() {
   const [jaAssinante, setJaAssinante] = useState(null);
 
   const abrirCheckout = useCallback(async () => {
+    // Token do Supabase: é ele que torna o /api/checkout/initiate IDEMPOTENTE
+    // POR CONTA. Sem ele, cada toque em "Assinar" criava uma pendência nova E
+    // repontava o aparelho pra ela — o laço que fazia o acesso de quem já
+    // tinha pago sumir (26/07/2026, 4 checkouts). Buscado ANTES de tudo agora,
+    // porque ele também é a resposta pra "essa pessoa está logada?": o `user`
+    // do contexto pode estar hidratando, e mandar um assinante logado pro
+    // login por causa dessa corrida seria pior que o bug que estamos tirando.
+    const authToken = await getAuthToken();
+    if (!authToken) {
+      pedirLogin(navigation, selectedPlan);
+      return;
+    }
+    // A intenção já cumpriu o papel dela (a pessoa está aqui, logada, abrindo
+    // o checkout) — some daqui pra ninguém ser levado pra esta tela de novo na
+    // próxima abertura do app.
+    clearCheckoutIntent();
+
+    // 11º degrau: clicou em assinar. DEPOIS do freio de login, nunca antes.
+    // No relatório (server-patches/scripts/funil.js) este degrau vem ABAIXO de
+    // login_view/login_done, então contar aqui o toque de quem está DESLOGADO
+    // fazia duas coisas erradas de uma vez: inflava "Clicou em assinar" com
+    // gente que só foi parar na tela de login, e — porque o dedupe é por plano
+    // (`checkout_click:trial`) — DESCARTAVA o clique de verdade, o que de fato
+    // chega no backend depois do login. O buraco checkout_click→checkout_open
+    // passava a medir "desistiu no login" em vez de "clicou e o formulário não
+    // abriu", que é justamente o número que esta tela existe pra vigiar.
+    // Quem toca no CTA deslogado já é contado inteiro pelo login_view com
+    // source 'planos' (registrado pela LoginScreen no mount).
+    // Continua ANTES do initiateCheckout: se o backend falhar, o clique ainda
+    // aparece no relatório e a perda fica visível.
+    funnel.checkoutClick(selectedPlan);
+
     trackInitiateCheckout();
     setErro('');
     setCarregando(true);
     setAberto(true);
     try {
-      // Token do Supabase: é ele que torna o /api/checkout/initiate
-      // IDEMPOTENTE POR CONTA. Sem ele, cada toque em "Assinar" criava uma
-      // pendência nova E repontava o aparelho pra ela — o laço que fazia o
-      // acesso de quem já tinha pago sumir (26/07/2026, 4 checkouts).
-      const authToken = await getAuthToken();
       const data = isCouple
         ? await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan, authToken)
         : await initiateSoloCheckout(user?.email, selectedPlan, authToken);
@@ -259,12 +353,17 @@ function PlanosScreenWeb() {
           ...(data.checkoutConfig.prefilledInfo || {}),
         })
         .mount(`#${MOUNT_ID}`);
+      // 12º e último degrau: o checkout da Hotmart montou de fato na tela.
+      // Depois do .mount() e não antes — a diferença entre checkout_click e
+      // checkout_open é exatamente "quantos perdemos entre o clique e o
+      // formulário aparecer" (script fora do ar, initiate falhando, etc.).
+      funnel.checkoutOpen(selectedPlan);
       setCarregando(false);
     } catch (err) {
       setErro(t('planos.errorGeneric'));
       setCarregando(false);
     }
-  }, [coupleData, isCouple, refreshAccess, user, selectedPlan, t]);
+  }, [coupleData, isCouple, navigation, refreshAccess, user, selectedPlan, t]);
 
   const fecharCheckout = useCallback(() => {
     setAberto(false);
@@ -279,6 +378,25 @@ function PlanosScreenWeb() {
       refreshAccess();
     }, [refreshAccess])
   );
+
+  // Quem já é assinante DO QUE ESTA TELA VENDE (trial, ativo, past_due,
+  // cancelado, expirado) não tem mais nada pra comprar aqui — ver os returns
+  // logo abaixo. Calculado antes porque o retomar-do-login também precisa
+  // saber disso: sem esse freio, quem voltasse do login já assinante abriria
+  // um checkout no ar só pra o backend responder "você já assina".
+  const mostrandoAssinatura = !!jaAssinante || (relevantAccess && !!subscriptionStatus && subscriptionStatus !== 'pending');
+
+  // Voltou do login com o plano escolhido na bagagem → abre o checkout na
+  // hora, sem obrigar a pessoa a caçar o botão de novo (é o que ela já tinha
+  // pedido antes de a conta ser exigida). Uma vez só por montagem: o ref
+  // segura mesmo com o abrirCheckout mudando de identidade a cada render.
+  const jaRetomou = useRef(false);
+  useEffect(() => {
+    if (jaRetomou.current || !route.params?.resume) return;
+    if (authLoading || !user || mostrandoAssinatura) return;
+    jaRetomou.current = true;
+    abrirCheckout();
+  }, [route.params?.resume, authLoading, user, mostrandoAssinatura, abrirCheckout]);
 
   // Quem já é assinante DO QUE ESTA TELA VENDE (trial, ativo, past_due,
   // cancelado, expirado) nunca deve ver o fluxo de checkout de novo — só
@@ -319,9 +437,21 @@ function PlanosScreenWeb() {
             <Text style={styles.cardTitle}>{t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')}</Text>
             <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
             <BenefitsList isCouple={isCouple} />
-            <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={abrirCheckout}>
-              <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
-            </TouchableOpacity>
+            {/* Enquanto a sessão do Supabase não resolve, o botão vira spinner:
+                clicar nesse meio-tempo mandaria pro login quem JÁ está logado. */}
+            {authLoading ? (
+              <ActivityIndicator color={colors.accent} size="large" style={styles.ctaLoader} />
+            ) : (
+              <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={abrirCheckout}>
+                <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
+              </TouchableOpacity>
+            )}
+            {/* Deslogado vê o preço primeiro e só depois a conta — mas fica
+                sabendo do passo antes de tocar, em vez de ser surpreendido por
+                um formulário de cadastro. */}
+            {!user && !authLoading && (
+              <Text style={styles.loginNote}>{t('planos.loginRequired.text')}</Text>
+            )}
           </View>
         )}
 
@@ -378,11 +508,12 @@ function PlanosScreenNative() {
   const isCouple = !!coupleData;
   // Mesma distinção da versão web (ver comentário em PlanosScreenWeb).
   const relevantAccess = isCouple ? hasCoupleAccess : hasAccess;
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { t } = useLanguage();
+  const route = useRoute();
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('trial');
+  const [selectedPlan, setSelectedPlan] = usePlanoDaRota(route);
   // Ver comentário do mesmo estado em PlanosScreenWeb.
   const [jaAssinante, setJaAssinante] = useState(null);
 
@@ -393,11 +524,24 @@ function PlanosScreenNative() {
   );
 
   const abrirCheckoutNativo = useCallback(async () => {
+    // Mesma regra da web: o token é a fonte da verdade sobre estar logado, e
+    // sem ele a pessoa vai pro login levando o plano escolhido.
+    const authToken = await getAuthToken();
+    if (!authToken) {
+      pedirLogin(navigation, selectedPlan);
+      return;
+    }
+    clearCheckoutIntent();
+
+    // Mesmo degrau da versão web, pelo mesmo motivo (ver comentário lá): só
+    // conta como "clicou em assinar" o toque de quem já tem conta — o toque de
+    // quem está deslogado é o login_view com source 'planos'.
+    funnel.checkoutClick(selectedPlan);
+
     trackInitiateCheckout();
     setErro('');
     setCarregando(true);
     try {
-      const authToken = await getAuthToken();
       const data = isCouple
         ? await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan, authToken)
         : await initiateSoloCheckout(user?.email, selectedPlan, authToken);
@@ -414,6 +558,11 @@ function PlanosScreenNative() {
       const xcod = data?.checkoutConfig?.xcod;
       const baseUrl = HOTMART_PAY_URLS[selectedPlan] || HOTMART_PAY_URLS.trial;
       const url = xcod ? `${baseUrl}&xcod=${encodeURIComponent(xcod)}` : baseUrl;
+      // Último degrau, equivalente nativo do .mount() da web: o navegador
+      // in-app com a oferta vai abrir. Enfileirado ANTES do await porque
+      // openBrowserAsync só resolve quando a pessoa FECHA o navegador — medir
+      // depois transformaria "abriu o checkout" em "desistiu e voltou".
+      funnel.checkoutOpen(selectedPlan);
       await WebBrowser.openBrowserAsync(url);
       setCarregando(false);
       // A ativação real só chega pelo webhook (assíncrono) — isso só reflete o
@@ -424,7 +573,18 @@ function PlanosScreenNative() {
       setCarregando(false);
       refreshAccess();
     }
-  }, [coupleData, isCouple, refreshAccess, user, selectedPlan, t]);
+  }, [coupleData, isCouple, navigation, refreshAccess, user, selectedPlan, t]);
+
+  // Ver o mesmo bloco em PlanosScreenWeb — retomar o checkout de quem acabou
+  // de logar, sem repetir o toque, e sem retomar nada pra quem já assina.
+  const mostrandoAssinatura = !!jaAssinante || (relevantAccess && !!subscriptionStatus && subscriptionStatus !== 'pending');
+  const jaRetomou = useRef(false);
+  useEffect(() => {
+    if (jaRetomou.current || !route.params?.resume) return;
+    if (authLoading || !user || mostrandoAssinatura) return;
+    jaRetomou.current = true;
+    abrirCheckoutNativo();
+  }, [route.params?.resume, authLoading, user, mostrandoAssinatura, abrirCheckoutNativo]);
 
   if (jaAssinante) {
     return (
@@ -457,12 +617,17 @@ function PlanosScreenNative() {
           <Text style={styles.cardTitle}>{t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')}</Text>
           <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
           <BenefitsList isCouple={isCouple} />
-          {carregando ? (
+          {carregando || authLoading ? (
             <ActivityIndicator color={colors.accent} size="large" style={styles.nativeLoader} />
           ) : (
             <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={abrirCheckoutNativo}>
               <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
             </TouchableOpacity>
+          )}
+          {/* Mesma nota da web: a conta é o passo seguinte, e a pessoa sabe
+              disso antes de tocar — depois de já ter visto preço e benefício. */}
+          {!user && !authLoading && !carregando && (
+            <Text style={styles.loginNote}>{t('planos.loginRequired.text')}</Text>
           )}
           {erro !== '' && <Text style={[styles.errorText, styles.nativeErrorSpacing]}>{erro}</Text>}
         </View>
@@ -471,49 +636,27 @@ function PlanosScreenNative() {
   );
 }
 
-// Login só é exigido AQUI, na hora de assinar — o resto do app funciona sem
-// conta nenhuma. Motivo: sincronizar a assinatura com uma conta recuperável
-// em vez de depender só do correlationCode local (frágil se a pessoa trocar
-// de aparelho/limpar dados).
-function LoginRequiredCard({ onLogin, onBack }) {
-  const { t } = useLanguage();
-  return (
-    <View style={styles.root}>
-      <GradientHeader title={t('planos.header.title')} subtitle={t('planos.header.subtitle')} onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.card}>
-          <Ionicons name="lock-closed" size={32} color={colors.gold} />
-          <Text style={styles.cardTitle}>{t('planos.loginRequired.title')}</Text>
-          <Text style={styles.cardText}>{t('planos.loginRequired.text')}</Text>
-          <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={onLogin}>
-            <Text style={styles.btnText}>{t('planos.loginRequired.cta')}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
+// O cartão de cadeado que ficava aqui (LoginRequiredCard) foi REMOVIDO em
+// 29/07/2026: ele era a primeira e única coisa que um visitante deslogado via
+// nesta tela, sem preço, sem plano e sem benefício nenhum. A conta continua
+// obrigatória pra assinar (é ela que liga a assinatura a uma pessoa
+// recuperável, em vez de depender só do correlationCode gravado num aparelho
+// que pode ser trocado ou limpo) — só que agora é pedida DEPOIS da oferta, no
+// toque do CTA, por pedirLogin() logo acima.
 
 export default function PlanosScreen() {
-  const navigation = useNavigation();
-  const { user, loading } = useAuth();
+  // 7º degrau pelo caminho direto: abriu a tela de Planos (pelo teaser, pelo
+  // card de marco de sequência, pela Espiada de Amanhã…). Fica AQUI, no
+  // componente de cima, e não dentro de PlanosScreenWeb/Native: assim vale
+  // pros dois. Efeito no mount — esta tela re-renderiza a cada refreshAccess
+  // do foco, e o dedupe ('paywall_view:planos:Planos') cobre o resto.
+  useEffect(() => {
+    funnel.paywallView('planos', ROUTES.PLANOS);
+  }, []);
 
-  if (loading) {
-    return (
-      <View style={[styles.root, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator color={colors.accent} size="large" />
-      </View>
-    );
-  }
-  if (!user) {
-    return (
-      <LoginRequiredCard
-        onLogin={() => navigation.navigate(ROUTES.LOGIN)}
-        onBack={() => navigation.goBack()}
-      />
-    );
-  }
-
+  // Sem espera de sessão aqui: a oferta aparece na hora, logado ou não. Quem
+  // depende de saber se há sessão é só o CTA (ver abrirCheckout), que resolve
+  // isso no próprio toque.
   if (Platform.OS !== 'web') return <PlanosScreenNative />;
   return <PlanosScreenWeb />;
 }
@@ -543,6 +686,12 @@ const styles = StyleSheet.create({
   backLinkText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
   nativeLoader: { marginTop: 18 },
   nativeErrorSpacing: { marginTop: 14 },
+  // Spinner ocupando o lugar exato do CTA enquanto a sessão resolve — mesma
+  // altura de respiro do botão, pra o cartão não "pular" quando ele aparece.
+  ctaLoader: { marginTop: 18, alignSelf: 'stretch' },
+  // Nota discreta sob o CTA de quem está deslogado: menor e mais apagada que o
+  // botão de propósito, ela informa o próximo passo sem competir com ele.
+  loginNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 12 },
 
   planRow: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 16 },
   planCard: {

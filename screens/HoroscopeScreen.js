@@ -12,12 +12,31 @@ import OneTimeLock from '../components/OneTimeLock';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const DIARY_RECORDED_KEY = 'cosmic-horoscope-diary-date';
 
 const FEATURE_KEY = 'horoscope';
 
+// As strings de TABS seguem sendo os identificadores internos (seed do hash,
+// chaves de READING_POOL, comparações em dateForTab) — só a EXIBIÇÃO passa
+// pelo t() com as chaves abaixo, pra troca de idioma não mexer no conteúdo
+// sorteado do dia.
 const TABS = ['Ontem', 'Hoje', 'Amanhã'];
+const TAB_LABEL_KEYS = {
+  Ontem: 'horoscope.tab.yesterday',
+  Hoje: 'horoscope.tab.today',
+  'Amanhã': 'horoscope.tab.tomorrow',
+};
+
+// Elementos vêm de theme.js em PT ('Fogo'/'Terra'/'Ar'/'Água') e são usados
+// como dado — aqui só mapeamos pro rótulo traduzível.
+const ELEMENT_LABEL_KEYS = {
+  Fogo: 'horoscope.elementName.fogo',
+  Terra: 'horoscope.elementName.terra',
+  Ar: 'horoscope.elementName.ar',
+  'Água': 'horoscope.elementName.agua',
+};
 
 // Mesmo esquema do "Gesto do dia" em AgirScreen.js: hash simples da string ->
 // índice num pool de conteúdo. Aqui o seed combina signo + aba + data, então
@@ -50,38 +69,13 @@ function dateForTab(tab) {
 
 // Pool de leituras por aba (o tempo verbal muda: passado/presente/futuro),
 // com várias variações genéricas de conteúdo de entretenimento — sem inventar
-// previsões reais, só "sabores" diferentes de energia do dia.
+// previsões reais, só "sabores" diferentes de energia do dia. Os textos em si
+// moram no dicionário i18n (horoscope.reading.*) — aqui ficam só as chaves,
+// pro sorteio por hash continuar idêntico em qualquer idioma.
 const READING_POOL = {
-  Ontem: [
-    'A energia de ontem trouxe reflexões importantes sobre seus vínculos. O que ficou pendente pede resolução calma. A Lua minguante favoreceu o encerramento de ciclos.',
-    'Ontem foi um dia de olhar para dentro. Uma conversa deixou lições valiosas, mesmo que o momento tenha sido desconfortável. O que passou já cumpriu seu papel.',
-    'O dia de ontem pediu paciência com você mesmo(a). Pequenos atritos revelaram o que precisa de mais atenção esta semana. Nada se perdeu, só amadureceu.',
-    'Ontem trouxe um convite silencioso para soltar o que já não serve. A energia de Marte ainda ecoava em decisões rápidas, mas a calma venceu no fim do dia.',
-    'A Lua de ontem favoreceu memórias e reencontros. Algo do passado voltou à mente para ser finalmente compreendido, não revivido.',
-    'Ontem exigiu organização e método. Tarefas represadas começaram a andar, mesmo que o ritmo tenha parecido lento demais para o seu gosto.',
-    'O céu de ontem trouxe clareza sobre um sentimento que você vinha evitando nomear. Encarar isso foi o primeiro passo para virar a página.',
-    'Ontem foi propício para ajustar expectativas. O que parecia urgente perdeu força assim que você respirou fundo e observou com mais distância.',
-  ],
-  Hoje: [
-    'O céu de hoje pede coragem para dizer sim ao novo. Vênus ilumina seus relacionamentos e traz suavidade às conversas difíceis. Confie na sua intuição — ela raramente falha. É um bom dia para iniciar projetos que envolvam criatividade e conexão.',
-    'Hoje o dia pede foco e menos dispersão. Mercúrio favorece conversas objetivas, então aproveite para resolver o que anda te tirando o sono.',
-    'O sol de hoje ilumina sua autoconfiança. É um bom momento para se posicionar sobre algo que você vinha adiando por medo do julgamento alheio.',
-    'Hoje sua intuição está mais afiada que o normal. Preste atenção aos pequenos sinais — eles tendem a apontar na direção certa.',
-    'O dia de hoje favorece parcerias. Uma troca sincera pode destravar algo que estava emperrado há tempos, no trabalho ou em casa.',
-    'Hoje pede leveza. Não force respostas: algumas coisas se resolvem sozinhas quando você para de empurrar tanto.',
-    'O céu de hoje aquece os relacionamentos próximos. Vale a pena reservar um tempo para quem importa, mesmo que a agenda esteja cheia.',
-    'Hoje é um dia de ajustes finos. Pequenas mudanças de rotina rendem mais do que grandes decisões tomadas às pressas.',
-  ],
-  Amanhã: [
-    'Amanhã Mercúrio favorece decisões práticas. Uma oportunidade profissional pode surgir de onde você menos espera. Mantenha os olhos abertos e o coração leve.',
-    'Amanhã tende a exigir paciência com prazos. Uma notícia inesperada pode reorganizar seus planos — encare como ajuste, não como obstáculo.',
-    'O dia de amanhã favorece conversas francas. Se há algo pendente para dizer a alguém, esse pode ser o momento certo.',
-    'Amanhã a Lua favorece o descanso. Vale desacelerar antes de tomar decisões importantes que podem esperar mais um dia.',
-    'Amanhã promete movimento nas finanças. Um gasto ou uma entrada inesperada pede atenção redobrada ao planejamento.',
-    'O céu de amanhã abre espaço para recomeços pequenos. Não precisa ser um grande gesto — um passo simples já muda o rumo do dia.',
-    'Amanhã tende a trazer clareza sobre um dilema recente. A resposta pode não ser a que você esperava, mas será a mais honesta.',
-    'Amanhã favorece a criatividade. Se algo trava no modo tradicional, vale tentar um caminho diferente do habitual.',
-  ],
+  Ontem: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `horoscope.reading.ontem.${n}`),
+  Hoje: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `horoscope.reading.hoje.${n}`),
+  'Amanhã': [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `horoscope.reading.amanha.${n}`),
 };
 
 // Pool de conjuntos de pontuação (Amor/Trabalho/Saúde/Dinheiro), selecionado
@@ -101,27 +95,31 @@ const SCORE_POOL = [
 
 // Pools da "sorte do dia" — antes eram literais fixos (Violeta/7/15h) iguais
 // para qualquer signo em qualquer dia; agora saem do mesmo hash, com um "sal"
-// próprio para cada campo para não andarem sempre em bloco.
+// próprio para cada campo para não andarem sempre em bloco. Os valores viraram
+// chaves do i18n (o hash só usa o length, então o sorteio não muda).
 const LUCK_COLORS = [
-  'Violeta', 'Rosa', 'Dourado', 'Turquesa', 'Verde', 'Âmbar', 'Vermelho', 'Azul',
+  'horoscope.luck.colorName.violeta', 'horoscope.luck.colorName.rosa',
+  'horoscope.luck.colorName.dourado', 'horoscope.luck.colorName.turquesa',
+  'horoscope.luck.colorName.verde', 'horoscope.luck.colorName.ambar',
+  'horoscope.luck.colorName.vermelho', 'horoscope.luck.colorName.azul',
 ];
 const LUCK_NUMBERS = [2, 3, 4, 7, 8, 9, 11, 13, 17, 21];
-const LUCK_HOURS = ['9h', '11h', '13h', '15h', '17h', '18h', '20h', '21h'];
+const LUCK_HOURS = [9, 11, 13, 15, 17, 18, 20, 21].map((h) => `horoscope.luck.hourValue.${h}`);
 
-function readingFor(sign, tab) {
+function readingFor(sign, tab, t) {
   const seed = `${sign.name}|${tab}|${dateForTab(tab)}`;
   const textPool = READING_POOL[tab];
-  const text = textPool[hashStr(seed) % textPool.length];
+  const text = t(textPool[hashStr(seed) % textPool.length]);
   const scores = SCORE_POOL[hashStr(`${seed}|scores`) % SCORE_POOL.length];
   return { text, scores };
 }
 
-function luckFor(sign) {
+function luckFor(sign, t) {
   const seed = `${sign.name}|${todayISO()}`;
   return {
-    cor: LUCK_COLORS[hashStr(`${seed}|cor`) % LUCK_COLORS.length],
+    cor: t(LUCK_COLORS[hashStr(`${seed}|cor`) % LUCK_COLORS.length]),
     numero: LUCK_NUMBERS[hashStr(`${seed}|numero`) % LUCK_NUMBERS.length],
-    hora: LUCK_HOURS[hashStr(`${seed}|hora`) % LUCK_HOURS.length],
+    hora: t(LUCK_HOURS[hashStr(`${seed}|hora`) % LUCK_HOURS.length]),
   };
 }
 
@@ -131,13 +129,14 @@ export default function HoroscopeScreen() {
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
   const { hasAccess, accessConfirmed } = useCouple();
+  const { t } = useLanguage();
   const [sign, setSign] = useState(route.params?.sign || zodiacSigns[0]);
   const [tab, setTab] = useState('Hoje');
   const [showPicker, setShowPicker] = useState(false);
   const [locked, setLocked] = useState(false);
 
-  const r = readingFor(sign, tab);
-  const luck = luckFor(sign);
+  const r = readingFor(sign, tab, t);
+  const luck = luckFor(sign, t);
 
   // Sem botão de ação aqui — o conteúdo já aparece ao montar a tela. Por isso
   // checagem e marcação acontecem juntas: só marca como usado quando a checagem
@@ -164,11 +163,11 @@ export default function HoroscopeScreen() {
     const today = todayISO();
     AsyncStorage.getItem(DIARY_RECORDED_KEY).then((lastDate) => {
       if (lastDate === today) return;
-      const todayReading = readingFor(sign, 'Hoje');
+      const todayReading = readingFor(sign, 'Hoje', t);
       recordReadingCompletion({
         type: 'horoscope',
-        typeLabel: 'Horóscopo',
-        title: `Horóscopo de ${sign.pt} — hoje`,
+        typeLabel: t('home.card.horoscope.title'),
+        title: t('horoscope.diary.title', { sign: sign.pt }),
         body: todayReading.text,
       }).then(() => AsyncStorage.setItem(DIARY_RECORDED_KEY, today));
     });
@@ -182,13 +181,13 @@ export default function HoroscopeScreen() {
   };
 
   if (!hasAccess && locked) {
-    return <OneTimeLock featureTitle="Horóscopo" gradient={['#7B3FB5', '#A66CFF']} />;
+    return <OneTimeLock featureTitle={t('home.card.horoscope.title')} gradient={['#7B3FB5', '#A66CFF']} />;
   }
 
   return (
     <View style={styles.root} testID="horoscope-reading">
       <GradientHeader
-        title="Horóscopo"
+        title={t('home.card.horoscope.title')}
         subtitle={sign.pt}
         onBack={() => navigation.goBack()}
         right={
@@ -200,7 +199,7 @@ export default function HoroscopeScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {showPicker && (
           <View style={styles.pickerCard}>
-            <Text style={styles.pickerTitle}>Escolha seu signo</Text>
+            <Text style={styles.pickerTitle}>{t('horoscope.pickerTitle')}</Text>
             <View style={styles.pickerGrid}>
               {zodiacSigns.map((z) => (
                 <TouchableOpacity
@@ -217,13 +216,13 @@ export default function HoroscopeScreen() {
         )}
 
         <View style={styles.tabs}>
-          {TABS.map((t) => (
+          {TABS.map((tabName) => (
             <TouchableOpacity
-              key={t}
-              style={[styles.tab, tab === t && styles.tabActive]}
-              onPress={() => { Haptics.selectionAsync(); setTab(t); }}
+              key={tabName}
+              style={[styles.tab, tab === tabName && styles.tabActive]}
+              onPress={() => { Haptics.selectionAsync(); setTab(tabName); }}
             >
-              <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t}</Text>
+              <Text style={[styles.tabText, tab === tabName && styles.tabTextActive]}>{t(TAB_LABEL_KEYS[tabName])}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -238,26 +237,26 @@ export default function HoroscopeScreen() {
               <Text style={styles.bigDates}>{sign.dates}</Text>
               <View style={styles.elementRow}>
                 <Ionicons name="flash" size={12} color={sign.color} />
-                <Text style={[styles.element, { color: sign.color }]}>Elemento {sign.element}</Text>
+                <Text style={[styles.element, { color: sign.color }]}>{t('horoscope.element', { element: ELEMENT_LABEL_KEYS[sign.element] ? t(ELEMENT_LABEL_KEYS[sign.element]) : sign.element })}</Text>
               </View>
             </View>
           </LinearGradient>
           <Text style={styles.reading}>{r.text}</Text>
         </View>
 
-        <Text style={styles.sub}>Áreas da sua vida</Text>
+        <Text style={styles.sub}>{t('horoscope.areasTitle')}</Text>
         <View style={styles.scoresCard}>
-          <ScoreBar label="Amor" value={r.scores.Amor} gradient={['#FF6BA0', '#FF8C5C']} />
-          <ScoreBar label="Trabalho" value={r.scores.Trabalho} gradient={['#5CA8FF', '#6C7BFF']} />
-          <ScoreBar label="Saúde" value={r.scores.Saúde} gradient={['#5FD98C', '#5CE0D8']} />
-          <ScoreBar label="Dinheiro" value={r.scores.Dinheiro} gradient={['#FFB84D', '#FFC85C']} />
+          <ScoreBar label={t('horoscope.area.amor')} value={r.scores.Amor} gradient={['#FF6BA0', '#FF8C5C']} />
+          <ScoreBar label={t('horoscope.area.trabalho')} value={r.scores.Trabalho} gradient={['#5CA8FF', '#6C7BFF']} />
+          <ScoreBar label={t('horoscope.area.saude')} value={r.scores.Saúde} gradient={['#5FD98C', '#5CE0D8']} />
+          <ScoreBar label={t('horoscope.area.dinheiro')} value={r.scores.Dinheiro} gradient={['#FFB84D', '#FFC85C']} />
         </View>
 
-        <Text style={styles.sub}>Sua sorte hoje</Text>
+        <Text style={styles.sub}>{t('horoscope.luckTitle')}</Text>
         <View style={styles.luckRow}>
-          <LuckItem icon="color-palette" color={colors.pink} label="Cor" value={luck.cor} />
-          <LuckItem icon="dice" color={colors.gold} label="Número" value={String(luck.numero)} />
-          <LuckItem icon="time" color={colors.teal} label="Hora" value={luck.hora} />
+          <LuckItem icon="color-palette" color={colors.pink} label={t('horoscope.luck.color')} value={luck.cor} />
+          <LuckItem icon="dice" color={colors.gold} label={t('horoscope.luck.number')} value={String(luck.numero)} />
+          <LuckItem icon="time" color={colors.teal} label={t('horoscope.luck.hour')} value={luck.hora} />
         </View>
       </ScrollView>
     </View>

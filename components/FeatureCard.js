@@ -4,8 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 
+// `title`/`subtitle` já chegam traduzidos de quem monta o grid (ver ALL_ITEMS
+// em HomeScreen.js). O único texto escrito aqui dentro é o rótulo de
+// acessibilidade do cadeado, que usa o título como variável.
 export default function FeatureCard({ title, subtitle, icon, gradient, onPress, locked, testID }) {
+  const { t } = useLanguage();
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -15,7 +20,7 @@ export default function FeatureCard({ title, subtitle, icon, gradient, onPress, 
       }}
       style={styles.card}
       accessibilityRole="button"
-      accessibilityLabel={locked ? `${title}, recurso bloqueado, requer assinatura` : title}
+      accessibilityLabel={locked ? t('featureCard.lockedA11y', { title }) : title}
       testID={testID}
     >
       <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.grad, locked && styles.gradLocked]}>

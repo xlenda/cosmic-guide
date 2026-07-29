@@ -1,9 +1,9 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,8 +14,16 @@ import { ROUTES } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AlertHost } from './components/AlertHost';
 import { CoupleProvider, useCouple } from './context/CoupleContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+// Plano que a pessoa escolheu antes de o app pedir login (ver PlanosScreen.js
+// e lib/checkoutIntent.js) — é o que permite devolvê-la pra oferta depois do
+// login com Google/confirmação de e-mail, que recarregam a página inteira.
+import { readCheckoutIntent, clearCheckoutIntent } from './lib/checkoutIntent';
 import { initConversionTracking } from './lib/conversionTracking';
+// Funil PRÓPRIO (lib/funnel.js → POST /api/track). Complementar ao
+// conversionTracking acima, que continua no lugar mas segue inerte enquanto
+// EXPO_PUBLIC_FB_PIXEL_ID/EXPO_PUBLIC_GA_ID não forem configurados.
+import { funnel } from './lib/funnel';
 import { acceptInvite } from './lib/coupleInvite';
 // Analytics de visitas da própria Vercel (hospeda o app) — não depende de
 // Pixel/GA (que ainda esperam ID real do Lenda): já conta visita real hoje,
@@ -262,6 +270,36 @@ function ProfileStack() {
   );
 }
 
+// Retoma a compra interrompida pelo login. O login com Google (e o link de
+// confirmação de e-mail do Supabase) tira o navegador da página e traz a
+// pessoa de volta na RAIZ do app — logada, mas na Home, longe da oferta que
+// ela estava prestes a comprar. Este efeito lê a intenção guardada
+// (lib/checkoutIntent.js, com validade de 30 min) e devolve a pessoa pra tela
+// de Planos com o MESMO plano selecionado, uma única vez por execução.
+function useRetomarCheckout(navRef, navPronta) {
+  const { user, loading: authLoading } = useAuth();
+  const jaRetomou = useRef(false);
+
+  useEffect(() => {
+    if (jaRetomou.current || !navPronta || authLoading || !user) return;
+    let vivo = true;
+    readCheckoutIntent().then((intent) => {
+      if (!vivo || jaRetomou.current || !intent || !navRef.isReady()) return;
+      jaRetomou.current = true;
+      // Consumida aqui: daqui pra frente quem manda é o params da rota, e uma
+      // intenção que sobrasse levaria a pessoa pra esta tela de novo amanhã.
+      clearCheckoutIntent();
+      navRef.navigate(ROUTES.HOME_TAB, {
+        screen: ROUTES.PLANOS,
+        params: { plan: intent.plan, resume: true },
+      });
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [navRef, navPronta, user, authLoading]);
+}
+
 // Gate: decide o que mostrar antes do Tab.Navigator normal. Precisa ser filho do
 // CoupleProvider (usa useCouple()). Fica preso no loader enquanto o contexto ainda
 // carrega OU o bootstrap de URL ainda não rodou — assim um acesso com ?voce=&amor=…
@@ -273,6 +311,9 @@ function ProfileStack() {
 function Gate() {
   const { coupleData, soloSign, loading } = useCouple();
   const bootstrapped = useUrlBootstrap();
+  const navRef = useNavigationContainerRef();
+  const [navPronta, setNavPronta] = useState(false);
+  useRetomarCheckout(navRef, navPronta);
 
   if (loading || !bootstrapped) {
     return (
@@ -296,7 +337,7 @@ function Gate() {
   }
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer ref={navRef} linking={linking} onReady={() => setNavPronta(true)}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -322,8 +363,21 @@ function Gate() {
         })}
       >
         <Tab.Screen name={ROUTES.HOME_TAB} component={HomeStack} />
-        <Tab.Screen name={ROUTES.TAROT_TAB} component={TarotStack} />
-        <Tab.Screen name={ROUTES.CHAT_TAB} component={ChatScreen} />
+        {/* Tarô e Chat são as DUAS leituras alcançáveis sem passar pelo card da
+            Home (a barra de abas leva direto). Sem estes dois listeners o funil
+            mostraria reading_done > reading_start — degrau impossível, que faz
+            o relatório parecer quebrado. Os outros pontos de "pediu leitura"
+            saem do grid da Home (ver HomeScreen.js). */}
+        <Tab.Screen
+          name={ROUTES.TAROT_TAB}
+          component={TarotStack}
+          listeners={{ tabPress: () => funnel.readingStart('tarot', 'tab') }}
+        />
+        <Tab.Screen
+          name={ROUTES.CHAT_TAB}
+          component={ChatScreen}
+          listeners={{ tabPress: () => funnel.readingStart('chat', 'tab') }}
+        />
         <Tab.Screen name={ROUTES.PROFILE_TAB} component={ProfileStack} />
       </Tab.Navigator>
     </NavigationContainer>
@@ -333,6 +387,10 @@ function Gate() {
 export default function App() {
   useEffect(() => {
     initConversionTracking();
+    // Primeiro degrau do funil: "abriu o app". Uma vez por execução (o dedupe
+    // de lib/funnel.js garante), na raiz — antes de qualquer decisão de Gate,
+    // pra contar TODO mundo que entrou, inclusive quem sai na tela de escolha.
+    funnel.appOpen();
   }, []);
 
   return (

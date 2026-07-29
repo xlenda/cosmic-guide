@@ -18,6 +18,7 @@ import {
 import { checkAccountAccess, autoLinkDeviceCodes } from '../lib/accountSubscription';
 import { unsubscribeFromWebPush } from '../lib/webPush';
 import { cancelDailyThought } from '../lib/notifications';
+import { resetFunnelSession } from '../lib/funnel';
 import { useAuth } from './AuthContext';
 
 const CoupleContext = createContext(null);
@@ -185,6 +186,16 @@ export function CoupleProvider({ children }) {
     // limpeza se falhar (as duas gravam em storage fora de try/catch).
     await unsubscribeFromWebPush().catch(() => {});
     await cancelDailyThought().catch(() => {});
+    // O uuid ANÔNIMO do funil (lib/funnel.js) morre junto — e o que ainda
+    // estava na fila é descartado sem ser enviado. Ele nunca guardou nada
+    // pessoal (é aleatório, sem relação com conta/e-mail/perfil), mas "apagar
+    // meus dados" tem que apagar TODO rastro deste aparelho, inclusive o
+    // identificador que liga uma visita à seguinte. Fica aqui, ao lado do
+    // web-push e da notificação, pelo mesmo motivo dos dois: é limpeza FORA do
+    // AsyncStorage do casal, e deleteAllCoupleData (lib/coupleData.js) não
+    // pode importar lib/funnel.js sem arrastar react-native pra dentro do
+    // grafo dela — o que quebraria os 4 testes que a exercitam em node puro.
+    await resetFunnelSession().catch(() => {});
     try {
       // Mesmas chaves de lib/webPush.js (ENABLED_KEY) e lib/notifications.js
       // (ENABLED_KEY/NOTIFICATION_ID_KEY) — as funções acima as deixam como

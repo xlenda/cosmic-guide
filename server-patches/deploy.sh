@@ -3,7 +3,7 @@
 #
 # O que faz, nesta ordem:
 #   1. Backup do banco E do código atual (rollback em um comando se der errado)
-#   2. Copia os arquivos corrigidos de server-patches/src/ e server-patches/scripts/
+#   2. Copia os arquivos corrigidos de server-patches/src/, /scripts/ e /test/
 #   3. Reinicia o pm2 — as migrações pendentes (008+) são aplicadas sozinhas no boot,
 #      pelo runner de migrations/ que compara user_version (hoje 7)
 #   4. Verifica saúde e mostra a versão do schema depois
@@ -32,7 +32,7 @@ if [ ! -d "$REPO_DIR/src" ]; then
 fi
 echo ""
 echo "Arquivos que serão enviados:"
-find "$REPO_DIR/src" "$REPO_DIR/scripts" -type f 2>/dev/null | sed "s|$REPO_DIR/|  |"
+find "$REPO_DIR/src" "$REPO_DIR/scripts" "$REPO_DIR/test" -type f 2>/dev/null | sed "s|$REPO_DIR/|  |"
 
 # --- 1. Backup --------------------------------------------------------------
 echo ""
@@ -55,6 +55,16 @@ scp -o ConnectTimeout=25 -r "$REPO_DIR/src/." "$REMOTE:$APP_DIR/src/"
 if [ -d "$REPO_DIR/scripts" ]; then
   ssh -o ConnectTimeout=25 "$REMOTE" "mkdir -p $APP_DIR/scripts"
   scp -o ConnectTimeout=25 -r "$REPO_DIR/scripts/." "$REMOTE:$APP_DIR/scripts/"
+fi
+# Os testes vão junto (o servidor já tem supertest em devDependencies). Sem
+# isto, os testes escritos aqui nunca chegam a rodar contra o código que está
+# de fato em produção — e foi assim que a rota /api/track ficou pronta, testada
+# e SEM a linha de mount no server.js: a suíte que teria pego isso vivia só na
+# máquina de quem escreveu. Nomes não colidem com os testes que já existem lá.
+# Nada em test/ é carregado pelo pm2, então não muda nada em tempo de execução.
+if [ -d "$REPO_DIR/test" ]; then
+  ssh -o ConnectTimeout=25 "$REMOTE" "mkdir -p $APP_DIR/test"
+  scp -o ConnectTimeout=25 -r "$REPO_DIR/test/." "$REMOTE:$APP_DIR/test/"
 fi
 echo "  enviado."
 

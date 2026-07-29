@@ -19,6 +19,7 @@ import {
 } from '../lib/cosmeticRewards';
 import { addPinCredit } from '../lib/journal';
 import { getBrindesDisponiveis, BRINDE_CONTEUDO } from '../lib/brindes';
+import { useLanguage } from '../context/LanguageContext';
 
 // Recompensas cosméticas/digitais do próprio app — nada físico, nada que
 // prometa dinheiro real ou logística que ainda não existe. REGRA DURA: só
@@ -26,47 +27,22 @@ import { getBrindesDisponiveis, BRINDE_CONTEUDO } from '../lib/brindes';
 // (bug real de 25/07/2026: duas recompensas gastavam o token sem fazer nada).
 // `webOnly` esconde a recompensa no nativo quando o efeito só existe na web
 // (ex.: Tema Dourado, que depende de localStorage síncrono — ver theme.js).
+// title/description são traduzidos (loja.reward.<id>.title/.description em
+// lib/i18n.js) — mesmo esquema dos planos em PlanosScreen.js: o id é a chave,
+// só custo/ícone/plataforma ficam aqui.
 const REWARDS = [
-  {
-    id: 'selo-cosmico',
-    title: 'Selo Cósmico no perfil',
-    description: 'Um selinho especial ao lado do seu nome no Perfil — sozinho ou em casal.',
-    cost: 50,
-    icon: 'ribbon',
-  },
-  {
-    id: 'destaque-diario',
-    title: 'Destaque no Diário',
-    description: 'Fixa uma leitura à sua escolha no topo do Diário Cósmico por 7 dias.',
-    cost: 30,
-    icon: 'bookmark',
-  },
-  {
-    id: 'leitura-bonus',
-    title: 'Leitura Bônus',
-    description: 'Desbloqueia uma leitura extra de Tarô fora da sua sequência normal (mesmo tema já consultado hoje).',
-    cost: 80,
-    icon: 'sparkles',
-  },
-  {
-    id: 'escudo-sequencia',
-    title: 'Escudo da Sequência',
-    description: 'Protege sua sequência de quebrar se vocês esquecerem de usar o app por 1 dia.',
-    cost: 60,
-    icon: 'shield-checkmark',
-  },
-  {
-    id: 'tema-dourado',
-    title: 'Tema dourado exclusivo',
-    description: 'O app inteiro em dourado — compra única, liga e desliga quando quiser no Perfil.',
-    cost: 150,
-    icon: 'color-palette',
-    webOnly: true,
-  },
+  { id: 'selo-cosmico', cost: 50, icon: 'ribbon' },
+  { id: 'destaque-diario', cost: 30, icon: 'bookmark' },
+  { id: 'leitura-bonus', cost: 80, icon: 'sparkles' },
+  { id: 'escudo-sequencia', cost: 60, icon: 'shield-checkmark' },
+  { id: 'tema-dourado', cost: 150, icon: 'color-palette', webOnly: true },
 ];
+
+const rewardTitle = (t, id) => t(`loja.reward.${id}.title`);
 
 export default function LojaScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const [balance, setBalance] = useState(0);
   const [redeeming, setRedeeming] = useState(null);
   // Guard SÍNCRONO contra toque duplo: `redeeming` é state (só atualiza no
@@ -95,31 +71,31 @@ export default function LojaScreen() {
       // Tema dourado é compra ÚNICA — recusa antes de gastar token de novo
       // (quem já tem liga/desliga de graça no Perfil).
       if (reward.id === 'tema-dourado' && (await hasGoldTheme())) {
-        Alert.alert('Você já tem o Tema dourado', 'Liga e desliga quando quiser em Perfil > Preferências.');
+        Alert.alert(t('loja.alert.goldAlready.title'), t('loja.alert.goldAlready.text'));
         return;
       }
       setRedeeming(reward.id);
-      const result = await spendTokens(reward.cost, reward.title);
+      const result = await spendTokens(reward.cost, rewardTitle(t, reward.id));
       if (result.ok) {
         setBalance(result.balance);
         if (reward.id === 'escudo-sequencia') {
           const count = await addShield();
-          Alert.alert('Escudo ativado!', `${count} escudo(s) guardado(s) — protege a próxima sequência quebrada.`);
+          Alert.alert(t('loja.alert.shield.title'), t('loja.alert.shield.text', { count }));
         } else if (reward.id === 'selo-cosmico') {
           await grantSeloCosmico();
-          Alert.alert('Selo ativado!', 'Já apareceu ao lado do nome de vocês no Perfil.');
+          Alert.alert(t('loja.alert.seal.title'), t('loja.alert.seal.text'));
         } else if (reward.id === 'leitura-bonus') {
           const count = await addBonusTarotReading();
-          Alert.alert('Leitura Bônus guardada!', `Vá no Tarô, escolha o tema (mesmo já consultado hoje) e use o botão "Usar Leitura Bônus" (${count} disponível).`);
+          Alert.alert(t('loja.alert.bonusReading.title'), t('loja.alert.bonusReading.text', { count }));
         } else if (reward.id === 'destaque-diario') {
           await addPinCredit();
-          Alert.alert('Destaque guardado!', 'Abra o Diário Cósmico, toque na leitura que quiser e use "Fixar no topo por 7 dias".');
+          Alert.alert(t('loja.alert.pin.title'), t('loja.alert.pin.text'));
         } else if (reward.id === 'tema-dourado') {
           await grantGoldTheme();
           setGoldThemeActive(true);
-          Alert.alert('Tema dourado seu!', 'Recarregando pra aplicar o visual novo…', [
+          Alert.alert(t('loja.alert.goldGranted.title'), t('loja.alert.goldGranted.text'), [
             {
-              text: 'Aplicar agora',
+              text: t('loja.alert.goldGranted.cta'),
               onPress: () => {
                 // Volta pra RAIZ do app de propósito, não reload() da URL
                 // atual — a rota interna (/Loja) não existe como arquivo no
@@ -129,12 +105,12 @@ export default function LojaScreen() {
             },
           ]);
         } else {
-          Alert.alert('Resgatado!', `"${reward.title}" resgatado com sucesso.`);
+          Alert.alert(t('loja.alert.redeemed.title'), t('loja.alert.redeemed.text', { title: rewardTitle(t, reward.id) }));
         }
       } else {
         Alert.alert(
-          'Saldo insuficiente',
-          `Você tem ${result.balance} tokens, mas essa recompensa custa ${reward.cost}. Complete mais leituras pra ganhar tokens.`
+          t('loja.alert.noBalance.title'),
+          t('loja.alert.noBalance.rewardText', { balance: result.balance, cost: reward.cost })
         );
       }
     } finally {
@@ -161,7 +137,7 @@ export default function LojaScreen() {
       // Inalcançável com BRINDES_FISICOS_ATIVOS=false (getBrindesDisponiveis
       // filtra), mas se a flag ligar sem o fluxo de endereço pronto, NUNCA
       // cobra token por promessa: avisa e sai.
-      Alert.alert('Quase lá', 'Os brindes físicos estão em preparação — nenhum token foi gasto.');
+      Alert.alert(t('loja.alert.physical.title'), t('loja.alert.physical.text'));
       return;
     }
     if (brinde.kind === 'conteudo' && (await hasBrinde(brinde.id))) {
@@ -173,8 +149,8 @@ export default function LojaScreen() {
       const result = await spendTokens(brinde.cost, brinde.title);
       if (!result.ok) {
         Alert.alert(
-          'Saldo insuficiente',
-          `Você tem ${result.balance} tokens, mas esse brinde custa ${brinde.cost}. Complete as missões diárias e leituras pra ganhar mais.`
+          t('loja.alert.noBalance.title'),
+          t('loja.alert.noBalance.brindeText', { balance: result.balance, cost: brinde.cost })
         );
         return;
       }
@@ -208,17 +184,17 @@ export default function LojaScreen() {
 
   return (
     <View style={styles.root}>
-      <GradientHeader title="Loja" subtitle="Troque tokens por recompensas" onBack={() => navigation.goBack()} />
+      <GradientHeader title={t('loja.header.title')} subtitle={t('loja.header.subtitle')} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.balanceWrap}>
           <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}>
             <Ionicons name="sparkles" size={26} color="#fff" />
             <Text style={styles.balanceValue}>{balance}</Text>
-            <Text style={styles.balanceLabel}>tokens disponíveis</Text>
+            <Text style={styles.balanceLabel}>{t('loja.balanceLabel')}</Text>
           </LinearGradient>
         </View>
 
-        <Text style={styles.sectionTitle}>Recompensas</Text>
+        <Text style={styles.sectionTitle}>{t('loja.sectionRewards')}</Text>
         {REWARDS.filter((r) => !r.webOnly || Platform.OS === 'web').map((reward) => {
           const affordable = balance >= reward.cost;
           const isRedeeming = redeeming === reward.id;
@@ -228,11 +204,11 @@ export default function LojaScreen() {
                 <Ionicons name={reward.icon} size={22} color={colors.gold} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>{reward.title}</Text>
-                <Text style={styles.cardDesc}>{reward.description}</Text>
+                <Text style={styles.cardTitle}>{t(`loja.reward.${reward.id}.title`)}</Text>
+                <Text style={styles.cardDesc}>{t(`loja.reward.${reward.id}.description`)}</Text>
                 <View style={styles.costRow}>
                   <Ionicons name="diamond" size={13} color={colors.gold} />
-                  <Text style={styles.costText}>{reward.cost} tokens</Text>
+                  <Text style={styles.costText}>{t('loja.costTokens', { cost: reward.cost })}</Text>
                 </View>
               </View>
               <TouchableOpacity
@@ -241,7 +217,7 @@ export default function LojaScreen() {
                 onPress={() => handleRedeem(reward)}
                 disabled={isRedeeming}
               >
-                <Text style={styles.redeemBtnText}>{isRedeeming ? '...' : 'Resgatar'}</Text>
+                <Text style={styles.redeemBtnText}>{isRedeeming ? '...' : t('loja.redeem')}</Text>
               </TouchableOpacity>
             </View>
           );
@@ -249,8 +225,8 @@ export default function LojaScreen() {
 
         {/* Brindes: mimos do nicho (ritual, wallpapers, tiragem exclusiva) com
             entrega automática real — catálogo e regras em lib/brindes.js. */}
-        <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Brindes espirituais</Text>
-        <Text style={styles.sectionSubtitle}>Ganhe tokens nas missões diárias e troque por mimos de entrega imediata.</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 12 }]}>{t('loja.sectionBrindes')}</Text>
+        <Text style={styles.sectionSubtitle}>{t('loja.sectionBrindesSubtitle')}</Text>
         {getBrindesDisponiveis()
           .filter((b) => !b.webOnly || Platform.OS === 'web')
           .map((brinde) => {
@@ -269,12 +245,12 @@ export default function LojaScreen() {
                     {owned ? (
                       <>
                         <Ionicons name="checkmark-circle" size={13} color={colors.green} />
-                        <Text style={styles.ownedText}>seu — abra quando quiser</Text>
+                        <Text style={styles.ownedText}>{t('loja.owned')}</Text>
                       </>
                     ) : (
                       <>
                         <Ionicons name="diamond" size={13} color={colors.gold} />
-                        <Text style={styles.costText}>{brinde.cost} tokens</Text>
+                        <Text style={styles.costText}>{t('loja.costTokens', { cost: brinde.cost })}</Text>
                       </>
                     )}
                   </View>
@@ -285,7 +261,7 @@ export default function LojaScreen() {
                   onPress={() => handleRedeemBrinde(brinde)}
                   disabled={isRedeeming}
                 >
-                  <Text style={styles.redeemBtnText}>{isRedeeming ? '...' : owned ? 'Abrir' : 'Resgatar'}</Text>
+                  <Text style={styles.redeemBtnText}>{isRedeeming ? '...' : owned ? t('loja.open') : t('loja.redeem')}</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -315,7 +291,7 @@ export default function LojaScreen() {
                   <Image source={{ uri: w.uri }} style={styles.wallPreview} resizeMode="cover" />
                   <TouchableOpacity style={styles.wallBtn} activeOpacity={0.8} onPress={() => baixarWallpaper(w)}>
                     <Ionicons name="download" size={14} color="#fff" />
-                    <Text style={styles.wallBtnText}>Baixar “{w.nome}”</Text>
+                    <Text style={styles.wallBtnText}>{t('loja.wallpaperDownload', { nome: w.nome })}</Text>
                   </TouchableOpacity>
                 </View>
               ))}

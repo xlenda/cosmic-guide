@@ -17,78 +17,81 @@ import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import ScoreBar from '../components/ScoreBar';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 import { getReconectarChecks, toggleReconectarStep, getDescobrirData } from '../lib/coupleData';
 
 const HEADER_GRADIENT = gradients.pink;
 
+// title/intro/steps viram chaves i18n — t() onde forem exibidos (mesmo padrão
+// do STEPS em QuizScreen.js). Os textos PT continuam idênticos no dicionário.
 const TRACKS = [
   {
     id: 'conversar',
     emoji: '💬',
-    title: 'Voltar a conversar',
-    intro: 'Pequenos gestos para reabrir o canal e se escutarem de verdade.',
+    title: 'reconectar.track.conversar.title',
+    intro: 'reconectar.track.conversar.intro',
     gradient: ['#FF7BD5', '#B57BFF'],
     steps: [
-      'Escute seu par por 2 minutos sem interromper e resuma com suas palavras o que ouviu.',
-      'Envie uma mensagem curta perguntando como foi o dia dele(a) — e leia a resposta com atenção.',
-      'Escolham um momento sem pressa para conversar, com os celulares longe.',
-      'Faça uma pergunta aberta ("o que você tem sentido ultimamente?") em vez de uma de sim ou não.',
-      'Compartilhe algo seu primeiro: conte como você tem se sentido, começando com "eu sinto...".',
-      'Combinem um horário fixo na semana, só para vocês, para se atualizarem.',
+      'reconectar.track.conversar.step.0',
+      'reconectar.track.conversar.step.1',
+      'reconectar.track.conversar.step.2',
+      'reconectar.track.conversar.step.3',
+      'reconectar.track.conversar.step.4',
+      'reconectar.track.conversar.step.5',
     ],
   },
   {
     id: 'frieza',
     emoji: '🌤️',
-    title: 'Reduzir a frieza',
-    intro: 'Esquentar o ambiente aos poucos, sem pressão e no ritmo dos dois.',
+    title: 'reconectar.track.frieza.title',
+    intro: 'reconectar.track.frieza.intro',
     gradient: ['#5CE0D8', '#5CA8FF'],
     steps: [
-      'Cumprimente seu par com um bom dia ou boa noite, mesmo nos dias mais difíceis.',
-      'Reconheça em voz alta algo que você admira nele(a).',
-      'Ofereça um contato carinhoso — a mão no ombro, um abraço — se for confortável para os dois.',
-      'Respire antes de falar quando sentir vontade de se fechar, para não responder no automático.',
-      'Diga "senti sua falta" quando for verdade, sem esperar nada em troca.',
-      'Retomem um pequeno hábito de vocês: um café juntos, uma música, uma caminhada.',
+      'reconectar.track.frieza.step.0',
+      'reconectar.track.frieza.step.1',
+      'reconectar.track.frieza.step.2',
+      'reconectar.track.frieza.step.3',
+      'reconectar.track.frieza.step.4',
+      'reconectar.track.frieza.step.5',
     ],
   },
   {
     id: 'carinho',
     emoji: '💛',
-    title: 'Reconstruir o carinho',
-    intro: 'Regar o afeto com atenção, gratidão e presença.',
+    title: 'reconectar.track.carinho.title',
+    intro: 'reconectar.track.carinho.intro',
     gradient: ['#FFC85C', '#FF8C5C'],
     steps: [
-      'Agradeça algo específico que seu par fez hoje, por menor que pareça.',
-      'Envie uma mensagem lembrando um bom momento que vocês viveram juntos.',
-      'Faça um elogio sincero sobre quem ele(a) é, não só sobre o que faz.',
-      'Ofereça ajuda em algo que você sabe que pesa para ele(a), sem esperar que peça.',
-      'Reservem 10 minutos só para ficarem juntos, sem resolver nada — só presença.',
-      'Escreva um bilhete curto dizendo o que você valoriza em ter essa pessoa por perto.',
+      'reconectar.track.carinho.step.0',
+      'reconectar.track.carinho.step.1',
+      'reconectar.track.carinho.step.2',
+      'reconectar.track.carinho.step.3',
+      'reconectar.track.carinho.step.4',
+      'reconectar.track.carinho.step.5',
     ],
   },
   {
     id: 'confianca',
     emoji: '🤝',
-    title: 'Retomar a confiança',
-    intro: 'Reconstruir a segurança com transparência e reparos honestos.',
+    title: 'reconectar.track.confianca.title',
+    intro: 'reconectar.track.confianca.intro',
     gradient: ['#5FD98C', '#5CE0D8'],
     steps: [
-      'Cumpra uma pequena promessa esta semana e avise com carinho quando cumprir.',
-      'Peça desculpas por algo específico, sem acrescentar um "mas" depois.',
-      'Escute a dor do seu par até o fim, sem se defender, e valide o que ele(a) sentiu.',
-      'Faça um pedido começando com "eu sinto..." em vez de acusar ("sinto insegurança quando...").',
-      'Seja transparente sobre algo que você costumava evitar contar, no seu próprio ritmo.',
-      'Combinem juntos um pequeno pacto de convivência e revisem daqui a uma semana.',
+      'reconectar.track.confianca.step.0',
+      'reconectar.track.confianca.step.1',
+      'reconectar.track.confianca.step.2',
+      'reconectar.track.confianca.step.3',
+      'reconectar.track.confianca.step.4',
+      'reconectar.track.confianca.step.5',
     ],
   },
 ];
 
 const SOS_STEPS = [
-  'Respirem fundo, cada um à sua maneira, antes de dizer qualquer outra coisa.',
-  'O primeiro que conseguir, diga em voz alta: "não quero brigar com você, quero te entender".',
-  'Escutem um ao outro sem interromper nem se defender — só para entender, não para responder já.',
-  'Ofereçam um abraço de 20 segundos, mesmo que ainda falte algo para resolver.',
+  'reconectar.sos.step.0',
+  'reconectar.sos.step.1',
+  'reconectar.sos.step.2',
+  'reconectar.sos.step.3',
 ];
 
 // Cruza o desafio marcado em Descobrir com o estilo de apego para sugerir a
@@ -115,6 +118,7 @@ function doneCount(checks, track) {
 
 export default function ReconectarScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const { coupleData } = useCouple();
   const voce = coupleData?.voce;
   const amor = coupleData?.amor;
@@ -167,15 +171,15 @@ export default function ReconectarScreen() {
   if (!voce || !amor) {
     return (
       <View style={styles.root}>
-        <GradientHeader title="Reconectar" subtitle="Fortaleça o vínculo" onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
+        <GradientHeader title={t('reconectar.header.title')} subtitle={t('reconectar.header.subtitle')} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
         <View style={styles.emptyProfile}>
           <Ionicons name="heart-outline" size={40} color={colors.accent} />
-          <Text style={styles.emptyProfileTitle}>Complete o quiz do casal primeiro</Text>
+          <Text style={styles.emptyProfileTitle}>{t('reconectar.gate.title')}</Text>
           <Text style={styles.emptyProfileDesc}>
-            Precisamos saber os nomes de vocês para guardar o progresso das trilhas no lugar certo.
+            {t('reconectar.gate.desc')}
           </Text>
           <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
-            <Text style={styles.btnText}>Fazer o quiz do casal</Text>
+            <Text style={styles.btnText}>{t('reconectar.gate.cta')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -184,7 +188,7 @@ export default function ReconectarScreen() {
 
   return (
     <View style={styles.root}>
-      <GradientHeader title="Reconectar" subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
+      <GradientHeader title={t('reconectar.header.title')} subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {celebrate && (
           <View style={styles.celebrateCard}>
@@ -192,9 +196,9 @@ export default function ReconectarScreen() {
               <Ionicons name="close" size={16} color={colors.text} />
             </TouchableOpacity>
             <Text style={styles.celebrateEmoji}>🎉{celebrate.emoji}</Text>
-            <Text style={styles.celebrateTitle}>Conseguiram, {voce} & {amor}!</Text>
+            <Text style={styles.celebrateTitle}>{t('reconectar.celebrate.title', { voce, amor })}</Text>
             <Text style={styles.celebrateDesc}>
-              Completaram juntos a trilha "{celebrate.title}". Mais um passo, real e dos dois.
+              {t('reconectar.celebrate.desc', { title: t(celebrate.title) })}
             </Text>
           </View>
         )}
@@ -204,26 +208,26 @@ export default function ReconectarScreen() {
           <TouchableOpacity style={styles.rowBtn} onPress={() => setSosOpen((v) => !v)} activeOpacity={0.8}>
             <Text style={styles.rowEmoji}>🆘</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.overline}>Ajuda imediata</Text>
-              <Text style={styles.rowTitle}>Modo SOS — logo após uma briga</Text>
-              <Text style={styles.rowDesc}>4 passos curtos para baixar a tensão agora, sem escolher trilha.</Text>
+              <Text style={styles.overline}>{t('reconectar.sos.overline')}</Text>
+              <Text style={styles.rowTitle}>{t('reconectar.sos.title')}</Text>
+              <Text style={styles.rowDesc}>{t('reconectar.sos.desc')}</Text>
             </View>
             <Ionicons name={sosOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
           </TouchableOpacity>
           {sosOpen && (
             <View style={{ marginTop: 16 }}>
-              <Text style={styles.sosStepText}>{SOS_STEPS[sosStep]}</Text>
+              <Text style={styles.sosStepText}>{t(SOS_STEPS[sosStep])}</Text>
               <View style={styles.progressTrack}>
                 <View style={[styles.progressFill, { width: `${((sosStep + 1) / SOS_STEPS.length) * 100}%` }]} />
               </View>
               <View style={{ alignItems: 'center', marginTop: 12 }}>
                 {sosStep < SOS_STEPS.length - 1 ? (
                   <TouchableOpacity style={styles.btn} onPress={() => setSosStep((s) => s + 1)}>
-                    <Text style={styles.btnText}>Pronto, próximo passo</Text>
+                    <Text style={styles.btnText}>{t('reconectar.sos.next')}</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity style={styles.btn} onPress={() => { setSosOpen(false); setSosStep(0); }}>
-                    <Text style={styles.btnText}>Terminamos os 4 passos 💛</Text>
+                    <Text style={styles.btnText}>{t('reconectar.sos.finish')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -232,51 +236,49 @@ export default function ReconectarScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Reavivar a conexão</Text>
+          <Text style={styles.sectionTitle}>{t('reconectar.intro.title')}</Text>
           <Text style={styles.mutedText}>
-            Reconectar não é convencer nem controlar ninguém — é voltar a se escutar, se cuidar e se
-            comunicar com honestidade. Escolham uma trilha e façam uma pequena missão por dia, no
-            ritmo de vocês. Os gestos pequenos, repetidos, reconstroem o vínculo.
+            {t('reconectar.intro.text')}
           </Text>
-          <Text style={styles.disclaimer}>Para questões sérias, considerem terapia de casal com um profissional.</Text>
+          <Text style={styles.disclaimer}>{t('reconectar.intro.disclaimer')}</Text>
         </View>
 
         {loaded && (
           <View style={[styles.card, { marginTop: 14, marginBottom: 14 }]}>
-            <Text style={styles.overline}>Avanço conjunto de vocês</Text>
+            <Text style={styles.overline}>{t('reconectar.progress.overline')}</Text>
             <View style={styles.statRow}>
               <View style={styles.stat}>
                 <Text style={styles.statValue}>{totalDone}</Text>
-                <Text style={styles.statLabel}>✅ feitos</Text>
+                <Text style={styles.statLabel}>{t('reconectar.progress.done')}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.stat}>
                 <Text style={styles.statValue}>{totalSteps - totalDone}</Text>
-                <Text style={styles.statLabel}>⏳ pendentes</Text>
+                <Text style={styles.statLabel}>{t('reconectar.progress.pending')}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.stat}>
                 <Text style={styles.statValue}>{trilhasCompletas}/{TRACKS.length}</Text>
-                <Text style={styles.statLabel}>🏁 trilhas</Text>
+                <Text style={styles.statLabel}>{t('reconectar.progress.tracks')}</Text>
               </View>
             </View>
             <View style={{ marginTop: 14 }}>
-              {TRACKS.map((t) => (
+              {TRACKS.map((tr) => (
                 <ScoreBar
-                  key={t.id}
-                  label={t.emoji + ' ' + t.title.split(' ').slice(-1)[0]}
-                  value={Math.round((doneCount(checks, t) / t.steps.length) * 100)}
-                  gradient={t.gradient}
+                  key={tr.id}
+                  label={tr.emoji + ' ' + t(tr.title).split(' ').slice(-1)[0]}
+                  value={Math.round((doneCount(checks, tr) / tr.steps.length) * 100)}
+                  gradient={tr.gradient}
                 />
               ))}
             </View>
           </View>
         )}
 
-        <Text style={styles.pageSectionTitle}>Trilhas de reconexão</Text>
+        <Text style={styles.pageSectionTitle}>{t('reconectar.tracksTitle')}</Text>
         {recomendada && (
           <Text style={[styles.mutedText, { marginBottom: 10 }]}>
-            De acordo com o jeito de vocês se vincularem e o momento de hoje, sugerimos começar pela trilha marcada abaixo.
+            {t('reconectar.recommendedIntro')}
           </Text>
         )}
 
@@ -291,9 +293,9 @@ export default function ReconectarScreen() {
               <TouchableOpacity style={styles.rowBtn} onPress={() => setOpen(isOpen ? '' : track.id)} activeOpacity={0.8}>
                 <Text style={styles.rowEmoji}>{track.emoji}</Text>
                 <View style={{ flex: 1 }}>
-                  {isRecommended && <Text style={styles.recommendedBadge}>✷ sugerida para hoje</Text>}
-                  <Text style={styles.rowTitle}>{track.title}</Text>
-                  <Text style={styles.rowDesc}>{track.intro}</Text>
+                  {isRecommended && <Text style={styles.recommendedBadge}>{t('reconectar.recommendedBadge')}</Text>}
+                  <Text style={styles.rowTitle}>{t(track.title)}</Text>
+                  <Text style={styles.rowDesc}>{t(track.intro)}</Text>
                 </View>
                 <Text style={styles.fractionBadge}>{loaded ? (complete ? `✓ ${done}/${total}` : `${done}/${total}`) : `0/${total}`}</Text>
                 <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
@@ -308,12 +310,12 @@ export default function ReconectarScreen() {
                         <View style={[styles.stepCheck, checked && styles.stepCheckOn]}>
                           {checked && <Ionicons name="checkmark" size={14} color={colors.gold} />}
                         </View>
-                        <Text style={[styles.stepText, checked && styles.stepTextDone]}>{step}</Text>
+                        <Text style={[styles.stepText, checked && styles.stepTextDone]}>{t(step)}</Text>
                       </TouchableOpacity>
                     );
                   })}
                   {complete && (
-                    <Text style={styles.hint}>Trilha completa. Quando quiserem, podem revisitá-la juntos.</Text>
+                    <Text style={styles.hint}>{t('reconectar.trackComplete')}</Text>
                   )}
                 </View>
               )}
@@ -322,7 +324,7 @@ export default function ReconectarScreen() {
         })}
 
         <Text style={styles.disclaimer}>
-          As memórias de progresso das trilhas de vocês ficam salvas apenas neste aparelho.
+          {t('reconectar.disclaimer')}
         </Text>
       </ScrollView>
     </View>

@@ -5,8 +5,28 @@
 // um bug de React por horas. Com isso, um crash real de render vira uma mensagem
 // visível em vez de branco.
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { colors } from '../theme';
+import { translate, DEFAULT_LANGUAGE, LANGUAGES } from '../lib/i18n';
+
+// Este boundary fica ACIMA do LanguageProvider (ver App.js) — de propósito: se
+// o próprio provider for o que quebrou, ainda precisa ter alguém pra mostrar a
+// mensagem. O preço é não ter o `t` do contexto aqui, então o idioma é
+// detectado na mão, síncrono, com as mesmas duas primeiras regras do
+// LanguageContext (?lang= da URL, depois o idioma do navegador). A preferência
+// salva no AsyncStorage não entra: leitura async não dá pra fazer no meio de um
+// render de crash. Fallback é sempre o português.
+function crashLanguage() {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return DEFAULT_LANGUAGE;
+  try {
+    const urlLang = new URLSearchParams(window.location.search).get('lang');
+    if (LANGUAGES.includes(urlLang)) return urlLang;
+    const locale = (navigator?.language || '').toLowerCase();
+    if (locale.startsWith('es')) return 'es';
+    if (locale.startsWith('en')) return 'en';
+  } catch {}
+  return DEFAULT_LANGUAGE;
+}
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -25,13 +45,14 @@ export class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.error) {
+      const t = (key) => translate(crashLanguage(), key);
       return (
         <View style={styles.root}>
-          <Text style={styles.title}>Algo deu errado</Text>
+          <Text style={styles.title}>{t('errorBoundary.title')}</Text>
           <Text style={styles.message}>
-            {this.state.error?.message || 'Erro inesperado ao carregar o app.'}
+            {this.state.error?.message || t('errorBoundary.fallbackMessage')}
           </Text>
-          <Text style={styles.hint}>Recarregue a página. Se persistir, avise o suporte.</Text>
+          <Text style={styles.hint}>{t('errorBoundary.hint')}</Text>
         </View>
       );
     }

@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 
 function PrivacyRow({ icon, text, last }) {
   return (
@@ -25,7 +26,7 @@ export default function PrivacyScreen() {
   function confirmDelete() {
     Alert.alert(
       'Apagar todos os dados do casal',
-      'Isso apaga para sempre, neste aparelho, os nomes, signos, datas e horas de nascimento e a sequência salva de vocês dois. Essa ação não pode ser desfeita.',
+      'Isso apaga para sempre, neste aparelho, os nomes, signos, datas e horas de nascimento e a sequência salva de vocês dois — e apaga também, no nosso servidor, o histórico anônimo de passos deste aparelho. Essa ação não pode ser desfeita.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -60,6 +61,29 @@ export default function PrivacyScreen() {
           <PrivacyRow icon="chatbubbles" text="Mensagens da conversa (Chat Espiritual)" last />
         </View>
 
+        {/* Rastreamento próprio de funil (lib/funnel.js → POST /api/track).
+            Esta seção existe porque a tela de LGPD tem que descrever TODO
+            tratamento de dado, e passou a existir um que não estava aqui: o
+            app manda pro nosso servidor um registro de "o que aconteceu"
+            (abriu, viu o paywall, clicou em assinar), sem nada do que a pessoa
+            escreve ou informa. Medir sem contar que mede é justamente o que a
+            LGPD chama de tratamento sem transparência. */}
+        <Text style={styles.sectionTitle}>O que medimos para melhorar o app</Text>
+        <View style={styles.card}>
+          <PrivacyRow icon="footsteps" text="Que passos você deu no app (abriu, viu uma leitura, chegou nos planos)" />
+          <PrivacyRow icon="shuffle" text="Um código aleatório do aparelho, criado aqui e sem ligação com você, sua conta ou seu e-mail" />
+          <PrivacyRow icon="eye-off" text="Nunca o conteúdo: nada de nomes, datas de nascimento, leituras, diário ou conversas" last />
+        </View>
+        <View style={[styles.card, { marginTop: -14 }]}>
+          <View style={styles.cardPad}>
+            <Text style={[styles.paragraph, { marginBottom: 0 }]}>
+              Isso fica só no nosso servidor (não vai para Google, Meta nem nenhuma outra empresa), serve para
+              descobrir onde o app está confuso e é apagado sozinho depois de 90 dias. Apagar seus dados aqui embaixo
+              apaga também esse código e esse histórico de passos, no aparelho e no servidor.
+            </Text>
+          </View>
+        </View>
+
         <Text style={styles.sectionTitle}>Como usamos</Text>
         <View style={styles.card}>
           <View style={styles.cardPad}>
@@ -80,7 +104,7 @@ export default function PrivacyScreen() {
           <PrivacyRow icon="eye" text="Confirmar se tratamos algum dado seu e acessá-lo" />
           <PrivacyRow icon="create" text="Corrigir dados incompletos, inexatos ou desatualizados" />
           <PrivacyRow icon="trash-bin" text="Pedir a eliminação dos dados tratados com seu consentimento" />
-          <PrivacyRow icon="information-circle" text="Saber com quem compartilhamos seus dados (hoje, só a Anthropic, e só na hora de gerar uma leitura)" last />
+          <PrivacyRow icon="information-circle" text="Saber com quem compartilhamos seus dados (hoje, só a Anthropic, e só na hora de gerar uma leitura — a medição de uso não sai daqui)" last />
         </View>
 
         <Text style={styles.sectionTitle}>Fale conosco</Text>

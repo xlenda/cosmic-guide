@@ -1,0 +1,91 @@
+# /etc/nginx/sites-available/api-cosmicguide
+#
+# Cópia EXATA do vhost que está em produção hoje, com UMA adição: o bloco
+# `location /api/track` com `access_log off`.
+#
+# POR QUE (achado de auditoria de privacidade, 29/07/2026):
+# a tabela funnel_events não guarda IP nenhum — de propósito, é o que permite
+# a rota de telemetria ser pública e anônima. Só que o nginx loga IP + horário
+# de TODA requisição em /var/log/nginx/access.log, com o formato `combined`
+# padrão. Como POST /api/track chega com o horário de segundo e as linhas são
+# gravadas no mesmo segundo, quem tem root consegue casar as duas coisas:
+#
+#   access.log:    203.0.113.7 - - [29/Jul/2026:20:13:07] "POST /api/track ..."
+#   funnel_events: session_id=8f3c... created_at=2026-07-29T20:13:07.412Z
+#
+# ...e a partir daí ligar session_id → IP → (pela mesma janela de tempo, em
+# outra rota do MESMO domínio, ex.: o checkout) e-mail de assinante. Ou seja: o
+# identificador anônimo do funil deixa de ser anônimo pra quem tem o log. Com
+# ~40 pessoas por dia no app, a janela de um segundo é praticamente única — não
+# é um ataque teórico.
+#
+# `access_log off` nesse location apaga a metade da correlação que está do lado
+# do nginx. O que se perde: linha de log dessa rota (métrica de volume e
+# depuração de 404/429 ali). O que se ganha: o dado de navegação volta a ser
+# anônimo de verdade, inclusive pra quem administra a máquina.
+# `error_log` continua valendo (erro 5xx do proxy ainda aparece), e o
+# rate-limiter do Express continua enxergando o IP em memória — a proteção
+# contra abuso não muda em nada.
+#
+# COMO APLICAR (o servidor é só-leitura pra mim; isto é pro dono rodar):
+#
+#   scp "C:/Users/XuXa/Downloads/Cosmic Guide/server-patches/nginx/api-cosmicguide" \
+#       servidor:/etc/nginx/sites-available/api-cosmicguide
+#   ssh servidor "cp /etc/nginx/sites-available/api-cosmicguide /etc/nginx/sites-enabled/api-cosmicguide \
+#                 && nginx -t && systemctl reload nginx"
+#
+# ATENÇÃO: em sites-enabled/ os arquivos deste servidor são CÓPIAS, não
+# symlinks — por isso o `cp` acima. E `nginx -t` ANTES do reload, sempre: um
+# erro de sintaxe aqui derruba a API de pagamento junto.
+#
+# Pra apagar o rastro JÁ gravado no log antes disto entrar (opcional):
+#   ssh servidor "grep -v ' /api/track' /var/log/nginx/access.log > /tmp/a.log \
+#                 && mv /tmp/a.log /var/log/nginx/access.log && systemctl reload nginx"
+
+server {
+    server_name api.cosmicguide.cloud;
+
+    # Telemetria de funil (POST /api/track e /api/track/forget) — a única rota
+    # do app que é PÚBLICA, ANÔNIMA e de alto volume. Sem log de acesso: ver o
+    # bloco de comentário no topo deste arquivo.
+    # Sem barra no fim do proxy_pass de propósito: assim a URI original passa
+    # inteira (/api/track e /api/track/forget), do mesmo jeito que o location /
+    # abaixo já faz.
+    location /api/track {
+        access_log off;
+        proxy_pass http://127.0.0.1:3005;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3005/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    listen [::]:443 ssl; # managed by Certbot
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/api.cosmicguide.cloud/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/api.cosmicguide.cloud/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+server {
+    if ($host = api.cosmicguide.cloud) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    listen [::]:80;
+    server_name api.cosmicguide.cloud;
+    return 404; # managed by Certbot
+
+
+}

@@ -39,42 +39,45 @@ import {
 import { cityLabel } from '../lib/cities';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
+import { funnel } from '../lib/funnel';
 
 // Chaves de tradução (não os nomes exibidos) — a exibição real passa por
 // t(STEPS[idx]) onde for mostrado; aqui só serve de key/índice estável.
 const STEPS = ['quiz.step.voces', 'quiz.step.signoNascimento', 'quiz.step.energia', 'quiz.step.cartas', 'quiz.step.astros'];
 const TOTAL = 5;
 
+// Energias: o id é estável (estado/comparações); rótulo e eco exibidos passam
+// por t() — o texto PT é o mesmo literal de antes, agora vindo do dicionário.
 const ENERGIAS = [
-  'Romântica 💕',
-  'Apaixonada 🔥',
-  'Poderosa ⚡',
-  'Reflexiva 🌙',
-  'Distantes 🌫️',
-  'Em conflito 😔',
-  'Em crise 💔',
-  'Recomeçando 🌱',
+  { id: 'romantica', labelKey: 'quiz.energy.option.romantica', echoKey: 'quiz.energy.echo.romantica' },
+  { id: 'apaixonada', labelKey: 'quiz.energy.option.apaixonada', echoKey: 'quiz.energy.echo.apaixonada' },
+  { id: 'poderosa', labelKey: 'quiz.energy.option.poderosa', echoKey: 'quiz.energy.echo.poderosa' },
+  { id: 'reflexiva', labelKey: 'quiz.energy.option.reflexiva', echoKey: 'quiz.energy.echo.reflexiva' },
+  { id: 'distantes', labelKey: 'quiz.energy.option.distantes', echoKey: 'quiz.energy.echo.distantes' },
+  { id: 'conflito', labelKey: 'quiz.energy.option.conflito', echoKey: 'quiz.energy.echo.conflito' },
+  { id: 'crise', labelKey: 'quiz.energy.option.crise', echoKey: 'quiz.energy.echo.crise' },
+  { id: 'recomecando', labelKey: 'quiz.energy.option.recomecando', echoKey: 'quiz.energy.echo.recomecando' },
 ];
 
-const ENERGIA_ECO = {
-  'Romântica 💕': 'Dá pra notar — este mapa vai mostrar de onde nasce essa faísca.',
-  'Apaixonada 🔥': 'Intensa. Vamos ver o que sustenta isso quando a chama abaixar.',
-  'Poderosa ⚡': 'Duas forças juntas. Esse poder também precisa de cuidado.',
-  'Reflexiva 🌙': 'Um momento de olhar pra dentro, os dois.',
-  'Distantes 🌫️': 'A distância também tem mapa — e caminho de volta, juntos.',
-  'Em conflito 😔': 'Vocês estão aqui, juntos, buscando isso. Isso já diz muito.',
-  'Em crise 💔': 'Momentos assim apertam. Vocês dois aqui já é um bom começo.',
-  'Recomeçando 🌱': 'Recomeçar é corajoso. Vamos começar pelo céu de vocês.',
+function energiaById(id) {
+  return ENERGIAS.find((e) => e.id === id);
+}
+
+// Chaves de tradução por elemento — o valor PT é o mesmo texto do antigo
+// MOON_NEED local (o MOON_NEED de lib/signs.js segue como gap conhecido).
+const MOON_NEED_KEYS = {
+  fogo: 'quiz.reveal.moonNeed.fogo',
+  terra: 'quiz.reveal.moonNeed.terra',
+  ar: 'quiz.reveal.moonNeed.ar',
+  água: 'quiz.reveal.moonNeed.agua',
 };
 
-const MOON_NEED = {
-  fogo: 'precisa de faísca e movimento para se sentir em casa',
-  terra: 'precisa de constância e gestos concretos para se sentir em paz',
-  ar: 'precisa conversar e entender para se sentir perto',
-  água: 'precisa de ternura e contato para se sentir seguro(a)',
-};
-
-const MONTHS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const MONTH_KEYS = [
+  'quiz.datePicker.month.jan', 'quiz.datePicker.month.feb', 'quiz.datePicker.month.mar',
+  'quiz.datePicker.month.apr', 'quiz.datePicker.month.may', 'quiz.datePicker.month.jun',
+  'quiz.datePicker.month.jul', 'quiz.datePicker.month.aug', 'quiz.datePicker.month.sep',
+  'quiz.datePicker.month.oct', 'quiz.datePicker.month.nov', 'quiz.datePicker.month.dec',
+];
 const ITEM_HEIGHT = 44;
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1900;
@@ -149,6 +152,7 @@ function PickerColumn({ data, selected, onSelect, renderLabel }) {
 }
 
 function DatePickerModal({ visible, initialDate, onClose, onConfirm }) {
+  const { t } = useLanguage();
   const [year, setYear] = useState(CURRENT_YEAR - 25);
   const [month, setMonth] = useState(6);
   const [day, setDay] = useState(15);
@@ -182,18 +186,18 @@ function DatePickerModal({ visible, initialDate, onClose, onConfirm }) {
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
-          <Text style={styles.modalTitle}>Data de nascimento</Text>
+          <Text style={styles.modalTitle}>{t('quiz.datePicker.title')}</Text>
           <View style={styles.pickerRow}>
             <PickerColumn data={days} selected={Math.min(day, maxDay)} onSelect={setDay} />
-            <PickerColumn data={months} selected={month} onSelect={setMonth} renderLabel={(m) => MONTHS_PT[m - 1]} />
+            <PickerColumn data={months} selected={month} onSelect={setMonth} renderLabel={(m) => t(MONTH_KEYS[m - 1])} />
             <PickerColumn data={years} selected={year} onSelect={setYear} />
           </View>
           <View style={styles.modalActions}>
             <TouchableOpacity style={styles.btnGhost} onPress={onClose}>
-              <Text style={styles.btnGhostText}>Cancelar</Text>
+              <Text style={styles.btnGhostText}>{t('quiz.datePicker.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btn} onPress={confirm}>
-              <Text style={styles.btnText}>Confirmar</Text>
+              <Text style={styles.btnText}>{t('quiz.datePicker.confirm')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -242,6 +246,17 @@ export default function QuizScreen() {
   const [loadingMsgs, setLoadingMsgs] = useState([]);
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  // "Começou o cadastro" também quando a pessoa cai DIRETO aqui, sem passar
+  // pela tela de escolha: o deep link /quiz (linking em App.js), o card de
+  // compatibilidade vazio da Home e o "convide seu par" dos teasers chegam
+  // todos nesta tela. Sem isto o funil mostraria onboarding_done sem
+  // onboarding_start pra essa gente. É o MESMO evento do OnboardingChoice e o
+  // dedupe de lib/funnel.js (chave 'onboarding_start') garante um só por
+  // execução, venha de onde vier.
+  useEffect(() => {
+    funnel.onboardingStart('couple');
+  }, []);
 
   const amorInputRef = useRef(null);
   // Guarda os ids do setInterval/setTimeout do loading do passo 4->5 para
@@ -349,25 +364,29 @@ export default function QuizScreen() {
     (step === 4 && cartas.length === 3) ||
     step === 5;
 
+  const faltamCartas = 3 - cartas.length;
   const AVISOS = {
-    1: !voce ? 'Escreva seu nome para continuar.' : !amor ? 'Falta o nome do seu amor.' : '',
+    1: !voce ? t('quiz.aviso.needYourName') : !amor ? t('quiz.aviso.needPartnerName') : '',
     2: !nascVoce
-      ? `Falta a data de nascimento de ${voce || 'vocês'}.`
+      ? t('quiz.aviso.needBirthDate', { name: voce || t('quiz.fallback.voces') })
       : !nascAmor
-      ? `Falta a data de nascimento de ${amor || 'seu amor'}.`
+      ? t('quiz.aviso.needBirthDate', { name: amor || t('quiz.fallback.seuAmor') })
       : !signoVoce || !signoAmor
-      ? 'Confira as datas — não conseguimos calcular o signo.'
+      ? t('quiz.aviso.checkDates')
       : '',
-    3: !desejo ? 'Escolha a energia de vocês agora.' : '',
-    4: cartas.length < 3 ? `Escolham 3 cartas — faltam ${3 - cartas.length}.` : '',
+    3: !desejo ? t('quiz.aviso.chooseEnergy') : '',
+    4:
+      cartas.length < 3
+        ? t(faltamCartas === 1 ? 'quiz.aviso.pickCards_one' : 'quiz.aviso.pickCards_other', { missing: faltamCartas })
+        : '',
   };
 
   function avancar() {
     if (step === 4) {
       const msgs = [
-        `Lendo o céu de ${voce} & ${amor}…`,
-        `Cruzando ${signoVoce} com ${signoAmor}…`,
-        `Traçando o mapa de vocês…`,
+        t('quiz.loading.readingSky', { voce, amor }),
+        t('quiz.loading.crossing', { signoVoce, signoAmor }),
+        t('quiz.loading.tracing'),
       ];
       setLoadingMsgs(msgs);
       setLoadingPhase(0);
@@ -394,7 +413,7 @@ export default function QuizScreen() {
 
   function handleContinuar() {
     if (!canNext) {
-      setAviso(AVISOS[step] || 'Preencha esta etapa para continuar.');
+      setAviso(AVISOS[step] || t('quiz.aviso.fillStep'));
       return;
     }
     setAviso('');
@@ -426,9 +445,14 @@ export default function QuizScreen() {
     if (!ok) {
       // Perfil e/ou datas de nascimento falharam ao salvar — não navega como
       // se tivesse dado certo. O botão volta a ficar habilitado para retry.
-      setAviso('Não foi possível salvar. Tente novamente.');
+      setAviso(t('quiz.aviso.saveFailed'));
       return;
     }
+    // 3º degrau: perfil de CASAL salvo de verdade (só depois do ok — este
+    // botão já reprovou 100% dos salvamentos web num bug real, ver
+    // saveCoupleProfile em lib/coupleData.js; um evento disparado antes do ok
+    // teria escondido exatamente esse tipo de falha do relatório).
+    funnel.onboardingDone('couple');
     // No gate automático (usuário sem perfil) este Stack não tem pai — o
     // Gate em App.js já troca para o Tab.Navigator sozinho assim que
     // coupleData deixa de ser null. Como tela normal empurrada a partir do
@@ -494,7 +518,7 @@ export default function QuizScreen() {
           ) : null}
           {desejo ? (
             <View style={styles.chip}>
-              <Text style={styles.chipText}>{desejo}</Text>
+              <Text style={styles.chipText}>{t(energiaById(desejo)?.labelKey)}</Text>
             </View>
           ) : null}
           {cartas.map((name) => {
@@ -563,21 +587,21 @@ export default function QuizScreen() {
 
         {step === 2 && (
           <View>
-            <Text style={styles.sectionTitle}>Data de nascimento de cada um</Text>
+            <Text style={styles.sectionTitle}>{t('quiz.birth.title')}</Text>
             <Text style={styles.mutedCenter}>
-              Com a data já sabemos o signo de cada um. A hora é opcional — mas revela o Ascendente.
+              {t('quiz.birth.subtitle')}
             </Text>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Data de {voce || 'você'}</Text>
+              <Text style={styles.label}>{t('quiz.birth.dateOf', { name: voce || t('quiz.fallback.voce') })}</Text>
               <TouchableOpacity style={styles.dateBtn} onPress={() => setDatePickerFor('voce')}>
                 <Text style={[styles.dateBtnText, !nascVoce && styles.dateBtnPlaceholder]}>
-                  {nascVoce ? formatDateBR(nascVoce) : 'Selecionar data'}
+                  {nascVoce ? formatDateBR(nascVoce) : t('quiz.birth.selectDate')}
                 </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.field}>
-              <Text style={styles.label}>Hora de {voce || 'você'} (opcional)</Text>
+              <Text style={styles.label}>{t('quiz.birth.timeOf', { name: voce || t('quiz.fallback.voce') })}</Text>
               <View style={styles.hourRow}>
                 <TextInput
                   style={styles.hourInput}
@@ -601,35 +625,35 @@ export default function QuizScreen() {
               </View>
             </View>
             <View style={styles.field}>
-              <Text style={styles.label}>Cidade de nascimento de {voce || 'você'} (opcional)</Text>
+              <Text style={styles.label}>{t('quiz.birth.cityOf', { name: voce || t('quiz.fallback.voce') })}</Text>
               <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerFor('voce')}>
                 <Text style={[styles.dateBtnText, !cidadeVoce && styles.dateBtnPlaceholder]}>
-                  {cidadeVoce ? cityLabel(cidadeVoce) : 'Selecionar cidade'}
+                  {cidadeVoce ? cityLabel(cidadeVoce) : t('quiz.birth.selectCity')}
                 </Text>
               </TouchableOpacity>
             </View>
             {!!signoVoce && (
               <View style={styles.signInfoRow}>
                 <Text style={styles.mutedText}>
-                  Signo de {voce}: <Text style={styles.signInfoStrong}>{signoVoce}</Text>
+                  {t('quiz.birth.signOf', { name: voce })} <Text style={styles.signInfoStrong}>{signoVoce}</Text>
                 </Text>
                 <TouchableOpacity onPress={() => setSignoManualVoce((v) => !v)}>
-                  <Text style={styles.linkText}>{signoManualVoce ? 'ocultar' : 'não é esse o signo'}</Text>
+                  <Text style={styles.linkText}>{signoManualVoce ? t('quiz.birth.hide') : t('quiz.birth.notThisSign')}</Text>
                 </TouchableOpacity>
               </View>
             )}
             {signoManualVoce && <SignGrid current={signoVoce} onSelect={setSignoVoce} />}
 
             <View style={[styles.field, { marginTop: 18 }]}>
-              <Text style={styles.label}>Data de {amor || 'seu amor'}</Text>
+              <Text style={styles.label}>{t('quiz.birth.dateOf', { name: amor || t('quiz.fallback.seuAmor') })}</Text>
               <TouchableOpacity style={styles.dateBtn} onPress={() => setDatePickerFor('amor')}>
                 <Text style={[styles.dateBtnText, !nascAmor && styles.dateBtnPlaceholder]}>
-                  {nascAmor ? formatDateBR(nascAmor) : 'Selecionar data'}
+                  {nascAmor ? formatDateBR(nascAmor) : t('quiz.birth.selectDate')}
                 </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.field}>
-              <Text style={styles.label}>Hora de {amor || 'seu amor'} (opcional)</Text>
+              <Text style={styles.label}>{t('quiz.birth.timeOf', { name: amor || t('quiz.fallback.seuAmor') })}</Text>
               <View style={styles.hourRow}>
                 <TextInput
                   style={styles.hourInput}
@@ -653,20 +677,20 @@ export default function QuizScreen() {
               </View>
             </View>
             <View style={styles.field}>
-              <Text style={styles.label}>Cidade de nascimento de {amor || 'seu amor'} (opcional)</Text>
+              <Text style={styles.label}>{t('quiz.birth.cityOf', { name: amor || t('quiz.fallback.seuAmor') })}</Text>
               <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerFor('amor')}>
                 <Text style={[styles.dateBtnText, !cidadeAmor && styles.dateBtnPlaceholder]}>
-                  {cidadeAmor ? cityLabel(cidadeAmor) : 'Selecionar cidade'}
+                  {cidadeAmor ? cityLabel(cidadeAmor) : t('quiz.birth.selectCity')}
                 </Text>
               </TouchableOpacity>
             </View>
             {!!signoAmor && (
               <View style={styles.signInfoRow}>
                 <Text style={styles.mutedText}>
-                  Signo de {amor}: <Text style={styles.signInfoStrong}>{signoAmor}</Text>
+                  {t('quiz.birth.signOf', { name: amor })} <Text style={styles.signInfoStrong}>{signoAmor}</Text>
                 </Text>
                 <TouchableOpacity onPress={() => setSignoManualAmor((v) => !v)}>
-                  <Text style={styles.linkText}>{signoManualAmor ? 'ocultar' : 'não é esse o signo'}</Text>
+                  <Text style={styles.linkText}>{signoManualAmor ? t('quiz.birth.hide') : t('quiz.birth.notThisSign')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -679,20 +703,20 @@ export default function QuizScreen() {
             <Text style={styles.sectionTitle}>{t('quiz.energy.title', { voce, amor })}</Text>
             <View style={styles.energyGrid}>
               {ENERGIAS.map((d) => {
-                const sel = desejo === d;
+                const sel = desejo === d.id;
                 return (
                   <TouchableOpacity
-                    key={d}
+                    key={d.id}
                     style={[styles.energyBtn, sel && styles.energyBtnSel]}
-                    onPress={() => setDesejo(d)}
+                    onPress={() => setDesejo(d.id)}
                     activeOpacity={0.85}
                   >
-                    <Text style={[styles.energyText, sel && styles.energyTextSel]}>{d}</Text>
+                    <Text style={[styles.energyText, sel && styles.energyTextSel]}>{t(d.labelKey)}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-            {!!desejo && <Text style={styles.energyEcho}>{ENERGIA_ECO[desejo]}</Text>}
+            {!!desejo && <Text style={styles.energyEcho}>{t(energiaById(desejo)?.echoKey)}</Text>}
           </View>
         )}
 
@@ -774,52 +798,52 @@ export default function QuizScreen() {
           <View>
             <Text style={styles.revealEmojis}>{compat.emojiA} {compat.emojiB}</Text>
             <Text style={styles.revealTitle}>{compat.titulo}</Text>
-            <Text style={styles.mutedCenter}>A energia de {voce} & {amor}</Text>
+            <Text style={styles.mutedCenter}>{t('quiz.reveal.energyOf', { voce, amor })}</Text>
 
             <View style={styles.card}>
               <Text style={styles.pct}>{pct}%</Text>
-              <Text style={styles.badge}>compatibilidade do casal</Text>
+              <Text style={styles.badge}>{t('quiz.reveal.compatBadge')}</Text>
               <Text style={styles.disclaimer}>
-                Afinidade entre os elementos de vocês ({compat.elementoA} + {compat.elementoB}) · leitura astrológica, por diversão
+                {t('quiz.reveal.affinity', { elementoA: compat.elementoA, elementoB: compat.elementoB })}
               </Text>
               <Text style={styles.revealForte}>
                 {pct >= 88
-                  ? `Elementos que se acendem: ${compat.forte}`
+                  ? t('quiz.reveal.strongHigh', { forte: compat.forte })
                   : pct >= 80
-                  ? `Se equilibram bem: ${compat.forte}`
-                  : `Diferentes e magnéticos: ${compat.forte}`}
+                  ? t('quiz.reveal.strongMid', { forte: compat.forte })
+                  : t('quiz.reveal.strongLow', { forte: compat.forte })}
               </Text>
             </View>
 
             <View style={styles.card}>
               <View style={styles.badgeRow}>
-                <Text style={styles.badge}>Elemento {compat.elementoA}</Text>
-                <Text style={styles.badge}>Elemento {compat.elementoB}</Text>
+                <Text style={styles.badge}>{t('quiz.reveal.elementBadge', { element: compat.elementoA })}</Text>
+                <Text style={styles.badge}>{t('quiz.reveal.elementBadge', { element: compat.elementoB })}</Text>
               </View>
               <Text style={styles.compatLine}>{compat.texto}</Text>
-              <Text style={styles.compatLine}><Text style={styles.bold}>Ponto forte de vocês:</Text> {compat.forte}</Text>
-              <Text style={styles.compatLine}><Text style={styles.bold}>Um cuidado especial:</Text> {compat.cuidado}</Text>
+              <Text style={styles.compatLine}><Text style={styles.bold}>{t('quiz.reveal.strongPointLabel')}</Text> {compat.forte}</Text>
+              <Text style={styles.compatLine}><Text style={styles.bold}>{t('quiz.reveal.careLabel')}</Text> {compat.cuidado}</Text>
               {!!desejo && (
                 <Text style={[styles.compatLine, styles.mutedText]}>
-                  E a energia de vocês agora — "{desejo}" — combina com esse momento. 💛
+                  {t('quiz.reveal.energyNow', { desejo: t(energiaById(desejo)?.labelKey) })}
                 </Text>
               )}
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Sol · Lua · Ascendente</Text>
+              <Text style={styles.cardTitle}>{t('quiz.reveal.trioTitle')}</Text>
               {lunaA && lunaB ? (
                 <>
                   <Text style={styles.compatLineCenter}>
-                    <Text style={styles.bold}>{voce}</Text>: a Lua em {lunaA.name} {MOON_NEED[lunaA.element]}.
+                    <Text style={styles.bold}>{voce}</Text>{t('quiz.reveal.moonLine', { sign: lunaA.name, need: t(MOON_NEED_KEYS[lunaA.element]) })}
                   </Text>
                   <Text style={styles.compatLineCenter}>
-                    <Text style={styles.bold}>{amor}</Text>: a Lua em {lunaB.name} {MOON_NEED[lunaB.element]}.
+                    <Text style={styles.bold}>{amor}</Text>{t('quiz.reveal.moonLine', { sign: lunaB.name, need: t(MOON_NEED_KEYS[lunaB.element]) })}
                   </Text>
                   <Text style={styles.compatLineCenter}>
                     {lunaA.element === lunaB.element
-                      ? 'As Luas de vocês pedem a mesma coisa: se acalmam de forma parecida — aí está um refúgio de vocês.'
-                      : 'As Luas de vocês pedem coisas diferentes: é dali que nascem quase todos os mal-entendidos… e também a saída.'}
+                      ? t('quiz.reveal.moonsSame')
+                      : t('quiz.reveal.moonsDiff')}
                   </Text>
                 </>
               ) : (
@@ -835,27 +859,27 @@ export default function QuizScreen() {
               {ascA && ascB ? (
                 <>
                   <Text style={styles.compatLineCenter}>
-                    <Text style={styles.bold}>{voce}</Text>: Ascendente em {ascA.name} {ascA.emoji}.
+                    <Text style={styles.bold}>{voce}</Text>{t('quiz.reveal.ascLine', { sign: ascA.name, emoji: ascA.emoji })}
                   </Text>
                   <Text style={styles.compatLineCenter}>
-                    <Text style={styles.bold}>{amor}</Text>: Ascendente em {ascB.name} {ascB.emoji}.
+                    <Text style={styles.bold}>{amor}</Text>{t('quiz.reveal.ascLine', { sign: ascB.name, emoji: ascB.emoji })}
                   </Text>
                   <Text style={styles.disclaimerCenter}>
-                    O Ascendente usa a hora exata e a cidade de nascimento de cada um — quanto mais precisas essas informações, mais confiável o resultado. Pequena diferença de horário pode mudar o signo do Ascendente.
+                    {t('quiz.reveal.ascPrecision')}
                   </Text>
                 </>
               ) : (
                 <Text style={styles.disclaimerCenter}>
-                  O Ascendente — a primeira impressão que vocês passam e a couraça que usam sob pressão — se calcula com a hora e a cidade de nascimento. É uma das partes que se abrem dentro do app.
+                  {t('quiz.reveal.ascTeaser')}
                 </Text>
               )}
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>As cartas de vocês</Text>
+              <Text style={styles.cardTitle}>{t('quiz.reveal.cardsTitle')}</Text>
               {cartas.map((name, i) => {
                 const c = CARDS.find((x) => x.name === name);
-                const rotulo = ['Passado', 'Presente', 'Futuro'][i] || '';
+                const rotulo = [t('quiz.cards.position.past'), t('quiz.cards.position.present'), t('quiz.cards.position.future')][i] || '';
                 return (
                   <Text key={name} style={styles.compatLineCenter}>
                     <Text style={styles.badgeInline}>{rotulo}</Text> {c.emoji} <Text style={styles.bold}>{c.name}</Text> — {c.meaning}
@@ -866,22 +890,22 @@ export default function QuizScreen() {
 
             <View style={[styles.card, { alignItems: 'center' }]}>
               <Text style={styles.badge}>✷ {frequenciaFor(`${voce}${amor}${signoVoce}${signoAmor}`)} ✷</Text>
-              <Text style={styles.overline}>Números cósmicos do casal</Text>
+              <Text style={styles.overline}>{t('quiz.reveal.cosmicNumbers')}</Text>
               <Text style={styles.cosmicNumbers}>
                 {cosmicNumbers(`${voce}${amor}${signoVoce}${signoAmor}`, 3).join(' · ')}
               </Text>
               <Text style={styles.mutedCenter}>
-                ✷ Hora dourada de vocês: {horaDourada(`${voce}${amor}${signoVoce}${signoAmor}`)} ✷
+                {t('quiz.reveal.goldenHour', { time: horaDourada(`${voce}${amor}${signoVoce}${signoAmor}`) })}
               </Text>
               <Text style={styles.disclaimerCenter}>
-                Leitura de {voce} & {amor} — feita hoje. Ninguém escolheu isso por vocês: vocês começaram isso, hoje, juntos. O que vem depois se escreve com o que vocês fizerem a partir daqui.
+                {t('quiz.reveal.readingFooter', { voce, amor })}
               </Text>
             </View>
 
             <View style={[styles.card, styles.cardAccent]}>
-              <Text style={styles.cardAccentTitle}>Essa foi a leitura de hoje 💫</Text>
+              <Text style={styles.cardAccentTitle}>{t('quiz.reveal.todayTitle')}</Text>
               <Text style={styles.mutedCenter}>
-                O mapa astral completo do casal — com mais camadas sobre como vocês se comunicam e se aproximam — continua se construindo agora, no painel de vocês.
+                {t('quiz.reveal.todayText')}
               </Text>
               <TouchableOpacity style={[styles.btn, { marginTop: 16 }]} onPress={finalizarQuiz} disabled={saving}>
                 <Text style={styles.btnText}>{saving ? t('quiz.nav.saving') : t('quiz.nav.saveAndSee')}</Text>
@@ -894,7 +918,7 @@ export default function QuizScreen() {
       <View style={[styles.navRow, { paddingBottom: insets.bottom + 12 }]}>
         {step > 1 ? (
           <TouchableOpacity style={styles.btnGhost} onPress={handleBack}>
-            <Text style={styles.btnGhostText}>Voltar</Text>
+            <Text style={styles.btnGhostText}>{t('quiz.nav.back')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={{ width: 80 }} />

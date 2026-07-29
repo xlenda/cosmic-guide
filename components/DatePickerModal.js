@@ -9,8 +9,15 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
 import { colors } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 
-const MONTHS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+// Abreviações dos meses viram chaves i18n — t() onde forem exibidas
+// (mesmo padrão do STEPS em QuizScreen.js).
+const MONTH_KEYS = [
+  'datePicker.month.0', 'datePicker.month.1', 'datePicker.month.2', 'datePicker.month.3',
+  'datePicker.month.4', 'datePicker.month.5', 'datePicker.month.6', 'datePicker.month.7',
+  'datePicker.month.8', 'datePicker.month.9', 'datePicker.month.10', 'datePicker.month.11',
+];
 const ITEM_HEIGHT = 44;
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -48,13 +55,14 @@ function PickerColumn({ data, selected, onSelect, renderLabel }) {
 
 export default function DatePickerModal({
   visible,
-  title = 'Selecionar data',
+  title,
   initialDate,
   minYear = CURRENT_YEAR - 100,
   maxYear = CURRENT_YEAR + 15,
   onClose,
   onConfirm,
 }) {
+  const { t } = useLanguage();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
@@ -90,18 +98,18 @@ export default function DatePickerModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
-          <Text style={styles.modalTitle}>{title}</Text>
+          <Text style={styles.modalTitle}>{title ?? t('datePicker.title')}</Text>
           <View style={styles.pickerRow}>
             <PickerColumn data={days} selected={Math.min(day, maxDay)} onSelect={setDay} />
-            <PickerColumn data={months} selected={month} onSelect={setMonth} renderLabel={(m) => MONTHS_PT[m - 1]} />
+            <PickerColumn data={months} selected={month} onSelect={setMonth} renderLabel={(m) => t(MONTH_KEYS[m - 1])} />
             <PickerColumn data={years} selected={year} onSelect={setYear} />
           </View>
           <View style={styles.modalActions}>
             <TouchableOpacity style={styles.btnGhost} onPress={onClose}>
-              <Text style={styles.btnGhostText}>Cancelar</Text>
+              <Text style={styles.btnGhostText}>{t('datePicker.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btn} onPress={confirm}>
-              <Text style={styles.btnText}>Confirmar</Text>
+              <Text style={styles.btnText}>{t('datePicker.confirm')}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -61,12 +61,13 @@ function MenuRow({ icon, label, onPress, last }) {
 const LANGUAGE_LABELS = { pt: '🇧🇷 PT', es: '🇪🇸 ES', en: '🇺🇸 EN' };
 
 function LanguageRow({ lang, onChange, last }) {
+  const { t } = useLanguage();
   return (
     <View style={[styles.row, !last && styles.rowBorder]}>
       <View style={styles.rowIcon}>
         <Ionicons name="language" size={18} color={colors.accent} />
       </View>
-      <Text style={styles.rowLabel}>Idioma</Text>
+      <Text style={styles.rowLabel}>{t('profile.pref.language')}</Text>
       <View style={styles.langPills}>
         {Object.keys(LANGUAGE_LABELS).map((code) => (
           <TouchableOpacity
@@ -147,7 +148,7 @@ export default function ProfileScreen() {
   // PlanosScreen.js/relevantAccess, senão o menu diria "Gerenciar assinatura"
   // pra quem ainda precisa comprar o plano de casal.
   const relevantAccess = coupleData ? hasCoupleAccess : hasAccess;
-  const { lang, changeLanguage } = useLanguage();
+  const { lang, changeLanguage, t } = useLanguage();
   const [thoughtEnabled, setThoughtEnabled] = useState(false);
   const [webPushEnabled, setWebPushEnabled] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
@@ -220,14 +221,14 @@ export default function ProfileScreen() {
   async function saveName() {
     const nome = nameInput.trim();
     if (!nome) {
-      Alert.alert('Nome vazio', 'Digite um nome antes de salvar.');
+      Alert.alert(t('profile.name.emptyTitle'), t('profile.name.emptyText'));
       return;
     }
     setSavingName(true);
     const { error } = await supabase.auth.updateUser({ data: { full_name: nome } });
     setSavingName(false);
     if (error) {
-      Alert.alert('Não foi possível salvar', error.message || 'Tente de novo em instantes.');
+      Alert.alert(t('profile.name.saveErrorTitle'), error.message || t('profile.name.saveErrorFallback'));
       return;
     }
     setEditingName(false);
@@ -235,9 +236,9 @@ export default function ProfileScreen() {
 
   function confirmDeleteAccount() {
     const botoes = [
-      { text: 'Cancelar', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sair e apagar dados locais',
+        text: t('profile.delete.confirmWipe'),
         style: 'destructive',
         onPress: async () => {
           await clearAll();
@@ -254,18 +255,14 @@ export default function ProfileScreen() {
     // card de Conta passa a mostrar "Fazer login" pra entrar com outra conta.
     if (canSignOut) {
       botoes.splice(1, 0, {
-        text: 'Só sair da conta',
+        text: t('profile.delete.justSignOut'),
         onPress: async () => {
           await signOut();
           recheckAuthResidue();
         },
       });
     }
-    Alert.alert(
-      'Deletar conta',
-      'Isso vai sair da sua conta e apagar os dados salvos neste aparelho (nomes, signos, datas e sequência do casal). A conta de login em si continua existindo — pra removê-la de vez, escreva pra contato@cosmicguide.cloud.',
-      botoes
-    );
+    Alert.alert(t('profile.delete.title'), t('profile.delete.text'), botoes);
   }
 
   // Mesmo "meu signo" já calculado em HomeScreen.js (casal usa coupleData.sa,
@@ -289,26 +286,17 @@ export default function ProfileScreen() {
       return;
     }
     if (isIOS()) {
-      Alert.alert(
-        'Instalar no iPhone ou iPad',
-        'Abra este site no Safari (precisa ser o Safari, não funciona em outro navegador). Toque no ícone de Compartilhar (□↑) na barra inferior, deslize a lista de opções até achar "Adicionar à Tela de Início" e confirme tocando em "Adicionar" no canto superior.'
-      );
+      Alert.alert(t('profile.install.iosTitle'), t('profile.install.iosText'));
       return;
     }
-    Alert.alert(
-      'Instalar o app',
-      'Abra o menu do navegador e procure por "Instalar app" ou "Adicionar à Tela de Início".'
-    );
+    Alert.alert(t('profile.install.genericTitle'), t('profile.install.genericText'));
   }
 
   async function toggleDailyThought(next) {
     if (next) {
       const granted = await requestNotificationPermission();
       if (!granted) {
-        Alert.alert(
-          'Permissão necessária',
-          'Ative as notificações do Cosmic Guide nas configurações do aparelho para receber o pensamento cósmico diário.'
-        );
+        Alert.alert(t('profile.notif.permTitle'), t('profile.notif.permText'));
         return;
       }
       const ok = await scheduleDailyThought();
@@ -327,7 +315,7 @@ export default function ProfileScreen() {
     if (next) {
       const { ok, reason } = await subscribeToWebPush(mySign);
       if (!ok) {
-        Alert.alert('Não foi possível ativar', webPushFailureMessage(reason));
+        Alert.alert(t('push.errorTitle'), webPushFailureMessage(reason));
       }
       setWebPushEnabled(ok);
     } else {
@@ -355,37 +343,25 @@ export default function ProfileScreen() {
 
     if (resultado.linked > 0) {
       await refreshAccess();
-      Alert.alert(
-        'Assinatura recuperada',
-        'Sua assinatura agora está ligada a esta conta. Você pode entrar por ela em qualquer aparelho.'
-      );
+      Alert.alert(t('profile.recover.successTitle'), t('profile.recover.successText'));
       return;
     }
     if (resultado.reason === 'no-code') {
-      Alert.alert(
-        'Nada encontrado neste aparelho',
-        'Não há nenhuma assinatura guardada aqui. Se você assinou em outro celular, entre com a mesma conta que usou lá. Se pagou com outro e-mail, escreva pra contato@cosmicguide.cloud com o comprovante.'
-      );
+      Alert.alert(t('profile.recover.emptyTitle'), t('profile.recover.emptyText'));
       return;
     }
     if (resultado.alreadyOwned > 0) {
-      Alert.alert(
-        'Essa assinatura já está em outra conta',
-        'A assinatura guardada neste aparelho já pertence a outro login. Entre com aquela conta, ou escreva pra contato@cosmicguide.cloud.'
-      );
+      Alert.alert(t('profile.recover.otherAccountTitle'), t('profile.recover.otherAccountText'));
       return;
     }
-    Alert.alert(
-      'Não foi possível recuperar agora',
-      'Tente de novo em instantes. Se continuar, escreva pra contato@cosmicguide.cloud com o e-mail do pagamento.'
-    );
+    Alert.alert(t('profile.recover.errorTitle'), t('profile.recover.errorText'));
   }
 
   function confirmSignOut() {
-    Alert.alert('Sair da conta', 'Tem certeza que quer sair?', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('profile.signOut.title'), t('profile.signOut.text'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sair',
+        text: t('profile.signOut.confirm'),
         style: 'destructive',
         // Recheca o resíduo na mão: quando o signOut limpa só tokens órfãos
         // (user já era null), o AuthContext não re-renderiza nada e o botão
@@ -413,7 +389,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.root}>
-      <GradientHeader title="Perfil" />
+      <GradientHeader title={t('profile.header.title')} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.couple}>
           <View style={styles.coupleAvatar}>
@@ -435,10 +411,10 @@ export default function ProfileScreen() {
                   selo, deixando a compra invisível pra solo — achado real de
                   auditoria adversarial, 26/07/2026). */}
               <View style={styles.coupleNamesRow}>
-                <Text style={styles.coupleNames}>{soloSign ? `Seu universo · ${soloSign.pt || soloSign.name}` : 'Casal ainda não cadastrado'}</Text>
+                <Text style={styles.coupleNames}>{soloSign ? t('profile.soloUniverse', { sign: soloSign.pt || soloSign.name }) : t('profile.noCouple')}</Text>
                 {seloAtivo && <Ionicons name="ribbon" size={18} color={colors.gold} style={{ marginLeft: 6 }} />}
               </View>
-              <Text style={styles.coupleSigns}>{soloSign ? 'Convide seu par quando quiser — aba Início' : 'Complete o quiz do casal na aba Início'}</Text>
+              <Text style={styles.coupleSigns}>{soloSign ? t('profile.soloInviteHint') : t('profile.noCoupleHint')}</Text>
             </>
           )}
         </View>
@@ -454,7 +430,7 @@ export default function ProfileScreen() {
             tem "Fazer login" (deslogado). Sempre termina em "Assinar/Gerenciar
             assinatura", que é incondicional — por isso `last` aqui pode ser
             estático, sem risco de sobrar borda solta no rodapé do card. */}
-        <Text style={styles.sectionTitle}>Conta</Text>
+        <Text style={styles.sectionTitle}>{t('profile.section.account')}</Text>
         <View style={styles.card}>
           {/* Nome só existe pra quem já tem conta (login continua opcional pro
               resto do app) — editar aqui chama supabase.auth.updateUser, que
@@ -470,25 +446,25 @@ export default function ProfileScreen() {
                   <Ionicons name="create-outline" size={20} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
-              <InfoRow icon="mail" label="E-mail" value={user.email} />
+              <InfoRow icon="mail" label={t('profile.row.email')} value={user.email} />
             </>
           ) : (
             /* Login opcional pra uso grátis — só vira obrigatório na hora de
                assinar (ver PlanosScreen.js). Aqui é só conveniência (sincronizar
                entre aparelhos, recuperar acesso). Fica no TOPO porque é uma
                ação de ENTRADA, não de configuração. */
-            <MenuRow icon="log-in" label="Fazer login" onPress={() => navigation.navigate(ROUTES.LOGIN)} />
+            <MenuRow icon="log-in" label={t('profile.row.login')} onPress={() => navigation.navigate(ROUTES.LOGIN)} />
           )}
           {/* "Instalar app" só faz sentido na web (nativo já é instalado por
               definição) e só quando ainda não está rodando como app instalado. */}
           {showInstall && (
-            <MenuRow icon="download" label="Instalar app" onPress={handleInstallApp} />
+            <MenuRow icon="download" label={t('profile.row.installApp')} onPress={handleInstallApp} />
           )}
           {/* Assinatura existe pra casal E solo agora (25/07/2026) — hasAccess
               já cobre os dois (CoupleContext.js checa em paralelo). */}
           <MenuRow
             icon={relevantAccess ? 'diamond' : 'lock-open'}
-            label={relevantAccess ? 'Gerenciar assinatura' : 'Assinar'}
+            label={relevantAccess ? t('profile.row.manageSubscription') : t('profile.row.subscribe')}
             onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
             last={!showRecover}
           />
@@ -499,7 +475,7 @@ export default function ProfileScreen() {
           {showRecover && (
             <MenuRow
               icon="key"
-              label={recuperando ? 'Recuperando...' : 'Recuperar minha assinatura'}
+              label={recuperando ? t('profile.row.recovering') : t('profile.row.recoverSubscription')}
               onPress={handleRecoverSubscription}
               last
             />
@@ -507,11 +483,11 @@ export default function ProfileScreen() {
         </View>
 
         {/* CARD 2 — PREFERÊNCIAS. Só ajustes; nada de entrar/sair aqui. */}
-        <Text style={styles.sectionTitle}>Preferências</Text>
+        <Text style={styles.sectionTitle}>{t('profile.section.preferences')}</Text>
         <View style={styles.card}>
           <MenuRow
             icon="heart"
-            label={coupleData ? 'Refazer quiz do casal' : 'Adicionar parceiro(a)'}
+            label={coupleData ? t('profile.row.redoQuiz') : t('profile.row.addPartner')}
             onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
           />
           {/* Convite de verdade pro par (lib/coupleInvite.js): link de handoff
@@ -520,13 +496,13 @@ export default function ProfileScreen() {
           {coupleData && (
             <MenuRow
               icon="paper-plane"
-              label={`Enviar convite pra ${coupleData.amor}`}
+              label={t('profile.row.sendInvite', { amor: coupleData.amor })}
               onPress={() => shareInvite(coupleData)}
             />
           )}
           <MenuRow
             icon="sparkles"
-            label={`Meus Tokens (${tokenBalance})`}
+            label={t('profile.row.myTokens', { count: tokenBalance })}
             onPress={() => navigation.navigate(ROUTES.TOKENS)}
           />
           <LanguageRow lang={lang} onChange={changeLanguage} last={!showGoldToggle && !showThought} />
@@ -535,7 +511,7 @@ export default function ProfileScreen() {
           {showGoldToggle && (
             <ToggleRow
               icon="color-palette"
-              label="Tema dourado"
+              label={t('profile.row.goldTheme')}
               value={goldActive}
               onValueChange={toggleGoldTheme}
               last={!showThought}
@@ -547,7 +523,7 @@ export default function ProfileScreen() {
           {Platform.OS !== 'web' && (
             <ToggleRow
               icon="sparkles"
-              label="Pensamento cósmico diário"
+              label={t('profile.row.dailyThought')}
               value={thoughtEnabled}
               onValueChange={toggleDailyThought}
               last
@@ -556,7 +532,7 @@ export default function ProfileScreen() {
           {Platform.OS === 'web' && isWebPushSupported() && (
             <ToggleRow
               icon="sparkles"
-              label="Pensamento cósmico diário"
+              label={t('profile.row.dailyThought')}
               value={webPushEnabled}
               onValueChange={toggleWebPush}
               last
@@ -566,12 +542,15 @@ export default function ProfileScreen() {
 
         {/* CARD 3 — SUPORTE. "Privacidade" veio do card de Preferências pra cá:
             é documento legal, mora junto com "Termos de uso". */}
-        <Text style={styles.sectionTitle}>Suporte</Text>
+        <Text style={styles.sectionTitle}>{t('profile.section.support')}</Text>
         <View style={styles.card}>
-          <MenuRow icon="help-circle" label="Ajuda e suporte" onPress={() => navigation.navigate(ROUTES.HELP_SUPPORT)} />
-          <MenuRow icon="shield-checkmark" label="Privacidade" onPress={() => navigation.navigate(ROUTES.PRIVACY)} />
-          <MenuRow icon="document-text" label="Termos de uso" onPress={() => navigation.navigate(ROUTES.TERMS)} />
-          <InfoRow icon="information-circle" label="Versão do app" value={APP_VERSION} last />
+          {/* Rótulos reaproveitam a chave do TÍTULO de cada tela de destino
+              (help/privacy/terms): rótulo do menu e cabeçalho da tela são o
+              mesmo texto — duas chaves poderiam divergir na tradução. */}
+          <MenuRow icon="help-circle" label={t('help.header.title')} onPress={() => navigation.navigate(ROUTES.HELP_SUPPORT)} />
+          <MenuRow icon="shield-checkmark" label={t('privacy.header.title')} onPress={() => navigation.navigate(ROUTES.PRIVACY)} />
+          <MenuRow icon="document-text" label={t('terms.header.title')} onPress={() => navigation.navigate(ROUTES.TERMS)} />
+          <InfoRow icon="information-circle" label={t('profile.row.appVersion')} value={APP_VERSION} last />
         </View>
 
         {/* RODAPÉ — saída e destruição, fora de qualquer card, onde todo mundo
@@ -583,25 +562,25 @@ export default function ProfileScreen() {
         {canSignOut && (
           <TouchableOpacity style={styles.logoutBtn} onPress={confirmSignOut} activeOpacity={0.85}>
             <Ionicons name="log-out-outline" size={18} color={colors.red} />
-            <Text style={styles.logoutBtnText}>Sair da conta</Text>
+            <Text style={styles.logoutBtnText}>{t('profile.signOut.title')}</Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity style={styles.dangerBtn} onPress={confirmDeleteAccount} activeOpacity={0.85}>
           <Ionicons name="trash" size={18} color="#fff" />
-          <Text style={styles.dangerBtnText}>Deletar conta</Text>
+          <Text style={styles.dangerBtnText}>{t('profile.delete.title')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
       <Modal visible={editingName} transparent animationType="fade" onRequestClose={() => setEditingName(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Editar nome</Text>
+            <Text style={styles.modalTitle}>{t('profile.name.editTitle')}</Text>
             <TextInput
               style={styles.input}
               value={nameInput}
               onChangeText={setNameInput}
-              placeholder="Seu nome"
+              placeholder={t('profile.name.placeholder')}
               placeholderTextColor={colors.textMuted}
               autoFocus
             />
@@ -611,10 +590,10 @@ export default function ProfileScreen() {
                 onPress={() => setEditingName(false)}
                 disabled={savingName}
               >
-                <Text style={styles.btnGhostText}>Cancelar</Text>
+                <Text style={styles.btnGhostText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.btn} onPress={saveName} disabled={savingName} activeOpacity={0.85}>
-                <Text style={styles.btnText}>{savingName ? 'Salvando...' : 'Salvar'}</Text>
+                <Text style={styles.btnText}>{savingName ? t('profile.name.saving') : t('profile.name.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>

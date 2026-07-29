@@ -9,19 +9,31 @@
 // casal também desbloqueia as 5 telas exclusivas de casal (Reconectar/
 // Descobrir/Agir/Progresso/Retrospectiva) — pedido explícito do Lenda
 // (25/07/2026): sempre oferecer as duas opções juntas, nunca só uma.
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
+import { funnel } from '../lib/funnel';
 import GradientHeader from './GradientHeader';
 
 export default function OneTimeLock({ featureTitle, gradient = gradients.hero }) {
   const navigation = useNavigation();
+  const route = useRoute();
   const { coupleData } = useCouple();
   const isCouple = !!coupleData;
+
+  // 7º degrau do funil pelo terceiro caminho: a leitura grátis vitalícia
+  // acabou. Este é provavelmente o muro mais comum de todos (as 9 leituras
+  // individuais passam por aqui), e distinguir 'onetime_lock' de 'gate' e de
+  // 'planos' é o que vai dizer QUAL muro está segurando as pessoas.
+  // `featureTitle` é texto de UI traduzido e NÃO vai junto — só o nome da rota
+  // (slug curto e estável), pra props nunca carregar conteúdo/tradução.
+  useEffect(() => {
+    funnel.paywallView('onetime_lock', route?.name);
+  }, [route?.name]);
 
   // Chat (ROUTES.CHAT_TAB) é uma aba direta, sem Stack aninhada dentro dela
   // (App.js: <Tab.Screen name={CHAT_TAB} component={ChatScreen} />, sem

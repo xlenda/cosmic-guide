@@ -4,9 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 
+// `title`/`subtitle` chegam prontos (e já traduzidos) de cada tela — o único
+// texto que nasce aqui é o rótulo de acessibilidade do botão de voltar, usado
+// por todas as telas que têm este cabeçalho.
 export default function GradientHeader({ title, subtitle, onBack, right, gradient = gradients.hero }) {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   return (
     <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.wrap, { paddingTop: insets.top + 8 }]}>
       <View style={styles.row}>
@@ -16,7 +21,7 @@ export default function GradientHeader({ title, subtitle, onBack, right, gradien
             style={styles.iconBtn}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Voltar"
+            accessibilityLabel={t('header.backA11y')}
           >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>

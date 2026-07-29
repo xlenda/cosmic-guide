@@ -4,7 +4,7 @@
 // HoroscopeScreen.js, reaproveitando zodiacSigns de theme.js) e salva via
 // saveSolo() do CoupleContext. "Eu e meu par" manda para o QuizScreen do
 // casal, sem alterar nada do fluxo do quiz.
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,14 +14,24 @@ import * as Haptics from 'expo-haptics';
 import { colors, gradients, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
+import { funnel } from '../lib/funnel';
 
 export default function OnboardingChoiceScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { saveSolo } = useCouple();
+  const { t } = useLanguage();
   const [showSignPicker, setShowSignPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // 2º degrau do funil: "viu a tela de escolha solo/casal". No mount, não a
+  // cada render — esta tela re-renderiza a cada toque (showSignPicker/saving)
+  // e um track() solto no corpo do componente multiplicaria o evento.
+  useEffect(() => {
+    funnel.onboardingStart();
+  }, []);
 
   async function pickSign(z) {
     if (saving) return;
@@ -35,8 +45,12 @@ export default function OnboardingChoiceScreen() {
     const ok = await saveSolo(z);
     if (!ok) {
       setSaving(false);
-      setError('Não foi possível salvar seu signo. Tente novamente.');
+      setError(t('onboarding.saveError'));
+      return;
     }
+    // 3º degrau: perfil salvo. Só DEPOIS do ok — um cadastro que falhou no
+    // storage não pode aparecer como concluído no relatório.
+    funnel.onboardingDone('solo');
   }
 
   return (
@@ -48,8 +62,8 @@ export default function OnboardingChoiceScreen() {
         style={[styles.header, { paddingTop: insets.top + 28 }]}
       >
         <Text style={styles.headerEyebrow}>Cosmic Guide</Text>
-        <Text style={styles.headerTitle}>Como vamos explorar{'\n'}o cosmos?</Text>
-        <Text style={styles.headerSub}>Escolha um caminho para começar. Dá para adicionar seu par depois.</Text>
+        <Text style={styles.headerTitle}>{t('onboarding.headerTitle')}</Text>
+        <Text style={styles.headerSub}>{t('onboarding.headerSub')}</Text>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -59,10 +73,10 @@ export default function OnboardingChoiceScreen() {
               <LinearGradient colors={gradients.purple} style={styles.cardIcon}>
                 <Ionicons name="person" size={26} color="#fff" />
               </LinearGradient>
-              <Text style={styles.cardTitle}>Só eu</Text>
-              <Text style={styles.cardDesc}>Descubra seu horóscopo, mapa astral e tarô agora.</Text>
+              <Text style={styles.cardTitle}>{t('onboarding.solo.title')}</Text>
+              <Text style={styles.cardDesc}>{t('onboarding.solo.desc')}</Text>
               <View style={styles.cardCta}>
-                <Text style={styles.cardCtaText}>Começar</Text>
+                <Text style={styles.cardCtaText}>{t('onboarding.cta')}</Text>
                 <Ionicons name="arrow-forward" size={16} color={colors.accent} />
               </View>
             </TouchableOpacity>
@@ -75,10 +89,10 @@ export default function OnboardingChoiceScreen() {
               <LinearGradient colors={gradients.pink} style={styles.cardIcon}>
                 <Ionicons name="heart" size={26} color="#fff" />
               </LinearGradient>
-              <Text style={styles.cardTitle}>Eu e meu par</Text>
-              <Text style={styles.cardDesc}>Descubram juntos a energia e a compatibilidade de vocês.</Text>
+              <Text style={styles.cardTitle}>{t('onboarding.couple.title')}</Text>
+              <Text style={styles.cardDesc}>{t('onboarding.couple.desc')}</Text>
               <View style={styles.cardCta}>
-                <Text style={styles.cardCtaText}>Começar</Text>
+                <Text style={styles.cardCtaText}>{t('onboarding.cta')}</Text>
                 <Ionicons name="arrow-forward" size={16} color={colors.accent} />
               </View>
             </TouchableOpacity>
@@ -92,10 +106,10 @@ export default function OnboardingChoiceScreen() {
               activeOpacity={0.7}
             >
               <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
-              <Text style={styles.backRowText}>Voltar</Text>
+              <Text style={styles.backRowText}>{t('onboarding.back')}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.pickerTitle}>Qual é o seu signo?</Text>
+            <Text style={styles.pickerTitle}>{t('onboarding.pickerTitle')}</Text>
 
             {!!error && <Text style={styles.errorText}>{error}</Text>}
 

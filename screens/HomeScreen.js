@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,9 +25,25 @@ import { getShieldCount } from '../lib/streakShield';
 import { getAgirData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
+import { funnel } from '../lib/funnel';
 
-// Segunda a domingo — mesma ordem que getWeekActivity() já retorna.
-const WEEK_LABELS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
+// Cards do grid que levam a uma LEITURA de verdade (as 9 individuais) — são
+// eles que valem como "pediu a 1ª leitura" (reading_start). Os cards de casal
+// (timeline/reconectar/descobrir/agir/progresso/retrospectiva) e o feed social
+// não são leitura e ficam de fora de propósito: contá-los inflaria o degrau e
+// esconderia que ninguém chegou a ler nada.
+const READING_CARD_KEYS = new Set([
+  'horoscope', 'birthchart', 'tarot', 'compatibility',
+  'dream', 'lunarCalendar', 'palm', 'coffee', 'chat',
+]);
+
+// Segunda a domingo — mesma ordem que getWeekActivity() já retorna. Viraram
+// chaves i18n (inicial do dia muda por idioma: S/T/Q… em PT, L/M/X… em ES,
+// M/T/W… em EN) — resolvidas dentro do componente via t().
+const WEEK_LABEL_KEYS = [
+  'home.week.mon', 'home.week.tue', 'home.week.wed', 'home.week.thu',
+  'home.week.fri', 'home.week.sat', 'home.week.sun',
+];
 
 // Dia local em YYYY-MM-DD (nunca toISOString/UTC — perto da meia-noite em
 // fuso negativo como o do Brasil, o dia UTC já virou e a "leitura de hoje"
@@ -174,8 +190,11 @@ export default function HomeScreen() {
     }, [])
   );
 
+  // Iniciais da semana no idioma atual (mesma ordem seg→dom do getWeekActivity).
+  const WEEK_LABELS = WEEK_LABEL_KEYS.map((k) => t(k));
+
   const today = new Date();
-  const dateStr = today.toLocaleDateString(lang === 'es' ? 'es-ES' : 'pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const dateStr = today.toLocaleDateString(lang === 'es' ? 'es-ES' : lang === 'en' ? 'en-US' : 'pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   // Data de hoje em YYYY-MM-DD (mesmo formato que DatePickerModal já monta a
   // partir de campos locais e que aspects()/planetPositions() esperam) — ver
@@ -197,6 +216,17 @@ export default function HomeScreen() {
   // dos dois sinais existe): casal com quiz feito, solo com signo escolhido, ou
   // (teoricamente) nenhum dos dois — fallback igual ao anterior.
   const isCouple = !!coupleData;
+
+  // 4º degrau: "chegou na Home de verdade, já com perfil". Espera `loading`
+  // sair — enquanto o CoupleContext carrega, esta tela é só um spinner, e
+  // contar isso como Home vista mentiria sobre onde a pessoa parou. No mount
+  // (efeito), nunca no corpo do componente: a Home re-renderiza muito (foco,
+  // streak, céu pessoal, missões) e um track() solto aqui viraria dezenas de
+  // linhas iguais.
+  useEffect(() => {
+    if (loading) return;
+    funnel.homeView(isCouple ? 'couple' : 'solo');
+  }, [loading, isCouple]);
 
   // Signo usado no badge do topo e na navegação do grid (Horóscopo) — usa o signo real
   // do casal quando existir, senão o signo solo, com o mesmo fallback de antes.
@@ -251,9 +281,26 @@ export default function HomeScreen() {
   // conteúdo de casal nunca aparece lá, então o card nem existe pra casal.
   const SOLO_ONLY = ['social'];
 
-  const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key))).map((c) =>
-    !isOwnerAccount && (!isCouple || !hasCoupleAccess) && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
-  );
+  const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key)))
+    .map((c) =>
+      !isOwnerAccount && (!isCouple || !hasCoupleAccess) && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
+    )
+    // 5º degrau: "pediu a 1ª leitura". Marcado no TOQUE do card, que é a
+    // intenção real — e não na montagem da tela de leitura, que também
+    // acontece quando a pessoa só passa por ali. O evento é enfileirado antes
+    // de navegar (fire-and-forget: track() é síncrona e não devolve promise,
+    // então a navegação não espera nada).
+    .map((c) =>
+      READING_CARD_KEYS.has(c.key)
+        ? {
+            ...c,
+            onPress: () => {
+              funnel.readingStart(c.key, 'home_card');
+              c.onPress();
+            },
+          }
+        : c
+    );
 
   // Separação visual pedida pelo Lenda (25/07/2026): desde que solo também
   // assina (as 9 leituras individuais), fica confuso misturar no mesmo grid
@@ -323,8 +370,8 @@ export default function HomeScreen() {
           <View style={styles.milestoneBackdrop}>
             <LinearGradient colors={gradients.gold} style={styles.milestoneCard}>
               <Text style={styles.milestoneEmoji}>{milestone.days >= 100 ? '👑' : milestone.days >= 30 ? '🌟' : '🔥'}</Text>
-              <Text style={styles.milestoneTitle}>{milestone.days} dias seguidos!</Text>
-              <Text style={styles.milestoneSubtitle}>+{milestone.tokens} tokens de bônus</Text>
+              <Text style={styles.milestoneTitle}>{t('home.milestone.title', { days: milestone.days })}</Text>
+              <Text style={styles.milestoneSubtitle}>{t('home.milestone.bonus', { tokens: milestone.tokens })}</Text>
               {/* Motor de Oferta (pico emocional): quem sustenta 7+ dias de
                   sequência sem assinar já provou que o app virou hábito — o
                   momento certo de oferecer, uma linha só, sem insistência
@@ -338,11 +385,11 @@ export default function HomeScreen() {
                     navigation.navigate(ROUTES.PLANOS);
                   }}
                 >
-                  <Text style={styles.milestoneOfferText}>Comemorar com 7 dias grátis de assinatura →</Text>
+                  <Text style={styles.milestoneOfferText}>{t('home.milestone.offer')}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={styles.milestoneBtn} activeOpacity={0.85} onPress={() => setMilestone(null)}>
-                <Text style={styles.milestoneBtnText}>Continuar</Text>
+                <Text style={styles.milestoneBtnText}>{t('home.milestone.continue')}</Text>
               </TouchableOpacity>
             </LinearGradient>
           </View>
@@ -377,8 +424,8 @@ export default function HomeScreen() {
             <View style={styles.streakCardTitleRow}>
               <Text style={styles.streakCardTitle}>
                 {streakInfo.currentStreak > 0
-                  ? `🔥 ${streakInfo.currentStreak} ${streakInfo.currentStreak === 1 ? 'dia seguido' : 'dias seguidos'}`
-                  : 'Comece sua sequência hoje'}
+                  ? t(streakInfo.currentStreak === 1 ? 'home.streak.count_one' : 'home.streak.count_other', { count: streakInfo.currentStreak })
+                  : t('home.streak.empty')}
               </Text>
               {shieldCount > 0 && (
                 <View style={styles.shieldBadge}>
@@ -411,13 +458,13 @@ export default function HomeScreen() {
               <Ionicons name={agirGoal.goalDone ? 'checkmark-circle' : 'flag'} size={20} color={agirGoal.goalDone ? colors.green : colors.amber} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.goalLabel}>Meta da semana</Text>
+              <Text style={styles.goalLabel}>{t('home.goal.label')}</Text>
               {agirGoal.goalSaved ? (
                 <Text style={styles.goalText} numberOfLines={2}>
-                  {agirGoal.goalDone ? 'Cumprida: ' : ''}{agirGoal.goalSaved}
+                  {agirGoal.goalDone ? t('home.goal.done') : ''}{agirGoal.goalSaved}
                 </Text>
               ) : (
-                <Text style={styles.goalTextEmpty}>Vocês ainda não definiram uma meta pra essa semana</Text>
+                <Text style={styles.goalTextEmpty}>{t('home.goal.empty')}</Text>
               )}
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -478,8 +525,8 @@ export default function HomeScreen() {
             <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.wrappedBarInner}>
               <Text style={styles.wrappedBarEmoji}>🔮</Text>
               <View style={{ flex: 1 }}>
-                <Text style={styles.wrappedBarTitle}>Sua Retrospectiva Cósmica chegou</Text>
-                <Text style={styles.wrappedBarSubtitle}>O resumo do seu mês — pra ver e compartilhar</Text>
+                <Text style={styles.wrappedBarTitle}>{t('home.wrapped.title')}</Text>
+                <Text style={styles.wrappedBarSubtitle}>{t('home.wrapped.subtitle')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#2A1D00" />
             </LinearGradient>
@@ -509,7 +556,7 @@ export default function HomeScreen() {
         <View style={styles.peekCard}>
           <View style={styles.peekHead}>
             <Ionicons name="eye" size={16} color={colors.purple} />
-            <Text style={styles.peekLabel}>Espiada de amanhã</Text>
+            <Text style={styles.peekLabel}>{t('home.peek.label')}</Text>
           </View>
           {hasAccess || isOwnerAccount ? (
             <Text style={styles.peekText}>{tomorrowsThought}</Text>
@@ -524,7 +571,7 @@ export default function HomeScreen() {
                 onPress={() => navigation.navigate(ROUTES.PLANOS)}
               >
                 <Ionicons name="lock-closed" size={13} color={colors.purple} />
-                <Text style={styles.peekBtnText}>Assine pra espiar amanhã hoje →</Text>
+                <Text style={styles.peekBtnText}>{t('home.peek.cta')}</Text>
               </TouchableOpacity>
             </>
           )}
@@ -541,19 +588,17 @@ export default function HomeScreen() {
           >
             <View style={styles.peekHead}>
               <Ionicons name="telescope" size={16} color={colors.teal} />
-              <Text style={[styles.peekLabel, { color: colors.teal }]}>Céu de hoje pra você</Text>
+              <Text style={[styles.peekLabel, { color: colors.teal }]}>{t('home.sky.label')}</Text>
             </View>
-            <Text style={styles.peekText}>
-              Informe sua data de nascimento no Mapa Astral e veja, todo dia, como o céu de hoje toca o SEU mapa — não o de todo mundo.
-            </Text>
-            <Text style={styles.skyInviteLink}>Preencher meu Mapa Astral →</Text>
+            <Text style={styles.peekText}>{t('home.sky.inviteText')}</Text>
+            <Text style={styles.skyInviteLink}>{t('home.sky.inviteCta')}</Text>
           </TouchableOpacity>
         )}
         {Array.isArray(personalSky) && personalSky.length > 0 && (
           <View style={styles.skyCard}>
             <View style={styles.peekHead}>
               <Ionicons name="telescope" size={16} color={colors.teal} />
-              <Text style={[styles.peekLabel, { color: colors.teal }]}>Céu de hoje pra você</Text>
+              <Text style={[styles.peekLabel, { color: colors.teal }]}>{t('home.sky.label')}</Text>
             </View>
             {(hasAccess || isOwnerAccount ? personalSky : personalSky.slice(0, 1)).map((a, i) => (
               <Text key={i} style={[styles.peekText, i > 0 && { marginTop: 8 }]}>
@@ -568,7 +613,7 @@ export default function HomeScreen() {
               >
                 <Ionicons name="lock-closed" size={13} color={colors.teal} />
                 <Text style={[styles.peekBtnText, { color: colors.teal }]}>
-                  +{personalSky.length - 1} aspecto(s) no seu céu hoje — assine pra ver →
+                  {t('home.sky.moreAspects', { count: personalSky.length - 1 })}
                 </Text>
               </TouchableOpacity>
             )}

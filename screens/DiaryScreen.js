@@ -25,6 +25,7 @@ import {
 import { fetchAiWeeklyInsight } from '../lib/aiClient';
 import { useAuth } from '../context/AuthContext';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 import { shareToFeed } from '../lib/socialClient';
 import { ROUTES } from '../routes';
 
@@ -38,27 +39,23 @@ const TYPE_ICONS = {
   dream: 'moon',
 };
 
+// labels viram chaves i18n — t() onde forem exibidos (padrão do STEPS em QuizScreen.js).
 const FILTERS = [
-  { key: 'all', label: 'Todos' },
-  { key: 'tarot', label: 'Tarô' },
-  { key: 'palma', label: 'Palma' },
-  { key: 'rosto', label: 'Rosto' },
-  { key: 'pe', label: 'Pé' },
-  { key: 'pintas', label: 'Pintas' },
-  { key: 'coffee', label: 'Café' },
-  { key: 'dream', label: 'Sonho' },
+  { key: 'all', label: 'diary.filter.all' },
+  { key: 'tarot', label: 'diary.filter.tarot' },
+  { key: 'palma', label: 'diary.filter.palma' },
+  { key: 'rosto', label: 'diary.filter.rosto' },
+  { key: 'pe', label: 'diary.filter.pe' },
+  { key: 'pintas', label: 'diary.filter.pintas' },
+  { key: 'coffee', label: 'diary.filter.coffee' },
+  { key: 'dream', label: 'diary.filter.dream' },
 ];
 
-const MESES = [
-  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
-];
-
-function formatDate(iso) {
+function formatDate(iso, t) {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return `${d.getDate()} de ${MESES[d.getMonth()]}`;
+  return t('diary.date', { d: d.getDate(), month: t(`diary.month.${d.getMonth()}`) });
 }
 
 function excerpt(body, length = 80) {
@@ -69,6 +66,7 @@ function excerpt(body, length = 80) {
 }
 
 function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sharing, pinned, canPin, onPin }) {
+  const { t } = useLanguage();
   const hasInsight = !!(entry.voiceTranscript || entry.aiInsight);
   const iconName = TYPE_ICONS[entry.type] || 'sparkles';
 
@@ -82,7 +80,7 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
       {pinned && (
         <View style={styles.pinnedBanner}>
           <Ionicons name="bookmark" size={12} color={colors.gold} />
-          <Text style={styles.pinnedBannerText}>EM DESTAQUE</Text>
+          <Text style={styles.pinnedBannerText}>{t('diary.pinned.banner')}</Text>
         </View>
       )}
       <View style={styles.cardHeader}>
@@ -94,7 +92,7 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
           <Text style={styles.title}>{entry.title}</Text>
         </View>
         <View style={styles.headerRight}>
-          <Text style={styles.date}>{formatDate(entry.date)}</Text>
+          <Text style={styles.date}>{formatDate(entry.date, t)}</Text>
           <Ionicons
             name={expanded ? 'chevron-up' : 'chevron-down'}
             size={16}
@@ -107,7 +105,7 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
       {!expanded && <Text style={styles.excerpt}>{excerpt(entry.body)}</Text>}
       {!expanded && hasInsight && (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>🎙️ com insight</Text>
+          <Text style={styles.badgeText}>{t('diary.withInsight')}</Text>
         </View>
       )}
 

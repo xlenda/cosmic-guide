@@ -95,6 +95,23 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(helmet());
 app.use(cors({ origin: ALLOWED_ORIGINS }));
+
+// Rastreamento PRÓPRIO de funil (src/http/trackRoutes.js + migração 010) — a
+// rota que responde "onde as ~40 pessoas que entraram no app pararam". Ela tem
+// o PRÓPRIO parser de corpo (16kb, e aceita text/plain por causa do
+// navigator.sendBeacon), então precisa vir ANTES do express.json global de
+// 10mb logo abaixo: o body-parser pula quando o corpo já foi lido, e um teto
+// de 10mb numa rota PÚBLICA de telemetria seria um convite. Depois do
+// cors() porque o app manda de outra origem (cosmicguide.cloud) e o preflight
+// é respondido ali em cima.
+// Carregada com require preguiçoso e dentro de try/catch: telemetria nunca
+// pode impedir a API (checkout, webhook de pagamento) de subir.
+try {
+  app.use("/api/track", require("./trackRoutes").trackRouter);
+} catch (err) {
+  console.error("[api/track] rota de funil não montada:", err && err.message);
+}
+
 app.use(
   express.json({
     limit: "10mb", // fotos em base64 (leitura de mão) passam do limite padrão de 100kb

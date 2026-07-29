@@ -12,6 +12,7 @@ import { signoFromDate, moonSign, ascendantSign, houses, aspects, astrocartograp
 import { cityLabel } from '../lib/cities';
 import { getBirthData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { saveSoloBirthMirror, readSecureItemWithMirror, writeSecureItemWithMirror } from '../lib/birthData';
@@ -80,12 +81,13 @@ function formatDateBR(iso) {
 }
 
 const ROWS_META = [
-  { key: 'Sol', label: 'Sol', desc: 'Sua essência e identidade', icon: 'sunny', color: '#FFB84D', missing: 'Informe a data de nascimento para calcular.' },
-  { key: 'Lua', label: 'Lua', desc: 'Suas emoções e instintos', icon: 'moon', color: '#5CA8FF', missing: 'Não foi possível calcular a Lua agora.' },
-  { key: 'Asc', label: 'Ascendente', desc: 'Como o mundo te vê', icon: 'trending-up', color: '#B57BFF', missing: 'O Ascendente pede hora exata e cidade de nascimento — adicione os dois para descobrir.' },
+  { key: 'Sol', labelKey: 'birthchart.row.sun.label', descKey: 'birthchart.row.sun.desc', icon: 'sunny', color: '#FFB84D', missingKey: 'birthchart.row.sun.missing' },
+  { key: 'Lua', labelKey: 'birthchart.row.moon.label', descKey: 'birthchart.row.moon.desc', icon: 'moon', color: '#5CA8FF', missingKey: 'birthchart.row.moon.missing' },
+  { key: 'Asc', labelKey: 'birthchart.row.asc.label', descKey: 'birthchart.row.asc.desc', icon: 'trending-up', color: '#B57BFF', missingKey: 'birthchart.row.asc.missing' },
 ];
 
 function ChartResult({ chart }) {
+  const { t } = useLanguage();
   const rows = [
     { ...ROWS_META[0], sign: chart.sun },
     { ...ROWS_META[1], sign: chart.moon },
@@ -95,11 +97,11 @@ function ChartResult({ chart }) {
     <>
       <View style={styles.summaryCard}>
         <LinearGradient colors={gradients.card} style={styles.summaryInner}>
-          <Text style={styles.summaryMeta}>{formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ' · hora não informada'}</Text>
+          <Text style={styles.summaryMeta}>{formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}</Text>
           <View style={styles.trio}>
             {rows.map((r) => (
               <View key={r.key} style={styles.trioItem}>
-                <Text style={styles.trioLabel}>{r.label}</Text>
+                <Text style={styles.trioLabel}>{t(r.labelKey)}</Text>
                 <Text style={[styles.trioGlyph, { color: r.sign ? r.sign.color : colors.textMuted }]}>{r.sign ? r.sign.glyph : '—'}</Text>
                 <Text style={styles.trioSign}>{r.sign ? r.sign.name : '?'}</Text>
               </View>
@@ -108,15 +110,15 @@ function ChartResult({ chart }) {
         </LinearGradient>
       </View>
 
-      <Text style={styles.sub}>Posições</Text>
+      <Text style={styles.sub}>{t('birthchart.positions')}</Text>
       {rows.map((r) => (
         <View key={r.key} style={styles.planetRow}>
           <View style={[styles.planetIcon, { backgroundColor: r.color + '22' }]}>
             <Ionicons name={r.icon} size={20} color={r.color} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.planetLabel}>{r.sign ? `${r.label} em ${r.sign.name}` : r.label}</Text>
-            <Text style={styles.planetDesc}>{r.sign ? r.desc : r.missing}</Text>
+            <Text style={styles.planetLabel}>{r.sign ? t('birthchart.positionIn', { label: t(r.labelKey), sign: r.sign.name }) : t(r.labelKey)}</Text>
+            <Text style={styles.planetDesc}>{r.sign ? t(r.descKey) : t(r.missingKey)}</Text>
           </View>
           {r.sign && <Text style={[styles.planetGlyph, { color: r.sign.color }]}>{r.sign.glyph}</Text>}
         </View>
