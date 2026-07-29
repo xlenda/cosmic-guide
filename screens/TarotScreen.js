@@ -15,6 +15,7 @@ import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { getBonusTarotReadings, consumeBonusTarotReading } from '../lib/cosmeticRewards';
 import { recordCardsSeen } from '../lib/tarotCollection';
 import { ROUTES } from '../routes';
+import { useLanguage } from '../context/LanguageContext';
 import OneTimeLock from '../components/OneTimeLock';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
@@ -40,6 +41,11 @@ export default function TarotScreen() {
   // vários temas, repetidas vezes, sem nunca pedir assinatura). Corrigido na
   // origem (contexto), não precisa mais recombinar isCouple aqui.
   const { hasAccess, accessConfirmed } = useCouple();
+  const { t } = useLanguage();
+  // Tarô vive no TarotStack (dentro de TAROT_TAB) e Planos/Loja vivem em
+  // outras abas — mesmo helper do OneTimeLock.js: getParent() sobe pro
+  // Tab.Navigator, e o fallback cobre o caso de a tela ser a própria raiz.
+  const navigateFromTab = (...args) => (navigation.getParent() || navigation).navigate(...args);
   const [theme, setTheme] = useState(THEMES[0]);
   const [drawn, setDrawn] = useState(null);
   const [revealed, setRevealed] = useState([false, false, false]);
@@ -213,12 +219,25 @@ export default function TarotScreen() {
                     ? `Você já consultou o tema ${theme.key} hoje. Essa tiragem é única por dia — assuntos sérios como esse merecem uma resposta, não uma repetição até achar a que você quer ouvir. Volta amanhã.`
                     : 'Você já usou sua leitura gratuita de Tarô — mas tem Leitura Bônus guardada da Loja. Use uma agora, ou assine pra tirar cartas todo dia.'}
                 </Text>
-                {bonusReadings > 0 && (
+                {bonusReadings > 0 ? (
                   <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards(true)} style={styles.btnWrap}>
                     <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                       <Ionicons name="sparkles" size={18} color="#fff" />
                       <Text style={styles.btnText}>Usar Leitura Bônus ({bonusReadings})</Text>
                     </LinearGradient>
+                  </TouchableOpacity>
+                ) : (
+                  // Quem TEM bônus ganha botão logo acima; quem não tem ficava
+                  // sem ação nenhuma neste bloco, e o único jeito de conseguir
+                  // uma tiragem hoje (comprar Leitura Bônus na Loja) não era
+                  // oferecido em lugar nenhum do app.
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={styles.bonusStoreBtn}
+                    onPress={() => navigateFromTab(ROUTES.PROFILE_TAB, { screen: ROUTES.LOJA })}
+                  >
+                    <Ionicons name="bag-handle" size={16} color={colors.gold} />
+                    <Text style={styles.bonusStoreText}>{t('tarot.dailyLimit.storeCta')}</Text>
                   </TouchableOpacity>
                 )}
               </>
@@ -291,9 +310,23 @@ export default function TarotScreen() {
             ) : !hasAccess && locked ? (
               // drawCards() já recusa redesenhar nesse caso — aqui é só pra não
               // deixar um botão "morto" que não faz nada visível ao tocar.
-              <Text style={styles.dailyLimitNote}>
-                Essa foi sua tiragem grátis — assine para tirar novas cartas quando quiser.
-              </Text>
+              // O texto ocupa o lugar do botão "Nova Tiragem": pedia assinatura
+              // e não levava a Planos. Agora o pedido vem com o toque colado.
+              <>
+                <Text style={styles.dailyLimitNote}>
+                  Essa foi sua tiragem grátis — assine para tirar novas cartas quando quiser.
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[styles.btnWrap, { marginTop: 14 }]}
+                  onPress={() => navigateFromTab(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
+                >
+                  <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
+                    <Ionicons name="diamond" size={18} color="#fff" />
+                    <Text style={styles.btnText}>{t('tarot.locked.cta')}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
             ) : (
               <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards()} style={[styles.btnWrap, { marginTop: 16 }]}>
                 <LinearGradient colors={['#2A1D52', '#3A1F6B']} style={styles.btn}>
@@ -329,6 +362,12 @@ const styles = StyleSheet.create({
   deckCard: { position: 'absolute', width: 110, height: 160, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
   emptyTitle: { color: colors.textSecondary, fontSize: 15, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20, lineHeight: 22 },
   dailyLimitNote: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 16, lineHeight: 19, paddingHorizontal: 10 },
+  bonusStoreBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.gold + '66',
+    paddingVertical: 12, paddingHorizontal: 18, marginTop: 4,
+  },
+  bonusStoreText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
   btnWrap: { borderRadius: 12, overflow: 'hidden', width: '100%' },
   btn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, gap: 8 },
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },

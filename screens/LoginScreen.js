@@ -18,6 +18,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -32,7 +33,7 @@ const MODE = { SIGN_IN: 'signin', SIGN_UP: 'signup' };
 export default function LoginScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
   const { t } = useLanguage();
   // De onde a pessoa veio e pra onde ela precisa voltar. Só o PlanosScreen
   // preenche isso hoje (toque no CTA estando deslogado).
@@ -50,6 +51,7 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   // 9º degrau: a tela de login apareceu de fato. Um só evento por execução
   // (dedupe por nome em lib/funnel.js), e o `source` diz se ela apareceu no
@@ -73,6 +75,37 @@ export default function LoginScreen() {
     const result = await signInWithGoogle();
     setGoogleLoading(false);
     if (result.error) setError(result.error);
+  }
+
+  // "Esqueci minha senha" — antes não existia caminho NENHUM aqui, e como o
+  // PlanosScreen exige conta pra assinar, esquecer a senha fechava o funil
+  // inteiro. O toque manda o e-mail de recuperação na hora usando o campo que
+  // a pessoa já preencheu; se estiver vazio, pede o e-mail em vez de falhar
+  // em silêncio.
+  async function handleForgotPassword() {
+    if (resetting) return;
+    setError('');
+    setInfo('');
+    if (!email.trim()) {
+      setError(t('login.forgot.needEmail'));
+      return;
+    }
+    setResetting(true);
+    const result = await resetPassword(email.trim());
+    setResetting(false);
+    if (result?.error) {
+      setError(result.error);
+      return;
+    }
+    setInfo(t('login.forgot.sent'));
+  }
+
+  // Abrir a caixa de entrada é a próxima coisa a fazer depois de "confira seu
+  // e-mail" — sem isso o aviso só informava. mailto: sem destinatário abre o
+  // app de e-mail padrão; se o aparelho não tiver nenhum, o catch evita que a
+  // promessa rejeitada estoure.
+  function abrirCaixaDeEntrada() {
+    Linking.openURL('mailto:').catch(() => {});
   }
 
   function toggleMode() {
@@ -173,12 +206,31 @@ export default function LoginScreen() {
 
           {error !== '' && <Text style={styles.errorText}>{error}</Text>}
           {info !== '' && <Text style={styles.infoText}>{info}</Text>}
+          {info !== '' && (
+            <TouchableOpacity style={styles.inboxBtn} activeOpacity={0.8} onPress={abrirCaixaDeEntrada}>
+              <Ionicons name="mail-open" size={16} color={colors.accent} />
+              <Text style={styles.inboxBtnText}>{t('login.openInboxCta')}</Text>
+            </TouchableOpacity>
+          )}
 
           {loading ? (
             <ActivityIndicator color={colors.accent} style={{ marginTop: 20 }} />
           ) : (
             <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={handleSubmit}>
               <Text style={styles.btnText}>{mode === MODE.SIGN_IN ? t('login.mode.signIn') : t('login.mode.signUp')}</Text>
+            </TouchableOpacity>
+          )}
+
+          {mode === MODE.SIGN_IN && (
+            <TouchableOpacity
+              style={styles.forgotLink}
+              activeOpacity={0.7}
+              onPress={handleForgotPassword}
+              disabled={loading || resetting}
+            >
+              <Text style={styles.forgotText}>
+                {resetting ? t('login.forgot.sending') : t('login.forgot.cta')}
+              </Text>
             </TouchableOpacity>
           )}
 
@@ -255,4 +307,12 @@ const styles = StyleSheet.create({
   googleBtnText: { color: colors.text, fontSize: 15, fontWeight: '700' },
   switchLink: { alignItems: 'center', marginTop: 18 },
   switchText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+  forgotLink: { alignItems: 'center', marginTop: 14, paddingVertical: 4 },
+  forgotText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+  inboxBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+    paddingVertical: 11, marginTop: 12,
+  },
+  inboxBtnText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
 });

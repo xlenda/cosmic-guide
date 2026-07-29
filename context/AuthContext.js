@@ -4,7 +4,7 @@
 // de assinar, ver PlanosScreen.js). `user`/`session` ficam null até logar.
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { supabase, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut as signOutSupabase } from '../lib/supabaseClient';
+import { supabase, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPasswordForEmail, signOut as signOutSupabase } from '../lib/supabaseClient';
 import { Alert } from '../lib/webAlert';
 
 const AuthContext = createContext(null);
@@ -63,6 +63,7 @@ export function AuthProvider({ children }) {
     signIn: signInWithEmail,
     signUp: signUpWithEmail,
     signInWithGoogle,
+    resetPassword: resetPasswordForEmail,
     signOut: signOutSupabase,
   };
 

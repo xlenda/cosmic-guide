@@ -415,6 +415,21 @@ export default function ProfileScreen() {
                 {seloAtivo && <Ionicons name="ribbon" size={18} color={colors.gold} style={{ marginLeft: 6 }} />}
               </View>
               <Text style={styles.coupleSigns}>{soloSign ? t('profile.soloInviteHint') : t('profile.noCoupleHint')}</Text>
+              {/* Os dois textos acima só INFORMAM onde fica o quiz ("na aba
+                  Início") — o botão que realmente leva existia só lá embaixo,
+                  no card de Preferências, abaixo da dobra num celular. Aqui
+                  ele fica colado no pedido. Mesmo salto de aba usado no
+                  MenuRow "Adicionar meu par" (ProfileStack -> HomeStack). */}
+              <TouchableOpacity
+                style={styles.coupleCta}
+                activeOpacity={0.85}
+                onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
+              >
+                <Ionicons name="heart" size={14} color="#fff" />
+                <Text style={styles.coupleCtaText}>
+                  {soloSign ? t('profile.soloInviteCta') : t('profile.noCoupleCta')}
+                </Text>
+              </TouchableOpacity>
             </>
           )}
         </View>
@@ -615,6 +630,12 @@ const styles = StyleSheet.create({
   coupleNamesRow: { flexDirection: 'row', alignItems: 'center' },
   coupleNames: { color: colors.text, fontSize: 18, fontWeight: '800' },
   coupleSigns: { color: colors.textMuted, fontSize: 13, marginTop: 4, textAlign: 'center' },
+  coupleCta: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.accent, borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 10, marginTop: 12,
+  },
+  coupleCtaText: { color: '#fff', fontSize: 13, fontWeight: '800' },
   sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 10, marginTop: 8 },
   card: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,

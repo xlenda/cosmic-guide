@@ -3,6 +3,8 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import { useLanguage } from '../context/LanguageContext';
+import { SUPPORT_EMAIL } from '../lib/supportContact';
 
 function TermsSection({ title, children, last }) {
   return (
@@ -15,6 +17,7 @@ function TermsSection({ title, children, last }) {
 
 export default function TermsScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
 
   return (
     <View style={styles.root}>
@@ -37,12 +40,18 @@ export default function TermsScreen() {
             seu e-mail pra sincronizar o acesso entre aparelhos. Você é responsável por manter sua senha em sigilo e
             por tudo que acontecer usando sua conta.
           </TermsSection>
-          <TermsSection title="Pagamentos e assinatura">
-            Assinaturas são cobradas de forma recorrente através da loja de aplicativos ou do provedor de pagamento
-            usado no momento da compra, e podem ser canceladas a qualquer momento pelo próprio app (Perfil →
-            Gerenciar assinatura) ou diretamente na loja/portal de pagamento. Cancelar interrompe cobranças futuras;
-            valores já cobrados seguem a política de reembolso da loja usada.
-          </TermsSection>
+          {/* CORRIGIDO em 29/07/2026. O texto anterior descrevia um app que não
+              é este: dizia que a assinatura é cobrada "pela loja de aplicativos"
+              e que dá pra cancelar "pelo próprio app (Perfil → Gerenciar
+              assinatura)". Não existe venda por loja (a cobrança é da Hotmart,
+              por checkout web — ver HOTMART_PAY_URLS em PlanosScreen.js) e o
+              item "Gerenciar assinatura" do Perfil só abre a tela de Planos:
+              nenhum toque dentro do app interrompe a renovação. Prometer nos
+              Termos um cancelamento que o produto não faz é o tipo de promessa
+              que vira reclamação — e, no Brasil, infração ao CDC. Passa pelo
+              dicionário porque é texto novo: quem lê em espanhol/inglês precisa
+              da informação certa no idioma dele. */}
+          <TermsSection title="Pagamentos e assinatura">{t('terms.payments.body')}</TermsSection>
           <TermsSection
             title="Uso aceitável"
             last
@@ -57,7 +66,7 @@ export default function TermsScreen() {
         <View style={styles.card}>
           <View style={styles.cardPad}>
             <Text style={styles.paragraph}>
-              Dúvidas sobre estes termos? Escreva para <Text style={styles.emailText}>contato@cosmicguide.cloud</Text>.
+              Dúvidas sobre estes termos? Escreva para <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text>.
             </Text>
           </View>
         </View>

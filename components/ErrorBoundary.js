@@ -5,9 +5,23 @@
 // um bug de React por horas. Com isso, um crash real de render vira uma mensagem
 // visível em vez de branco.
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, Linking } from 'react-native';
 import { colors } from '../theme';
 import { translate, DEFAULT_LANGUAGE, LANGUAGES } from '../lib/i18n';
+
+// Contato de suporte — repetido aqui de propósito: este boundary é a última
+// linha de defesa e não pode depender de nenhum outro módulo do app (o crash
+// pode ter vindo justamente de um import quebrado).
+const SUPPORT_MAILTO = 'mailto:contato@cosmicguide.cloud';
+
+// Recarregar a raiz publicada, não a rota atual: em rota interna
+// (/cosmic-guide/quiz) um reload cru bate num 404 do host estático, mesmo
+// truque já usado em LojaScreen.js. Fora da web não existe reload de página,
+// então o botão nem aparece.
+function reloadApp() {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  window.location.href = '/cosmic-guide/';
+}
 
 // Este boundary fica ACIMA do LanguageProvider (ver App.js) — de propósito: se
 // o próprio provider for o que quebrou, ainda precisa ter alguém pra mostrar a
@@ -53,6 +67,22 @@ export class ErrorBoundary extends React.Component {
             {this.state.error?.message || t('errorBoundary.fallbackMessage')}
           </Text>
           <Text style={styles.hint}>{t('errorBoundary.hint')}</Text>
+          {/* O texto acima pede DUAS ações ("recarregue", "avise o suporte") e
+              a tela não tinha um único elemento tocável — era só três <Text>
+              num <View>. Aqui não existe navigation (o boundary fica ACIMA do
+              NavigationContainer), então as ações são reload e mailto. */}
+          {Platform.OS === 'web' && (
+            <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={reloadApp}>
+              <Text style={styles.btnText}>{t('errorBoundary.reloadCta')}</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.ghostBtn}
+            activeOpacity={0.7}
+            onPress={() => Linking.openURL(SUPPORT_MAILTO)}
+          >
+            <Text style={styles.ghostBtnText}>{t('errorBoundary.supportCta')}</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -71,4 +101,11 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 18, fontWeight: '800', marginBottom: 12, textAlign: 'center' },
   message: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginBottom: 8 },
   hint: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 8 },
+  btn: {
+    backgroundColor: colors.accent, borderRadius: 14,
+    paddingVertical: 13, paddingHorizontal: 30, marginTop: 20,
+  },
+  btnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  ghostBtn: { paddingVertical: 10, paddingHorizontal: 16, marginTop: 8 },
+  ghostBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
 });

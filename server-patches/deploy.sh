@@ -55,6 +55,17 @@ scp -o ConnectTimeout=25 -r "$REPO_DIR/src/." "$REMOTE:$APP_DIR/src/"
 if [ -d "$REPO_DIR/scripts" ]; then
   ssh -o ConnectTimeout=25 "$REMOTE" "mkdir -p $APP_DIR/scripts"
   scp -o ConnectTimeout=25 -r "$REPO_DIR/scripts/." "$REMOTE:$APP_DIR/scripts/"
+  # Os .sh de scripts/ são chamados pelo CRON (healthcheck.sh de 5 em 5 min,
+  # canary-check.sh de 15 em 15). Vindo de um scp a partir do Windows, o bit
+  # de execução não sobrevive — e um cron que perde o +x falha CALADO: some do
+  # log, nenhuma task de alerta é criada, e o monitoramento fica "verde" por
+  # ausência de notícias. Também normaliza CRLF, que faria o bash reclamar de
+  # "\r: command not found" na primeira linha.
+  ssh -o ConnectTimeout=25 "$REMOTE" "
+    cd $APP_DIR/scripts
+    for f in *.sh; do [ -f \"\$f\" ] && sed -i 's/\r$//' \"\$f\" && chmod +x \"\$f\"; done
+    echo '  scripts .sh normalizados e executáveis.'
+  "
 fi
 # Os testes vão junto (o servidor já tem supertest em devDependencies). Sem
 # isto, os testes escritos aqui nunca chegam a rodar contra o código que está

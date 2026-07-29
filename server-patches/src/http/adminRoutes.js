@@ -31,6 +31,16 @@ function buildAdminRouter({ repository, adminToken }) {
   // Custo de IA por dia/endpoint (tabela ai_usage, migração 006) — pra
   // acompanhar se o preço da assinatura cobre o uso real e decidir quando
   // vale oferecer pacote de tokens. Últimos 30 dias.
+  //
+  // Desde 29/07/2026 a resposta separa GENTE de ROBÔ. O canary de 15 em 15
+  // minutos (scripts/canary-check.sh) chama /api/chat de verdade e respondia
+  // por 96-97 dos ~97 "chats" de um dia — quem lesse `totalPorDia` concluiria
+  // que o Chat Espiritual é o recurso mais usado do app, quando o uso humano
+  // era zero. As chamadas do canary agora chegam marcadas (endpoint terminado
+  // em ":canary", ver ehCanary em src/http/server.js) e saem em campo próprio:
+  //   totalHumanoPorDia -> o número pra decidir preço/pacote de tokens
+  //   totalCanaryPorDia -> custo do monitoramento, real e visível
+  //   totalPorDia       -> soma, como sempre foi (não quebra quem já lia)
   router.get("/ai-usage", (_req, res) => {
     const { db } = require("../infrastructure/db");
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -38,8 +48,15 @@ function buildAdminRouter({ repository, adminToken }) {
       .prepare("SELECT day, endpoint, count FROM ai_usage WHERE day >= ? ORDER BY day DESC, count DESC")
       .all(cutoff);
     const totalPorDia = {};
-    for (const r of rows) totalPorDia[r.day] = (totalPorDia[r.day] || 0) + r.count;
-    res.json({ rows, totalPorDia });
+    const totalHumanoPorDia = {};
+    const totalCanaryPorDia = {};
+    for (const r of rows) {
+      const ehCanary = String(r.endpoint).endsWith(":canary");
+      totalPorDia[r.day] = (totalPorDia[r.day] || 0) + r.count;
+      const alvo = ehCanary ? totalCanaryPorDia : totalHumanoPorDia;
+      alvo[r.day] = (alvo[r.day] || 0) + r.count;
+    }
+    res.json({ rows, totalPorDia, totalHumanoPorDia, totalCanaryPorDia });
   });
 
   // Suporte sem correlationCode em mãos — só o e-mail que o cliente lembra.

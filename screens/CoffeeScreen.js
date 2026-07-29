@@ -19,6 +19,7 @@ import GradientHeader from '../components/GradientHeader';
 import { getMockCoffeeReading } from '../lib/coffeeReadings';
 import { fetchAiCoffeeReading, fetchAiCoffeeWeeklySummary } from '../lib/aiClient';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import {
   saveCoffeeReading,
@@ -59,7 +60,11 @@ export default function CoffeeScreen() {
   const navigation = useNavigation();
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
-  const { hasAccess, accessConfirmed } = useCouple();
+  // coupleData volta a ser lido só pelo upsell do fim da leitura, que prometia
+  // "a experiência completa do casal" pra quem está SOZINHO — e a assinatura
+  // individual não abre nenhuma tela de casal (ver components/FeatureGate.js).
+  const { hasAccess, accessConfirmed, coupleData } = useCouple();
+  const { t } = useLanguage();
   const [step, setStep] = useState(STEP.INTRO);
   const [imageUri, setImageUri] = useState(null);
   const [imageBase64, setImageBase64] = useState(null);
@@ -325,7 +330,9 @@ export default function CoffeeScreen() {
             {!hasAccess && (
               <View style={styles.upsellCard}>
                 <Text style={styles.upsellText}>
-                  Gostou dessa leitura? Assine e desbloqueie a experiência completa do casal — 7 dias grátis
+                  {coupleData
+                    ? 'Gostou dessa leitura? Assine e desbloqueie a experiência completa do casal — 7 dias grátis'
+                    : t('upsell.solo.text')}
                 </Text>
                 <TouchableOpacity
                   style={styles.upsellBtn}

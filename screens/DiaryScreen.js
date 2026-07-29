@@ -153,6 +153,7 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
 
 export default function DiaryScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { coupleData } = useCouple();
   // Compartilhar no feed social é só pra quem usa o app sozinho (sem parceiro
@@ -332,6 +333,20 @@ export default function DiaryScreen() {
             Toda leitura de tarô, palma, rosto, pé, pintas, café ou sonho que você fizer aparece aqui, guardadinha
             para você reviver quando quiser.
           </Text>
+          {/* O texto lista SETE tipos de leitura e não oferecia nenhuma — com
+              o diário vazio a barra de filtros nem renderiza, então a tela
+              ficava sem uma única ação possível. HomeMain é a grade de
+              leituras e mora no mesmo HomeStack. */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.emptyBtn}
+            onPress={() => navigation.navigate(ROUTES.HOME_MAIN)}
+          >
+            <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyBtnInner}>
+              <Ionicons name="sparkles" size={18} color="#fff" />
+              <Text style={styles.emptyBtnText}>{t('diary.empty.cta')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -450,6 +465,9 @@ const styles = StyleSheet.create({
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36 },
   emptyTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginTop: 16 },
   emptyDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  emptyBtn: { marginTop: 22, borderRadius: 14, overflow: 'hidden', alignSelf: 'stretch' },
+  emptyBtnInner: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, gap: 8 },
+  emptyBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
   emptyFilterWrap: { alignItems: 'center', paddingVertical: 40 },
   emptyFilterText: { color: colors.textMuted, fontSize: 13 },

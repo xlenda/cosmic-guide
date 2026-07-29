@@ -16,6 +16,7 @@ import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
+import OfferSummary from './OfferSummary';
 
 // Véu de assinatura: fica colado na parte de baixo da tela, por cima do
 // conteúdo real (que continua rodando e interativo por trás, atrás do
@@ -49,7 +50,14 @@ export function SubscribeTeaser() {
           <Ionicons name="lock-closed" size={24} color={colors.gold} />
         </View>
         <Text style={styles.title}>{t('gate.teaser.title')}</Text>
-        <Text style={styles.price}>{t('gate.teaser.price')}</Text>
+        {/* Substitui a linha `gate.teaser.price`, que trazia o preço DIGITADO
+            DE NOVO ("$5 USD/mês · 7 dias grátis"): dois lugares com o mesmo
+            número é o jeito garantido de um dia mudarem um e esquecerem o
+            outro. OfferSummary lê a MESMA chave do card do plano Mensal em
+            Planos (planos.plan.trial.detail) e ainda acrescenta o que faltava
+            aqui — que dá pra cancelar quando quiser. A chave antiga fica no
+            dicionário, sem uso, pra não mexer em tradução alheia. */}
+        <OfferSummary compact style={styles.teaserOffer} testID="gate-teaser-offer" />
         <TouchableOpacity
           style={styles.btn}
           activeOpacity={0.85}
@@ -65,7 +73,17 @@ export function SubscribeTeaser() {
 // Solo (sem par) vê um cartão de TELA CHEIA com a copy específica da tela +
 // as DUAS opções juntas — assinar sozinho (desbloqueia as 9 leituras
 // individuais, não estas telas) e convidar o par (única forma de desbloquear
-// ESTA tela específica). Cheguei a tentar o mesmo véu-sobre-conteúdo do
+// ESTA tela específica).
+//
+// HIERARQUIA INVERTIDA em 29/07/2026 — o botão PRINCIPAL era "Assinar agora",
+// mas assinar sozinho NÃO abre nenhuma destas 5 telas: withFeatureGate testa
+// hasCoupleAccess, que exige o casal formado (ver CoupleContext.js e o
+// comentário de SOLO_BENEFIT_KEYS em PlanosScreen.js). Ou seja, o CTA mais
+// destacado da tela vendia exatamente aquilo que a compra não entregava — a
+// pessoa pagava e continuava vendo este mesmo cartão. Agora o principal é
+// convidar o par (o único caminho que realmente destrava), "Assinar" desce
+// pra secundário e ganha uma linha honesta dizendo o que cada coisa abre.
+// Cheguei a tentar o mesmo véu-sobre-conteúdo do
 // SubscribeTeaser aqui, mas não funciona pra solo: todas as telas de casal
 // têm um guard próprio `if (!voce || !amor)` que troca o conteúdo real por um
 // cartão "Complete o quiz do casal primeiro" — o resultado era esse cartão
@@ -93,20 +111,44 @@ export function SoloTeaser({ title, description }) {
         <Text style={styles.text}>
           {description || t('gate.solo.text')}
         </Text>
-        <TouchableOpacity
-          style={styles.btn}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate(ROUTES.PLANOS)}
-        >
-          <Text style={styles.btnText}>{t('gate.solo.cta')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.secondaryBtn}
-          activeOpacity={0.7}
-          onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
-        >
-          <Text style={styles.secondaryBtnText}>{t('gate.solo.inviteCta')}</Text>
-        </TouchableOpacity>
+        {/* PESO IGUAL — decisão do dono (29/07/2026), consultado justamente
+            porque as duas leituras eram defensáveis:
+              · "Convidar" primário = o único caminho que abre ESTA tela
+                (withFeatureGate exige hasCoupleAccess, que não existe sem
+                casal formado), mas empurra pra ação grátis;
+              · "Assinar" primário = o botão que gera receita, mas prometia o
+                que não entrega.
+            O dono escolheu os dois no mesmo peso, com o texto deixando claro
+            que a tela precisa dos dois. Nenhum dos botões some, nenhum vira
+            fantasma, e a nota honesta abaixo explica o que cada um resolve.
+
+            O convite passa pelo Quiz do casal antes de virar link: é lá que
+            voce/amor/sa/sb são preenchidos, e sem eles lib/coupleInvite.js
+            shareInvite não tem o que compartilhar. */}
+        <View style={styles.dualCtaRow}>
+          <TouchableOpacity
+            style={[styles.btn, styles.dualCta]}
+            activeOpacity={0.85}
+            testID="gate-solo-invite-cta"
+            onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
+          >
+            <Text style={styles.btnText} numberOfLines={2}>{t('gate.solo.invitePrimaryCta')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.btn, styles.dualCta]}
+            activeOpacity={0.85}
+            testID="gate-solo-subscribe-cta"
+            onPress={() => navigation.navigate(ROUTES.PLANOS)}
+          >
+            <Text style={styles.btnText} numberOfLines={2}>{t('gate.solo.cta')}</Text>
+          </TouchableOpacity>
+        </View>
+        {/* A nota honesta continua: é ela que separa "o que a assinatura abre"
+            de "o que só o convite abre". Sem isso, dois botões de peso igual
+            viram duas promessas iguais — e uma delas seria falsa. */}
+        <Text style={styles.honestNote}>{t('gate.solo.subscribeNote')}</Text>
+        <Text style={styles.hint}>{t('gate.solo.inviteHint')}</Text>
+        <OfferSummary compact style={styles.soloOffer} testID="gate-solo-offer" />
       </LinearGradient>
     </View>
   );
@@ -170,21 +212,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginBottom: 16,
   },
   title: { color: colors.text, fontSize: 18, fontWeight: '800', textAlign: 'center' },
-  price: { color: colors.gold, fontSize: 13, fontWeight: '700', marginTop: 8 },
   text: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 14 },
+  // O respiro de baixo já vem do marginTop do botão — sem isso o cartão do solo
+  // ficaria com um vão duplo entre a oferta e o CTA.
+  soloOffer: { marginTop: 18, marginBottom: 0 },
   btn: {
     backgroundColor: colors.accent, borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 28, marginTop: 20,
   },
   btnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
-  secondaryBtn: { marginTop: 12, paddingVertical: 6, paddingHorizontal: 12 },
-  secondaryBtnText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  // Os dois CTAs de peso igual (decisão do dono). `flex: 1` nos dois garante
+  // MESMA largura independente do tamanho do texto — sem isso "Assinar agora"
+  // ficaria menor que "Convidar meu par" e voltaria a existir hierarquia
+  // visual, que é justamente o que a decisão pediu pra não haver.
+  dualCtaRow: { flexDirection: 'row', alignSelf: 'stretch', gap: 10 },
+  dualCta: {
+    flex: 1, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center',
+    // minHeight pra os dois casarem quando um texto quebra em 2 linhas e o
+    // outro não — sem isso um botão fica visivelmente mais alto que o irmão.
+    minHeight: 52,
+  },
+  // Linha de expectativa logo abaixo do CTA principal (o que acontece ao
+  // tocar). Menor e mais apagada que o botão de propósito — informa sem
+  // competir, mesmo padrão do loginNote em PlanosScreen.js.
+  hint: { color: colors.textMuted, fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 10 },
+  // Separa visualmente as duas ofertas do cartão (convite grátis × assinatura),
+  // pra ninguém ler o preço logo abaixo do botão de convidar e achar que
+  // convidar custa.
+  divider: { height: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginTop: 20 },
+  honestNote: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 18 },
+  // Botão fantasma (mesma linguagem do btnGhost em PlanosScreen.js): agora que
+  // "Assinar" é o segundo caminho, ele precisa continuar parecendo um BOTÃO —
+  // como texto de 12px solto embaixo da nota honesta ele sumiria. Contorno em
+  // vez de preenchimento é o que mantém a hierarquia sem escondê-lo.
+  secondaryBtn: {
+    marginTop: 12, paddingVertical: 10, paddingHorizontal: 22,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+  },
+  secondaryBtnText: { color: colors.text, fontSize: 13, fontWeight: '700' },
 
   teaserWrap: {
     position: 'absolute', left: 0, right: 0, bottom: 0, height: '46%',
     alignItems: 'center', justifyContent: 'flex-end',
   },
   teaserFade: { ...StyleSheet.absoluteFillObject },
+  // Mesma lógica do soloOffer: o vão até o botão é do próprio botão.
+  teaserOffer: { marginTop: 8, marginBottom: 0 },
   teaserCard: {
     alignItems: 'center', paddingHorizontal: 28, paddingBottom: 36, paddingTop: 12, width: '100%',
   },

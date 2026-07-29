@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import { computeMonthlyWrapped, getWrappedMonth } from '../lib/monthlyWrapped';
+import { useLanguage } from '../context/LanguageContext';
+import { ROUTES } from '../routes';
 
 // Mesma animação de contagem da RetrospectivaScreen (requestAnimationFrame +
 // easing cúbico) — copiada em vez de extraída porque extrair tocaria num
@@ -64,6 +66,7 @@ export default function MonthlyWrappedScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const { height: winH } = useWindowDimensions();
 
   // Por padrão celebra o mês anterior (janela dos dias 1–7, ver
@@ -129,8 +132,14 @@ export default function MonthlyWrappedScreen() {
           <Text style={styles.emptyDesc}>
             A retrospectiva só conta o que você mesmo registrou no app — quando houver leituras, ela nasce sozinha.
           </Text>
-          <TouchableOpacity style={styles.btn} onPress={() => navigation.goBack()}>
-            <Text style={styles.btnText}>Voltar</Text>
+          {/* O texto PEDE leituras; o único botão daqui era "Voltar", que não
+              é a coisa pedida. HomeMain (a grade de leituras) mora no mesmo
+              HomeStack — "Voltar" segue existindo, agora como secundário. */}
+          <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate(ROUTES.HOME_MAIN)}>
+            <Text style={styles.btnText}>{t('wrapped.empty.readingsCta')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.btnGhost} onPress={() => navigation.goBack()}>
+            <Text style={styles.btnGhostText}>Voltar</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -292,6 +301,8 @@ const styles = StyleSheet.create({
 
   btn: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 28, alignItems: 'center' },
   btnText: { color: colors.background, fontSize: 15, fontWeight: '800' },
+  btnGhost: { borderRadius: 14, paddingVertical: 12, paddingHorizontal: 28, alignItems: 'center', marginTop: 10 },
+  btnGhostText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
 
   hint: { position: 'absolute', bottom: 20, alignItems: 'center' },
   hintText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 },

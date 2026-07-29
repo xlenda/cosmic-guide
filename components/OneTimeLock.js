@@ -18,6 +18,7 @@ import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { funnel } from '../lib/funnel';
 import GradientHeader from './GradientHeader';
+import OfferSummary from './OfferSummary';
 
 export default function OneTimeLock({ featureTitle, gradient = gradients.hero }) {
   const navigation = useNavigation();
@@ -59,6 +60,14 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero })
             ? 'Assine o Cosmic Guide e continue usando esse e todos os outros recursos sem limite, você e seu par.'
             : 'Assine o Cosmic Guide e continue usando esse e todos os outros recursos individuais sem limite.'}
         </Text>
+        {/* A oferta inteira AQUI, sem sair da tela: preço de entrada, 7 dias
+            grátis e cancelamento livre. Antes esta tela só dizia "assine" e o
+            primeiro número da vida da pessoa aparecia uma navegação depois, em
+            Planos — este é o muro mais comum de todos (as 9 leituras
+            individuais passam por aqui), e era exatamente o que o testador
+            fotografou sem entender quanto custava. O botão continua indo pra
+            Planos; a diferença é que agora ela vai sabendo o preço. */}
+        <OfferSummary testID="onetimelock-offer" />
         <TouchableOpacity
           style={styles.btn}
           activeOpacity={0.85}

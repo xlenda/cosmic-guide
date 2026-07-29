@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +18,7 @@ import { recordReadingCompletion } from '../lib/readingCompletion';
 import { saveSoloBirthMirror, readSecureItemWithMirror, writeSecureItemWithMirror } from '../lib/birthData';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OneTimeLock from '../components/OneTimeLock';
+import { ROUTES } from '../routes';
 
 const FEATURE_KEY = 'birthchart';
 const DIARY_RECORDED_KEY = 'cosmic-birthchart-diary-date';
@@ -86,7 +87,30 @@ const ROWS_META = [
   { key: 'Asc', labelKey: 'birthchart.row.asc.label', descKey: 'birthchart.row.asc.desc', icon: 'trending-up', color: '#B57BFF', missingKey: 'birthchart.row.asc.missing' },
 ];
 
-function ChartResult({ chart }) {
+// "Adicione os dois" nunca deve ser só uma frase: todo aviso de hora/cidade
+// faltando nasce colado nos dois toques que resolvem — abrir o seletor de
+// cidade na hora e ir onde a hora se informa (campo local no solo, Quiz do
+// Casal no modo casal, único lugar onde a hora do casal existe). Princípio:
+// mensagem que PEDE algo == botão que FAZ a coisa acontecer.
+function FixNatalDataCTA({ isCouple, onFixTime, onFixCity }) {
+  const { t } = useLanguage();
+  return (
+    <View style={styles.fixRow}>
+      <TouchableOpacity style={styles.fixBtn} activeOpacity={0.8} onPress={onFixTime}>
+        <Ionicons name="time" size={14} color={colors.accent} />
+        <Text style={styles.fixBtnText}>
+          {isCouple ? t('birthchart.fix.timeCoupleCta') : t('birthchart.fix.timeCta')}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.fixBtn} activeOpacity={0.8} onPress={onFixCity}>
+        <Ionicons name="location" size={14} color={colors.accent} />
+        <Text style={styles.fixBtnText}>{t('birthchart.fix.cityCta')}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
   const { t } = useLanguage();
   const rows = [
     { ...ROWS_META[0], sign: chart.sun },
@@ -123,10 +147,11 @@ function ChartResult({ chart }) {
           {r.sign && <Text style={[styles.planetGlyph, { color: r.sign.color }]}>{r.sign.glyph}</Text>}
         </View>
       ))}
+      {!chart.asc && <FixNatalDataCTA isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />}
 
-      <HousesSection housesList={chart.housesList} />
+      <HousesSection housesList={chart.housesList} isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
       <AspectsSection aspectsList={chart.aspectsList} />
-      <AstroCartographySection astro={chart.astro} />
+      <AstroCartographySection astro={chart.astro} isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
     </>
   );
 }
@@ -135,7 +160,7 @@ function ChartResult({ chart }) {
 // Pede hora exata + cidade real (mesma exigência do Ascendente, já que vem do
 // mesmo grau exato) — sem isso, mostra o mesmo tipo de aviso honesto já usado
 // pro Ascendente, nunca uma casa fabricada.
-function HousesSection({ housesList }) {
+function HousesSection({ housesList, isCouple, onFixTime, onFixCity }) {
   return (
     <>
       <Text style={styles.sub}>Casas (Casas Inteiras)</Text>
@@ -151,11 +176,14 @@ function HousesSection({ housesList }) {
           ))}
         </View>
       ) : (
-        <View style={styles.planetRow}>
-          <Text style={styles.planetDesc}>
-            As Casas pedem hora exata e cidade de nascimento (mesma exigência do Ascendente) — adicione os dois para descobrir.
-          </Text>
-        </View>
+        <>
+          <View style={styles.planetRow}>
+            <Text style={styles.planetDesc}>
+              As Casas pedem hora exata e cidade de nascimento (mesma exigência do Ascendente) — adicione os dois para descobrir.
+            </Text>
+          </View>
+          <FixNatalDataCTA isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
+        </>
       )}
     </>
   );
@@ -201,7 +229,7 @@ function AspectsSection({ aspectsList }) {
 // de nascimento — sempre calculado de verdade, nunca fabricado. Pede hora +
 // cidade de nascimento (pro fuso/instante UTC exato), mesma exigência do
 // Ascendente.
-function AstroCartographySection({ astro }) {
+function AstroCartographySection({ astro, isCouple, onFixTime, onFixCity }) {
   return (
     <>
       <Text style={styles.sub}>Astrocartografia (prévia por cidades)</Text>
@@ -224,11 +252,14 @@ function AstroCartographySection({ astro }) {
           </View>
         )
       ) : (
-        <View style={styles.planetRow}>
-          <Text style={styles.planetDesc}>
-            A astrocartografia pede hora exata e cidade de nascimento (mesma exigência do Ascendente) — adicione os dois para descobrir.
-          </Text>
-        </View>
+        <>
+          <View style={styles.planetRow}>
+            <Text style={styles.planetDesc}>
+              A astrocartografia pede hora exata e cidade de nascimento (mesma exigência do Ascendente) — adicione os dois para descobrir.
+            </Text>
+          </View>
+          <FixNatalDataCTA isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
+        </>
       )}
     </>
   );
@@ -244,6 +275,7 @@ function AstroCartographySection({ astro }) {
 
 export default function BirthChartScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const { coupleData, loading: coupleLoading, hasAccess, accessConfirmed } = useCouple();
   const isCouple = !!coupleData;
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
@@ -269,6 +301,22 @@ export default function BirthChartScreen() {
 
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
   const [locked, setLocked] = useState(false);
+
+  // Refs pros CTAs de "adicione hora e cidade": no modo solo os campos já
+  // existem NESTA tela, só ficam muito acima do aviso (o aviso aparece depois
+  // do gráfico, do trio, dos planetas e das casas) — então o toque rola a tela
+  // até o formulário e põe o cursor na hora, em vez de mandar a pessoa
+  // procurar. No modo casal a hora só existe no Quiz, então o toque vai lá.
+  const scrollRef = useRef(null);
+  const horaRef = useRef(null);
+
+  const irParaQuiz = () => navigation.navigate(ROUTES.QUIZ);
+  const abrirCidade = () => setCityPickerOpen(true);
+  const focarHoraSolo = () => {
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    setTimeout(() => horaRef.current?.focus(), 350);
+  };
+  const onFixTime = isCouple ? irParaQuiz : focarHoraSolo;
 
   useEffect(() => {
     if (hasAccess || !accessConfirmed) return;
@@ -406,7 +454,7 @@ export default function BirthChartScreen() {
   return (
     <View style={styles.root}>
       <GradientHeader title="Mapa Astral" subtitle="Seu retrato cósmico" onBack={() => navigation.goBack()} gradient={['#3A4AB5', '#6C7BFF']} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {coupleLoading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
         ) : isCouple ? (
@@ -432,6 +480,16 @@ export default function BirthChartScreen() {
                 <Text style={styles.mutedNote}>
                   Não encontramos a data de nascimento de {person === 'voce' ? coupleData.voce : coupleData.amor}. Refaça o Quiz do Casal (em Perfil) para calcular o mapa astral.
                 </Text>
+                {/* O texto acima só INFORMA onde ficam os dados; sem este
+                    botão a tela inteira ficava sem uma única ação possível
+                    (só o voltar e o toggle você/amor). Quiz mora no mesmo
+                    HomeStack, então navigate() leva direto. */}
+                <TouchableOpacity activeOpacity={0.85} onPress={irParaQuiz} style={styles.btnWrap}>
+                  <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
+                    <Ionicons name="calendar" size={18} color="#fff" />
+                    <Text style={styles.btnText}>{t('birthchart.couple.missingDateCta')}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </View>
             ) : (
               <>
@@ -448,7 +506,9 @@ export default function BirthChartScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {coupleChart && <ChartResult chart={coupleChart} />}
+                {coupleChart && (
+                  <ChartResult chart={coupleChart} isCouple onFixTime={onFixTime} onFixCity={abrirCidade} />
+                )}
               </>
             )}
           </>
@@ -467,6 +527,7 @@ export default function BirthChartScreen() {
                 <View style={[styles.field, styles.horaField]}>
                   <Ionicons name="time" size={18} color={colors.textMuted} />
                   <TextInput
+                    ref={horaRef}
                     style={styles.input}
                     placeholder="Hora"
                     placeholderTextColor={colors.textMuted}
@@ -506,7 +567,9 @@ export default function BirthChartScreen() {
               </TouchableOpacity>
             </View>
 
-            {soloChart && <ChartResult chart={soloChart} />}
+            {soloChart && (
+              <ChartResult chart={soloChart} isCouple={false} onFixTime={onFixTime} onFixCity={abrirCidade} />
+            )}
           </>
         )}
       </ScrollView>
@@ -579,4 +642,15 @@ const styles = StyleSheet.create({
   // referencia — inclusive o citySheet:'80%' + cityList:260 que causavam o
   // colapso da lista. Removidos pra ninguem reaproveitar o padrao quebrado.
   btnGhostText: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
+  // Par de toques que acompanha todo aviso de "falta hora e cidade" — visual
+  // de chip discreto (mesma família do dateBtn), pra resolver o pedido sem
+  // competir com o CTA principal da tela.
+  fixRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  fixBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.accent + '1A', borderRadius: 12,
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderWidth: 1, borderColor: colors.accent + '55',
+  },
+  fixBtnText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
 });

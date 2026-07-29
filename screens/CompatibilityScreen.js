@@ -12,6 +12,7 @@ import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import OneTimeLock from '../components/OneTimeLock';
+import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
 
 const FEATURE_KEY = 'compatibility';
@@ -19,6 +20,7 @@ const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
 
 export default function CompatibilityScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
   const { hasAccess, accessConfirmed } = useCouple();
@@ -116,9 +118,22 @@ export default function CompatibilityScreen() {
         {!picking && !hasAccess && locked && result && (
           // compute() já recusa recalcular nesse caso — aqui é só pra não
           // deixar um botão "morto" que não faz nada visível ao tocar.
-          <Text style={styles.lockedNote}>
-            Essa foi sua leitura grátis — assine para calcular outras combinações quando quiser.
-          </Text>
+          <>
+            <Text style={styles.lockedNote}>
+              Essa foi sua leitura grátis — assine para calcular outras combinações quando quiser.
+            </Text>
+            {/* O texto acima SUBSTITUI o botão "Calcular Compatibilidade"
+                (ternário logo abaixo) — pedia assinatura e não levava a lugar
+                nenhum, deixando o voltar como única saída. Mesmo destino do
+                CTA da oferta de pico emocional, no mesmo HomeStack. */}
+            <TouchableOpacity
+              style={[styles.offerBtn, { marginTop: 14 }]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate(ROUTES.PLANOS)}
+            >
+              <Text style={styles.offerBtnText}>{t('compat.locked.cta')}</Text>
+            </TouchableOpacity>
+          </>
         )}
 
         {!picking && !(!hasAccess && locked && result) && (

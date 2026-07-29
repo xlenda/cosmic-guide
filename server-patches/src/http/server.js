@@ -151,6 +151,40 @@ function countAiUsage(endpoint) {
   } catch {}
 }
 
+// Sufixo dos endpoints contados que NÃO são gente: hoje só o canary. Quem lê a
+// métrica (rota admin /ai-usage) usa isto pra separar as duas contas.
+const CANARY_SUFFIX = ":canary";
+
+// O canary (scripts/canary-check.sh, no cron de 15 em 15 minutos) faz uma
+// chamada de IA REAL em /api/chat de propósito — é assim que ele detecta
+// crédito da Anthropic zerado, coisa que um /health 200 nunca pegaria. O
+// efeito colateral: 4 chamadas por hora, 96 por dia, TODAS gravadas na
+// ai_usage como se fossem conversa de usuário. Medido no banco em 29/07/2026:
+// 96 "chat" no dia 28, 97 no dia 27 — e o uso humano real desses dias era
+// zero. A única métrica que dizia "o Chat Espiritual está sendo usado" estava
+// medindo o próprio monitoramento, e é com ela que se decide preço de
+// assinatura e pacote de tokens.
+//
+// A chamada continua acontecendo (o canary tem que ser real pra servir pra
+// algo) e continua sendo contada — só passa a ser contada num balde separado
+// ("chat:canary"), em vez de sumir: o custo na Anthropic é real e precisa
+// aparecer em algum lugar, e a linha também serve de prova de que o canary
+// rodou.
+//
+// Três condições, todas obrigatórias:
+//   1. o header que só o canary manda (curl -H 'X-Canary: 1');
+//   2. sem X-Forwarded-For — tráfego de gente entra pelo nginx, que sempre
+//      põe esse header; o canary bate direto na porta 3005;
+//   3. peer TCP no loopback.
+// Um cliente da internet não consegue satisfazer (2) e (3) passando pelo
+// nginx, então ninguém "esconde" uso pago forjando o header.
+function ehCanary(req) {
+  if (req.headers["x-canary"] !== "1") return false;
+  if (req.headers["x-forwarded-for"]) return false;
+  const peer = req.socket?.remoteAddress || "";
+  return peer === "127.0.0.1" || peer === "::1" || peer === "::ffff:127.0.0.1";
+}
+
 const checkoutLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -235,7 +269,8 @@ app.post("/api/chat", aiLimiter, async (req, res) => {
     }
     const reply = await aiProvider.chat({ personaId, message, history });
     console.log("[api/chat] sucesso");
-    countAiUsage("chat");
+    // Único endpoint que o canary chama — ver ehCanary() acima.
+    countAiUsage(ehCanary(req) ? `chat${CANARY_SUFFIX}` : "chat");
     res.json({ reply });
   } catch (err) {
     console.error("[api/chat] erro:", err.message);

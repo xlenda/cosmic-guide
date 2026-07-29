@@ -253,7 +253,51 @@ function SubscriptionStatusCard({ status, currentPeriodEnd, onBack }) {
           <Text style={styles.cardText}>{t('planos.statusLine', { status: label })}</Text>
           {dataRenovacao && <Text style={styles.cardText}>{t('planos.renewsOn', { date: dataRenovacao })}</Text>}
         </View>
+        {/* Também aqui, e não só no paywall: esta é a tela que o assinante abre
+            por "Gerenciar assinatura" no Perfil — é o lugar mais provável do
+            app pra alguém estar procurando como cancelar. */}
+        <LegalFooter />
       </ScrollView>
+    </View>
+  );
+}
+
+// Rodapé legal do paywall. Três coisas que uma pessoa prestes a digitar o
+// cartão precisa alcançar SEM sair da tela onde está digitando: os Termos, a
+// Privacidade e um jeito de falar com alguém. As três telas já existiam — só
+// não havia link nenhum pra elas daqui: pra ler os Termos antes de pagar era
+// preciso abandonar o checkout, ir na aba Perfil e caçar o item na lista. Todo
+// checkout que se leva a sério (e todo processador de pagamento, Hotmart
+// inclusive) espera esse rodapé; a ausência dele é lida como "não sei quem
+// está do outro lado" na hora exata em que a pessoa decide confiar ou não.
+//
+// A nota de cobrança acima dos links diz QUEM cobra e ONDE se cancela, porque
+// era a dúvida que o app respondia errado em três telas até hoje (ver
+// TermsScreen.js e o FAQ de HelpSupportScreen.js).
+//
+// Os destinos vivem no ProfileStack e esta tela vive no HomeStack, então o
+// salto é o mesmo padrão já usado no app (getParent() sobe pro Tab.Navigator,
+// igual ao "Fazer o quiz do casal" do HelpSupportScreen).
+function LegalFooter() {
+  const navigation = useNavigation();
+  const { t } = useLanguage();
+  const abrir = (screen) => navigation.getParent()?.navigate(ROUTES.PROFILE_TAB, { screen });
+  return (
+    <View style={styles.legalFooter}>
+      <Text style={styles.legalNote}>{t('planos.legal.billingNote')}</Text>
+      <View style={styles.legalLinks}>
+        <TouchableOpacity onPress={() => abrir(ROUTES.TERMS)} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
+          <Text style={styles.legalLink}>{t('planos.legal.terms')}</Text>
+        </TouchableOpacity>
+        <Text style={styles.legalSep}>·</Text>
+        <TouchableOpacity onPress={() => abrir(ROUTES.PRIVACY)} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
+          <Text style={styles.legalLink}>{t('planos.legal.privacy')}</Text>
+        </TouchableOpacity>
+        <Text style={styles.legalSep}>·</Text>
+        <TouchableOpacity onPress={() => abrir(ROUTES.HELP_SUPPORT)} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
+          <Text style={styles.legalLink}>{t('planos.legal.support')}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -488,6 +532,11 @@ function PlanosScreenWeb() {
             <Text style={styles.backLinkText}>{t('planos.back')}</Text>
           </TouchableOpacity>
         )}
+
+        {/* FORA do `!aberto`: fica visível também com o checkout da Hotmart
+            montado logo acima — ou seja, na tela onde o cartão é digitado, que
+            é justamente onde alguém procura os Termos antes de confirmar. */}
+        <LegalFooter />
       </ScrollView>
     </View>
   );
@@ -631,6 +680,9 @@ function PlanosScreenNative() {
           )}
           {erro !== '' && <Text style={[styles.errorText, styles.nativeErrorSpacing]}>{erro}</Text>}
         </View>
+        {/* Mesmo rodapé da web — no nativo o checkout abre num navegador
+            in-app, então esta é a última tela do app antes do cartão. */}
+        <LegalFooter />
       </ScrollView>
     </View>
   );
@@ -692,6 +744,15 @@ const styles = StyleSheet.create({
   // Nota discreta sob o CTA de quem está deslogado: menor e mais apagada que o
   // botão de propósito, ela informa o próximo passo sem competir com ele.
   loginNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 12 },
+
+  // Rodapé legal: presente e alcançável, mas discreto de propósito — quem
+  // procura já sabe o que procura, e quem não procura não deve ser distraído
+  // do CTA logo acima.
+  legalFooter: { marginTop: 22, alignItems: 'center' },
+  legalNote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', paddingHorizontal: 8 },
+  legalLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 },
+  legalLink: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' },
+  legalSep: { color: colors.textMuted, fontSize: 12 },
 
   planRow: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 16 },
   planCard: {

@@ -107,6 +107,19 @@ export default function TokensScreen() {
             <View style={styles.emptyWrap}>
               <Ionicons name="hourglass-outline" size={28} color={colors.textMuted} />
               <Text style={styles.emptyText}>{t('tokens.empty')}</Text>
+              {/* O vazio PEDE uma leitura, mas o único caminho da tela era a
+                  Loja — que só serve pra gastar token que ainda não existe.
+                  Este botão leva onde se GANHA (cards de leitura + missões
+                  diárias na Home). Salto de aba: Tokens vive no ProfileStack. */}
+              <TouchableOpacity
+                style={styles.emptyBtn}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.HOME_MAIN })}
+              >
+                <Ionicons name="sparkles" size={14} color="#fff" />
+                <Text style={styles.emptyBtnText}>{t('tokens.emptyCta')}</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             history.map((item, idx) => (
@@ -154,6 +167,19 @@ const styles = StyleSheet.create({
   },
   emptyWrap: { padding: 24, alignItems: 'center' },
   emptyText: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19, marginTop: 10 },
+  // Mesmo botão sólido de ação da Loja (redeemBtn/wallBtn) — telas irmãs do
+  // mesmo grupo, sem visual novo.
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.accent,
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    marginTop: 14,
+  },
+  emptyBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
   histRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
   histRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   histIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },

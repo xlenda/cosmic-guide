@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Cosmic Guide</title>
+    <link rel="manifest" href="/cosmic-guide/manifest.json" />
+    <link rel="icon" href="/cosmic-guide/icon.png" type="image/png" />
+    <!-- Prévia rica ao compartilhar o link (WhatsApp/Telegram/Instagram/X) —
+         a Frase do Dia incentiva exatamente esse compartilhamento, e sem
+         estas tags o link aparecia pelado, sem imagem nem descrição. URLs
+         absolutas de propósito: crawlers de OG não resolvem caminho relativo. -->
+    <meta name="description" content="Horóscopo, tarô, mapa astral e leituras místicas — sozinho ou em casal. Seu guia cósmico pessoal." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Cosmic Guide" />
+    <meta property="og:title" content="Cosmic Guide — seu guia cósmico pessoal" />
+    <meta property="og:description" content="Horóscopo, tarô, mapa astral e leituras místicas — sozinho ou em casal. 7 dias grátis." />
+    <meta property="og:url" content="https://cosmicguide.cloud/cosmic-guide/" />
+    <meta property="og:image" content="https://cosmicguide.cloud/cosmic-guide/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Cosmic Guide — seu guia cósmico pessoal" />
+    <meta name="twitter:description" content="Horóscopo, tarô, mapa astral e leituras místicas — sozinho ou em casal. 7 dias grátis." />
+    <meta name="twitter:image" content="https://cosmicguide.cloud/cosmic-guide/og-image.png" />
+    <!-- "Adicionar à Tela de Início" no iPhone (Web Push só funciona no Safari
+         depois disso — Apple exige o site instalado como app, não só aberto
+         no navegador comum). -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Cosmic Guide" />
+    <link rel="apple-touch-icon" href="/cosmic-guide/icon.png" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+    <!-- Splash inline: o bundle JS (~2MB) leva um tempo real pra baixar,
+         parsear e o React montar — sem isso, #root fica vazio e a pessoa vê
+         tela branca pura até então (achado real de auditoria de performance,
+         25/07/2026). React substitui todo o conteúdo de #root ao montar
+         (ReactDOM.render), então este bloco desaparece sozinho, sem nenhuma
+         limpeza manual necessária.
+         ATENÇÃO: este arquivo é o TEMPLATE. `npx expo export --platform web`
+         copia public/index.html pra dist/index.html e injeta as tags de
+         script do bundle logo antes da tag de fechamento do body — editar
+         dist/ direto é jogado fora no próximo build. Toda mudança de splash
+         é AQUI.
+         NUNCA escreva a tag de fechamento do body literalmente em lugar
+         nenhum deste arquivo (nem dentro de comentário, nem em texto): o
+         Expo injeta os scripts na PRIMEIRA ocorrência dela, então uma cópia
+         solta aqui em cima faz o bundle inteiro nascer dentro deste
+         comentário — nenhum script executa, o app nunca monta e o visitante
+         fica preso no splash pra sempre. Aconteceu de verdade em
+         29/07/2026; test/splashBodyTag.test.js existe pra travar o deploy
+         se voltar.
+
+         29/07/2026 — a espera medida foi de 3,4 a 5,2 segundos no 4G, e até
+         aqui o splash não dizia NADA: só uma lua girando e a palavra
+         "Cosmic Guide". Alguém que chegou pelo link ficava até 5 segundos
+         sem receber uma única promessa, e ~40 visitantes deram zero
+         checkout. A promessa abaixo é o mesmo texto do og:description (a
+         frase que já convence no preview do link) — como é HTML estático,
+         ela pinta no primeiro paint, junto com o splash, ANTES de o bundle
+         existir. O tempo morto vira argumento em vez de tela vazia. -->
+    <style id="cosmic-splash-style">
+      #cosmic-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        padding: 24px;
+        text-align: center;
+        /* mesmo fundo do app (theme.js colors.background) com o halo do
+           gradiente `night` — nada de cor nova, pra não dar salto visual
+           quando o React monta por cima. */
+        background-color: #0E0821;
+        background-image: radial-gradient(ellipse 90% 55% at 50% 24%, #1A1235 0%, #0E0821 72%);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        z-index: 0;
+      }
+      #cosmic-splash .cosmic-splash-emoji {
+        font-size: 48px;
+        line-height: 1;
+        animation: cosmic-splash-spin 2.2s linear infinite;
+      }
+      #cosmic-splash .cosmic-splash-label {
+        margin-top: 16px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        /* dourado do theme.js (colors.gold) — vira a marca, não mais um
+           rótulo de "carregando". */
+        font-size: 22px;
+        font-weight: 700;
+        color: #FFC85C;
+        letter-spacing: 1.6px;
+      }
+      #cosmic-splash .cosmic-splash-promise {
+        margin: 14px 0 0;
+        max-width: 300px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: #C4B8E6; /* colors.textSecondary */
+      }
+      #cosmic-splash .cosmic-splash-trial {
+        margin: 18px 0 0;
+        padding: 7px 16px;
+        border: 1px solid rgba(255, 200, 92, 0.38);
+        border-radius: 999px;
+        background: rgba(255, 200, 92, 0.10);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        color: #FFC85C;
+      }
+      @keyframes cosmic-splash-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  <link rel="icon" href="/cosmic-guide/favicon.ico" /></head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root">
+      <div id="cosmic-splash">
+        <div class="cosmic-splash-emoji">🌙</div>
+        <div class="cosmic-splash-label">Cosmic Guide</div>
+        <p class="cosmic-splash-promise">Horóscopo, tarô, mapa astral e leituras místicas — sozinho ou em casal.</p>
+        <p class="cosmic-splash-trial">7 dias grátis</p>
+      </div>
+    </div>
+    <!-- Tradução do splash SEM esperar o bundle.
+         Por que a cópia não vem do t()/lib/i18n.js como todo texto novo do
+         app: t() só existe depois que o bundle de ~2MB baixa e o React monta
+         — que é exatamente o intervalo que este splash cobre. Usar t() aqui
+         significaria promessa nenhuma justo nos 3,4-5,2 segundos que ela
+         precisa preencher. Então o PT vive no HTML acima (pinta sem uma
+         linha de JS, no primeiro paint) e ES/EN entram por esta troca
+         inline, que roda em microssegundos.
+         As mesmas 6 frases estão em lib/i18n.js sob splash.promise/
+         splash.trial, e test/splashPromise.test.js falha se as duas cópias
+         divergirem — a duplicação é obrigatória, o desalinhamento não.
+         A ordem de detecção é a MESMA de context/LanguageContext.js
+         (?lang= > preferência salva > idioma do navegador), senão o splash
+         apareceria num idioma e o app abriria em outro. 'app-language' é a
+         chave do AsyncStorage, que na web é localStorage puro, sem prefixo.
+         Tudo dentro de try/catch: se algo aqui falhar, o pior caso é o PT
+         do HTML continuar na tela — nunca uma tela vazia. -->
+    <script id="cosmic-splash-i18n">
+      (function () {
+        var COPY = {
+          es: {
+            promise: 'Horóscopo, tarot, carta astral y lecturas místicas — solo o en pareja.',
+            trial: '7 días gratis'
+          },
+          en: {
+            promise: 'Horoscope, tarot, birth chart and mystic readings — alone or as a couple.',
+            trial: '7 days free'
+          }
+        };
+        try {
+          var lang = null;
+          var fromUrl = /[?&]lang=(pt|es|en)(?:&|$)/.exec(window.location.search);
+          if (fromUrl) lang = fromUrl[1];
+          if (!lang) {
+            var saved = window.localStorage.getItem('app-language');
+            if (saved === 'pt' || saved === 'es' || saved === 'en') lang = saved;
+          }
+          if (!lang) {
+            var nav = (navigator.language || '').toLowerCase();
+            lang = nav.indexOf('es') === 0 ? 'es' : nav.indexOf('en') === 0 ? 'en' : 'pt';
+          }
+          // O Expo resolve %LANG_ISO_CODE% pra "en" fixo no export, e o app é
+          // PT por padrão — o documento saía anunciando um idioma que não é o
+          // que está escrito nele (leitor de tela pronuncia PT com fonética
+          // inglesa). Aqui o atributo passa a ser o idioma de verdade.
+          document.documentElement.setAttribute('lang', lang === 'pt' ? 'pt-BR' : lang);
+          var copy = COPY[lang];
+          if (!copy) return; // pt: o HTML já está certo, não toca em nada
+          var promise = document.querySelector('#cosmic-splash .cosmic-splash-promise');
+          var trial = document.querySelector('#cosmic-splash .cosmic-splash-trial');
+          if (promise) promise.textContent = copy.promise;
+          if (trial) trial.textContent = copy.trial;
+        } catch (e) {}
+      })();
+    </script>
+  <script src="/cosmic-guide/_expo/static/js/web/__expo-metro-runtime-37844bfe9405ed99797bdb43820a0459.js" defer></script><script src="/cosmic-guide/_expo/static/js/web/__common-9798d0b5761c2061a6ea90bcba69bca5.js" defer></script><script src="/cosmic-guide/_expo/static/js/web/AppEntry-728b42d8ea664525f58e0a32c4363015.js" defer></script>
+</body>
+</html>

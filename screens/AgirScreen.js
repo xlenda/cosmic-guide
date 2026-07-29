@@ -6,7 +6,7 @@
 // lib/coupleData.js — saveAgirData espelha o merge parcial do persist()
 // original). Cópia traduzida para PT-BR; checkbox HTML virou Switch nativo,
 // onSubmit/preventDefault virou onPress.
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -101,6 +101,12 @@ export default function AgirScreen() {
   const voce = coupleData?.voce;
   const amor = coupleData?.amor;
 
+  // Refs pra levar a pessoa até o botão de sortear: o estado vazio das
+  // favoritas fica embaixo, e só PEDIR "sorteiem uma ideia" não resolve —
+  // o CTA sorteia na hora e rola a tela até o resultado (mesma tela, ação local).
+  const scrollRef = useRef(null);
+  const ideasSectionY = useRef(0);
+
   const [loaded, setLoaded] = useState(false);
   const [idea, setIdea] = useState(null);
   const [drawKey, setDrawKey] = useState(0);
@@ -142,6 +148,15 @@ export default function AgirScreen() {
     }
     setIdea(pool[i]);
     setDrawKey((k) => k + 1);
+  }
+
+  // CTA do estado vazio das favoritas: sorteia e leva a pessoa até a ideia.
+  function sortearEVer() {
+    sortear();
+    const y = Math.max(0, ideasSectionY.current - 12);
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo?.({ y, animated: true });
+    });
   }
 
   async function toggleFav(id) {
@@ -230,14 +245,19 @@ export default function AgirScreen() {
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <GradientHeader title={t('home.card.agir.title')} subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* 0) Missões de hoje — motor em lib/missions.js, card em
             components/DailyMissionsCard.js (pedido do dono: missões diárias
             que acumulam token, trocáveis por brindes na Loja). */}
         <DailyMissionsCard />
 
         {/* 1) Ideia de encontro */}
-        <Text style={styles.sectionTitle}>{t('agir.ideas.title')}</Text>
+        <Text
+          style={styles.sectionTitle}
+          onLayout={(e) => { ideasSectionY.current = e.nativeEvent.layout.y; }}
+        >
+          {t('agir.ideas.title')}
+        </Text>
         <View style={styles.card}>
           <Text style={styles.mutedText}>{t('agir.ideas.subtitle')}</Text>
           {loaded && linguagem && (
@@ -275,6 +295,9 @@ export default function AgirScreen() {
                 <Text style={styles.emptyStateIcon}>🤍</Text>
                 <Text style={styles.emptyStateTitle}>{t('agir.ideas.emptyFavTitle')}</Text>
                 <Text style={styles.emptyStateDesc}>{t('agir.ideas.emptyFavDesc')}</Text>
+                <TouchableOpacity style={[styles.btn, { marginTop: 14 }]} onPress={sortearEVer}>
+                  <Text style={styles.btnText}>{t('agir.ideas.emptyFavCta')}</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <>

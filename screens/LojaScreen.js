@@ -19,6 +19,7 @@ import {
 } from '../lib/cosmeticRewards';
 import { addPinCredit } from '../lib/journal';
 import { getBrindesDisponiveis, BRINDE_CONTEUDO } from '../lib/brindes';
+import { ROUTES } from '../routes';
 import { useLanguage } from '../context/LanguageContext';
 
 // Recompensas cosméticas/digitais do próprio app — nada físico, nada que
@@ -52,6 +53,24 @@ export default function LojaScreen() {
   const redeemingRef = useRef(false);
   const [ownedBrindes, setOwnedBrindes] = useState({});
   const [brindeAberto, setBrindeAberto] = useState(null); // id do brinde com o conteúdo na tela
+
+  // "Saldo insuficiente" pedia DUAS coisas concretas (leituras e missões
+  // diárias) e não levava a nenhuma — o alerta tinha só um OK. As duas moram na
+  // Home (cards de leitura + DailyMissionsCard), então o botão leva pra lá.
+  // Salto de aba: a Loja está no ProfileStack, o destino está no HomeStack.
+  const irGanharTokens = useCallback(() => {
+    navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.HOME_MAIN });
+  }, [navigation]);
+
+  const alertaSemSaldo = useCallback(
+    (texto) => {
+      Alert.alert(t('loja.alert.noBalance.title'), texto, [
+        { text: t('loja.alert.noBalance.cta'), onPress: irGanharTokens },
+        { text: t('loja.alert.noBalance.dismiss'), style: 'cancel' },
+      ]);
+    },
+    [t, irGanharTokens]
+  );
 
   const load = useCallback(() => {
     getTokenBalance().then(setBalance);
@@ -108,10 +127,7 @@ export default function LojaScreen() {
           Alert.alert(t('loja.alert.redeemed.title'), t('loja.alert.redeemed.text', { title: rewardTitle(t, reward.id) }));
         }
       } else {
-        Alert.alert(
-          t('loja.alert.noBalance.title'),
-          t('loja.alert.noBalance.rewardText', { balance: result.balance, cost: reward.cost })
-        );
+        alertaSemSaldo(t('loja.alert.noBalance.rewardText', { balance: result.balance, cost: reward.cost }));
       }
     } finally {
       redeemingRef.current = false;
@@ -148,10 +164,7 @@ export default function LojaScreen() {
     try {
       const result = await spendTokens(brinde.cost, brinde.title);
       if (!result.ok) {
-        Alert.alert(
-          t('loja.alert.noBalance.title'),
-          t('loja.alert.noBalance.brindeText', { balance: result.balance, cost: brinde.cost })
-        );
+        alertaSemSaldo(t('loja.alert.noBalance.brindeText', { balance: result.balance, cost: brinde.cost }));
         return;
       }
       setBalance(result.balance);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { Alert } from '../lib/webAlert';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -7,6 +7,7 @@ import { colors } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '../lib/supportContact';
 
 function PrivacyRow({ icon, text, last }) {
   return (
@@ -22,6 +23,12 @@ function PrivacyRow({ icon, text, last }) {
 export default function PrivacyScreen() {
   const navigation = useNavigation();
   const { clearAll } = useCouple();
+  const { t } = useLanguage();
+
+  // O e-mail no corpo do texto é pintado de cor de link mas não é tocável —
+  // este botão abre o app de e-mail de verdade (mesma correção do
+  // HelpSupportScreen, que usa a mesma constante).
+  const abrirEmail = () => Linking.openURL(SUPPORT_MAILTO);
 
   function confirmDelete() {
     Alert.alert(
@@ -112,12 +119,16 @@ export default function PrivacyScreen() {
           <View style={styles.cardPad}>
             <Text style={styles.paragraph}>
               Para exercer qualquer um desses direitos, ou tirar dúvidas sobre como tratamos seus dados, escreva para{' '}
-              <Text style={styles.emailText}>contato@cosmicguide.cloud</Text>.
+              <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text>.
             </Text>
             <Text style={[styles.paragraph, { marginBottom: 0 }]}>
               Nomes, datas e signos ficam só no seu aparelho enquanto você usa o app — apagá-los aqui embaixo remove
               tudo de vez. Fotos e textos enviados para leituras de IA não ficam guardados depois da resposta gerada.
             </Text>
+            <TouchableOpacity style={styles.contactBtn} activeOpacity={0.8} onPress={abrirEmail}>
+              <Ionicons name="mail" size={16} color="#fff" />
+              <Text style={styles.contactBtnText}>{t('support.emailCta')}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -148,6 +159,11 @@ const styles = StyleSheet.create({
   },
   rowText: { color: colors.textSecondary, fontSize: 14, flex: 1 },
   emailText: { color: colors.accent, fontWeight: '700' },
+  contactBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 12, marginTop: 4,
+  },
+  contactBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   dangerBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: colors.red, borderRadius: 14, paddingVertical: 14, marginTop: 4,

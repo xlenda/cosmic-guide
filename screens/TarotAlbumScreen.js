@@ -8,6 +8,8 @@ import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { getCollection, COLLECTION_GROUPS, COLLECTION_TOTAL } from '../lib/tarotCollection';
 import { getTarotImage } from '../lib/tarotImages';
+import { useLanguage } from '../context/LanguageContext';
+import { ROUTES } from '../routes';
 
 // Álbum das 78 Cartas — mostra a coleção de cartas que a pessoa JÁ VIU em
 // tiragens reais (lib/tarotCollection.js). Carta nunca vista aparece como
@@ -25,6 +27,7 @@ function groupIcon(group) {
 
 export default function TarotAlbumScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const [seenSet, setSeenSet] = useState(new Set());
   const [selected, setSelected] = useState(null);
 
@@ -84,6 +87,21 @@ export default function TarotAlbumScreen() {
             <Text style={styles.bonusNote}>
               Complete os 22 Arcanos Maiores (+100 tokens) ou um naipe inteiro (+50 tokens) — o prêmio cai sozinho na hora.
             </Text>
+          )}
+          {/* Os dois textos acima PEDEM tiragens e não ofereciam nenhuma — a
+              única saída da tela era o botão voltar. TarotMain mora no mesmo
+              TarotStack. */}
+          {missing > 0 && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.drawBtnWrap}
+              onPress={() => navigation.navigate(ROUTES.TAROT_MAIN)}
+            >
+              <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.drawBtn}>
+                <Ionicons name="sparkles" size={17} color="#fff" />
+                <Text style={styles.drawBtnText}>{t('album.drawCta')}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -166,6 +184,9 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', borderRadius: 5 },
   incentive: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 12 },
   bonusNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 6 },
+  drawBtnWrap: { marginTop: 14, borderRadius: 12, overflow: 'hidden' },
+  drawBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 13, gap: 8 },
+  drawBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   section: { marginBottom: 22 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },

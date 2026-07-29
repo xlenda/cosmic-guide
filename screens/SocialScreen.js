@@ -17,6 +17,8 @@ import * as Haptics from 'expo-haptics';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { ROUTES } from '../routes';
 import {
   getMySocialProfile, upsertSocialProfile, getSocialFeed, deleteSocialPost,
   likeSocialPost, unlikeSocialPost, getSocialComments, addSocialComment,
@@ -355,6 +357,7 @@ function SearchPanel({ onFollowChange }) {
 export default function SocialScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState(undefined); // undefined=carregando, null=não criado
   const [posts, setPosts] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
@@ -503,9 +506,33 @@ export default function SocialScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
           ListHeaderComponent={showSearch ? <SearchPanel onFollowChange={load} /> : null}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              Seu feed está vazio — siga outros leitores (ícone no topo) ou compartilhe uma leitura do seu Diário Cósmico.
-            </Text>
+            <View>
+              <Text style={styles.emptyText}>
+                Seu feed está vazio — siga outros leitores (ícone no topo) ou compartilhe uma leitura do seu Diário Cósmico.
+              </Text>
+              {/* Duas instruções, zero toques: o texto citava um "ícone no
+                  topo" e outra tela pelo nome. Agora cada pedido tem o toque
+                  que o cumpre — o primeiro abre a busca aqui mesmo, o segundo
+                  leva ao Diário (Social e Diary vivem no mesmo HomeStack). */}
+              <View style={styles.emptyActions}>
+                <TouchableOpacity
+                  style={styles.emptyActionBtn}
+                  activeOpacity={0.85}
+                  onPress={() => setShowSearch(true)}
+                >
+                  <Ionicons name="person-add" size={15} color="#fff" />
+                  <Text style={styles.emptyActionText}>{t('social.empty.findCta')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.emptyActionGhost}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate(ROUTES.DIARY)}
+                >
+                  <Ionicons name="book" size={15} color={colors.accent} />
+                  <Text style={styles.emptyActionGhostText}>{t('social.empty.diaryCta')}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           }
           onEndReachedThreshold={0.4}
           onEndReached={loadMore}
@@ -553,6 +580,17 @@ const styles = StyleSheet.create({
   primaryBtnFlat: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20, marginTop: 16 },
   primaryBtnFlatText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   emptyText: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20, marginTop: 40, paddingHorizontal: 20 },
+  emptyActions: { gap: 10, marginTop: 18, paddingHorizontal: 20 },
+  emptyActionBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 12,
+  },
+  emptyActionText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  emptyActionGhost: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingVertical: 12,
+  },
+  emptyActionGhostText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
   postCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 },
   postHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   postHeaderTouchable: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },

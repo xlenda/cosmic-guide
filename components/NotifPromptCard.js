@@ -9,18 +9,20 @@
 // "Adicionar à Tela de Início").
 import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from '../lib/webAlert';
 import { colors } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { isWebPushSupported, isWebPushEnabled, subscribeToWebPush, webPushFailureMessage } from '../lib/webPush';
+import { ROUTES } from '../routes';
 
 const PROMPT_DECIDED_KEY = 'notif-prompt-decided';
 
 export default function NotifPromptCard({ sign, hasActivity }) {
   const { t } = useLanguage();
+  const navigation = useNavigation();
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -60,7 +62,21 @@ export default function NotifPromptCard({ sign, hasActivity }) {
         // webPushFailureMessage() ainda devolve texto em PT (mora em
         // lib/webPush.js, fora deste lote) — só a moldura da mensagem
         // (título + o que fazer depois) passa pelo t() por enquanto.
-        Alert.alert(t('home.notifPrompt.errorTitle'), webPushFailureMessage(reason) + '\n\n' + t('home.notifPrompt.errorHint'));
+        // O texto do erro aponta "Perfil > Pensamento cósmico diário" — um
+        // caminho de 2 níveis, por nome, num Alert que só tinha OK. E como o
+        // card some pra sempre logo em seguida (decide(), no finally), esta é
+        // a ÚNICA chance da pessoa: o botão leva direto ao Perfil.
+        Alert.alert(
+          t('home.notifPrompt.errorTitle'),
+          webPushFailureMessage(reason) + '\n\n' + t('home.notifPrompt.errorHint'),
+          [
+            {
+              text: t('home.notifPrompt.errorOpenPrefsCta'),
+              onPress: () => navigation.getParent()?.navigate(ROUTES.PROFILE_TAB, { screen: ROUTES.PROFILE_MAIN }),
+            },
+            { text: t('common.ok'), style: 'cancel' },
+          ]
+        );
       }
     } finally {
       // Decidiu (deu certo ou não) — não insiste de novo; quem mudar de ideia

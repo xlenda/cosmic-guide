@@ -22,6 +22,7 @@ import { fetchAiDreamReading } from '../lib/aiClient';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const DISCLAIMER =
   'Esta interpretação une IA com a tradição milenar da simbologia dos sonhos, de Artemidoro a ' +
@@ -34,7 +35,11 @@ export default function DreamScreen() {
   const navigation = useNavigation();
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
-  const { hasAccess, accessConfirmed } = useCouple();
+  // coupleData volta só pelo upsell do fim da leitura (mesmo motivo comentado
+  // em CoffeeScreen.js: a promessa "experiência completa do casal" não se
+  // cumpre pra quem assina sozinho).
+  const { hasAccess, accessConfirmed, coupleData } = useCouple();
+  const { t } = useLanguage();
   const [step, setStep] = useState(STEP.INTRO);
   const [dreamText, setDreamText] = useState('');
   const [reading, setReading] = useState(null);
@@ -164,7 +169,9 @@ export default function DreamScreen() {
               {!hasAccess && (
                 <View style={styles.upsellCard}>
                   <Text style={styles.upsellText}>
-                    Gostou dessa leitura? Assine e desbloqueie a experiência completa do casal — 7 dias grátis
+                    {coupleData
+                      ? 'Gostou dessa leitura? Assine e desbloqueie a experiência completa do casal — 7 dias grátis'
+                      : t('upsell.solo.text')}
                   </Text>
                   <TouchableOpacity
                     style={styles.upsellBtn}
