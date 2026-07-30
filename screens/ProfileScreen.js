@@ -26,6 +26,7 @@ import { getTokenBalance } from '../lib/tokens';
 import { hasSeloCosmico, hasGoldTheme } from '../lib/cosmeticRewards';
 import { isGoldThemeActive, setGoldThemeActive } from '../theme';
 import { shareInvite } from '../lib/coupleInvite';
+import { getCorrelationCode, getSoloCorrelationCode } from '../lib/coupleData';
 import { recoverSubscriptionFromDevice } from '../lib/accountSubscription';
 import {
   isDailyThoughtEnabled,
@@ -507,12 +508,27 @@ export default function ProfileScreen() {
           />
           {/* Convite de verdade pro par (lib/coupleInvite.js): link de handoff
               + código de notificação — quem convidou recebe push na hora em
-              que o par abrir o link. Só faz sentido com o casal já criado. */}
+              que o par abrir o link. Só faz sentido com o casal já criado.
+
+              O convite carrega também o código de acesso de quem convida
+              (decisão do dono, 29/07/2026: o par usa de graça). A busca tenta
+              o código de casal e cai no solo — quem assinou solo e depois
+              formou casal convida com o código que realmente tem. Sem código
+              nenhum (nunca assinou), o convite sai igual ao de sempre: leva o
+              perfil, não leva acesso. */}
           {coupleData && (
             <MenuRow
               icon="paper-plane"
               label={t('profile.row.sendInvite', { amor: coupleData.amor })}
-              onPress={() => shareInvite(coupleData)}
+              onPress={async () => {
+                let accessCode = null;
+                try {
+                  accessCode =
+                    (await getCorrelationCode(coupleData.voce, coupleData.amor)) ||
+                    (user?.email ? await getSoloCorrelationCode(user.email) : null);
+                } catch {}
+                shareInvite({ ...coupleData, accessCode });
+              }}
             />
           )}
           <MenuRow

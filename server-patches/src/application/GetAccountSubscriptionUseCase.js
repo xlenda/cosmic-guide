@@ -151,7 +151,14 @@ class GetAccountSubscriptionUseCase {
       // pendência das 17:48 enquanto a compra aprovada era a das 17:14).
       source: "account",
       hasAccess: withAccess.length > 0,
-      hasCoupleAccess: withAccess.some((s) => (s.scope || "solo") === "couple"),
+      // UMA assinatura libera o app inteiro, inclusive as telas de casal —
+      // decisão do dono (29/07/2026): "quando ele assina pode deixar funcionar
+      // o casal também". O escopo (solo/casal) continua gravado na linha por
+      // honestidade histórica e relatório, mas deixou de ser fronteira de
+      // ACESSO. O mesmo colapso existe no app (combineAccessResults em
+      // lib/coupleData.js) — os dois lados precisam concordar, senão o acesso
+      // "pisca" conforme qual fonte respondeu primeiro.
+      hasCoupleAccess: withAccess.length > 0,
       status: best ? best.status : null,
       plan: best ? best.plan : null,
       scope: best ? best.scope || "solo" : null,

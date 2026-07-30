@@ -25,6 +25,7 @@ import { initConversionTracking } from './lib/conversionTracking';
 // EXPO_PUBLIC_FB_PIXEL_ID/EXPO_PUBLIC_GA_ID não forem configurados.
 import { funnel } from './lib/funnel';
 import { acceptInvite } from './lib/coupleInvite';
+import { saveCorrelationCode } from './lib/coupleData';
 // Analytics de visitas da própria Vercel (hospeda o app) — não depende de
 // Pixel/GA (que ainda esperam ID real do Lenda): já conta visita real hoje,
 // sem precisar de nenhuma conta nova (25/07/2026).
@@ -152,8 +153,20 @@ function useUrlBootstrap() {
     const p = new URLSearchParams(window.location.search);
     const voce = p.get('voce'), amor = p.get('amor'), sa = p.get('sa'), sb = p.get('sb');
     const convite = p.get('convite');
+    // &acesso= — o código de assinatura de quem convidou (lib/coupleInvite.js
+    // buildInviteUrl). Salvo sob o MESMO par de nomes do perfil que chegou no
+    // link, o caminho por código do CoupleContext passa a conceder acesso
+    // neste aparelho: é assim que "o par usa de graça" acontece (decisão do
+    // dono, 29/07/2026). A regex trava o formato — nada além de 32 hex entra
+    // no storage vindo de URL.
+    const acesso = p.get('acesso');
     if (voce && amor && sa && sb) {
-      save({ voce, amor, sa: SIGN_ES_TO_PT[sa] || sa, sb: SIGN_ES_TO_PT[sb] || sb }).then(() => {
+      save({ voce, amor, sa: SIGN_ES_TO_PT[sa] || sa, sb: SIGN_ES_TO_PT[sb] || sb }).then(async () => {
+        if (acesso && /^[a-f0-9]{32}$/.test(acesso)) {
+          // Mesma normalização de signos do save — a chave do código é por
+          // NOME do casal, não por signo, então basta o par voce/amor.
+          try { await saveCorrelationCode(voce, amor, acesso); } catch {}
+        }
         // Convite com código (lib/coupleInvite.js): avisa o servidor que o
         // par abriu o link, pra notificar o convidador na hora. Depois do
         // save, nunca antes — a notificação só faz sentido com o perfil já
@@ -378,7 +391,29 @@ function Gate() {
           component={ChatScreen}
           listeners={{ tabPress: () => funnel.readingStart('chat', 'tab') }}
         />
-        <Tab.Screen name={ROUTES.PROFILE_TAB} component={ProfileStack} />
+        {/* A aba Perfil SEMPRE abre no Perfil, nunca onde a pessoa parou.
+            Comportamento padrão do React Navigation é preservar a pilha de cada
+            aba — então quem entrou em Tokens, saiu pra outra aba e voltou no
+            Perfil caía em Tokens de novo. Relato real do testador (29/07/2026):
+            "a tela de perfil tá direcionando pra tela de tokens... sumiu aquela
+            tela do perfil, onde tinha login, baixar aplicativo, sair, deletar
+            conta, aquilo desapareceu". Ele não achou o botão de voltar — pra ele
+            a tela tinha sumido do app, junto com o login e a saída da conta.
+
+            Só reseta quando a aba NÃO está focada (ou seja, ao entrar nela). Se
+            já estiver no Perfil, preventDefault não é chamado e o toque segue o
+            padrão da plataforma, sem interromper nada que esteja em andamento. */}
+        <Tab.Screen
+          name={ROUTES.PROFILE_TAB}
+          component={ProfileStack}
+          listeners={({ navigation }) => ({
+            tabPress: () => {
+              const aba = navigation.getState().routes.find((r) => r.name === ROUTES.PROFILE_TAB);
+              const profundo = aba?.state?.index > 0;
+              if (profundo) navigation.navigate(ROUTES.PROFILE_TAB, { screen: ROUTES.PROFILE_MAIN });
+            },
+          })}
+        />
       </Tab.Navigator>
     </NavigationContainer>
   );

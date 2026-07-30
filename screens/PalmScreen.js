@@ -383,6 +383,14 @@ export default function PalmScreen() {
             <View style={styles.resultCard}>
               <Text style={styles.resultTitle}>{reading.title}</Text>
               <Text style={styles.resultBody}>{reading.body}</Text>
+              {reading.isGeneric && (
+                                /* Fallback que nao se declara e quebra de confianca: o
+                                   testador mandou um sonho de evacuacao de predio e recebeu
+                                   'Aguas que revelam emocoes' SEM saber que a IA nao tinha
+                                   respondido (29/07/2026). A leitura enlatada continua — e
+                                   melhor que erro cru — mas agora se apresenta como o que e. */
+                                <Text style={styles.genericNote}>{t('reading.genericNote')}</Text>
+                              )}
             </View>
 
             {journalEntryId && (
@@ -513,6 +521,7 @@ const styles = StyleSheet.create({
   },
   resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   resultBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  genericNote: { color: colors.gold, fontSize: 12, lineHeight: 17, marginTop: 10, fontStyle: 'italic' },
   upsellCard: {
     backgroundColor: colors.card,
     borderRadius: 16,

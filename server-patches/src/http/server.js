@@ -125,11 +125,18 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 
 // Sem isso, qualquer um que descubra a URL pode martelar os endpoints de IA
 // (cada chamada custa de verdade na conta da Anthropic) ou spammar criação de
-// assinaturas pendentes. Limite por IP — generoso o bastante pro uso real do
-// app, restritivo o bastante pra impedir abuso automatizado.
+// assinaturas pendentes. Limite por IP.
+//
+// 20/15min puniu um usuário REAL: o testador percorreu as ~10 leituras do app
+// em sequência (uso legítimo de quem acabou de assinar) e o "lapidar com IA"
+// começou a falhar no meio — cada leitura gasta 1-2 chamadas, então 10 telas
+// estouram 20 fácil (29/07/2026). 60/15min ainda barra script automatizado
+// (um loop dispara centenas por minuto) sem punir o assinante empolgado — e o
+// teto de custo real continua sendo o contador diário de ai_usage logo abaixo,
+// que é por instalação e não por IP.
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Muitas requisições — tente novamente em alguns minutos." },

@@ -297,6 +297,11 @@ export default function DiaryScreen() {
           <Text style={styles.weeklyCardLabel}>INSIGHT DA SEMANA</Text>
           <Text style={styles.weeklyCardTitle}>{weeklyInsight.title}</Text>
           <Text style={styles.weeklyCardBody}>{weeklyInsight.body}</Text>
+          {/* Marcador de fim — o insight é um texto longo e a pessoa não sabia
+              se tinha acabado ou se a tela cortou ("tenta subir a tela achando
+              que tem mais coisas escritas" — relato real do testador,
+              29/07/2026). O ornamento diz visualmente "terminou aqui". */}
+          <Text style={styles.weeklyCardEnd}>✦ ✦ ✦</Text>
           <TouchableOpacity onPress={() => setWeeklyInsight(null)} style={{ marginTop: 10 }}>
             <Text style={styles.weeklyCardClose}>Fechar</Text>
           </TouchableOpacity>
@@ -397,6 +402,7 @@ const styles = StyleSheet.create({
   weeklyCardTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
   weeklyCardBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginTop: 8 },
   weeklyCardClose: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+  weeklyCardEnd: { color: colors.gold, fontSize: 12, textAlign: 'center', marginTop: 14, letterSpacing: 6, opacity: 0.7 },
 
   filterRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   chip: {

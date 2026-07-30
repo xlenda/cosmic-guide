@@ -140,7 +140,15 @@ async function newSoloPage(browser, extraStorage = {}) {
     await context.close();
   }
 
-  console.log('\n[4] Planos: acesso relevante (bug: assinante solo virava beco sem saída, 26/07)');
+  // REGRA MUDOU em 29/07/2026 (decisão do dono): UMA assinatura libera o app
+  // inteiro, casal incluso — "quando ele assina pode deixar funcionar o casal
+  // também". Este cenário validava a regra ANTERIOR (solo não desbloqueia
+  // casal, então casal com sub solo via "Assinar" e o seletor de planos).
+  // Agora o MESMO seed — casal com assinatura solo ativa — tem que ver
+  // "Gerenciar assinatura" e a tela de assinante, porque a assinatura dele
+  // vale pra tudo. Se este cenário voltar a exigir "Assinar", é a regra velha
+  // ressuscitando por engano.
+  console.log('\n[4] Planos: uma assinatura vale pra tudo (regra de 29/07)');
   {
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -162,11 +170,11 @@ async function newSoloPage(browser, extraStorage = {}) {
     await page.getByText('Perfil', { exact: false }).first().click();
     await page.waitForTimeout(1000);
     const menu = await page.evaluate(() => document.body.innerText);
-    check('menu mostra "Assinar" (não "Gerenciar") pra casal sem plano de casal', menu.includes('Assinar') && !menu.includes('Gerenciar assinatura'));
-    await page.getByText('Assinar', { exact: true }).first().click();
+    check('menu mostra "Gerenciar assinatura" pra casal com sub solo ativa (1 assinatura = tudo)', menu.includes('Gerenciar assinatura'));
+    await page.getByText('Gerenciar assinatura', { exact: false }).first().click();
     await page.waitForTimeout(1800);
     const body = await page.evaluate(() => document.body.innerText);
-    check('Planos mostra o seletor (não "Você já é assinante")', body.includes('Trimestral') && !body.includes('Você já é assinante'));
+    check('Planos trata como assinante (não reoferece checkout do zero)', !body.includes('Faça login para assinar'));
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }

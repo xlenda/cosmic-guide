@@ -144,14 +144,21 @@ test('tudo fora do ar: sem acesso, mas TAMBÉM sem confirmação (não queima a 
   assert.strictEqual(r.confirmed, false, 'confirmed=false é o que impede lib/featureUsage.js de marcar prévia usada');
 });
 
-test('assinatura SOLO ativa não destrava as telas exclusivas de casal', () => {
+// REGRA MUDOU em 29/07/2026 (decisão do dono): UMA assinatura libera o app
+// INTEIRO — "quando ele assina pode deixar funcionar o casal também, aí quando
+// ele chama o casal dele funciona de graça para o outro par". Este teste
+// travava a regra anterior (escopo solo ≠ casal no acesso); agora trava a
+// nova: qualquer acesso ativo concede hasCoupleAccess junto. Mesmo que o
+// BACKEND ainda mande hasCoupleAccess:false (deploy defasado), o app colapsa
+// os dois — é o que garante que o acesso não "pisca" entre as fontes.
+test('assinatura SOLO ativa destrava TAMBÉM as telas de casal (1 assinatura = tudo)', () => {
   const r = coupleData.combineAccessResults({
     account: { available: true, confirmed: true, hasAccess: true, hasCoupleAccess: false, status: 'active' },
     couple: { hasAccess: false, confirmed: true },
     solo: { hasAccess: true, confirmed: true },
   });
   assert.strictEqual(r.hasAccess, true);
-  assert.strictEqual(r.hasCoupleAccess, false, 'solo pagou as leituras individuais, não Reconectar/Descobrir/Agir');
+  assert.strictEqual(r.hasCoupleAccess, true, 'uma assinatura vale pro app inteiro — telas de casal incluídas');
 });
 
 test('backend antigo (conta indisponível) + aparelho sem código = estado real, não incerteza', () => {

@@ -20,7 +20,7 @@
 // chave como evidência e convertemos em recordMissionAction() aqui, sem tocar
 // na HomeScreen (outro time está nela agora).
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Share } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -28,6 +28,8 @@ import { colors } from '../theme';
 import { ROUTES } from '../routes';
 import { Alert } from '../lib/webAlert';
 import { localDayStr } from '../lib/localDay';
+import { getTodaysLovePhrase } from '../lib/lovePhrase';
+import { useLanguage } from '../context/LanguageContext';
 import {
   getTodaysMissions,
   getMissionProgress,
@@ -59,6 +61,7 @@ const MISSION_ROUTE = {
 
 export default function DailyMissionsCard() {
   const navigation = useNavigation();
+  const { lang } = useLanguage();
   const [missions, setMissions] = useState(null); // null = ainda carregando (não pisca card vazio)
   const [progress, setProgress] = useState(null);
   const [justAwarded, setJustAwarded] = useState(0);
@@ -116,7 +119,35 @@ export default function DailyMissionsCard() {
     }
   }
 
-  function goDo(mission) {
+  async function goDo(mission) {
+    // Compartilhar a frase acontece AQUI, num toque — não navega. A missão
+    // mandava pra HOME_MAIN, mas o cartão da frase fica no FIM do scroll da
+    // Home: o testador caiu no topo, não viu frase nenhuma e entendeu que a
+    // missão "não está liberada" (relato real, 29/07/2026). Mesmo texto e
+    // mesmo registro de ação do handleShareLovePhrase da Home — a folha de
+    // compartilhar abre direto e a missão se completa no retorno do foco.
+    if (mission.id === 'compartilhar-frase') {
+      try {
+        const frase = getTodaysLovePhrase(lang);
+        const result = await Share.share({ message: `${frase}\n\n💜 https://cosmicguide.cloud` });
+        // Na web, Share.share resolve sem action quando usa navigator.share;
+        // só registra quando não foi cancelado explicitamente.
+        if (!result || result.action !== Share.dismissedAction) {
+          await recordMissionAction(MISSION_ACTIONS.FRASE_COMPARTILHADA);
+          // Credita e re-renderiza na hora — sem esperar o próximo foco da
+          // tela (a pessoa está olhando pro card agora; "compartilhei e não
+          // marcou" seria o mesmo bug de confiança com outra roupa).
+          await completeMission(mission.id);
+          setMissions(await getTodaysMissions());
+          setProgress(await getMissionProgress());
+        }
+      } catch {
+        // navegador sem navigator.share (desktop antigo): cai pro caminho
+        // antigo — leva pra Home, onde o cartão da frase tem o botão.
+        navigation.navigate(ROUTES.HOME_MAIN);
+      }
+      return;
+    }
     const route = MISSION_ROUTE[mission.id];
     if (route) navigation.navigate(route);
   }
