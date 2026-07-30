@@ -30,3 +30,7 @@ dist-verify/
 verify-build/
 nav-audit.js
 nav-debug*.js
+
+# Sondas temporárias que agentes criam pra medir/depurar (zzprobe, zzbg,
+# zzstress...) — nunca são fonte, e já entraram em commit sem querer.
+test/zz*.js
