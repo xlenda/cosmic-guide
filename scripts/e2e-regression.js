@@ -59,10 +59,17 @@ function check(label, cond, detail) {
   }
 }
 
+// Dia LOCAL, igual ao app (lib/localDay.js). Era toISOString() (UTC) e isso
+// fazia o cenário [2] do Escudo falhar SÓ depois das 21h no Brasil: o app
+// conta em dia local desde 29/07/2026, então às 23h54 o teste semeava
+// 2026-07-30 (UTC) enquanto o app procurava 2026-07-29 — os dois deixavam de
+// se falar e a suíte acusava um bug que não existia. Teste que passa de manhã
+// e falha à noite é pior que teste nenhum: ensina a ignorar o portão.
 function iso(offset) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  return d.toISOString().slice(0, 10);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 async function newSoloPage(browser, extraStorage = {}) {
@@ -204,7 +211,13 @@ async function newSoloPage(browser, extraStorage = {}) {
     const body = await page.evaluate(() => document.body.innerText);
     check('cartão único (sem "Complete o quiz" duplicado)', !body.includes('Complete o quiz do casal primeiro'));
     check('copy específica da tela', body.includes('Reconectar é pra fazer em casal'));
-    check('as 2 CTAs presentes', body.includes('Assinar agora') && /convide seu par/i.test(body));
+    // Os dois CTAs de peso igual (decisão do dono, 29/07). Confere pelo RÓTULO
+    // real dos botões — a versão anterior procurava a frase "convide seu par",
+    // que vivia no texto explicativo e sumiu quando a regra mudou (agora uma
+    // assinatura libera tudo e o par entra de graça pelo link). Checar botão
+    // por rótulo de botão, não por frase de parágrafo, é o que impede o teste
+    // de quebrar toda vez que alguém melhora uma copy.
+    check('as 2 CTAs presentes', body.includes('Assinar agora') && /convidar meu par/i.test(body));
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }
