@@ -40,8 +40,36 @@ async function requireAuth(req, res, next) {
     req.authPayload = payload;
     next();
   } catch (err) {
-    console.error("[socialAuth] token inválido:", err.message);
-    res.status(401).json({ error: "token inválido ou expirado" });
+    // POR QUE DISTINGUIR (achado real de produção, 30/07/2026): o log registrou
+    // 86 "Invalid Compact JWS" num único dia, todos do MESMO navegador batendo
+    // em /api/subscription/me. Como a resposta era um 401 genérico, o app não
+    // tinha como saber que a sessão estava CORROMPIDA (não expirada) — então
+    // ele revalidava a cada 5 min, pra sempre, com um token que nunca ia
+    // funcionar. E o efeito colateral virou grave quando a cota de IA passou a
+    // depender do token: sessão quebrada = a pessoa vira anônima, perde a
+    // allowlist de dono e vê paywall mesmo tendo direito.
+    //
+    // "Compact JWS" malformado significa que o valor guardado nem é um JWT —
+    // não adianta renovar, só limpar e entrar de novo. Já expirado é o caso
+    // normal, que o SDK do Supabase resolve sozinho renovando.
+    const code = err && err.code;
+    const malformado =
+      code === "ERR_JWS_INVALID" ||
+      code === "ERR_JWT_MALFORMED" ||
+      /Invalid Compact JWS|Invalid JWT/i.test((err && err.message) || "");
+    const expirado = code === "ERR_JWT_EXPIRED";
+
+    // Malformado é o único que vale ruído no log: ele indica estado corrompido
+    // que alguém precisa olhar. Expirado é rotina e enchia o log de erro que
+    // não é erro.
+    if (malformado) console.error("[socialAuth] token malformado (sessão corrompida):", err.message);
+
+    res.status(401).json({
+      error: "token inválido ou expirado",
+      // Aditivo: nenhum cliente antigo lê este campo, e o novo usa pra decidir
+      // entre "renova" (expirado) e "limpa a sessão e pede login" (malformado).
+      code: malformado ? "token_malformed" : expirado ? "token_expired" : "token_invalid",
+    });
   }
 }
 

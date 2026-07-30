@@ -47,12 +47,20 @@ const secureStoreMock = {
 // Sessão do Supabase: `sessao` null = deslogado (a maioria do app — login só é
 // exigido na tela de Planos).
 let sessao = { access_token: 'jwt-do-carlos' };
+// Registra os signOut pra provar que a sessão corrompida é limpa UMA vez, e
+// com escopo local (nunca derrubando os outros aparelhos da pessoa).
+let signOuts = [];
 const supabaseMock = {
   __esModule: true,
   supabase: {
     auth: {
       async getSession() {
         return { data: { session: sessao } };
+      },
+      async signOut(opts) {
+        signOuts.push(opts);
+        sessao = null;
+        return { error: null };
       },
     },
   },
@@ -388,4 +396,67 @@ test('auto-vínculo não repete o que a conta JÁ conhece', async () => {
   });
   assert.deepStrictEqual(linked, []);
   assert.strictEqual(chamadas.length, 0);
+});
+
+// === sessão corrompida ======================================================
+// Produção, 30/07/2026: 86 "Invalid Compact JWS" num único dia, todos do mesmo
+// navegador batendo em /api/subscription/me. O valor guardado nem era um JWT,
+// então renovar nunca ia resolver — e o app revalidava a cada 5 min, pra
+// sempre. Virou grave quando a cota de IA passou a depender do token: sessão
+// podre = a pessoa vira anônima, perde a allowlist de dono e vê paywall mesmo
+// tendo direito.
+
+test('401 token_malformed limpa a sessão podre (uma vez, e só neste aparelho)', async () => {
+  reset();
+  signOuts = [];
+  sessao = { access_token: 'isto-nao-e-um-jwt' };
+  rotas = {
+    '/api/subscription/me': async () => ({
+      status: 401,
+      body: { error: 'token inválido ou expirado', code: 'token_malformed' },
+    }),
+  };
+
+  const r = await accountSubscription.fetchAccountSubscription();
+
+  // Não pode virar "não assina": o fallback por aparelho é quem sustenta o
+  // assinante enquanto a sessão está quebrada.
+  assert.strictEqual(r.confirmed, false, 'sessão quebrada é INCERTEZA, nunca "não assina"');
+  assert.strictEqual(r.hasAccess, false);
+  assert.strictEqual(signOuts.length, 1, 'a sessão corrompida tem que ser limpa');
+  assert.deepStrictEqual(
+    signOuts[0],
+    { scope: 'local' },
+    'escopo local: um storage podre num aparelho não pode deslogar a pessoa nos outros'
+  );
+});
+
+test('401 de sessão EXPIRADA não desloga ninguém (o SDK renova sozinho)', async () => {
+  reset();
+  signOuts = [];
+  sessao = { access_token: 'jwt-expirado' };
+  rotas = {
+    '/api/subscription/me': async () => ({
+      status: 401,
+      body: { error: 'token inválido ou expirado', code: 'token_expired' },
+    }),
+  };
+
+  const r = await accountSubscription.fetchAccountSubscription();
+
+  assert.strictEqual(r.confirmed, false);
+  assert.strictEqual(signOuts.length, 0, 'expirar é rotina — deslogar por isso seria derrubar gente à toa');
+});
+
+test('401 de servidor antigo (sem code) também não desloga', async () => {
+  reset();
+  signOuts = [];
+  sessao = { access_token: 'jwt-qualquer' };
+  rotas = {
+    '/api/subscription/me': async () => ({ status: 401, body: { error: 'token inválido ou expirado' } }),
+  };
+
+  await accountSubscription.fetchAccountSubscription();
+
+  assert.strictEqual(signOuts.length, 0, 'sem o code novo, o comportamento é o de antes: não mexer na sessão');
 });

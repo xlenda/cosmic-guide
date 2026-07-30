@@ -204,7 +204,32 @@ export default function ZodiacBodyScreen() {
                 </Text>
               ) : null}
               <Text style={styles.moonRate}>{t('zodiacBody.moon.rate')}</Text>
-              <Text style={styles.moonPractice}>{t('zodiacBody.moon.practice')}</Text>
+              {/* CORTE DE RISCO SANITÁRIO — não recolocar.
+                  Aqui havia zodiacBody.moon.practice: o parágrafo que explicava
+                  que, entre os sécs. XIV e XVII, quem seguia o aforismo 20
+                  deixava a região do corpo ligada ao signo lunar FORA DA
+                  SANGRIA naqueles dois dias e meio. Estava no passado, com
+                  fonte, com ressalva — e mesmo assim é o único bloco da tela
+                  que atravessa a linha, porque não vinha sozinho: vinha logo
+                  abaixo do cálculo REAL da Lua de HOJE e da região de HOJE.
+                  Somados, o app entregava a conta pronta — "hoje é dia ruim
+                  para mexer nesta parte do corpo" — que é exatamente o
+                  momento bom/ruim para procedimento que a regra do dono
+                  proíbe. Passava na varredura de test/zodiacBody.test.js
+                  porque todo verbo estava no pretérito; a varredura pega
+                  palavra, não pega a soma de dado ao vivo com regra
+                  operacional.
+                  A regra em si continua na tela, onde é história e não conta:
+                  zodiacBody.history.rule.* e .instruments.*, dentro da seção
+                  recolhida, sem data de hoje e sem o corpo de ninguém.
+                  A chave zodiacBody.moon.practice segue no dicionário mas
+                  APOSENTADA — o teste "o cartão da Lua de hoje não vira
+                  calendário de procedimento" falha o build se ela voltar a ser
+                  renderizada aqui. */}
+              {/* Em dourado/negrito (noteStrong), não em corpo de texto: esta é
+                  a única linha do cartão cuja função é frear uma decisão sobre
+                  o corpo. Se ela parecer parágrafo, ninguém lê. */}
+              <Text style={styles.noteStrong}>{t('zodiacBody.moon.notACalendar')}</Text>
             </>
           ) : (
             <Text style={styles.moonPart}>{t('zodiacBody.moon.unavailable')}</Text>
@@ -331,6 +356,11 @@ export default function ZodiacBodyScreen() {
           <Text style={styles.quote}>«{CULPEPER_QUOTES.chain}»</Text>
           <Text style={styles.paragraph}>{t('zodiacBody.culpeper.antipathy')}</Text>
           <Text style={styles.quote}>«{CULPEPER_QUOTES.antipathy}»</Text>
+          {/* A ressalva vem ANTES da lista de plantas, não depois. Sem esta
+              linha o bloco vira catálogo de uso; e no fim da seção ela só
+              alcançava quem lesse os sete verbetes até o último. Quem para no
+              terceiro é justamente quem precisava ter lido. */}
+          <Text style={styles.noteStrong}>{t('zodiacBody.culpeper.warning')}</Text>
           <Text style={styles.blockTitle}>{t('zodiacBody.culpeper.examplesLabel')}</Text>
           {CULPEPER_HERBS.map((h) => (
             <View key={h.id} style={styles.herbRow}>
@@ -343,9 +373,6 @@ export default function ZodiacBodyScreen() {
           <Text style={styles.source}>
             {t('zodiacBody.author.culpeper')}, The Complete Herbal, 1653
           </Text>
-          {/* Sem esta linha o bloco inteiro vira catálogo de uso. Com ela, é o
-              que é: registro do que um autor escreveu em 1653. */}
-          <Text style={styles.noteStrong}>{t('zodiacBody.culpeper.warning')}</Text>
         </Section>
 
         {/* ---- O que NÃO é da tradição ---- */}
@@ -428,7 +455,8 @@ const styles = StyleSheet.create({
   moonPart: { color: colors.text, fontSize: 15, lineHeight: 22 },
   moonNext: { color: colors.teal, fontSize: 13, fontWeight: '700', lineHeight: 19 },
   moonRate: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
-  moonPractice: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  // (moonPractice saiu junto com o parágrafo que ela estilizava — ver o
+  //  comentário "CORTE DE RISCO SANITÁRIO" no cartão da Lua.)
 
   figureHint: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
   legend: { flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 4 },

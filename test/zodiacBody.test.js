@@ -24,6 +24,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const { _DICTS_FOR_TESTS, LANGUAGES } = require('../lib/i18n.js');
 const { SIGNS } = require('../lib/signs.js');
@@ -141,6 +143,10 @@ const ISENTAS = new Set([
   'zodiacBody.notice.title',
   'zodiacBody.notice.body',
   'zodiacBody.notice.footer',
+  // Mesma natureza do aviso acima: a linha que fica colada na posição da Lua
+  // de hoje existe para NEGAR o uso — precisa poder dizer "marcar, adiar ou
+  // evitar cirurgia" justamente para dizer que a tela não serve para isso.
+  'zodiacBody.moon.notACalendar',
   // Imperativos de interface, sobre a tela e não sobre o corpo.
   'zodiacBody.figure.hint',
   'zodiacBody.sun.noneCta',
@@ -274,6 +280,139 @@ test('as citações de Culpeper mantidas são de atribuição, não de terapêut
       );
     }
   }
+});
+
+// ---------------------------------------------------------------------------
+// 3b. O cartão da Lua de HOJE — o ponto onde a tela quase virou produto de saúde
+// ---------------------------------------------------------------------------
+// Por que este bloco existe. A varredura de vocabulário acima pega PALAVRA. Ela
+// não pega a soma de duas peças que, isoladas, passam: (1) o cálculo real da
+// posição da Lua AGORA e da região do corpo que a lista antiga nomeava ali, e
+// (2) a regra operacional do aforismo 20 — a região do signo lunar ficava fora
+// da sangria naqueles dois dias e meio. Cada uma passa no pretérito e com
+// fonte. Juntas, no mesmo cartão, o app entrega a conta pronta: "hoje é dia
+// ruim para mexer nesta parte do corpo". Isso é momento bom/ruim para
+// procedimento, que a regra do dono proíbe sem exceção, e é exatamente o tipo
+// de frase que pode fazer alguém adiar um médico de verdade.
+//
+// A peça (2) foi cortada do cartão. A regra continua na tela como HISTÓRIA, na
+// seção recolhida (zodiacBody.history.rule.* e .instruments.*), longe do dado
+// de hoje e do corpo de quem lê. Estes testes seguram o corte.
+const SCREEN_SRC = fs.readFileSync(
+  path.join(__dirname, '..', 'screens', 'ZodiacBodyScreen.js'),
+  'utf8'
+);
+
+// Procura a CHAMADA t('chave'), não a menção à chave: os comentários da tela
+// citam nomes de chave (inclusive o da chave aposentada, pra explicar por que
+// ela não pode voltar), e um indexOf cru pegaria o comentário.
+const CHAMADA = (k) => `t('${k}')`;
+const renderiza = (k) => SCREEN_SRC.includes(CHAMADA(k));
+const ondeRenderiza = (k) => SCREEN_SRC.indexOf(CHAMADA(k));
+
+// Chaves da família zodiacBody.moon.* que NÃO passam pela varredura de
+// procedimento abaixo, cada uma com o motivo:
+const MOON_FORA_DA_VARREDURA = new Set([
+  // APOSENTADA. Continua no dicionário (i18n.js só recebe acréscimo), mas não
+  // pode voltar à tela — o teste seguinte garante isso.
+  'zodiacBody.moon.practice',
+  // É a linha de segurança: nomeia consulta, exame, cirurgia e tratamento para
+  // dizer que nada na tela é motivo para mexer em nenhum deles.
+  'zodiacBody.moon.notACalendar',
+]);
+
+test('o cartão da Lua de hoje não vira calendário de procedimento', () => {
+  assert.equal(
+    renderiza('zodiacBody.moon.practice'),
+    false,
+    'zodiacBody.moon.practice voltou para a tela. Ela descreve o que se fazia ' +
+      'com a posição da Lua (deixar a região do corpo fora da sangria) e está ' +
+      'APOSENTADA de propósito: colada no cálculo da Lua de HOJE, vira ' +
+      'calendário de procedimento para quem lê. A regra fica na seção de ' +
+      'história (zodiacBody.history.rule.* / .instruments.*), nunca no cartão ' +
+      'do dia.'
+  );
+  assert.ok(
+    renderiza('zodiacBody.moon.notACalendar'),
+    'a linha que nega o uso sumiu do cartão da Lua de hoje — ela é o que ' +
+      'impede a posição do dia de ser lida como agenda de saúde'
+  );
+});
+
+test('nenhuma linha do cartão da Lua de hoje fala de sangria, cirurgia ou exame', () => {
+  const PROCEDIMENTO = [
+    /sangri(a|ar|as)/i,
+    /sangr(í|i)a/i,
+    /bloodlett?ing/i,
+    /flebotom/i,
+    /cirurgi/i,
+    /cirug(í|i)a/i,
+    /\bsurgery\b/i,
+    /procedimento/i,
+    /\bprocedure\b/i,
+    /tratamento/i,
+    /tratamiento/i,
+    /\btreatment\b/i,
+    /\bexame\b/i,
+    /\bexamen\b/i,
+    /\blancet/i,
+  ];
+  const violacoes = [];
+  for (const lang of LANGUAGES) {
+    for (const [k, v] of entradasZodiacBody(lang)) {
+      if (!k.startsWith('zodiacBody.moon.')) continue;
+      if (MOON_FORA_DA_VARREDURA.has(k)) continue;
+      for (const re of PROCEDIMENTO) {
+        if (re.test(v)) violacoes.push(`${lang} ${k} → ${re}`);
+      }
+    }
+  }
+  assert.equal(
+    violacoes.length,
+    0,
+    'O cartão "A Lua hoje" mostra ASTRONOMIA REAL do dia. Qualquer frase de ' +
+      'procedimento ali — mesmo no passado, mesmo com fonte — transforma o ' +
+      'cálculo do dia em conselho sobre o corpo de quem lê. Isso pertence à ' +
+      `seção de história:\n  ${violacoes.join('\n  ')}`
+  );
+});
+
+test('a linha de segurança do cartão da Lua existe nos três idiomas', () => {
+  for (const lang of LANGUAGES) {
+    const v = _DICTS_FOR_TESTS[lang]['zodiacBody.moon.notACalendar'];
+    assert.ok(
+      typeof v === 'string' && v.trim().length > 60,
+      `${lang}: zodiacBody.moon.notACalendar ausente ou curta demais`
+    );
+  }
+});
+
+test('a ressalva de Culpeper vem ANTES da lista de plantas', () => {
+  // No fim da seção, ela só alcançava quem lesse os sete verbetes até o
+  // último. Quem para no terceiro é justamente quem precisava ter lido.
+  const iRessalva = ondeRenderiza('zodiacBody.culpeper.warning');
+  const iLista = ondeRenderiza('zodiacBody.culpeper.examplesLabel');
+  assert.ok(iRessalva > 0, 'a ressalva de Culpeper sumiu da tela');
+  assert.ok(iLista > 0, 'a lista de plantas de Culpeper sumiu da tela');
+  assert.ok(
+    iRessalva < iLista,
+    'zodiacBody.culpeper.warning tem que ser renderizada ANTES de ' +
+      'zodiacBody.culpeper.examplesLabel — sem ela na frente, a lista de sete ' +
+      'plantas com planeta e signo é lida como catálogo de uso'
+  );
+});
+
+test('o aviso de que isto é história aparece antes de qualquer conteúdo', () => {
+  // Rodapé não conta: quem lê metade da tela e sai tem que ter visto o aviso.
+  const iAviso = ondeRenderiza('zodiacBody.notice.body');
+  const iLua = ondeRenderiza('zodiacBody.moon.title');
+  const iFigura = ondeRenderiza('zodiacBody.figure.hint');
+  assert.ok(iAviso > 0, 'o aviso de saúde sumiu da tela');
+  assert.ok(
+    iAviso < iLua && iAviso < iFigura,
+    'zodiacBody.notice.body tem que ser renderizado ANTES do cartão da Lua e ' +
+      'da figura — aviso de saúde escondido embaixo do conteúdo não é aviso'
+  );
 });
 
 test('a bibliografia não sumiu', () => {
