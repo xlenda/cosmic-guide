@@ -62,10 +62,16 @@ function displaySign(name) {
 function buildChart(date, time, city) {
   if (!date) return null;
   const sun = displaySign(signoFromDate(date));
-  const moon = displaySign(moonSign(date, time)?.name);
+  // 3º argumento = a cidade, pelo mesmo motivo do 5º do Ascendente: sem ele,
+  // moonSign/aspects liam a hora da maternidade como se fosse UTC e o mapa
+  // ficava com DOIS instantes de nascimento (Ascendente às 04:00Z, Lua às
+  // 02:00Z). Medido: 5,15% das Luas natais de São Paulo saíam com o signo
+  // errado (16,6% em Tóquio, 22,6% em Auckland) e 43,9% das listas de aspectos
+  // mudavam. `city` nulo mantém o comportamento antigo, sem fuso.
+  const moon = displaySign(moonSign(date, time, city || undefined)?.name);
   const asc = time && city ? displaySign(ascendantSign(date, time, city.lat, city.lon, city)?.name) : null;
   const housesList = time && city ? houses(date, time, city.lat, city.lon, city) : null;
-  const aspectsList = aspects(date, time);
+  const aspectsList = aspects(date, time, city || undefined);
   const astro = time && city ? astrocartographyCities(date, time, city) : null;
   return { date, time, city, sun, moon, asc, housesList, aspectsList, astro, zone: describeZone(city, date, time) };
 }

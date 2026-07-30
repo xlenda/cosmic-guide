@@ -15,6 +15,7 @@ export const ROUTES = {
   DREAM: 'Dream',
   PALM: 'Palm',
   LUNAR_CALENDAR: 'LunarCalendar',
+  ZODIAC_BODY: 'ZodiacBody',
   COFFEE: 'Coffee',
   COMPATIBILITY: 'Compatibility',
   QUIZ: 'Quiz',

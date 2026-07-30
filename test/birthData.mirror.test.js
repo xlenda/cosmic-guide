@@ -119,7 +119,31 @@ test('WEB: getAnyBirthData (Céu de Hoje) enxerga o nascimento salvo pelo Mapa A
 
   assert.deepStrictEqual(
     await birthData.getAnyBirthData(),
-    { date: '1962-03-15', time: '21:00' },
+    {
+      date: '1962-03-15',
+      time: '21:00',
+      // `city` entrou em 30/07/2026: sem ela, lib/personalSky.js lia "21:00"
+      // como se fosse 21:00 UTC e o Céu de Hoje calculava a Lua natal num
+      // instante 3h diferente do que o Mapa Astral mostra — duas telas do
+      // mesmo app discordando sobre o mesmo nascimento.
+      city: { name: 'Porto Alegre', lat: -30.03, lon: -51.23, utcOffset: -3 },
+    },
     'antes o Céu de Hoje só via o SecureStore (morto na web) e o birth-solo-mirror'
+  );
+});
+
+test('WEB: getAnyBirthData no modo CASAL traz a cidade de birthChartCities.voce', async () => {
+  reset(true);
+  await birthData.writeSecureItemWithMirror('birthChartCities', CITIES);
+  // 'gff-birth-a-mirror' é onde lib/coupleData.js persiste birthA na web.
+  mem.async.set('gff-birth-a-mirror', JSON.stringify({ date: '1990-07-15', time: '08:00' }));
+
+  const b = await birthData.getAnyBirthData();
+  assert.strictEqual(b.date, '1990-07-15');
+  assert.strictEqual(b.time, '08:00');
+  assert.deepStrictEqual(
+    b.city,
+    { name: 'São Paulo', lat: -23.55, lon: -46.63, utcOffset: -3 },
+    'a cidade do casal mora em outra chave (birthChartCities) e precisa ser lida à parte'
   );
 });

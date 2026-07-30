@@ -11,6 +11,11 @@ import HeroSection from '../components/HeroSection';
 import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import DailyMissionsCard from '../components/DailyMissionsCard';
+// Som do céu — o card que APRESENTA a feature. O motor e o estado vivem no
+// provider em App.js; aqui é só um controle remoto (ver o cabeçalho de
+// components/CosmicSoundPlayer.js). Sem este card, a única porta de entrada
+// seria a pílula de 40 px acima da barra de abas, que ninguém descobre.
+import CosmicSoundPlayer from '../components/CosmicSoundPlayer';
 import { compatibility, compatPercent, aspects } from '../lib/signs';
 import { getTodaysThought, getThoughtForDate } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
@@ -268,6 +273,11 @@ export default function HomeScreen() {
     { key: 'retrospectiva', title: t('home.card.retrospectiva.title'), subtitle: t('home.card.retrospectiva.subtitle'), icon: 'gift', gradient: ['#FFC85C', '#FF7BD5'], onPress: () => navigation.navigate(ROUTES.RETROSPECTIVA) },
     { key: 'dream', title: t('home.card.dream.title'), subtitle: t('home.card.dream.subtitle'), icon: 'moon', gradient: ['#5CE0D8', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.DREAM) },
     { key: 'lunarCalendar', title: t('home.card.lunarCalendar.title'), subtitle: t('home.card.lunarCalendar.subtitle'), icon: 'planet', gradient: ['#5CA8FF', '#5CE0D8'], onPress: () => navigation.navigate(ROUTES.LUNAR_CALENDAR) },
+    // Homem Zodiacal: tela de HISTÓRIA (o que a astrologia médica medieval
+    // dizia), não uma leitura sobre a pessoa — por isso fica fora de
+    // READING_CARD_KEYS lá em cima. Entra ao lado do Calendário Lunar porque é
+    // a outra tela que muda sozinha com a Lua.
+    { key: 'zodiacbody', title: t('home.card.zodiacbody.title'), subtitle: t('home.card.zodiacbody.subtitle'), icon: 'body', gradient: ['#B57BFF', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.ZODIAC_BODY) },
     { key: 'palm', title: t('home.card.palm.title'), subtitle: t('home.card.palm.subtitle'), icon: 'hand-left', gradient: ['#FFB84D', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.PALM) },
     { key: 'coffee', title: t('home.card.coffee.title'), subtitle: t('home.card.coffee.subtitle'), icon: 'cafe', gradient: ['#B57BFF', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.COFFEE) },
     { key: 'chat', title: t('home.card.chat.title'), subtitle: t('home.card.chat.subtitle'), icon: 'chatbubbles', gradient: ['#6C7BFF', '#5CE0D8'], onPress: () => navigation.getParent()?.navigate(ROUTES.CHAT_TAB) },
@@ -525,6 +535,12 @@ export default function HomeScreen() {
             <DailyMissionsCard />
           </View>
         )}
+
+        {/* Som do céu — logo DEPOIS do Pensamento do dia e das Missões, de
+            propósito: o uso que o card sugere é "deixa tocando enquanto você
+            lê", e a leitura do dia acabou de acontecer dois blocos acima.
+            Devolve null sozinho onde a Web Audio API não existe. */}
+        <CosmicSoundPlayer variant="inline" style={{ marginHorizontal: 16, marginBottom: 14 }} />
 
         {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
             só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}

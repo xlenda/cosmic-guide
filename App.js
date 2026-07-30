@@ -49,6 +49,12 @@ if (Platform.OS !== 'web') {
   } catch {}
 }
 import { LanguageProvider } from './context/LanguageContext';
+// Som do céu — o motor de áudio vive num provider ACIMA do Tab.Navigator (ver
+// o comentário no topo de context/CosmicSoundContext.js): trocar de aba
+// desmonta a tela, e se o áudio morasse dentro de uma tela o som cortaria no
+// meio, que é o oposto do que esta feature existe pra fazer.
+import { CosmicSoundProvider } from './context/CosmicSoundContext';
+import CosmicSoundPlayer from './components/CosmicSoundPlayer';
 import HomeScreen from './screens/HomeScreen';
 import TarotScreen from './screens/TarotScreen';
 import ChatScreen from './screens/ChatScreen';
@@ -84,6 +90,10 @@ const CompatibilityScreen = lazy(() => import('./screens/CompatibilityScreen'));
 const DreamScreen = lazy(() => import('./screens/DreamScreen'));
 const PalmScreen = lazy(() => import('./screens/PalmScreen'));
 const LunarCalendarScreen = lazy(() => import('./screens/LunarCalendarScreen'));
+// Homem Zodiacal — tela de história (iatromatemática). Entra lazy pelo mesmo
+// motivo das outras: é conteúdo denso que nem todo mundo abre, e o HomeStack
+// já tem <Suspense> próprio.
+const ZodiacBodyScreen = lazy(() => import('./screens/ZodiacBodyScreen'));
 const CoffeeScreen = lazy(() => import('./screens/CoffeeScreen'));
 const QuizScreen = lazy(() => import('./screens/QuizScreen'));
 const DiaryScreen = lazy(() => import('./screens/DiaryScreen'));
@@ -194,6 +204,7 @@ function HomeStack() {
         <Stack.Screen name={ROUTES.DREAM} component={DreamScreen} />
         <Stack.Screen name={ROUTES.PALM} component={PalmScreen} />
         <Stack.Screen name={ROUTES.LUNAR_CALENDAR} component={LunarCalendarScreen} />
+        <Stack.Screen name={ROUTES.ZODIAC_BODY} component={ZodiacBodyScreen} />
         <Stack.Screen name={ROUTES.COFFEE} component={CoffeeScreen} />
         <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
         <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
@@ -351,6 +362,14 @@ function Gate() {
 
   return (
     <NavigationContainer ref={navRef} linking={linking} onReady={() => setNavPronta(true)}>
+      {/* O provider do Som do céu envolve o Tab.Navigator inteiro e o dock é
+          IRMÃO dele, não filho de nenhuma tela: é o que garante que o áudio
+          continue tocando ao trocar de aba (a tela desmonta, o dock não) e que
+          o controle de pausa esteja alcançável de qualquer lugar do app,
+          inclusive das telas de leitura, onde o som acompanha o momento.
+          A <View> existe pra dar um pai com flex aos dois filhos. */}
+      <CosmicSoundProvider>
+        <View style={{ flex: 1 }}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -415,6 +434,12 @@ function Gate() {
           })}
         />
       </Tab.Navigator>
+          {/* Pílula flutuante logo acima da barra de abas. Só aparece onde a
+              Web Audio API existe (na web) e some sozinha quando a Home está
+              mostrando o card do som — ver components/CosmicSoundPlayer.js. */}
+          <CosmicSoundPlayer />
+        </View>
+      </CosmicSoundProvider>
     </NavigationContainer>
   );
 }

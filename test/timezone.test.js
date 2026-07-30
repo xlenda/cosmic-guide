@@ -32,10 +32,29 @@ test('São Paulo: o app antigo usaria -3 nos dois casos — a diferença é de 1
   assert.strictEqual(verao - inverno, 1);
 });
 
-test('Manaus nunca teve horário de verão: -4 em qualquer época', () => {
+// CORRIGIDO EM 30/07/2026. Este teste se chamava "Manaus nunca teve horário de
+// verão" e era FALSO — só passava porque as três datas escolhidas caíam fora
+// dos ciclos. Varrendo America/Manaus mês a mês de 1900 a 2025 com a própria
+// offsetHoursFor(), o Amazonas teve horário de verão em:
+//   1931-33, 1949-53, 1963-68, 1985-88 e 1993-94.
+// Ou seja: "só o Sul/Sudeste/Centro-Oeste tinha horário de verão" vale pro
+// ciclo recente (1989 em diante), NÃO pros anteriores — em 1985-88 o país
+// INTEIRO adiantou o relógio. Quem nasceu em Manaus em janeiro de 1986 e usa o
+// -4 fixo tem o Ascendente 1h errado igual a quem nasceu em São Paulo.
+test('Manaus TEVE horário de verão nos ciclos antigos — o -4 fixo erra lá também', () => {
+  // Ciclo 1985-88: o país inteiro, Amazonas incluído.
+  assert.strictEqual(tz.offsetHoursFor('America/Manaus', '1986-01-20', '14:30'), -3);
+  // Ciclo 1993-94 (o Amazonas voltou por duas temporadas).
+  assert.strictEqual(tz.offsetHoursFor('America/Manaus', '1994-01-20', '14:30'), -3);
+  // Ciclo 1949-53.
+  assert.strictEqual(tz.offsetHoursFor('America/Manaus', '1950-01-20', '02:00'), -3);
+});
+
+test('Manaus ficou FORA dos ciclos recentes: -4 de 1989 em diante, verão ou inverno', () => {
+  assert.strictEqual(tz.offsetHoursFor('America/Manaus', '1995-01-20', '03:00'), -4);
   assert.strictEqual(tz.offsetHoursFor('America/Manaus', '2015-01-20', '14:30'), -4);
   assert.strictEqual(tz.offsetHoursFor('America/Manaus', '2015-07-20', '14:30'), -4);
-  assert.strictEqual(tz.offsetHoursFor('America/Manaus', '1995-01-20', '03:00'), -4);
+  assert.strictEqual(tz.offsetHoursFor('America/Manaus', '2019-01-20', '14:30'), -4);
 });
 
 test('Bahia: -2 em janeiro/2012 (aderiu em 2011-2012) e -3 em janeiro/2015 (já tinha saído)', () => {
@@ -163,8 +182,45 @@ test('resolveOffsetHours: objeto de cidade usa o fuso e cai no utcOffset quando 
 });
 
 test('resolveOffsetHours: utcOffsetAt do servidor é usado quando o cálculo local não dá', () => {
-  const doServidor = { timezone: 'Nao/Existe', utcOffsetAt: -2, utcOffset: -3 };
+  const doServidor = {
+    timezone: 'Nao/Existe',
+    utcOffsetAt: -2,
+    utcOffsetAtFor: '2015-01-20T14:30',
+    utcOffset: -3,
+  };
   assert.strictEqual(tz.resolveOffsetHours(doServidor, '2015-01-20', '14:30'), -2);
+  // Sem hora informada o carimbo é só a data — é o que CityPickerModal manda.
+  const soData = { timezone: 'Nao/Existe', utcOffsetAt: -2, utcOffsetAtFor: '2015-01-20', utcOffset: -3 };
+  assert.strictEqual(tz.resolveOffsetHours(soData, '2015-01-20', null), -2);
+});
+
+// Regressão de um erro que o utcOffsetAt introduzia sozinho (achado na
+// verificação cética de 30/07/2026): a cidade é salva no aparelho COM o
+// utcOffsetAt dentro, e a pessoa pode voltar depois e corrigir só a data de
+// nascimento. O número guardado passa a ser de outro nascimento — e pior que o
+// utcOffset fixo, que pelo menos é sempre o offset padrão daquela cidade.
+test('resolveOffsetHours: utcOffsetAt de OUTRO nascimento é descartado (cai no utcOffset fixo)', () => {
+  const escolhidaEmJaneiro = {
+    timezone: 'Nao/Existe', // força o caminho sem tzdata local
+    utcOffsetAt: -2, // horário de verão de janeiro/2015
+    utcOffsetAtFor: '2015-01-20T14:30',
+    utcOffset: -3,
+  };
+  // Mesmo nascimento: usa a fotografia.
+  assert.strictEqual(tz.resolveOffsetHours(escolhidaEmJaneiro, '2015-01-20', '14:30'), -2);
+  // Data trocada pra julho: -2 seria MENTIRA, o certo é o -3 do campo fixo.
+  assert.strictEqual(tz.resolveOffsetHours(escolhidaEmJaneiro, '2015-07-20', '14:30'), -3);
+  // Só a hora mudou — a transição pode ter caído no meio, então também descarta.
+  assert.strictEqual(tz.resolveOffsetHours(escolhidaEmJaneiro, '2015-01-20', '23:30'), -3);
+});
+
+test('resolveOffsetHours: cidade salva por versão antiga (sem carimbo) não confia no utcOffsetAt', () => {
+  const semCarimbo = { timezone: 'Nao/Existe', utcOffsetAt: -2, utcOffset: -3 };
+  assert.strictEqual(
+    tz.resolveOffsetHours(semCarimbo, '2015-01-20', '14:30'),
+    -3,
+    'sem saber de que nascimento veio o -2, o honesto é o offset padrão da cidade'
+  );
 });
 
 test('isDstAt diz quando o nascimento caiu em horário de verão', () => {

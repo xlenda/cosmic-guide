@@ -349,8 +349,12 @@ export default function QuizScreen() {
 
   const compat = signoVoce && signoAmor ? compatibility(signoVoce, signoAmor) : null;
   const pct = signoVoce && signoAmor ? compatPercent(signoVoce, signoAmor) : null;
-  const lunaA = moonSign(nascVoce, nascHoraVoce);
-  const lunaB = moonSign(nascAmor, nascHoraAmor);
+  // 3º argumento = a cidade (mesma razão do 5º do Ascendente logo abaixo): sem
+  // ele a hora informada era lida como UTC e a Lua natal saía no instante
+  // errado — 5,15% dos nascimentos em São Paulo com o SIGNO lunar trocado.
+  // Cidade nula (campo é opcional aqui) mantém o comportamento de sempre.
+  const lunaA = moonSign(nascVoce, nascHoraVoce, cidadeVoce || undefined);
+  const lunaB = moonSign(nascAmor, nascHoraAmor, cidadeAmor || undefined);
   // Ascendente só é calculado (nunca "chutado") quando hora real + cidade existem
   // pros dois — ascendantSign já devolve null sozinho se faltar hora ou cidade,
   // então cidadeVoce/cidadeAmor nulos (campo pulado) já bastam pra cair no teaser estático.

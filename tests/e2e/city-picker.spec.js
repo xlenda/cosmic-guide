@@ -27,11 +27,15 @@ test.beforeEach(({}, testInfo) => testInfo.setTimeout(90_000));
 
 // O bundle referencia fontes/APIs externas; esperar 'load' com a rede real
 // trava o goto. Bloqueamos tudo que nao for o servidor local.
-async function abrirPicker(page, { width, height }) {
+// `api` (opcional) intercepta as chamadas de /api/cities/*. Ele e registrado
+// DEPOIS do catch-all de proposito: no Playwright o handler registrado por
+// ULTIMO e consultado PRIMEIRO, entao e assim que o mock ganha do abort.
+async function abrirPicker(page, { width, height }, { api = null } = {}) {
   await page.setViewportSize({ width, height });
   await page.route('**/*', (route) =>
     route.request().url().startsWith('http://localhost:4173') ? route.continue() : route.abort()
   );
+  if (api) await page.route('**/api/cities/**', api);
   await page.addInitScript(() => {
     window.localStorage.setItem(
       'userSign',
@@ -156,4 +160,235 @@ test('busca sem rede avisa e NAO trava: aviso discreto + lista utilizavel', asyn
 
   // Credito da licenca CC BY 4.0 dos dados do GeoNames.
   await expect(page.getByTestId('city-picker-list')).toContainText('GeoNames');
+});
+
+// ===========================================================================
+// O CAMINHO REMOTO — os dois testes acima provam que SEM servidor nada trava;
+// estes provam que COM servidor a coisa realmente entrega. Sem eles, a
+// integracao inteira estaria coberta so pelo lado do fallback, e o dia em que
+// o dono rodar `node scripts/import-cities.js` seria o primeiro teste de
+// verdade da feature — em producao.
+//
+// Junqueiropolis (geonameid 3459452) e literalmente o pedido do tester de
+// 29/07/2026. Ela NAO esta na reserva de 151 e nunca estara: e o municipio de
+// ~20 mil habitantes que motivou a mudanca toda.
+const JUNQUEIROPOLIS = {
+  id: 'gn-3459452',
+  geonameid: 3459452,
+  name: 'Junqueirópolis',
+  admin: 'SP',
+  country: 'Brasil',
+  countryCode: 'BR',
+  lat: -21.51472,
+  lon: -51.43361,
+  utcOffset: -3,
+  timezone: 'America/Sao_Paulo',
+  population: 19506,
+};
+
+function respostaBusca(items) {
+  return {
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      query: 'junqueiropolis',
+      lang: 'pt',
+      count: items.length,
+      items,
+      attribution: 'Cidades: GeoNames (CC BY 4.0)',
+    }),
+  };
+}
+
+// O 503 REAL da producao de hoje: a rota existe e responde, mas o
+// data/cities.sqlite ainda nao foi gerado no servidor.
+function resposta503() {
+  return {
+    status: 503,
+    contentType: 'application/json',
+    headers: { 'Retry-After': '300' },
+    body: JSON.stringify({ error: 'unavailable', detail: 'base de cidades indisponivel' }),
+  };
+}
+
+test('com o servidor no ar, a cidade que NAO esta na reserva aparece e da pra escolher', async ({
+  page,
+}) => {
+  await abrirPicker(
+    page,
+    { width: 375, height: 667 },
+    { api: (route) => route.fulfill(respostaBusca([JUNQUEIROPOLIS])) }
+  );
+
+  const lista = page.getByTestId('city-picker-list');
+
+  // Confere primeiro que ela NAO vem da reserva, e que 1 letra NAO vai ao
+  // servidor (MIN_REMOTE_QUERY=2 em lib/cities.js). Contar as requisicoes e o
+  // que torna isto uma asseracao de verdade: a versao anterior so checava
+  // `not.toContainText`, que passa instantaneamente porque a lista ainda nao
+  // teve tempo de mudar — ela passaria ate se 1 letra disparasse a rede.
+  const chamadas = [];
+  page.on('request', (r) => {
+    if (r.url().includes('/api/cities/')) chamadas.push(r.url());
+  });
+  await page.getByTestId('city-picker-input').fill('j');
+  await page.waitForTimeout(1200); // muito alem dos 280ms de debounce
+  expect(chamadas).toEqual([]);
+  await expect(lista).not.toContainText('Junqueirópolis');
+
+  // Agora sim: 2+ caracteres disparam o servidor (depois do debounce).
+  await page.getByTestId('city-picker-input').fill('junqueiropolis');
+  await expect(lista).toContainText('Junqueirópolis, SP — Brasil', { timeout: 15000 });
+  // Resultado do servidor => nenhum aviso de rede na tela.
+  await expect(page.getByTestId('city-picker-warning')).toHaveCount(0);
+
+  // E o principal: da pra SELECIONAR e o modal fecha com a cidade aplicada.
+  await page.getByText('Junqueirópolis, SP — Brasil').first().click();
+  await expect(page.getByTestId('city-picker-modal')).toBeHidden({ timeout: 15000 });
+  await expect(page.getByText('Junqueirópolis, SP — Brasil').first()).toBeVisible();
+});
+
+test('503 (banco ainda nao gerado) nao trava, e a tela se cura quando o servidor volta', async ({
+  page,
+}) => {
+  // Comeca como a producao esta HOJE: 503 em toda chamada.
+  let bancoPronto = false;
+  await abrirPicker(
+    page,
+    { width: 375, height: 667 },
+    { api: (route) => route.fulfill(bancoPronto ? respostaBusca([JUNQUEIROPOLIS]) : resposta503()) }
+  );
+
+  const lista = page.getByTestId('city-picker-list');
+  await page.getByTestId('city-picker-input').fill('junqueiropolis');
+
+  // Aviso proprio do 503 + a reserva continua utilizavel (nada de beco sem saida).
+  await expect(page.getByTestId('city-picker-warning')).toContainText('Busca completa indisponível', {
+    timeout: 15000,
+  });
+  await expect(lista).not.toContainText('Junqueirópolis');
+
+  // O dono roda `node scripts/import-cities.js` no servidor...
+  bancoPronto = true;
+  // ...e o app se cura sem reinstalar, sem F5: o proprio "Tentar de novo".
+  await page.getByText('Tentar de novo').click();
+
+  await expect(lista).toContainText('Junqueirópolis, SP — Brasil', { timeout: 15000 });
+  await expect(page.getByTestId('city-picker-warning')).toHaveCount(0);
+});
+
+// ===========================================================================
+// O RISCO QUE NENHUM DOS TESTES ACIMA COBRIA: QUEM JA USA O APP.
+//
+// Todos os cenarios anteriores comecam com o aparelho VAZIO. Mas o perigo real
+// desta mudanca nao e a pessoa nova — e o mapa de quem ja tem cidade salva no
+// formato de ONTEM (lat/lon/utcOffset, SEM o campo `timezone`), gravado por uma
+// versao anterior do app. Na abertura da tela o BirthChartScreen chama
+// upgradeCityTimezone(), e o resultado depende de onde a cidade estava:
+//
+//   · id que EXISTE na reserva ("sao-paulo-br") -> ganha o fuso na hora, offline,
+//     e o Ascendente e RECALCULADO com horario de verao. Muda de proposito, e a
+//     tela passa a anunciar "UTC-02:00 · horario de verao".
+//   · id FORA da reserva (320 dos 471 ids antigos, ex. "canoas-rs-br") -> so o
+//     servidor resolveria, e o servidor esta em 503 hoje. Entao NADA muda: o
+//     mapa sai exatamente como saia ontem, pelo utcOffset salvo.
+//
+// Os dois caminhos precisam abrir sem crashar com a API fora do ar. Este teste
+// nao usa abrirPicker porque precisa semear o storage ANTES do goto.
+// `birthChartSolo-mirror` e a chave real: na web o expo-secure-store e um stub
+// vazio e lib/birthData.js cai no espelho em AsyncStorage, que por sua vez e o
+// localStorage cru.
+async function abrirMapaComCidadeSalva(page, cidadeSalva) {
+  await page.setViewportSize({ width: 390, height: 780 });
+  await page.route('**/*', (route) =>
+    route.request().url().startsWith('http://localhost:4173') ? route.continue() : route.abort()
+  );
+  // O 503 REAL da producao de hoje tem que ser exercitado aqui tambem: e nele
+  // que upgradeCityTimezone precisa devolver a cidade intacta em vez de lancar.
+  await page.route('**/api/cities/**', (route) => route.fulfill(resposta503()));
+  await page.addInitScript((salva) => {
+    window.localStorage.setItem(
+      'userSign',
+      JSON.stringify({ nome: 'Áries', name: 'Áries', signo: 'Áries' })
+    );
+    window.localStorage.setItem('birthChartSolo-mirror', JSON.stringify(salva));
+  }, cidadeSalva);
+  await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
+
+  const card = page.getByTestId('card-birthchart');
+  await expect(card).toBeVisible({ timeout: 30000 });
+  await expect(async () => {
+    if (!(await page.getByText('Dados de nascimento').first().isVisible())) {
+      await card.click({ timeout: 5000 }).catch(() => {});
+      throw new Error('ainda na home');
+    }
+  }).toPass({ timeout: 60000, intervals: [500, 1000, 2000] });
+  await expect(page.getByText('Algo deu errado')).toHaveCount(0);
+}
+
+// Cidade salva pela versao ANTERIOR do app: nota que NAO existe campo
+// `timezone` — e exatamente o que esta no aparelho de quem instalou antes.
+const SP_LEGADO = {
+  id: 'sao-paulo-br',
+  name: 'São Paulo',
+  admin: 'SP',
+  country: 'Brasil',
+  lat: -23.5505,
+  lon: -46.6333,
+  utcOffset: -3,
+};
+const CANOAS_LEGADO = {
+  id: 'canoas-rs-br', // estava na lista antiga de 426, NAO esta na reserva de 151
+  name: 'Canoas',
+  admin: 'RS',
+  country: 'Brasil',
+  lat: -29.9177,
+  lon: -51.1839,
+  utcOffset: -3,
+};
+
+test('usuario ANTIGO com cidade da reserva: mapa abre, Ascendente e corrigido e o app AVISA o horario de verao', async ({
+  page,
+}) => {
+  const erros = [];
+  page.on('pageerror', (e) => erros.push(e.message));
+  // 10/01/2015 as 13:00 em Sao Paulo: dentro do horario de verao brasileiro.
+  await abrirMapaComCidadeSalva(page, { date: '2015-01-10', time: '13:00', city: SP_LEGADO });
+
+  // A cidade salva continua na tela (nada foi perdido no upgrade).
+  await expect(page.getByText('São Paulo, SP — Brasil').first()).toBeVisible({ timeout: 20000 });
+  // O mapa saiu.
+  await expect(page.getByText('Ascendente').first()).toBeVisible({ timeout: 20000 });
+  // E o numero se explica: sem esta linha o usuario confere em outro site, ve
+  // 1h de diferenca e acha que o app errou.
+  await expect(page.getByText(/UTC-02:00/).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText(/horário de verão/).first()).toBeVisible({ timeout: 20000 });
+
+  // O VALOR, nao so a presenca do rotulo: com -3 fixo este nascimento dava
+  // Touro; com o horario de verao na conta ele e Aries. Sem esta linha o teste
+  // passaria mesmo que o Ascendente voltasse a ser calculado do jeito errado.
+  const trio = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
+  expect(trio).toMatch(/Ascendente[^A-Za-zÀ-ÿ]*Áries/);
+  expect(erros).toEqual([]);
+});
+
+test('usuario ANTIGO com cidade FORA da reserva e servidor em 503: o mapa dele sai igual ao de ontem', async ({
+  page,
+}) => {
+  const erros = [];
+  page.on('pageerror', (e) => erros.push(e.message));
+  await abrirMapaComCidadeSalva(page, { date: '2015-01-10', time: '13:00', city: CANOAS_LEGADO });
+
+  await expect(page.getByText('Canoas, RS — Brasil').first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText('Ascendente').first()).toBeVisible({ timeout: 20000 });
+  // Sem fuso IANA nao ha o que anunciar — e, sobretudo, nao ha nada mudando.
+  await expect(page.getByText(/horário de verão/)).toHaveCount(0);
+  await expect(page.getByText(/UTC-0[23]:00/)).toHaveCount(0);
+
+  // E o valor bate com o que o app de ONTEM entregava pra este mesmo dado
+  // (utcOffset -3 salvo no aparelho): Aries. Este e o teste que prova
+  // "nao quebramos o mapa de quem ja usa".
+  const corpo = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
+  expect(corpo).toMatch(/Ascendente[^A-Za-zÀ-ÿ]*Áries/);
+  expect(erros).toEqual([]);
 });

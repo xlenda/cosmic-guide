@@ -15,6 +15,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { ascendantSign, houses, astrocartographyCities } = require('../lib/signs');
+const { offsetHoursFor } = require('../lib/timezone');
+const { CITIES, cityById } = require('../lib/cities');
 
 const SP = { lat: -23.5505, lon: -46.6333 }; // São Paulo, as coordenadas do app
 const NY = { lat: 40.7128, lon: -74.006 }; // Nova York
@@ -60,6 +62,48 @@ test('caso concreto: São Paulo, 10/01/2015 às 13:00 — Touro (errado) vira Á
     ascendantSign('2015-01-10', '13:00', SP.lat, SP.lon, CIDADE_SP).name,
     'Áries'
   );
+});
+
+// O par que o pedido nomeia, escrito como asserção e não como varredura: MESMA
+// cidade, MESMA hora de relógio, só a DATA muda — e o offset muda junto, porque
+// 20/01/2015 caiu dentro do horário de verão brasileiro e 20/07/2015 não. É a
+// prova de que o fuso passou a ser função do INSTANTE, não uma constante colada
+// na cidade. Repare na terceira asserção: em janeiro o app de ontem (-3 fixo)
+// dava Touro onde o certo é Áries; em julho os dois concordam.
+//
+// ESCOPO DA PROMESSA, escrito com precisão porque a versão anterior deste
+// comentário prometia demais: o que a asserção (3) prova é que o ASCENDENTE
+// (e, por tabela, as Casas e a astrocartografia, que saem do mesmo grau) não se
+// mexe fora do horário de verão. Ela NÃO prova que "o mapa inteiro" fica igual:
+// desde 30/07/2026 moonSign/aspects também recebem a cidade, e essa mudança
+// desloca a Lua natal e a lista de aspectos de TODO mundo que tem cidade
+// salva — inclusive de quem nunca teve horário de verão nenhum (medido: 7,6%
+// das Luas natais de MANAUS entre 1996 e 2018 trocam de signo). Ver o teste
+// "o Ascendente é cirúrgico..." mais abaixo, que trava só o que é verdade.
+test('São Paulo, mesma hora: 20/01/2015 está em -2 (verão) e 20/07/2015 em -3, e isso troca o signo do Ascendente', () => {
+  // 1) O offset é diferente nas duas datas — a cidade é a mesma.
+  assert.strictEqual(offsetHoursFor('America/Sao_Paulo', '2015-01-20', '13:00'), -2);
+  assert.strictEqual(offsetHoursFor('America/Sao_Paulo', '2015-07-20', '13:00'), -3);
+
+  // 2) Em JANEIRO o Ascendente muda de signo: Touro (o que o app entregava)
+  //    vira Áries (o correto, com o horário de verão na conta).
+  const janAntigo = ascendantSign('2015-01-20', '13:00', SP.lat, SP.lon, -3);
+  const janCerto = ascendantSign('2015-01-20', '13:00', SP.lat, SP.lon, CIDADE_SP);
+  assert.strictEqual(janAntigo.name, 'Touro');
+  assert.strictEqual(janCerto.name, 'Áries');
+  assert.notStrictEqual(janCerto.name, janAntigo.name);
+
+  // 3) Em JULHO nada muda — quem NÃO nasceu em horário de verão não vê o
+  //    ASCENDENTE se mexer. Esta é a metade da promessa que ninguém costuma
+  //    testar (e ela vale só pro Ascendente: ver o cabeçalho deste teste).
+  const julAntigo = ascendantSign('2015-07-20', '13:00', SP.lat, SP.lon, -3);
+  const julCerto = ascendantSign('2015-07-20', '13:00', SP.lat, SP.lon, CIDADE_SP);
+  assert.strictEqual(julCerto.name, julAntigo.name);
+  assert.strictEqual(julCerto.name, 'Escorpião');
+
+  // 4) E a mesma hora de relógio em datas diferentes dá signos diferentes —
+  //    o Ascendente depende do dia, como tem que ser.
+  assert.notStrictEqual(janCerto.name, julCerto.name);
 });
 
 test('fora do horário de verão o fuso IANA concorda com o número antigo — nada muda em julho', () => {
@@ -121,6 +165,64 @@ test('fuso IANA desconhecido pelo aparelho cai no utcOffset da cidade, nunca em 
     ascendantSign('2015-01-10', '13:00', SP.lat, SP.lon, quebrada).name,
     ascendantSign('2015-01-10', '13:00', SP.lat, SP.lon, -3).name
   );
+});
+
+// A reserva offline (lib/cities.js) tem DOIS campos que dizem a mesma coisa de
+// jeitos diferentes: `utcOffset` (número fixo, o que o app usava até ontem) e
+// `timezone` (fuso IANA, o que ele usa agora). Se um erro de digitação puser um
+// fuso que não corresponde ao offset — "America/Manaus" numa cidade -3, digamos
+// — o mapa de quem escolheu aquela cidade se move UMA HORA sem que ninguém
+// perceba, e sem horário de verão nenhum envolvido. Este teste é o cadeado: nas
+// 151 cidades da reserva, o offset PADRÃO de hoje calculado a partir do fuso
+// tem que ser exatamente o `utcOffset` declarado. Conferido: 0 divergências.
+test('reserva offline: o fuso IANA de cada cidade concorda com o utcOffset declarado', () => {
+  const meses = [];
+  for (let m = 1; m <= 12; m++) meses.push(`2018-${String(m).padStart(2, '0')}-15`);
+
+  const divergentes = [];
+  for (const c of CITIES) {
+    const offs = meses.map((d) => offsetHoursFor(c.timezone, d, '12:00'));
+    if (offs.some((o) => o === null)) {
+      divergentes.push(`${c.id}: fuso desconhecido (${c.timezone})`);
+      continue;
+    }
+    // O horário de verão sempre ADIANTA o relógio, então o offset padrão é o
+    // menor valor do ano — em qualquer hemisfério.
+    const padrao = Math.min(...offs);
+    if (padrao !== c.utcOffset) {
+      divergentes.push(`${c.id}: utcOffset=${c.utcOffset} mas o fuso ${c.timezone} dá ${padrao}`);
+    }
+  }
+  assert.deepStrictEqual(divergentes, []);
+  assert.strictEqual(CITIES.length, 151);
+});
+
+// A CONTRAPARTIDA HONESTA do teste acima, e a ressalva mais importante deste
+// arquivo: `utcOffset` bate com o fuso HOJE, mas fuso base de país muda ao
+// longo da história, e aí o mapa de alguém se move SEM horário de verão nenhum.
+// Turquia era +2 até 2016 (hoje +3); Portugal ficou em +1 o ano todo nos anos
+// 1970; Singapura era +7:30 até 1982; Coreia, +8:30 nos anos 1960; Cabo Verde,
+// -2 até 1975. Quem nasceu lá NAQUELA ÉPOCA e já tem mapa salvo VAI ver o
+// Ascendente mudar — o número novo é o certo, mas a mudança é real e não é
+// "só horário de verão". Este teste existe pra que isso esteja escrito e medido
+// no repositório, em vez de virar um chamado de suporte surpresa.
+test('nem toda mudança é horário de verão: fuso base histórico também move o Ascendente', () => {
+  const istambul = cityById('istambul-tr');
+  // Dezembro de 1990 em Istambul: horário PADRÃO da época (+2), não +3.
+  assert.strictEqual(offsetHoursFor(istambul.timezone, '1990-12-15', '14:00'), 2);
+  const antes = ascendantSign('1990-12-15', '14:00', istambul.lat, istambul.lon, istambul.utcOffset);
+  const depois = ascendantSign('1990-12-15', '14:00', istambul.lat, istambul.lon, istambul);
+  assert.notStrictEqual(depois.name, antes.name);
+
+  // Lisboa em dezembro de 1975 estava em +1 (Portugal ficou o ano inteiro
+  // adiantado naquele período), enquanto a reserva declara 0.
+  const lisboa = cityById('lisboa-pt');
+  assert.strictEqual(offsetHoursFor(lisboa.timezone, '1975-12-15', '14:00'), 1);
+
+  // E o inverso do cadeado anterior: em 2018 esses mesmos fusos JÁ concordam
+  // com o utcOffset, então ninguém que nasceu recentemente é afetado.
+  assert.strictEqual(offsetHoursFor(istambul.timezone, '2018-12-15', '14:00'), istambul.utcOffset);
+  assert.strictEqual(offsetHoursFor(lisboa.timezone, '2018-12-15', '14:00'), lisboa.utcOffset);
 });
 
 test('nunca fabrica: sem hora, sem data ou sem coordenada continua devolvendo null', () => {
