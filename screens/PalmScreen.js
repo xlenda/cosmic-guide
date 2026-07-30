@@ -26,6 +26,8 @@ import {
   fetchAiFaceReading,
   fetchAiFootReading,
   fetchAiMolesReading,
+  isAiAccessError,
+  isLoginRequired,
 } from '../lib/aiClient';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -156,6 +158,13 @@ export default function PalmScreen() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [permissionError, setPermissionError] = useState(null);
   const [locked, setLocked] = useState(false);
+  // Bloqueio vindo do SERVIDOR (402 cota esgotada / 401 exige conta), separado
+  // do `locked` local: `locked` é a marca no aparelho (lib/featureUsage.js),
+  // que o servidor não vê; este aqui é a palavra final de quem cobra. Por isso
+  // ele vale mesmo com hasAccess=true — hasAccess pode estar concedido pelo
+  // fallback por aparelho (um correlationCode velho no AsyncStorage), e nesse
+  // desacordo quem manda é a conta, não o aparelho.
+  const [serverBlock, setServerBlock] = useState(null);
   const [journalEntryId, setJournalEntryId] = useState(null);
 
   const activeMode = MODES.find((m) => m.key === mode) || MODES[0];
@@ -270,7 +279,21 @@ export default function PalmScreen() {
       else if (mode === 'rosto') result = await fetchAiFaceReading(imageBase64, 'image/jpeg');
       else if (mode === 'pe') result = await fetchAiFootReading(imageBase64, 'image/jpeg');
       else result = await fetchAiMolesReading(imageBase64, 'image/jpeg');
-    } catch {
+    } catch (err) {
+      // PAYWALL DE VERDADE (30/07/2026) — não é queda de rede. O servidor
+      // passou a contar a cota grátis por CONTA (aiQuota.js no backend) e
+      // devolve um erro RECONHECÍVEL quando ela acaba (402) ou quando a rota
+      // exige conta (401, caso destas 4 leituras com foto). Cair no mock aqui
+      // seria o pior dos mundos: entrega de graça exatamente o que acabou de
+      // ser negado e ainda ensina a pessoa que "o pago" é aquele texto
+      // genérico. Todo o resto (rede, CORS, 500) continua caindo no mock
+      // honesto de sempre.
+      if (isAiAccessError(err)) {
+        setIsAnalyzing(false);
+        setServerBlock(isLoginRequired(err) ? 'login' : 'quota');
+        setStep(STEP.INTRO);
+        return;
+      }
       if (mode === 'palma') result = getMockPalmReading();
       else if (mode === 'rosto') result = getMockFaceReading();
       else if (mode === 'pe') result = getMockFootReading();
@@ -303,6 +326,12 @@ export default function PalmScreen() {
   // precisa VER o resultado que acabou de ganhar — só bloqueamos de fato na
   // próxima tentativa (troca de modo ou nova leitura, que chamam
   // resetToIntro() e voltam pro STEP.INTRO).
+  // O bloqueio do SERVIDOR vem antes e ignora `hasAccess`: ver o comentário na
+  // declaração de serverBlock.
+  if (serverBlock) {
+    return <OneTimeLock featureTitle="Leitura de Palma" gradient={gradients.purple} variant={serverBlock} />;
+  }
+
   if (!hasAccess && locked && step !== STEP.RESULT) {
     return <OneTimeLock featureTitle="Leitura de Palma" gradient={gradients.purple} />;
   }

@@ -9,7 +9,8 @@ import GradientHeader from '../components/GradientHeader';
 import DatePickerModal from '../components/DatePickerModal';
 import CityPickerModal from '../components/CityPickerModal';
 import { signoFromDate, moonSign, ascendantSign, houses, aspects, astrocartographyCities } from '../lib/signs';
-import { cityLabel } from '../lib/cities';
+import { cityLabel, upgradeCityTimezone } from '../lib/cities';
+import { offsetHoursFor, formatOffset } from '../lib/timezone';
 import { getBirthData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -49,15 +50,38 @@ function displaySign(name) {
 // é o que converte a hora local pro instante UTC exato, indispensável pro
 // cálculo) — sem essas exigências, as funções de lib/signs.js já devolvem
 // null sozinhas.
+//
+// FUSO: repare que o 5º argumento agora é a CIDADE INTEIRA, não `city.utcOffset`.
+// lib/signs.js aceita as duas coisas (ver offsetHorasDe lá) e prefere o fuso
+// IANA `city.timezone`, que resolve o HORÁRIO DE VERÃO do instante exato de
+// nascimento. Cidade salva antes desta versão não tem `timezone` — nesse caso
+// signs.js cai sozinho no `city.utcOffset` de sempre, e o mapa de quem já
+// existia continua idêntico ao que ele viu ontem. Por que isso importa: o
+// Brasil teve horário de verão até 2019, e varrendo um dia de janeiro em São
+// Paulo, 120 de 240 combinações data×hora MUDAM DE SIGNO entre -3 e -2.
 function buildChart(date, time, city) {
   if (!date) return null;
   const sun = displaySign(signoFromDate(date));
   const moon = displaySign(moonSign(date, time)?.name);
-  const asc = time && city ? displaySign(ascendantSign(date, time, city.lat, city.lon, city.utcOffset)?.name) : null;
-  const housesList = time && city ? houses(date, time, city.lat, city.lon, city.utcOffset) : null;
+  const asc = time && city ? displaySign(ascendantSign(date, time, city.lat, city.lon, city)?.name) : null;
+  const housesList = time && city ? houses(date, time, city.lat, city.lon, city) : null;
   const aspectsList = aspects(date, time);
-  const astro = time && city ? astrocartographyCities(date, time, city.utcOffset) : null;
-  return { date, time, city, sun, moon, asc, housesList, aspectsList, astro };
+  const astro = time && city ? astrocartographyCities(date, time, city) : null;
+  return { date, time, city, sun, moon, asc, housesList, aspectsList, astro, zone: describeZone(city, date, time) };
+}
+
+// Qual fuso foi REALMENTE aplicado — pra mostrar na tela. Sem isso, quem
+// conferir a conta em outro site vê 1h de diferença e acha que o app errou;
+// com isso, a linha diz "UTC-02:00 · horário de verão" e o número se explica.
+// Devolve null quando não há como aplicar fuso nenhum (sem cidade ou sem hora),
+// que é exatamente quando o Ascendente também não é calculado.
+function describeZone(city, date, time) {
+  if (!city || !date || !time) return null;
+  if (!city.timezone) return null; // cidade antiga, sem fuso: nada novo a dizer
+  const real = offsetHoursFor(city.timezone, date, time);
+  if (real === null) return null; // aparelho sem tzdata: seguiu pelo caminho velho
+  const padrao = typeof city.utcOffset === 'number' ? city.utcOffset : real;
+  return { offset: real, dst: Math.abs(real - padrao) > 1 / 60 };
 }
 
 function pad2(n) {
@@ -121,7 +145,11 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
     <>
       <View style={styles.summaryCard}>
         <LinearGradient colors={gradients.card} style={styles.summaryInner}>
-          <Text style={styles.summaryMeta}>{formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}</Text>
+          <Text style={styles.summaryMeta}>
+            {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
+            {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
+            {chart.zone && chart.zone.dst ? ' · horário de verão' : ''}
+          </Text>
           <View style={styles.trio}>
             {rows.map((r) => (
               <View key={r.key} style={styles.trioItem}>
@@ -337,6 +365,15 @@ export default function BirthChartScreen() {
           if (savedCities) parsedCities = JSON.parse(savedCities);
         } catch {}
         setCities(parsedCities);
+        // Upgrade silencioso: cidade salva antes desta versão não tem fuso.
+        const melhores = {
+          voce: await upgradeCityTimezone(parsedCities.voce),
+          amor: await upgradeCityTimezone(parsedCities.amor),
+        };
+        if (melhores.voce !== parsedCities.voce || melhores.amor !== parsedCities.amor) {
+          setCities(melhores);
+          await writeSecureItem('birthChartCities', JSON.stringify(melhores));
+        }
       } else {
         const raw = await readSecureItem('birthChartSolo');
         if (raw) {
@@ -352,6 +389,17 @@ export default function BirthChartScreen() {
               const [hh, mm] = c.time.split(':');
               setSoloHoraH(hh);
               setSoloHoraM(mm);
+            }
+            // Mesmo upgrade do lado solo. É best-effort de verdade: sem rede,
+            // upgradeCityTimezone devolve a MESMA cidade e nada acontece — o
+            // mapa continua saindo pelo caminho de sempre.
+            const melhor = await upgradeCityTimezone(c.city);
+            if (melhor && melhor !== c.city) {
+              const atualizado = { ...c, city: melhor };
+              setSoloCity(melhor);
+              setSoloBirth(atualizado);
+              await writeSecureItem('birthChartSolo', JSON.stringify(atualizado));
+              await saveSoloBirthMirror(atualizado);
             }
           }
         }
@@ -582,8 +630,15 @@ export default function BirthChartScreen() {
         onConfirm={(dateStr) => setSoloDate(dateStr)}
       />
 
+      {/* birthDate/birthTime viram o parâmetro `at` da busca: o servidor já
+          devolve cada cidade com o fuso resolvido pro instante do nascimento
+          (horário de verão incluído), sem uma segunda chamada. A tela já tem
+          esses dois valores na mão quando o seletor abre — seria desperdício
+          não mandar. */}
       <CityPickerModal
         visible={cityPickerOpen}
+        birthDate={isCouple ? selectedBirth?.date || null : soloDate || soloBirth?.date || null}
+        birthTime={isCouple ? selectedBirth?.time || null : soloTime || soloBirth?.time || null}
         hasSelection={!!(isCouple ? selectedCity : soloCity)}
         onClose={() => setCityPickerOpen(false)}
         onSelect={selectCity}

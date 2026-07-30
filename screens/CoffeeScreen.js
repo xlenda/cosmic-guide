@@ -17,7 +17,12 @@ import { colors } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { getMockCoffeeReading } from '../lib/coffeeReadings';
-import { fetchAiCoffeeReading, fetchAiCoffeeWeeklySummary } from '../lib/aiClient';
+import {
+  fetchAiCoffeeReading,
+  fetchAiCoffeeWeeklySummary,
+  isAiAccessError,
+  isLoginRequired,
+} from '../lib/aiClient';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
@@ -72,6 +77,10 @@ export default function CoffeeScreen() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [permissionError, setPermissionError] = useState(null);
   const [locked, setLocked] = useState(false);
+  // Bloqueio vindo do SERVIDOR (402 cota esgotada / 401 exige conta) — ver o
+  // comentário longo em PalmScreen.js: `locked` é a marca no aparelho, este é
+  // a palavra final de quem cobra, e por isso vale mesmo com hasAccess=true.
+  const [serverBlock, setServerBlock] = useState(null);
   const [readyForWeeklySummary, setReadyForWeeklySummary] = useState(false);
   const [weeklySummary, setWeeklySummary] = useState(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
@@ -170,7 +179,17 @@ export default function CoffeeScreen() {
     try {
       if (!imageBase64) throw new Error('sem base64 da imagem');
       result = await fetchAiCoffeeReading(imageBase64, 'image/jpeg');
-    } catch {
+    } catch (err) {
+      // PAYWALL DE VERDADE (30/07/2026): 402/401 com `code` conhecido não é
+      // queda de rede — é a cota grátis da CONTA acabando (ou a exigência de
+      // conta nas leituras com foto). Servir o mock aqui entregaria de graça
+      // exatamente o que acabou de ser negado. Ver lib/aiClient.js.
+      if (isAiAccessError(err)) {
+        setIsAnalyzing(false);
+        setServerBlock(isLoginRequired(err) ? 'login' : 'quota');
+        setStep(STEP.INTRO);
+        return;
+      }
       result = getMockCoffeeReading();
     }
 
@@ -206,7 +225,12 @@ export default function CoffeeScreen() {
     let summary;
     try {
       summary = await fetchAiCoffeeWeeklySummary(readings);
-    } catch {
+    } catch (err) {
+      if (isAiAccessError(err)) {
+        setIsGeneratingSummary(false);
+        setServerBlock(isLoginRequired(err) ? 'login' : 'quota');
+        return;
+      }
       summary = getFallbackWeeklySummary(readings);
     }
 
@@ -221,6 +245,10 @@ export default function CoffeeScreen() {
   // precisa VER o resultado que acabou de ganhar — só bloqueamos de fato na
   // próxima tentativa (nova leitura, que chama resetToIntro() e volta pro
   // STEP.INTRO).
+  if (serverBlock) {
+    return <OneTimeLock featureTitle="Ritual do Café" gradient={COFFEE_GRADIENT} variant={serverBlock} />;
+  }
+
   if (!hasAccess && locked && step !== STEP.RESULT) {
     return <OneTimeLock featureTitle="Ritual do Café" gradient={COFFEE_GRADIENT} />;
   }

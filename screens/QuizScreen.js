@@ -354,8 +354,12 @@ export default function QuizScreen() {
   // Ascendente só é calculado (nunca "chutado") quando hora real + cidade existem
   // pros dois — ascendantSign já devolve null sozinho se faltar hora ou cidade,
   // então cidadeVoce/cidadeAmor nulos (campo pulado) já bastam pra cair no teaser estático.
-  const ascA = ascendantSign(nascVoce, nascHoraVoce, cidadeVoce?.lat, cidadeVoce?.lon, cidadeVoce?.utcOffset);
-  const ascB = ascendantSign(nascAmor, nascHoraAmor, cidadeAmor?.lat, cidadeAmor?.lon, cidadeAmor?.utcOffset);
+  // 5º argumento é a CIDADE INTEIRA (não `city.utcOffset`): lib/signs.js usa o
+  // fuso IANA `city.timezone` quando existe — é o que acerta o Ascendente de
+  // quem nasceu em horário de verão — e cai no `utcOffset` fixo de sempre
+  // quando não existe. Mesma mudança de screens/BirthChartScreen.js.
+  const ascA = ascendantSign(nascVoce, nascHoraVoce, cidadeVoce?.lat, cidadeVoce?.lon, cidadeVoce);
+  const ascB = ascendantSign(nascAmor, nascHoraAmor, cidadeAmor?.lat, cidadeAmor?.lon, cidadeAmor);
 
   const canNext =
     (step === 1 && !!voce && !!amor) ||
@@ -943,6 +947,10 @@ export default function QuizScreen() {
 
       <CityPickerModal
         visible={!!cityPickerFor}
+        // A data/hora de quem está sendo preenchido vira o `at` da busca: cada
+        // cidade já volta com o fuso resolvido pro instante do nascimento.
+        birthDate={(cityPickerFor === 'voce' ? nascVoce : nascAmor) || null}
+        birthTime={(cityPickerFor === 'voce' ? nascHoraVoce : nascHoraAmor) || null}
         hasSelection={!!(cityPickerFor === 'voce' ? cidadeVoce : cidadeAmor)}
         onClose={() => setCityPickerFor(null)}
         onSelect={(city) => {

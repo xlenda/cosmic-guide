@@ -396,7 +396,19 @@ export default function HomeScreen() {
         </Modal>
       )}
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <HeroSection greeting={greeting} dateStr={dateStr} sign={sign} streak={coupleData?.streak} insetTop={insets.top} />
+        {/* A pill de sequência do hero usa o MESMO streakInfo do card de
+            sequência logo abaixo (lib/streak.js) — antes vinha de
+            coupleData.streak, uma contagem que NENHUM arquivo do app gravava:
+            a pill dizia "Comecem hoje a sequência de vocês" enquanto o card na
+            mesma dobra dizia "4 dias seguidos". Continua exclusiva de casal
+            (undefined para solo esconde a pill, como sempre foi). */}
+        <HeroSection
+          greeting={greeting}
+          dateStr={dateStr}
+          sign={sign}
+          streak={coupleData ? { count: streakInfo.currentStreak } : undefined}
+          insetTop={insets.top}
+        />
 
         {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
             explícito: não ficar escondido junto dos outros cards do grid). */}

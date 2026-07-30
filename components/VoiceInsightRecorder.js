@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import { attachVoiceInsight } from '../lib/journal';
-import { fetchAiEnhancedInsight } from '../lib/aiClient';
+import { fetchAiEnhancedInsight, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 
 function getSpeechRecognitionCtor() {
   if (typeof window === 'undefined') return null;
@@ -118,10 +118,22 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
       await attachVoiceInsight(entryId, { voiceTranscript: transcript, aiInsight: result });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setStep(STEP.DONE);
-    } catch {
-      // Nunca mostra erro cru — mantém o transcript original salvo mesmo se a IA falhar.
+    } catch (err) {
+      // O insight ORIGINAL (o que a pessoa falou) é dela e é salvo dos dois
+      // jeitos — isso não muda. O que muda (30/07/2026) é a explicação: um
+      // 402/401 com `code` conhecido é o paywall do servidor, não "a IA
+      // falhou". Dizer "não consegui agora" quando na verdade a cota grátis
+      // acabou é mentir pra quem paga a conta e pra quem poderia assinar.
       await attachVoiceInsight(entryId, { voiceTranscript: transcript });
-      setError('Não consegui lapidar com IA agora, mas seu insight original foi salvo.');
+      if (isAiAccessError(err)) {
+        setError(
+          isLoginRequired(err)
+            ? 'Seu insight foi salvo. Crie sua conta (é grátis) para lapidar com IA.'
+            : 'Seu insight foi salvo. Suas lapidações gratuitas com IA acabaram — assine para continuar.'
+        );
+      } else {
+        setError('Não consegui lapidar com IA agora, mas seu insight original foi salvo.');
+      }
       setStep(STEP.DONE);
     }
   };

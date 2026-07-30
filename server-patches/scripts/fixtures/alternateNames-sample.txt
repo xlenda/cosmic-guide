@@ -1,0 +1,301 @@
+1649372	3435910	en	Buenos Aires				
+1649727	3435910	es	Ciudad Autónoma de Buenos Aires				
+1649799	3435910	pt	Buenos Aires				
+3075623	3435910	es	Buenos Aires	1			
+6910496	3435910	es	Baires		1	1	1
+6910497	3435910	es	Ciudad de La Santísima Trinidad y Puerto de Santa María del Buen Ayre				1
+6910498	3435910	es	Santa María del Buen Ayre				1
+1988530	3386496	en	Teresina				
+1988531	3386496	es	Teresina				
+1988545	3386496	pt	Teresina				
+1988751	3388368	es	São Luís				
+1988753	3388368	en	São Luís				
+1988764	3388368	pt	São Luís				
+13522303	3388368	en	Maranham				1
+1924163	3389353	es	Santarém				
+1924165	3389353	en	Santarém				
+1924168	3389353	pt	Santarém				
+1598427	3390760	en	Recife	1			
+1598428	3390760	es	Recife				
+1598436	3390760	pt	Recife				
+1923332	3392740	en	Paulista				
+1923334	3392740	pt	Paulista				
+1924936	3392998	en	Parnamirim				
+1924938	3392998	pt	Parnamirim				
+1603923	3393536	en	Olinda				
+1603929	3393536	pt	Olinda				
+1991439	3393536	es	Olinda				
+1609591	3394023	en	Natal				
+1609601	3394023	pt	Natal				
+1631292	3394023	es	Natal				
+1612110	3395503	en	Marabá				
+1612111	3395503	pt	Marabá				
+1989854	3395981	es	Maceió				
+1989856	3395981	en	Maceió				
+1989868	3395981	pt	Maceió				
+20334061	3395981	en	Macelo				
+1992347	3396016	es	Macapá				
+1992351	3396016	en	Macapá				
+1992359	3396016	pt	Macapá				
+1923784	3397147	en	Juazeiro do Norte				
+1923786	3397147	pt	Juazeiro do Norte				
+1643560	3397277	es	João Pessoa				
+1643567	3397277	pt	João Pessoa				
+1903725	3397277	en	João Pessoa				
+1607516	3398269	en	Imperatriz				
+1607519	3398269	pt	Imperatriz				
+1616291	3399415	en	Fortaleza	1			
+1616292	3399415	es	Fortaleza				
+1616304	3399415	pt	Fortaleza				
+1923690	3402655	en	Caruaru				
+1923691	3402655	es	Caruaru				
+1923694	3402655	pt	Caruaru				
+1923148	3403642	en	Campina Grande				
+1923154	3403642	pt	Campina Grande				
+2005888	3403642	es	Campina Grande				
+1598626	3405870	en	Belém				
+1598637	3405870	pt	Belém				
+1630972	3405870	es	Belém				
+1922933	3407669	en	Ananindeua				
+1922935	3407669	pt	Ananindeua				
+3074757	3444876	pt	V Redonda				
+17683829	3444876	pt	Volta Redonda	1			
+1923555	3444914	es	Vitória da Conquista				
+1923556	3444914	en	Vitória da Conquista				
+1923557	3444914	pt	Vitória da Conquista				
+1989180	3444924	es	Vitória				
+1989183	3444924	en	Vitória				
+1989195	3444924	pt	Vitória				
+2014340	3445026	en	Vila Velha	1			
+2014341	3445026	es	Vila Velha				
+2014345	3445026	pt	Vila Velha				
+1923584	3445451	en	Várzea Grande				
+1923585	3445451	pt	Várzea Grande				
+11013707	3445831	en	Uberlândia				
+13265850	3447259	en	Sumaré				
+13265852	3447259	pt	Sumaré				
+1921089	3447399	es	Sorocaba				
+1921091	3447399	en	Sorocaba				
+1921095	3447399	pt	Sorocaba				
+1981570	3448439	es	São Paulo				
+1981605	3448439	pt	São Paulo	1			
+3047186	3448439	pt	São Paulo capital				
+5424332	3448439	pt	Sampa			1	
+7635176	3448439	en	São Paulo	1			
+1925681	3448632	en	São José dos Pinhais				
+1925682	3448632	pt	São José dos Pinhais				
+1601049	3448636	en	São José dos Campos	1			
+1601053	3448636	pt	São José dos Campos	1			
+2010312	3448636	es	São José dos Campos				
+3074071	3448636	pt	Vale do Paraíba				
+3074074	3448636	pt	SJCampos				
+5424509	3448636	pt	Vale Paraiba				
+1417200	3448639	pt	Rio Preto		1		
+17026887	3448639	pt	Sao Jose do Rio Preto	1			
+2001838	3449319	en	São Carlos				
+2001839	3449319	es	São Carlos				
+2001846	3449319	pt	São Carlos				
+1922528	3449344	es	São Bernardo do Campo				
+2025241	3449344	en	São Bernardo do Campo				
+2025244	3449344	pt	São Bernardo do Campo				
+3074769	3449344	pt	SBCampo			1	
+1641393	3449433	es	Santos				
+1641395	3449433	en	Santos				
+1641405	3449433	pt	Santos				
+3059650	3449433	pt	Baixada Santista				
+2012601	3449701	es	Santo André				
+2012602	3449701	en	Santo André				
+2012607	3449701	pt	Santo André				
+1597765	3450554	en	Salvador	1			
+1597766	3450554	es	Salvador	1			
+1597783	3450554	pt	Salvador	1			
+1634695	3450554	es	Salvador de Bahía				
+20334554	3450554	pt	Cidade do São Salvador da Bahia de Todos os Santos				1
+1924884	3450909	en	Rondonópolis				
+1924885	3450909	pt	Rondonópolis				
+1596985	3451190	es	Río de Janeiro				
+1597013	3451190	pt	Rio de Janeiro				
+7717889	3451190	en	Rio de Janeiro				
+2011900	3451328	en	Ribeirão Preto				
+2011903	3451328	es	Ribeirão Preto				
+2011907	3451328	pt	Ribeirão Preto	1			
+3058783	3451328	pt	Ribeirão				
+1922954	3451353	en	Ribeirão das Neves				
+1922955	3451353	pt	Ribeirão das Neves				
+1598698	3452925	en	Porto Alegre				
+1598699	3452925	es	Puerto Alegre				
+1598715	3452925	pt	Porto Alegre				
+1985858	3452925	es	Porto Alegre	1	1		
+1923328	3453186	es	Ponta Grossa				
+1923329	3453186	en	Ponta Grossa				
+1923330	3453186	pt	Ponta Grossa				
+1604244	3453643	en	Piracicaba				
+1604245	3453643	pt	Piracicaba				
+1994939	3454031	es	Petrópolis				
+1994941	3454031	en	Petrópolis				
+1994949	3454031	pt	Petrópolis				
+1604550	3454244	en	Pelotas				
+1604555	3454244	pt	Pelotas				
+1656730	3454244	es	Pelotas				
+1640250	3456160	es	Nova Iguaçu				
+1640260	3456160	pt	Nova Iguaçu				
+1905371	3456160	en	Nova Iguaçu				
+1602638	3456283	en	Niterói				
+1602646	3456283	pt	Niterói				
+1641189	3456283	es	Niterói				
+1604737	3457671	en	Maringá				
+1604738	3457671	es	Maringá				
+1604743	3457671	pt	Maringá				
+1925092	3458266	en	Macaé				
+1925093	3458266	pt	Macaé				
+2001079	3458449	es	Londrina				
+2001081	3458449	en	Londrina				
+2001086	3458449	pt	Londrina				
+1605236	3458575	en	Limeira				
+1605238	3458575	pt	Limeira				
+1604529	3459462	en	Jundiaí				
+1604530	3459462	pt	Jundiaí				
+1922808	3459505	en	Juiz de Fora				
+1922812	3459505	pt	Juiz de Fora				
+2018847	3459505	es	Juiz de Fora				
+1602594	3459712	en	Joinville				
+1602595	3459712	es	Joinville				
+1602598	3459712	pt	Joinville				
+1924828	3460845	es	Itajaí				
+1924829	3460845	en	Itajaí				
+1924831	3460845	pt	Itajaí				
+1922460	3461786	es	Guarulhos				
+2007960	3461786	en	Guarulhos				
+2007963	3461786	pt	Guarulhos				
+1923658	3462089	es	Gravataí				
+1923659	3462089	en	Gravataí				
+1923660	3462089	pt	Gravataí				
+1923570	3462315	en	Governador Valadares				
+1923571	3462315	pt	Governador Valadares				
+3074471	3462315	pt	Valadares				
+3075886	3462315	pt	Gov. Valadares				
+1599084	3462377	en	Goiânia				
+1599085	3462377	es	Goiânia				
+1599090	3462377	pt	Goiânia				
+1604890	3463011	en	Franca				
+1604892	3463011	pt	Franca				
+1915308	3463030	es	Foz de Iguazu	1			
+1915312	3463030	en	Foz do Iguaçu				
+1915316	3463030	pt	Foz do Iguaçu				
+1422961	3463237	pt	Nossa Senhora do Destêrro				1
+1602110	3463237	en	Florianópolis				
+1602111	3463237	es	Florianópolis				
+1602120	3463237	pt	Florianópolis	1			
+3074469	3463237	pt	Floripa				
+13499412	3463237	en	Santa Catherina				1
+2009032	3463478	es	Feira de Santana				
+2009034	3463478	en	Feira de Santana				
+2009037	3463478	pt	Feira de Santana				
+3074755	3464305	pt	Embu das Artes				
+3074774	3464305	pt	Embu Arte				
+1996679	3464460	es	Dourados				
+1996683	3464460	en	Dourados				
+1996690	3464460	pt	Dourados				
+1598238	3464975	en	Curitiba				
+1598239	3464975	es	Curitiba				
+1598250	3464975	pt	Curitiba				
+1600957	3465038	en	Cuiabá				
+1600958	3465038	es	Cuiabá				
+1600968	3465038	pt	Cuiabá				
+20334062	3465038	en	Culaba				
+1924707	3466296	es	Chapecó				
+1924708	3466296	en	Chapecó				
+1924711	3466296	pt	Chapecó				
+1923067	3466537	es	Caxias do Sul				
+1923069	3466537	en	Caxias do Sul				
+1923073	3466537	pt	Caxias do Sul				
+1923534	3466779	es	Cascavel				
+1923535	3466779	en	Cascavel				
+1923536	3466779	pt	Cascavel				
+1923211	3467467	es	Canoas				
+1923214	3467467	en	Canoas				
+1923216	3467467	pt	Canoas				
+4521600	3467693	en	Campos dos Goytacazes				
+1986805	3467747	es	Campo Grande				
+1986808	3467747	en	Campo Grande				
+1986825	3467747	pt	Campo Grande				
+1599566	3467865	en	Campinas				
+1599573	3467865	pt	Campinas				
+1644167	3467865	es	Campinas				
+5424452	3467865	pt	Campinas e Região				
+5424453	3467865	pt	Região de Campinas				
+1924170	3468031	en	Camaçari				
+1924171	3468031	pt	Camaçari				
+1592022	3469058	en	Brasília				
+1592023	3469058	es	Brasilia				
+1592047	3469058	pt	Brasília				
+1923318	3469968	es	Blumenau				
+1923319	3469968	en	Blumenau				
+1923325	3469968	pt	Blumenau				
+1923053	3470044	en	Betim				
+1923055	3470044	pt	Betim				
+1597907	3470127	en	Belo Horizonte	1			
+1597921	3470127	pt	Belo Horizonte	1			
+1629141	3470127	es	Belo Horizonte				
+3059500	3470127	pt	BH				
+3059501	3470127	pt	Bhte				
+3059502	3470127	pt	Belo Hte				
+3074465	3470127	pt	B.H.				
+1922832	3470142	en	Belford Roxo				
+1922833	3470142	pt	Belford Roxo				
+16868454	3470279	en	Bauru				
+3074770	3470353	pt	Tamboré				
+1601225	3471872	en	Aracaju				
+1601234	3471872	pt	Aracaju				
+1637163	3471872	es	Aracaju				
+2021518	3472287	en	Anápolis				
+2021520	3472287	es	Anápolis				
+2021524	3472287	pt	Anápolis				
+1645162	3474574	es	Palmas				
+1645169	3474574	pt	Palmas				
+1903142	3474574	en	Palmas				
+1646089	3662574	es	Río Branco				
+1646095	3662574	pt	Rio Branco				
+1903708	3662574	en	Rio Branco				
+1603420	3662762	en	Porto Velho				
+1603421	3662762	es	Porto Velho				
+1603427	3662762	pt	Porto Velho				
+1483795	3663517	pt	Manáos				
+1598319	3663517	en	Manaus	1			
+1598320	3663517	es	Manaos				
+1598331	3663517	pt	Manaus	1			
+1610015	3664980	en	Boa Vista				
+1610023	3664980	pt	Boa Vista				
+1637387	3664980	es	Boa Vista				
+8544122	6317872	en	Parauapebas				
+8544124	6317872	pt	Parauapebas				
+19137925	7290718	pt	Barra da Tijuca				
+19137936	7290718	en	Barra da Tijuca				
+19137940	7290718	es	Barra da Tijuca				
+1598917	2867714	en	Munich				
+1598918	2867714	es	Múnich				
+1598952	2867714	pt	Munique				
+1599780	2886242	en	Cologne	1			
+1599781	2886242	es	Colonia				
+1599810	2886242	pt	Colônia				
+1554272	3117735	es	Madrid	1	1		
+1590841	3117735	en	Madrid				
+1590880	3117735	pt	Madrid				
+2322223	3117735	es	Los Madriles			1	
+2322224	3117735	es	La Villa y Corte de Madrid				1
+1566819	2988507	es	París	1	1		
+1592107	2988507	en	Paris	1			
+1592153	2988507	pt	Paris				
+947984	1850147	en	Edo				1
+1649380	1850147	en	Tokyo	1			
+1649737	1850147	es	Tokio				
+1649810	1850147	pt	Tóquio				
+1093810	2267057	pt	Lisboa	1			
+1565761	2267057	es	Lisboa				
+1594793	2267057	en	Lisbon	1			
+1554354	5128581	es	Nueva York	1			
+1554355	5128581	en	Big Apple			1	
+1614284	5128581	en	New York City				
+1614336	5128581	pt	Nova Iorque				
+9138713	5128581	en	New York	1	1		
+12663560	5128581	en	The Big Apple			1	

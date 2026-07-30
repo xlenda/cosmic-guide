@@ -112,11 +112,17 @@ for (const vp of [
   });
 }
 
-test('lista traz as 426 cidades e a busca filtra', async ({ page }) => {
+// A partir de 30/07/2026 a busca vai pro servidor (GET /api/cities/search) e a
+// lista embutida virou uma RESERVA de 151 cidades. Este teste roda com a rede
+// externa BLOQUEADA (ver abrirPicker: tudo que nao for localhost e abortado),
+// entao ele mede exatamente o cenario que importa: SEM INTERNET, o cadastro
+// continua funcionando. Se um dia a reserva sumir "porque o servidor resolve",
+// este teste cai.
+test('sem rede, a reserva atende: 151 cidades e a busca filtra', async ({ page }) => {
   await abrirPicker(page, { width: 375, height: 667 });
 
   const contador = page.getByTestId('city-picker-counter');
-  await expect(contador).toContainText('426 cidades');
+  await expect(contador).toContainText('151 cidades');
 
   const input = page.getByTestId('city-picker-input');
   // acento, sigla de estado, nome de estado por extenso e prefixo parcial
@@ -127,10 +133,27 @@ test('lista traz as 426 cidades e a busca filtra', async ({ page }) => {
     ['osasco', 'Osasco'],
   ]) {
     await input.fill(q);
-    await expect(page.getByTestId('city-picker-list')).toContainText(esperado, { timeout: 5000 });
+    await expect(page.getByTestId('city-picker-list')).toContainText(esperado, { timeout: 10000 });
   }
 
   // Termo inexistente mostra o estado vazio, nao uma lista fantasma.
   await input.fill('xyzzy');
-  await expect(contador).toContainText('Nenhuma cidade encontrada');
+  await expect(contador).toContainText('Nenhuma cidade encontrada', { timeout: 10000 });
+});
+
+test('busca sem rede avisa e NAO trava: aviso discreto + lista utilizavel', async ({ page }) => {
+  await abrirPicker(page, { width: 375, height: 667 });
+
+  const input = page.getByTestId('city-picker-input');
+  // 2+ caracteres = tenta o servidor; com a rede bloqueada, o fetch falha.
+  await input.fill('sao paulo');
+
+  // O aviso aparece...
+  await expect(page.getByTestId('city-picker-warning')).toBeVisible({ timeout: 15000 });
+  // ...e a lista continua com conteudo escolhivel (isto e o que NAO pode
+  // quebrar: erro de rede na porta de entrada do app).
+  await expect(page.getByTestId('city-picker-list')).toContainText('São Paulo, SP — Brasil');
+
+  // Credito da licenca CC BY 4.0 dos dados do GeoNames.
+  await expect(page.getByTestId('city-picker-list')).toContainText('GeoNames');
 });

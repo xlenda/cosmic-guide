@@ -20,11 +20,64 @@ import { funnel } from '../lib/funnel';
 import GradientHeader from './GradientHeader';
 import OfferSummary from './OfferSummary';
 
-export default function OneTimeLock({ featureTitle, gradient = gradients.hero }) {
+// VARIANTES (30/07/2026) — o paywall deixou de existir só no aparelho.
+// Agora o SERVIDOR também pode negar uma leitura (cota grátis por CONTA,
+// server-patches/src/http/aiQuota.js), e o motivo muda o que faz sentido
+// pedir na tela:
+//
+//   'freeUsed' (padrão) — o que sempre existiu: a marca local de 1 uso grátis
+//                         (lib/featureUsage.js). Texto e CTA intocados; o
+//                         teste E2E tests/e2e/paywall/one-time-lock.spec.js
+//                         trava exatamente este caminho.
+//   'quota'            — o servidor respondeu 402: a cota grátis DA CONTA
+//                         acabou. Muda só o texto (não adianta dizer "limpe o
+//                         app e tente de novo" — não volta mais), o CTA
+//                         continua sendo assinar.
+//   'login'            — o servidor respondeu 401 login_required: as leituras
+//                         com FOTO exigem conta. Aqui o próximo passo NÃO é
+//                         pagar, é criar conta (que é de graça) — mandar essa
+//                         pessoa direto pra Planos seria pedir cartão de quem
+//                         ainda nem experimentou.
+const VARIANTES = {
+  freeUsed: {
+    titulo: (f) => `Você já usou sua leitura gratuita de ${f}`,
+    texto: {
+      couple:
+        'Assine o Cosmic Guide e continue usando esse e todos os outros recursos sem limite, você e seu par.',
+      solo: 'Assine o Cosmic Guide e continue usando esse e todos os outros recursos individuais sem limite.',
+    },
+    cta: 'Assinar agora',
+    mostraOferta: true,
+  },
+  quota: {
+    titulo: (f) => `Suas leituras gratuitas de ${f} acabaram`,
+    texto: {
+      couple:
+        'A cota gratuita fica na sua conta, não no aparelho. Assine o Cosmic Guide e continue sem limite, você e seu par.',
+      solo: 'A cota gratuita fica na sua conta, não no aparelho. Assine o Cosmic Guide e continue sem limite.',
+    },
+    cta: 'Assinar agora',
+    mostraOferta: true,
+  },
+  login: {
+    titulo: (f) => `Entre na sua conta para usar ${f}`,
+    texto: {
+      couple: 'As leituras com foto pedem uma conta — é grátis, leva menos de um minuto e guarda seu histórico.',
+      solo: 'As leituras com foto pedem uma conta — é grátis, leva menos de um minuto e guarda seu histórico.',
+    },
+    cta: 'Criar conta / entrar',
+    // Sem preço nesta tela: quem ainda não tem conta não deve topar com um
+    // valor antes de ter experimentado nada.
+    mostraOferta: false,
+  },
+};
+
+export default function OneTimeLock({ featureTitle, gradient = gradients.hero, variant = 'freeUsed' }) {
   const navigation = useNavigation();
   const route = useRoute();
   const { coupleData } = useCouple();
   const isCouple = !!coupleData;
+  const v = VARIANTES[variant] || VARIANTES.freeUsed;
 
   // 7º degrau do funil pelo terceiro caminho: a leitura grátis vitalícia
   // acabou. Este é provavelmente o muro mais comum de todos (as 9 leituras
@@ -32,9 +85,17 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero })
   // 'planos' é o que vai dizer QUAL muro está segurando as pessoas.
   // `featureTitle` é texto de UI traduzido e NÃO vai junto — só o nome da rota
   // (slug curto e estável), pra props nunca carregar conteúdo/tradução.
+  // O nome do degrau distingue a origem: 'onetime_lock' (marca local),
+  // 'server_quota' (402 do servidor) e 'login_wall' (401 nas rotas com foto).
+  // Sem separar, o relatório do funil (scripts/funil.js) somaria três muros
+  // muito diferentes num número só — e é justamente pra saber QUAL muro segura
+  // as pessoas que este evento existe.
+  const degrauDoFunil =
+    variant === 'quota' ? 'server_quota' : variant === 'login' ? 'login_wall' : 'onetime_lock';
+
   useEffect(() => {
-    funnel.paywallView('onetime_lock', route?.name);
-  }, [route?.name]);
+    funnel.paywallView(degrauDoFunil, route?.name);
+  }, [degrauDoFunil, route?.name]);
 
   // Chat (ROUTES.CHAT_TAB) é uma aba direta, sem Stack aninhada dentro dela
   // (App.js: <Tab.Screen name={CHAT_TAB} component={ChatScreen} />, sem
@@ -54,12 +115,8 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero })
         <View style={styles.iconWrap}>
           <Ionicons name="lock-closed" size={40} color={colors.accent} />
         </View>
-        <Text style={styles.title} testID="onetimelock-title">Você já usou sua leitura gratuita de {featureTitle}</Text>
-        <Text style={styles.text}>
-          {isCouple
-            ? 'Assine o Cosmic Guide e continue usando esse e todos os outros recursos sem limite, você e seu par.'
-            : 'Assine o Cosmic Guide e continue usando esse e todos os outros recursos individuais sem limite.'}
-        </Text>
+        <Text style={styles.title} testID="onetimelock-title">{v.titulo(featureTitle)}</Text>
+        <Text style={styles.text}>{isCouple ? v.texto.couple : v.texto.solo}</Text>
         {/* A oferta inteira AQUI, sem sair da tela: preço de entrada, 7 dias
             grátis e cancelamento livre. Antes esta tela só dizia "assine" e o
             primeiro número da vida da pessoa aparecia uma navegação depois, em
@@ -67,16 +124,20 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero })
             individuais passam por aqui), e era exatamente o que o testador
             fotografou sem entender quanto custava. O botão continua indo pra
             Planos; a diferença é que agora ela vai sabendo o preço. */}
-        <OfferSummary testID="onetimelock-offer" />
+        {v.mostraOferta && <OfferSummary testID="onetimelock-offer" />}
         <TouchableOpacity
           style={styles.btn}
           activeOpacity={0.85}
           testID="onetimelock-cta"
-          onPress={() => navigateFromTab(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
+          onPress={() =>
+            navigateFromTab(ROUTES.HOME_TAB, {
+              screen: variant === 'login' ? ROUTES.LOGIN : ROUTES.PLANOS,
+            })
+          }
         >
-          <Text style={styles.btnText}>Assinar agora</Text>
+          <Text style={styles.btnText}>{v.cta}</Text>
         </TouchableOpacity>
-        {!isCouple && (
+        {variant !== 'login' && !isCouple && (
           <TouchableOpacity
             style={styles.secondaryBtn}
             activeOpacity={0.7}

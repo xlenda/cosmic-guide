@@ -1,0 +1,204 @@
+AR.14	Misiones	Misiones	3430657
+AR.09	Formosa	Formosa	3433896
+AR.07	Buenos Aires F.D.	Buenos Aires F.D.	3433955
+AR.08	Entre Rios	Entre Rios	3434137
+AR.06	Corrientes	Corrientes	3435214
+AR.01	Buenos Aires	Buenos Aires	3435907
+AR.24	Tucuman	Tucuman	3833578
+AR.23	Tierra del Fuego	Tierra del Fuego	3834450
+AR.22	Santiago del Estero	Santiago del Estero	3835868
+AR.21	Santa Fe	Santa Fe	3836276
+AR.20	Santa Cruz	Santa Cruz	3836350
+AR.19	San Luis	San Luis	3837029
+AR.18	San Juan	San Juan	3837152
+AR.17	Salta	Salta	3838231
+AR.16	Rio Negro	Rio Negro	3838830
+AR.15	Neuquen	Neuquen	3843122
+AR.13	Mendoza	Mendoza	3844419
+AR.12	La Rioja	La Rioja	3848949
+AR.11	La Pampa	La Pampa	3849574
+AR.10	Jujuy	Jujuy	3853404
+AR.05	Cordoba	Cordoba	3860255
+AR.04	Chubut	Chubut	3861244
+AR.03	Chaco	Chaco	3861887
+AR.02	Catamarca	Catamarca	3862286
+BR.22	Rio Grande do Norte	Rio Grande do Norte	3390290
+BR.20	Piauí	Piaui	3392213
+BR.30	Pernambuco	Pernambuco	3392268
+BR.17	Paraíba	Paraiba	3393098
+BR.16	Pará	Para	3393129
+BR.13	Maranhão	Maranhao	3395443
+BR.06	Ceará	Ceara	3402362
+BR.03	Amapá	Amapa	3407762
+BR.02	Alagoas	Alagoas	3408096
+BR.28	Sergipe	Sergipe	3447799
+BR.27	São Paulo	Sao Paulo	3448433
+BR.26	Santa Catarina	Santa Catarina	3450387
+BR.23	Rio Grande do Sul	Rio Grande do Sul	3451133
+BR.21	Rio de Janeiro	Rio de Janeiro	3451189
+BR.18	Paraná	Parana	3455077
+BR.15	Minas Gerais	Minas Gerais	3457153
+BR.11	Mato Grosso do Sul	Mato Grosso do Sul	3457415
+BR.14	Mato Grosso	Mato Grosso	3457419
+BR.29	Goiás	Goias	3462372
+BR.07	Federal District	Federal District	3463504
+BR.08	Espírito Santo	Espirito Santo	3463930
+BR.05	Bahia	Bahia	3471168
+BR.31	Tocantins	Tocantins	3474575
+BR.25	Roraima	Roraima	3662560
+BR.04	Amazonas	Amazonas	3665361
+BR.01	Acre	Acre	3665474
+BR.24	Rondônia	Rondonia	3924825
+DE.15	Thuringia	Thuringia	2822542
+DE.10	Schleswig-Holstein	Schleswig-Holstein	2838632
+DE.14	Saxony-Anhalt	Saxony-Anhalt	2842565
+DE.13	Saxony	Saxony	2842566
+DE.09	Saarland	Saarland	2842635
+DE.08	Rheinland-Pfalz	Rheinland-Pfalz	2847618
+DE.07	North Rhine-Westphalia	North Rhine-Westphalia	2861876
+DE.06	Lower Saxony	Lower Saxony	2862926
+DE.12	Mecklenburg-Vorpommern	Mecklenburg-Vorpommern	2872567
+DE.05	Hesse	Hesse	2905330
+DE.04	Hamburg	Hamburg	2911297
+DE.03	Bremen	Bremen	2944387
+DE.11	Brandenburg	Brandenburg	2945356
+DE.16	State of Berlin	State of Berlin	2950157
+DE.02	Bavaria	Bavaria	2951839
+DE.01	Baden-Wurttemberg	Baden-Wurttemberg	2953481
+ES.31	Murcia	Murcia	2513413
+ES.CE	Ceuta	Ceuta	2519582
+ES.07	Balearic Islands	Balearic Islands	2521383
+ES.51	Andalusia	Andalusia	2593109
+ES.53	Canary Islands	Canary Islands	2593110
+ES.54	Castille-La Mancha	Castille-La Mancha	2593111
+ES.57	Extremadura	Extremadura	2593112
+ES.60	Valencia	Valencia	2593113
+ES.34	Asturias	Asturias	3114710
+ES.32	Navarre	Navarre	3115609
+ES.29	Madrid	Madrid	3117732
+ES.27	La Rioja	La Rioja	3336897
+ES.39	Cantabria	Cantabria	3336898
+ES.52	Aragon	Aragon	3336899
+ES.55	Castille and León	Castille and Leon	3336900
+ES.56	Catalonia	Catalonia	3336901
+ES.58	Galicia	Galicia	3336902
+ES.59	Basque Country	Basque Country	3336903
+ES.ML	Melilla	Melilla	6362988
+JP.46	Yamanashi	Yamanashi	1848649
+JP.45	Yamaguchi	Yamaguchi	1848681
+JP.43	Wakayama	Wakayama	1848938
+JP.42	Toyama	Toyama	1849872
+JP.41	Tottori	Tottori	1849890
+JP.40	Tokyo	Tokyo	1850144
+JP.39	Tokushima	Tokushima	1850157
+JP.38	Tochigi	Tochigi	1850310
+JP.37	Shizuoka	Shizuoka	1851715
+JP.36	Shimane	Shimane	1852442
+JP.35	Shiga	Shiga	1852553
+JP.34	Saitama	Saitama	1853226
+JP.33	Saga	Saga	1853299
+JP.32	Osaka	Osaka	1853904
+JP.47	Okinawa	Okinawa	1854345
+JP.31	Okayama	Okayama	1854381
+JP.30	Oita	Oita	1854484
+JP.29	Niigata	Niigata	1855429
+JP.28	Nara	Nara	1855608
+JP.27	Nagasaki	Nagasaki	1856156
+JP.26	Nagano	Nagano	1856210
+JP.25	Miyazaki	Miyazaki	1856710
+JP.23	Mie	Mie	1857352
+JP.22	Kyoto	Kyoto	1857907
+JP.21	Kumamoto	Kumamoto	1858419
+JP.20	Kochi	Kochi	1859133
+JP.19	Kanagawa	Kanagawa	1860291
+JP.18	Kagoshima	Kagoshima	1860825
+JP.17	Kagawa	Kagawa	1860834
+JP.15	Ishikawa	Ishikawa	1861387
+JP.13	Hyōgo	Hyogo	1862047
+JP.11	Hiroshima	Hiroshima	1862413
+JP.10	Gunma	Gunma	1863501
+JP.09	Gifu	Gifu	1863640
+JP.07	Fukuoka	Fukuoka	1863958
+JP.06	Fukui	Fukui	1863983
+JP.05	Ehime	Ehime	1864226
+JP.01	Aichi	Aichi	1865694
+JP.44	Yamagata	Yamagata	2110554
+JP.24	Miyagi	Miyagi	2111888
+JP.16	Iwate	Iwate	2112518
+JP.14	Ibaraki	Ibaraki	2112669
+JP.08	Fukushima	Fukushima	2112922
+JP.04	Chiba	Chiba	2113014
+JP.02	Akita	Akita	2113124
+JP.12	Hokkaido	Hokkaido	2130037
+JP.03	Aomori	Aomori	2130656
+PT.19	Setúbal	Setubal	2262961
+PT.18	Santarém	Santarem	2263478
+PT.16	Portalegre	Portalegre	2264507
+PT.14	Lisbon	Lisbon	2267056
+PT.13	Leiria	Leiria	2267094
+PT.09	Faro	Faro	2268337
+PT.08	Évora	Evora	2268404
+PT.06	Castelo Branco	Castelo Branco	2269513
+PT.03	Beja	Beja	2270984
+PT.10	Madeira	Madeira	2593105
+PT.22	Viseu	Viseu	2732264
+PT.21	Vila Real	Vila Real	2732437
+PT.20	Viana do Castelo	Viana do Castelo	2732772
+PT.17	Porto	Porto	2735941
+PT.11	Guarda	Guarda	2738782
+PT.07	Coimbra	Coimbra	2740636
+PT.05	Bragança	Braganca	2742026
+PT.04	Braga	Braga	2742031
+PT.02	Aveiro	Aveiro	2742610
+PT.23	Azores	Azores	3411865
+US.AR	Arkansas	Arkansas	4099753
+US.DC	District of Columbia	District of Columbia	4138106
+US.DE	Delaware	Delaware	4142224
+US.FL	Florida	Florida	4155751
+US.GA	Georgia	Georgia	4197000
+US.KS	Kansas	Kansas	4273857
+US.LA	Louisiana	Louisiana	4331987
+US.MD	Maryland	Maryland	4361885
+US.MO	Missouri	Missouri	4398678
+US.MS	Mississippi	Mississippi	4436296
+US.NC	North Carolina	North Carolina	4482348
+US.OK	Oklahoma	Oklahoma	4544379
+US.SC	South Carolina	South Carolina	4597040
+US.TN	Tennessee	Tennessee	4662168
+US.TX	Texas	Texas	4736286
+US.WV	West Virginia	West Virginia	4826850
+US.AL	Alabama	Alabama	4829764
+US.CT	Connecticut	Connecticut	4831725
+US.IA	Iowa	Iowa	4862182
+US.IL	Illinois	Illinois	4896861
+US.IN	Indiana	Indiana	4921868
+US.ME	Maine	Maine	4971068
+US.MI	Michigan	Michigan	5001836
+US.MN	Minnesota	Minnesota	5037779
+US.NE	Nebraska	Nebraska	5073708
+US.NH	New Hampshire	New Hampshire	5090174
+US.NJ	New Jersey	New Jersey	5101760
+US.NY	New York	New York	5128638
+US.OH	Ohio	Ohio	5165418
+US.RI	Rhode Island	Rhode Island	5224323
+US.VT	Vermont	Vermont	5242283
+US.WI	Wisconsin	Wisconsin	5279468
+US.CA	California	California	5332921
+US.CO	Colorado	Colorado	5417618
+US.NM	New Mexico	New Mexico	5481136
+US.NV	Nevada	Nevada	5509151
+US.UT	Utah	Utah	5549030
+US.AZ	Arizona	Arizona	5551752
+US.ID	Idaho	Idaho	5596512
+US.MT	Montana	Montana	5667009
+US.ND	North Dakota	North Dakota	5690763
+US.OR	Oregon	Oregon	5744337
+US.SD	South Dakota	South Dakota	5769223
+US.WA	Washington	Washington	5815135
+US.WY	Wyoming	Wyoming	5843591
+US.HI	Hawaii	Hawaii	5855797
+US.AK	Alaska	Alaska	5879092
+US.KY	Kentucky	Kentucky	6254925
+US.MA	Massachusetts	Massachusetts	6254926
+US.PA	Pennsylvania	Pennsylvania	6254927
+US.VA	Virginia	Virginia	6254928

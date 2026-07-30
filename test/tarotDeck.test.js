@@ -3,7 +3,14 @@
 // uma carta duplicada silenciosamente reduzindo o baralho.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { TAROT_DECK, MAJOR_ARCANA, MINOR_ARCANA } = require("../lib/tarotDeck.js");
+const {
+  TAROT_DECK,
+  MAJOR_ARCANA,
+  MINOR_ARCANA,
+  RANK_GRADES,
+  getCardById,
+  getSpreadPattern,
+} = require("../lib/tarotDeck.js");
 
 test("baralho completo tem exatamente 78 cartas", () => {
   assert.equal(TAROT_DECK.length, 78);

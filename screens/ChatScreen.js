@@ -17,7 +17,7 @@ import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
 import { PERSONAS, ACTIVE_PERSONA_ID } from '../lib/chatPersonas';
 import { getMockReply } from '../lib/chatResponses';
-import { fetchAiChatReply } from '../lib/aiClient';
+import { fetchAiChatReply, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
 import { useCouple } from '../context/CoupleContext';
@@ -76,6 +76,13 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [locked, setLocked] = useState(false);
+  // Bloqueio vindo do SERVIDOR (402 cota esgotada / 401 exige conta), separado
+  // do `locked` local. `locked` é a contagem no aparelho
+  // (lib/chatFreeMessages.js), que o servidor não vê e que um
+  // localStorage.clear() zerava — este aqui é a palavra final de quem cobra, e
+  // por isso vale mesmo com hasAccess=true (que pode vir do fallback por
+  // aparelho, com um correlationCode velho no AsyncStorage).
+  const [serverBlock, setServerBlock] = useState(null);
   const listRef = useRef(null);
   // Trava SÍNCRONA de envio em andamento — `isTyping` (state) só atualiza no
   // próximo render, então dois cliques rápidos no Enviar passavam juntos pelo
@@ -193,7 +200,20 @@ export default function ChatScreen() {
     let reply;
     try {
       reply = await fetchAiChatReply(persona.id, text, history);
-    } catch {
+    } catch (err) {
+      // PAYWALL DE VERDADE (30/07/2026): a cota grátis do chat passou a ser
+      // contada no SERVIDOR, por CONTA. Um 402/401 com `code` conhecido não é
+      // falha técnica — responder com o mock aqui daria de graça exatamente a
+      // mensagem que acabou de ser negada. Devolvemos o texto pro campo (a
+      // pessoa não perde o que escreveu), tiramos a bolha que já tinha
+      // entrado na lista e trocamos a tela pelo muro.
+      if (isAiAccessError(err)) {
+        setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
+        setInput(text);
+        setIsTyping(false);
+        setServerBlock(isLoginRequired(err) ? 'login' : 'quota');
+        return;
+      }
       reply = getMockReply(persona.id, text);
     }
 
@@ -234,6 +254,10 @@ export default function ChatScreen() {
       </View>
     );
   };
+
+  if (serverBlock) {
+    return <OneTimeLock featureTitle="Chat Espiritual" gradient={gradients.hero} variant={serverBlock} />;
+  }
 
   if (!hasAccess && locked) {
     return <OneTimeLock featureTitle="Chat Espiritual" gradient={gradients.hero} />;

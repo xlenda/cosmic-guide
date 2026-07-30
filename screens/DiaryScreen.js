@@ -22,7 +22,7 @@ import {
   getPinCredits,
   pinEntry,
 } from '../lib/journal';
-import { fetchAiWeeklyInsight } from '../lib/aiClient';
+import { fetchAiWeeklyInsight, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { useAuth } from '../context/AuthContext';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -198,7 +198,30 @@ export default function DiaryScreen() {
       result = await fetchAiWeeklyInsight(
         recent.map((e) => ({ type: e.type, typeLabel: e.typeLabel, title: e.title, body: e.body }))
       );
-    } catch {
+    } catch (err) {
+      // PAYWALL DE VERDADE (30/07/2026): a cota grátis do Insight da Semana
+      // passou a ser contada no SERVIDOR, por CONTA. Um 402/401 com `code`
+      // conhecido não é falha técnica, então NÃO cai no fallback: o Diário não
+      // vira um muro (ele tem todo o resto do histórico, que continua sendo
+      // dela), mas o insight não é entregue e a pessoa é levada pro lugar que
+      // resolve — assinar, ou criar conta se for esse o caso.
+      if (isAiAccessError(err)) {
+        setLoadingWeekly(false);
+        Alert.alert(
+          isLoginRequired(err) ? 'Entre na sua conta' : 'Insight da Semana',
+          isLoginRequired(err)
+            ? 'Crie sua conta (é grátis) para gerar o Insight da Semana.'
+            : 'Suas gerações gratuitas acabaram. Assine o Cosmic Guide para continuar gerando o Insight da Semana.',
+          [
+            { text: 'Agora não', style: 'cancel' },
+            {
+              text: isLoginRequired(err) ? 'Criar conta' : 'Assinar',
+              onPress: () => navigation.navigate(isLoginRequired(err) ? ROUTES.LOGIN : ROUTES.PLANOS),
+            },
+          ]
+        );
+        return;
+      }
       // Nunca mostra erro cru — cai no fallback honesto (só lista o que
       // realmente aconteceu, sem inventar síntese).
       result = getFallbackWeeklyInsight(recent);

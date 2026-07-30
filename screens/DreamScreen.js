@@ -18,7 +18,7 @@ import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import { getMockDreamReading } from '../lib/dreamReadings';
-import { fetchAiDreamReading } from '../lib/aiClient';
+import { fetchAiDreamReading, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
@@ -45,6 +45,10 @@ export default function DreamScreen() {
   const [reading, setReading] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [locked, setLocked] = useState(false);
+  // Bloqueio vindo do SERVIDOR (402 cota esgotada / 401 exige conta) — ver o
+  // comentário longo em PalmScreen.js. Vale mesmo com hasAccess=true: quem
+  // cobra é a conta, não o ponteiro guardado no aparelho.
+  const [serverBlock, setServerBlock] = useState(null);
   const [journalEntryId, setJournalEntryId] = useState(null);
 
   useEffect(() => {
@@ -69,7 +73,16 @@ export default function DreamScreen() {
     let result;
     try {
       result = await fetchAiDreamReading(dreamText.trim());
-    } catch {
+    } catch (err) {
+      // PAYWALL DE VERDADE (30/07/2026): 402/401 com `code` conhecido é a cota
+      // grátis da CONTA acabando, não falha técnica. O mock honesto continua
+      // valendo pra tudo o mais (rede, 500, servidor sem chave).
+      if (isAiAccessError(err)) {
+        setIsAnalyzing(false);
+        setServerBlock(isLoginRequired(err) ? 'login' : 'quota');
+        setStep(STEP.INTRO);
+        return;
+      }
       result = getMockDreamReading(dreamText.trim());
     }
 
@@ -98,6 +111,10 @@ export default function DreamScreen() {
   // precisa VER o resultado que acabou de ganhar — só bloqueamos de fato na
   // próxima tentativa (tocar "Novo sonho", que chama resetToIntro() e volta
   // pro STEP.INTRO).
+  if (serverBlock) {
+    return <OneTimeLock featureTitle="Sonhos" gradient={gradients.teal} variant={serverBlock} />;
+  }
+
   if (!hasAccess && locked && step !== STEP.RESULT) {
     return <OneTimeLock featureTitle="Sonhos" gradient={gradients.teal} />;
   }

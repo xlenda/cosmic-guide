@@ -112,14 +112,60 @@ try {
   console.error("[api/track] rota de funil não montada:", err && err.message);
 }
 
-app.use(
-  express.json({
-    limit: "10mb", // fotos em base64 (leitura de mão) passam do limite padrão de 100kb
-    verify: (req, _res, buf) => {
-      req.rawBody = buf.toString("utf8");
-    },
-  })
-);
+// Busca de cidade de nascimento (src/http/citiesRoutes.js + o banco de
+// referência data/cities.sqlite, gerado por scripts/import-cities.js).
+//
+// POR QUE EXISTE: a lista de cidades do app é um array estático de 400
+// municípios brasileiros, e um testador relatou (29/07/2026) que a dele
+// (Junqueirópolis, ~20 mil habitantes) não está lá. Não tem lista fixa que
+// resolva isso — são 5.570 municípios só no Brasil, e o app quer rodar no
+// mundo inteiro. Buscando aqui, o custo no bundle do app é zero e vêm junto
+// as ~150 mil cidades do GeoNames COM O FUSO IANA, que é o que conserta o
+// Ascendente de quem nasceu em horário de verão (o app hoje usa um offset
+// fixo por cidade e erra 1h — meio signo — pra todo nascimento de janeiro
+// entre 1985 e 2019 no Sudeste/Sul/Centro-Oeste).
+//
+// Só faz LEITURA, e num banco SEPARADO do forja.sqlite (dado de referência
+// não divide arquivo com assinatura). Não lê corpo de requisição, então a
+// posição em relação ao express.json abaixo é indiferente pra ela — está
+// aqui em cima só pra ficar junto do outro mount opcional.
+// try/catch pelo mesmo motivo do /api/track: uma lista de cidades não pode
+// impedir checkout e webhook de pagamento de subir. Se o banco de referência
+// não tiver sido gerado ainda, a rota sobe assim mesmo e responde 503 com a
+// instrução do que rodar — ver citiesRoutes.js.
+try {
+  app.use("/api/cities", require("./citiesRoutes").citiesRouter);
+} catch (err) {
+  console.error("[api/cities] rota de busca de cidades não montada:", err && err.message);
+}
+
+// O teto de 10 MB existia por causa de UMA coisa: foto em base64 nas leituras
+// com imagem. Ele valia pra API INTEIRA, e um teto de 10 MB numa rota de texto
+// não protege nada — é convite pra encher a memória do processo (que é o mesmo
+// que serve checkout e webhook de pagamento, num VPS de 6 GB) mandando corpo
+// gigante em /api/chat, /api/dream ou /api/weekly-insight. Achado de auditoria
+// (30/07/2026), junto com a cota de IA.
+//
+// Agora são dois parsers, e a ORDEM é o que faz funcionar: o das imagens é
+// montado ANTES e SÓ nas 5 rotas que recebem foto. Quando ele roda, o
+// body-parser marca req._body, e o parser global logo abaixo pula a
+// requisição sem reclamar do tamanho. Se a ordem invertesse, o global de
+// 256 kb rejeitaria a foto com 413 antes de a rota ser alcançada.
+//
+// 256 kb no texto é folgado de sobra pro pior caso real (weekly-insight:
+// 7 leituras × ~4 kb ≈ 28 kb) e 40x menor que os 10 MB de antes.
+const IMAGE_BODY_LIMIT = process.env.IMAGE_BODY_LIMIT || "10mb";
+const TEXT_BODY_LIMIT = process.env.TEXT_BODY_LIMIT || "256kb";
+const guardarCorpoCru = (req, _res, buf) => {
+  req.rawBody = buf.toString("utf8");
+};
+
+// As 5 rotas que recebem imagem em base64 (as mesmas que exigem conta na cota
+// de IA — ver aiQuota.js). Uma lista só, usada aqui e no mount do parser.
+const ROTAS_COM_IMAGEM = ["/api/palm", "/api/face", "/api/foot", "/api/moles", "/api/coffee"];
+
+app.use(ROTAS_COM_IMAGEM, express.json({ limit: IMAGE_BODY_LIMIT, verify: guardarCorpoCru }));
+app.use(express.json({ limit: TEXT_BODY_LIMIT, verify: guardarCorpoCru }));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
@@ -191,6 +237,28 @@ function ehCanary(req) {
   const peer = req.socket?.remoteAddress || "";
   return peer === "127.0.0.1" || peer === "::1" || peer === "::ffff:127.0.0.1";
 }
+
+// COTA DE IA — o paywall de verdade (src/http/aiQuota.js + migração 011).
+//
+// Até 30/07/2026 NENHUMA das 10 rotas abaixo checava autenticação ou
+// assinatura: o único freio de pagamento era o AsyncStorage do APARELHO
+// (lib/featureUsage.js no app). localStorage.clear() devolvia todas as
+// leituras grátis, e um curl sem token nenhum torrava ~5.700 chamadas por dia
+// por IP na conta Anthropic do dono. O arquivo aiQuota.js explica a régua
+// inteira (quem passa, quem paga, por que as rotas com foto exigem conta).
+//
+// Aqui só o essencial da ORDEM, que é o que faz a coisa funcionar:
+//   aiLimiter        → freio bruto por IP (continua igual, 60/15min)
+//   optionalAuth     → descobre QUEM é; nunca devolve 401 por falta de token
+//   aiQuota.gate(x)  → decide se pode e cobra a cota
+// Sem optionalAuth ANTES do gate, req.userId nunca existe e o assinante seria
+// tratado como anônimo.
+//
+// ehCanary entra como isenção: o canary chama /api/chat de verdade, sem token,
+// 4x por hora — sem isenção ele mesmo estouraria a cota anônima do servidor e
+// o monitoramento morreria em silêncio.
+const { buildAiQuota } = require("./aiQuota");
+const aiQuota = buildAiQuota({ getAccountSubscription, isExempt: ehCanary });
 
 const checkoutLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -266,7 +334,7 @@ app.get("/api/subscription/:correlationCode", publicReadLimiter, (req, res) => {
 // tokens da Anthropic com uma mensagem gigante).
 const CHAT_MESSAGE_MAX_LENGTH = 500;
 
-app.post("/api/chat", aiLimiter, async (req, res) => {
+app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { personaId, message, history } = req.body || {};
@@ -285,7 +353,7 @@ app.post("/api/chat", aiLimiter, async (req, res) => {
   }
 });
 
-app.post("/api/palm", aiLimiter, async (req, res) => {
+app.post("/api/palm", aiLimiter, optionalAuth, aiQuota.gate("palm"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { imageBase64, mediaType } = req.body || {};
@@ -301,7 +369,7 @@ app.post("/api/palm", aiLimiter, async (req, res) => {
   }
 });
 
-app.post("/api/coffee", aiLimiter, async (req, res) => {
+app.post("/api/coffee", aiLimiter, optionalAuth, aiQuota.gate("coffee"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { imageBase64, mediaType } = req.body || {};
@@ -317,7 +385,7 @@ app.post("/api/coffee", aiLimiter, async (req, res) => {
   }
 });
 
-app.post("/api/moles", aiLimiter, async (req, res) => {
+app.post("/api/moles", aiLimiter, optionalAuth, aiQuota.gate("moles"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { imageBase64, mediaType } = req.body || {};
@@ -333,7 +401,7 @@ app.post("/api/moles", aiLimiter, async (req, res) => {
   }
 });
 
-app.post("/api/foot", aiLimiter, async (req, res) => {
+app.post("/api/foot", aiLimiter, optionalAuth, aiQuota.gate("foot"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { imageBase64, mediaType } = req.body || {};
@@ -349,7 +417,7 @@ app.post("/api/foot", aiLimiter, async (req, res) => {
   }
 });
 
-app.post("/api/face", aiLimiter, async (req, res) => {
+app.post("/api/face", aiLimiter, optionalAuth, aiQuota.gate("face"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { imageBase64, mediaType } = req.body || {};
@@ -369,7 +437,7 @@ app.post("/api/face", aiLimiter, async (req, res) => {
 // lógica do CHAT_MESSAGE_MAX_LENGTH acima.
 const DREAM_TEXT_MAX_LENGTH = 2000;
 
-app.post("/api/dream", aiLimiter, async (req, res) => {
+app.post("/api/dream", aiLimiter, optionalAuth, aiQuota.gate("dream"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { dreamText } = req.body || {};
@@ -389,7 +457,7 @@ app.post("/api/dream", aiLimiter, async (req, res) => {
 
 const INSIGHT_TRANSCRIPT_MAX_LENGTH = 2000;
 
-app.post("/api/enhance-insight", aiLimiter, async (req, res) => {
+app.post("/api/enhance-insight", aiLimiter, optionalAuth, aiQuota.gate("enhance-insight"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { transcript, readingType, readingTitle } = req.body || {};
@@ -604,7 +672,7 @@ app.post("/api/push/unsubscribe", pushLimiter, (req, res) => {
   }
 });
 
-app.post("/api/coffee-weekly-summary", aiLimiter, async (req, res) => {
+app.post("/api/coffee-weekly-summary", aiLimiter, optionalAuth, aiQuota.gate("coffee-weekly-summary"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { readings } = req.body || {};
@@ -631,7 +699,7 @@ app.post("/api/coffee-weekly-summary", aiLimiter, async (req, res) => {
 
 // Generalização do resumo semanal acima — aceita leituras de QUALQUER tipo do
 // Diário Cósmico (tarô, palma, rosto, pé, pintas, café, sonho) juntas.
-app.post("/api/weekly-insight", aiLimiter, async (req, res) => {
+app.post("/api/weekly-insight", aiLimiter, optionalAuth, aiQuota.gate("weekly-insight"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
     const { readings } = req.body || {};
@@ -700,6 +768,21 @@ app.post("/webhook/hotmart", webhookLimiter, (req, res) => {
 app.use((err, req, res, _next) => {
   if (err && err.code === "SQLITE_CONSTRAINT_UNIQUE") {
     return res.status(409).json({ error: "esse valor já está em uso" });
+  }
+  // Corpo maior que o teto do parser. Antes isso virava 500 "erro interno" —
+  // e passava despercebido porque o teto era 10 MB pra tudo, ou seja,
+  // praticamente inalcançável. Com o teto de texto apertado pra 256 kb (ver
+  // TEXT_BODY_LIMIT lá em cima), a resposta certa passa a importar: 413 é
+  // verdade ("você mandou grande demais") e, principalmente, NÃO é 402 — o app
+  // distingue os dois pelo status e pelo `code`, então um corpo grande jamais
+  // pode ser confundido com "sua cota acabou" e abrir o paywall à toa.
+  if (err && (err.type === "entity.too.large" || err.status === 413 || err.statusCode === 413)) {
+    return res.status(413).json({ error: "corpo da requisição grande demais", code: "body_too_large" });
+  }
+  // JSON malformado é erro do CLIENTE, não do servidor — 400 evita que uma
+  // requisição quebrada apareça no log/monitoramento como falha nossa.
+  if (err && (err.type === "entity.parse.failed" || err.status === 400 || err.statusCode === 400)) {
+    return res.status(400).json({ error: "corpo da requisição inválido", code: "bad_body" });
   }
   console.error("[erro não tratado]", err && err.message);
   res.status(500).json({ error: "erro interno" });

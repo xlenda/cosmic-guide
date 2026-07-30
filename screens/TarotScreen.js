@@ -124,8 +124,14 @@ export default function TarotScreen() {
     // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
     // tela — trocar de tema ou tocar "Nova Tiragem" na mesma sessão deixaria
     // repetir o uso grátis várias vezes antes do bloqueio realmente pegar
-    // (achado por verificação adversarial). Independente do dailyBlocked
-    // abaixo, que é o limite diário de Dinheiro/Saúde — não mexer nele aqui.
+    // (achado por verificação adversarial).
+    //
+    // As DUAS travas realmente ficam de pé na mesma tiragem, e isso está
+    // certo como ESTADO: a pessoa consumiu a prévia vitalícia (se não assina)
+    // E consumiu a tiragem de hoje daquele tema. O que estava errado era o
+    // app FALAR as duas ao mesmo tempo — ver `previaVitaliciaGasta` /
+    // `limiteDiarioReal` mais abaixo, que decidem qual das duas é a verdade
+    // que a pessoa lê na tela.
     if (!hasAccess) setLocked(true);
     setDailyBlocked(true);
 
@@ -165,6 +171,24 @@ export default function TarotScreen() {
   // Leitura Bônus guardada — a área vazia abaixo mostra o botão de usar o
   // bônus no lugar do "Tirar 3 Cartas" normal.
   const soPodeUsarBonus = !hasAccess && locked && bonusReadings > 0;
+
+  // ---- Qual das duas réguas é a verdade PRA ESTA PESSOA, agora ----
+  // O Tarô tem dois limites e eles não valem pro mesmo público:
+  //   • prévia grátis VITALÍCIA (lib/featureUsage.js) — quem NÃO assina tira
+  //     uma tiragem na vida. Não renova amanhã, nem depois de amanhã.
+  //   • limite DIÁRIO por tema (lib/tarotDailyLimit.js) — a régua de quem
+  //     ASSINA: 1 tiragem por tema por dia, essa sim volta amanhã.
+  // O bug (achado 29/07/2026): drawCards() liga as duas na mesma tiragem e a
+  // tela escolhia a frase errada. Quem não assina tirava as 3 cartas, lia
+  // "volta amanhã pra uma nova" — e, saindo da aba e voltando no MESMO dia,
+  // encontrava a aba inteira virada em "Você já usou sua leitura gratuita".
+  // O app se contradizia em minutos e, amanhã, entregava paywall no lugar da
+  // tiragem prometida. Além disso o botão de assinar nunca aparecia nesse
+  // primeiro estado, porque o ramo do limite diário vinha primeiro.
+  // Regra agora: na hora de FALAR, a prévia vitalícia tem precedência sobre o
+  // limite diário. Quem não assina nunca lê "amanhã"; só quem assina lê.
+  const previaVitaliciaGasta = !hasAccess && locked;
+  const limiteDiarioReal = dailyBlocked && !previaVitaliciaGasta;
 
   return (
     <View style={styles.root}>
@@ -211,13 +235,23 @@ export default function TarotScreen() {
                 <Ionicons name="sparkles" size={40} color="rgba(255,255,255,0.6)" />
               </LinearGradient>
             </View>
-            {dailyBlocked || soPodeUsarBonus ? (
+            {limiteDiarioReal || soPodeUsarBonus ? (
               <>
-                <Ionicons name="time-outline" size={40} color={theme.color} style={{ marginBottom: 12 }} />
+                <Ionicons
+                  name={previaVitaliciaGasta ? 'lock-closed-outline' : 'time-outline'}
+                  size={40}
+                  color={theme.color}
+                  style={{ marginBottom: 12 }}
+                />
                 <Text style={styles.emptyTitle}>
-                  {dailyBlocked
+                  {/* Duas frases, dois públicos. "Volta amanhã" só sai pra
+                      quem realmente vai ter tiragem amanhã (assinante). Pra
+                      quem não assina, a verdade é que a prévia é uma só e não
+                      renova — dizer o contrário é prometer o que o app não
+                      vai cumprir. */}
+                  {limiteDiarioReal
                     ? `Você já consultou o tema ${theme.key} hoje. Essa tiragem é única por dia — assuntos sérios como esse merecem uma resposta, não uma repetição até achar a que você quer ouvir. Volta amanhã.`
-                    : 'Você já usou sua leitura gratuita de Tarô — mas tem Leitura Bônus guardada da Loja. Use uma agora, ou assine pra tirar cartas todo dia.'}
+                    : 'Você já usou sua leitura gratuita de Tarô — ela é uma só e não renova amanhã. Mas você tem Leitura Bônus guardada da Loja: use uma agora, ou assine pra tirar cartas todo dia.'}
                 </Text>
                 {bonusReadings > 0 ? (
                   <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards(true)} style={styles.btnWrap}>
@@ -238,6 +272,20 @@ export default function TarotScreen() {
                   >
                     <Ionicons name="bag-handle" size={16} color={colors.gold} />
                     <Text style={styles.bonusStoreText}>{t('tarot.dailyLimit.storeCta')}</Text>
+                  </TouchableOpacity>
+                )}
+                {/* Quem não assina lê aqui "ou assine pra tirar cartas todo
+                    dia" — pedido sem botão é pedido morto. O toque que leva a
+                    Planos vem colado na frase (mesmo padrão já aplicado no
+                    resto do app). */}
+                {previaVitaliciaGasta && (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={[styles.bonusStoreBtn, { marginTop: 10 }]}
+                    onPress={() => navigateFromTab(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
+                  >
+                    <Ionicons name="diamond" size={16} color={colors.gold} />
+                    <Text style={styles.bonusStoreText}>{t('tarot.locked.cta')}</Text>
                   </TouchableOpacity>
                 )}
               </>
@@ -303,18 +351,24 @@ export default function TarotScreen() {
               />
             )}
 
-            {dailyBlocked ? (
-              <Text style={styles.dailyLimitNote}>
-                Essa foi a sua tiragem de {theme.key} de hoje — volta amanhã pra uma nova.
-              </Text>
-            ) : !hasAccess && locked ? (
+            {/* ORDEM IMPORTA: o ramo do limite diário vinha primeiro e, como
+                drawCards() liga dailyBlocked em TODA tiragem, quem não assina
+                lia "volta amanhã pra uma nova" logo abaixo das cartas — e o
+                botão de assinar nunca chegava a aparecer neste primeiro
+                estado. A prévia vitalícia vem primeiro agora, porque é ela
+                que decide o que acontece amanhã pra essa pessoa. */}
+            {previaVitaliciaGasta ? (
               // drawCards() já recusa redesenhar nesse caso — aqui é só pra não
               // deixar um botão "morto" que não faz nada visível ao tocar.
               // O texto ocupa o lugar do botão "Nova Tiragem": pedia assinatura
               // e não levava a Planos. Agora o pedido vem com o toque colado.
               <>
+                {/* Frase que vale pros dois jeitos de chegar aqui (tiragem
+                    grátis OU Leitura Bônus): o que importa é que a prévia é
+                    uma só e não renova. Nada de "volta amanhã" — amanhã, sem
+                    assinatura, é paywall. */}
                 <Text style={styles.dailyLimitNote}>
-                  Essa foi sua tiragem grátis — assine para tirar novas cartas quando quiser.
+                  Sua prévia grátis de Tarô é uma só e não renova amanhã — assine pra tirar cartas todo dia, em qualquer tema.
                 </Text>
                 <TouchableOpacity
                   activeOpacity={0.85}
@@ -325,6 +379,37 @@ export default function TarotScreen() {
                     <Ionicons name="diamond" size={18} color="#fff" />
                     <Text style={styles.btnText}>{t('tarot.locked.cta')}</Text>
                   </LinearGradient>
+                </TouchableOpacity>
+                {/* Ainda tem bônus guardado da Loja: dá pra tirar outra agora
+                    mesmo, sem assinar — a recompensa paga com tokens não pode
+                    ficar presa atrás do paywall (mesmo motivo do cenário [3]
+                    da regressão E2E). */}
+                {bonusReadings > 0 && (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={[styles.bonusStoreBtn, { marginTop: 10 }]}
+                    onPress={() => drawCards(true)}
+                  >
+                    <Ionicons name="sparkles" size={16} color={colors.gold} />
+                    <Text style={styles.bonusStoreText}>Usar Leitura Bônus ({bonusReadings})</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : limiteDiarioReal ? (
+              // Aqui "amanhã" é verdade: quem assina tem tiragem nova em cada
+              // tema quando o dia virar. E hoje ainda sobram os outros temas —
+              // por isso a frase aponta pra saída que existe agora.
+              <>
+                <Text style={styles.dailyLimitNote}>
+                  Essa foi a sua tiragem de {theme.key} de hoje — volta amanhã pra uma nova. Os outros temas lá em cima ainda têm a tiragem deles hoje.
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={[styles.bonusStoreBtn, { marginTop: 10 }]}
+                  onPress={() => navigateFromTab(ROUTES.PROFILE_TAB, { screen: ROUTES.LOJA })}
+                >
+                  <Ionicons name="bag-handle" size={16} color={colors.gold} />
+                  <Text style={styles.bonusStoreText}>{t('tarot.dailyLimit.storeCta')}</Text>
                 </TouchableOpacity>
               </>
             ) : (

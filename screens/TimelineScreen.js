@@ -1,13 +1,23 @@
-// Linha do tempo do casal — porta fiel de
+// Linha do tempo do casal — porta de
 // c:/tmp/gilfforever/web/app/(app)/timeline/page.js: mesmo schema de dados
-// (gff:${voce}:${amor} -> { memories, capsules }, ver lib/coupleData.js), mesmas
-// 3 memórias padrão sempre presentes e não removíveis, mesmo fluxo de
-// adicionar/eliminar memória e cápsula do tempo, mesma lógica de cápsula
-// selada vs. aberta (daysUntil(unlockAt) <= 0), com a cópia traduzida para
-// PT-BR (mesmo padrão adotado em QuizScreen.js) e adaptada aos primitivos do
-// React Native. Suporte a foto foi adiado (decisão explícita) — toda memória
+// (gff:${voce}:${amor} -> { memories, capsules }, ver lib/coupleData.js), mesmo
+// fluxo de adicionar/eliminar memória e cápsula do tempo, mesma lógica de
+// cápsula selada vs. aberta (daysUntil(unlockAt) <= 0), com a cópia traduzida
+// para PT-BR (mesmo padrão adotado em QuizScreen.js) e adaptada aos primitivos
+// do React Native. Suporte a foto foi adiado (decisão explícita) — toda memória
 // criada aqui salva photo: null, sem <input type="file">/canvas/base64.
-import React, { useCallback, useState } from 'react';
+//
+// DIVERGÊNCIA PROPOSITAL do original (29/07/2026): as 3 "memórias padrão"
+// (primeiro encontro / primeira viagem / "eu te amo") FORAM REMOVIDAS. Elas
+// faziam todo casal novo abrir a tela vendo "3 memórias" que nunca viveram,
+// com o botão de apagar escondido justamente nessas três — e ainda punham a
+// tela em contradição com Progresso ("0 memórias", conquista "Primeira
+// memória" trancada) e Retrospectiva ("o ano de vocês ainda está sendo
+// escrito"), que sempre contaram só o que a pessoa realmente salvou
+// (lib/activity.js lê timeline.memories direto do storage). Agora as três
+// telas leem a MESMA lista. O estado vazio honesto abaixo, que era código
+// morto, é o que roda pra quem chega.
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -29,14 +39,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { getTimeline, addMemory, deleteMemory, addCapsule, deleteCapsule, daysUntil } from '../lib/coupleData';
 
 const HEADER_GRADIENT = ['#B5387A', '#FF8C5C'];
-
-// title/text das memórias padrão viram chaves i18n — traduzidas no render
-// (memórias criadas pela pessoa continuam texto livre, nunca passam por t()).
-const DEFAULT_MEMORIES = [
-  { id: 'd1', date: '2023-03-12', title: 'timeline.defaultMemory.1.title', text: 'timeline.defaultMemory.1.text', photo: null },
-  { id: 'd2', date: '2023-07-28', title: 'timeline.defaultMemory.2.title', text: 'timeline.defaultMemory.2.text', photo: null },
-  { id: 'd3', date: '2024-02-14', title: 'timeline.defaultMemory.3.title', text: 'timeline.defaultMemory.3.text', photo: null },
-];
 
 function fmt(iso, t) {
   if (!iso) return '';
@@ -63,6 +65,17 @@ export default function TimelineScreen() {
   const [cDate, setCDate] = useState('');
 
   const [datePickerFor, setDatePickerFor] = useState(null); // null | 'memory' | 'capsule'
+
+  // O CTA do estado vazio precisa LEVAR ao formulário, não só pedir. O
+  // formulário mora nesta mesma tela, logo abaixo, então "levar" aqui é rolar
+  // até ele: guardamos o y do bloco (relativo ao conteúdo do ScrollView, que é
+  // o que scrollTo espera) no onLayout e usamos no toque.
+  const scrollRef = useRef(null);
+  const addMemoryY = useRef(0);
+
+  function scrollToAddMemory() {
+    scrollRef.current?.scrollTo({ y: Math.max(0, addMemoryY.current - 12), animated: true });
+  }
 
   const load = useCallback(async () => {
     if (!voce || !amor) return;
@@ -103,8 +116,9 @@ export default function TimelineScreen() {
     setCapsules((prev) => prev.filter((c) => c.id !== id));
   }
 
-  const defaultMemories = DEFAULT_MEMORIES.map((m) => ({ ...m, title: t(m.title), text: t(m.text) }));
-  const allMemories = [...defaultMemories, ...memories].sort((a, b) => a.date.localeCompare(b.date));
+  // Só o que o casal salvou de verdade — mesma lista que lib/activity.js conta
+  // em Progresso e Retrospectiva.
+  const allMemories = [...memories].sort((a, b) => a.date.localeCompare(b.date));
   const sign = (coupleData?.sa && zodiacSigns.find((z) => z.name === coupleData.sa)) || zodiacSigns[0];
 
   if (!voce || !amor) {
@@ -129,7 +143,7 @@ export default function TimelineScreen() {
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <GradientHeader title={t('timeline.header.title')} subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.linkCard}
@@ -159,6 +173,9 @@ export default function TimelineScreen() {
               <Text style={styles.emptyStateIcon}>💌</Text>
               <Text style={styles.emptyStateTitle}>{t('timeline.empty.memories.title')}</Text>
               <Text style={styles.emptyStateDesc}>{t('timeline.empty.memories.desc', { voce, amor })}</Text>
+              <TouchableOpacity style={[styles.btn, styles.emptyStateBtn]} onPress={scrollToAddMemory}>
+                <Text style={styles.btnText}>{t('timeline.empty.memories.cta')}</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.timeline}>
@@ -167,18 +184,20 @@ export default function TimelineScreen() {
                   <Text style={styles.tlDate}>{fmt(m.date, t)}</Text>
                   <Text style={styles.tlTitle}>{m.title}</Text>
                   {!!m.text && <Text style={styles.tlText}>{m.text}</Text>}
-                  {!String(m.id).startsWith('d') && (
-                    <TouchableOpacity style={styles.delBtn} onPress={() => handleDeleteMemory(m.id)}>
-                      <Text style={styles.delText}>{t('timeline.delete')}</Text>
-                    </TouchableOpacity>
-                  )}
+                  {/* Toda memória na lista agora é do casal, então toda memória
+                      pode ser apagada. O antigo `!id.startsWith('d')` só existia
+                      pra blindar as memórias inventadas. */}
+                  <TouchableOpacity style={styles.delBtn} onPress={() => handleDeleteMemory(m.id)}>
+                    <Text style={styles.delText}>{t('timeline.delete')}</Text>
+                  </TouchableOpacity>
                 </View>
               ))}
             </View>
           )}
         </View>
 
-        {/* Adicionar memória */}
+        {/* Adicionar memória — alvo do CTA do estado vazio */}
+        <View onLayout={(e) => { addMemoryY.current = e.nativeEvent.layout.y; }}>
         <Text style={styles.sectionTitle}>{t('timeline.addMemory.section')}</Text>
         <View style={styles.card}>
           <View style={styles.field}>
@@ -216,6 +235,7 @@ export default function TimelineScreen() {
           >
             <Text style={styles.btnText}>{t('timeline.addMemory.save')}</Text>
           </TouchableOpacity>
+        </View>
         </View>
 
         {/* Cápsulas do tempo */}
@@ -327,6 +347,7 @@ const styles = StyleSheet.create({
   emptyStateIcon: { fontSize: 32, marginBottom: 8 },
   emptyStateTitle: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
   emptyStateDesc: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 4 },
+  emptyStateBtn: { marginTop: 14, paddingHorizontal: 20, alignSelf: 'center' },
 
   timeline: { marginTop: 4 },
   tlItem: { borderLeftWidth: 2, borderLeftColor: colors.accent, paddingLeft: 12, paddingBottom: 16 },
