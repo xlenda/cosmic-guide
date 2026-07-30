@@ -8,9 +8,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, gradients } from '../theme';
+import { ROUTES } from '../routes';
 import { attachVoiceInsight } from '../lib/journal';
 import { fetchAiEnhancedInsight } from '../lib/aiClient';
 
@@ -24,6 +26,7 @@ const STEP = { IDLE: 'idle', RECORDING: 'recording', REVIEW: 'review', ENHANCING
 // entryId: id da entrada já salva no Diário Cósmico (lib/journal.js) pra essa
 // leitura — o insight é anexado nela, nunca cria uma entrada nova.
 export default function VoiceInsightRecorder({ entryId, readingType, readingTitle }) {
+  const navigation = useNavigation();
   const [step, setStep] = useState(STEP.IDLE);
   const [transcript, setTranscript] = useState('');
   const [enhanced, setEnhanced] = useState(null);
@@ -131,6 +134,20 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
         {enhanced && <Text style={styles.enhancedText}>{enhanced}</Text>}
         {!enhanced && <Text style={styles.transcriptText}>{transcript}</Text>}
         {error && <Text style={styles.errorText}>{error}</Text>}
+        {/* "Guardado no Diário" sem o caminho pro Diário era um beco: o
+            testador salvou insights e ficou procurando onde tinham ido parar
+            ("preciso descobrir aonde estão os insights salvos", 29/07/2026).
+            Mesmo padrão navigateFromTab do OneTimeLock — este componente vive
+            dentro das telas de leitura (TarotStack etc.) e o Diário mora no
+            HomeStack, então o navigate precisa borbulhar pro tab navigator. */}
+        <TouchableOpacity
+          style={styles.diaryLink}
+          activeOpacity={0.7}
+          onPress={() => (navigation.getParent() || navigation).navigate(ROUTES.HOME_TAB, { screen: ROUTES.DIARY })}
+        >
+          <Text style={styles.diaryLinkText}>Ver no Diário Cósmico</Text>
+          <Ionicons name="arrow-forward" size={14} color={colors.accent} />
+        </TouchableOpacity>
       </View>
     );
   }
@@ -219,6 +236,8 @@ const styles = StyleSheet.create({
   label: { color: colors.text, fontSize: 14, fontWeight: '700' },
   hint: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
   errorText: { color: colors.amber, fontSize: 12, lineHeight: 17 },
+  diaryLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10, alignSelf: 'flex-start' },
+  diaryLinkText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   transcriptText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, fontStyle: 'italic' },
   enhancedText: { color: colors.text, fontSize: 14, lineHeight: 20 },
   doneTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
