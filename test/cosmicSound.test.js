@@ -394,6 +394,105 @@ test("o preset padrão é o céu de hoje, e ele não tem frequência fixa", () =
   assert.equal(PRESETS[0].associacaoTradicional, null);
 });
 
+// ---------------------------------------------------------------------------
+// 4b. A MESMA TRAVA, NAS FRASES QUE A PESSOA REALMENTE LÊ
+// ---------------------------------------------------------------------------
+// O bloco acima varre PRESETS, AVISO_PRESETS e descreverCeu — e NENHUM DOS TRÊS
+// chega à tela: components/CosmicSoundPlayer.js renderiza as chaves sound.* de
+// lib/i18n.js, em três idiomas. Ou seja, o texto protegido não era o texto
+// publicado. Este teste fecha o buraco: varre o dicionário de verdade, nos três
+// idiomas, e por isso a lista de palavras vem em português, espanhol e inglês.
+//
+// Uma alegação de saúde em espanhol não é menos ilegal por estar em espanhol.
+test("nenhuma string sound.* renderizada faz alegação de saúde, em nenhum idioma", () => {
+  const { _DICTS_FOR_TESTS, LANGUAGES } = require("../lib/i18n.js");
+
+  const proibidas = [
+    // pt
+    /\bcur(a|ar|as|am|ativ)/i, /\btrata(r|mento)?\b/i, /\bregenera/i,
+    /\bansiedade\b/i, /\bdepress(ão|ao|iva|ivo)\b/i, /\bins[oô]nia\b/i,
+    /\bdores?\b/i, /\bterap[eê]utic/i, /\bemagre/i, /\bimunidade\b/i,
+    /\bremédio\b/i, /\bcicatriz/i, /\bsono\b/i, /\bdormir\b/i, /\bestresse\b/i,
+    /\brelaxa/i, /\bacalma/i, /\balivi(a|ar|o)\b/i, /\bharmoniza/i,
+    /\bequilibra/i, /\bbem-estar\b/i, /\bsaúde\b/i,
+    // es
+    /\btrata(miento)?\b/i, /\bansiedad\b/i, /\bdepresión\b/i, /\binsomnio\b/i,
+    /\bdolor(es)?\b/i, /\bterapéutic/i, /\binmunidad\b/i, /\bremedio\b/i,
+    /\bsueño\b/i, /\bestrés\b/i, /\brelaja/i, /\bcalma\b/i, /\barmoniza/i,
+    /\bbienestar\b/i, /\bsalud\b/i,
+    // en
+    /\bcure[sd]?\b/i, /\bheal(s|ing|ed)?\b/i, /\btreat(s|ment|ing)?\b/i,
+    /\banxiety\b/i, /\bdepression\b/i, /\binsomnia\b/i, /\bpain\b/i,
+    /\btherapeutic\b/i, /\bimmun/i, /\bremedy\b/i, /\bsleep\b/i, /\bstress\b/i,
+    /\brelax/i, /\bsoothe?s?\b/i, /\brelieve/i, /\bharmoni[sz]e/i,
+    /\bwell-?being\b/i, /\bwellness\b/i, /\bhealth\b/i,
+    // qualquer idioma
+    /\bDNA\b/, /\bADN\b/,
+  ];
+
+  let varridas = 0;
+  for (const lang of LANGUAGES) {
+    const dict = _DICTS_FOR_TESTS[lang];
+    for (const chave of Object.keys(dict)) {
+      if (!chave.startsWith("sound.")) continue;
+      varridas++;
+      const texto = String(dict[chave]);
+      for (const re of proibidas) {
+        assert.ok(!re.test(texto), `alegação proibida (${re}) em ${lang}/${chave}: "${texto}"`);
+      }
+    }
+  }
+  assert.ok(varridas > 100, `varreu só ${varridas} strings sound.* — o dicionário sumiu?`);
+});
+
+test("na tela, frequência é sempre atribuída à tradição — e a tradição é datada", () => {
+  const { _DICTS_FOR_TESTS, LANGUAGES } = require("../lib/i18n.js");
+
+  for (const lang of LANGUAGES) {
+    const dict = _DICTS_FOR_TESTS[lang];
+
+    // As seis de Solfeggio: atribuição explícita, nunca afirmação própria.
+    for (const hz of [396, 417, 528, 639, 741, 852]) {
+      const frase = dict[`sound.assoc.${hz}`];
+      assert.ok(frase, `falta sound.assoc.${hz} em ${lang}`);
+      assert.match(
+        frase,
+        /tradi(ção|ción|tion)/i,
+        `${lang}/sound.assoc.${hz} afirma em vez de atribuir: "${frase}"`
+      );
+    }
+
+    // A data. "Tradição" sem data é lida como ANTIGA, e a lenda da escala
+    // Solfeggio ancestral é justamente o que vende frequência por aí. A
+    // numeração é dos anos 1970 — a tela precisa dizer isso.
+    const origem = dict["sound.assoc.origin"];
+    assert.ok(origem, `falta sound.assoc.origin em ${lang}`);
+    assert.match(origem, /19\s?70/, `${lang}/sound.assoc.origin sem a década: "${origem}"`);
+
+    // 432 Hz não é Solfeggio e não pode ser datado junto: é proposta de
+    // afinação, e a frase dele tem que continuar dizendo isso.
+    assert.match(
+      dict["sound.assoc.432"],
+      /afina(ção|ción)|tuning/i,
+      `${lang}/sound.assoc.432 perdeu o enquadramento de afinação`
+    );
+
+    // E o aviso que acompanha toda frequência na tela.
+    const aviso = dict["sound.disclaimer"];
+    assert.ok(aviso, `falta sound.disclaimer em ${lang}`);
+    assert.match(
+      aviso,
+      /sem confirmação científica|sin confirmación científica|no scientific backing/i,
+      `${lang}/sound.disclaimer não nega respaldo científico: "${aviso}"`
+    );
+    assert.match(
+      aviso,
+      /promessa|promesa|promise/i,
+      `${lang}/sound.disclaimer não nega promessa de efeito: "${aviso}"`
+    );
+  }
+});
+
 // ===========================================================================
 // 5. MOTOR DE ÁUDIO — mock da Web Audio API
 // ===========================================================================
@@ -435,7 +534,12 @@ function criarMockWebAudio() {
         p.eventos.push({ tipo: "cancel", t });
         return p;
       },
-      connect() {}, // AudioParam é destino de connect (usado pelos LFOs)
+      // NÃO acrescentar connect() aqui. AudioParam de verdade NÃO tem connect
+      // — quem conecta é o nó (gain.connect(param)). O mock antigo dava esse
+      // método ao parâmetro e, com isso, o guarda de criarLFO() passava no
+      // teste e reprovava no Chrome: os quatro LFOs eram pulados em silêncio
+      // em produção e ninguém via. Manter o mock fiel à API real é o que faz
+      // este arquivo valer alguma coisa.
     };
     return p;
   }
@@ -725,6 +829,64 @@ test("contexto suspenso que retoma com o toque toca normalmente", async (t) => {
   assert.ok(registro.osciladores.length > 0);
 
   await pararEsperando(som);
+});
+
+test("os quatro LFOs conectam mesmo — em AudioParam, que não tem connect()", async (t) => {
+  // Regressão do bug que só aparecia no navegador: com o guarda errado em
+  // criarLFO(), o grafo saía com 3 osciladores em vez de 7 e o som ficava
+  // completamente estático — nenhuma varredura, nenhum batimento, nenhuma
+  // respiração no ruído. A promessa de "nunca repete" virava letra morta.
+  const { registro } = comAudio(t);
+  const som = createCosmicSound({ agora: () => dia("2026-07-30") });
+  await som.start();
+
+  assert.equal(registro.osciladores.length, 7, "3 do drone + 4 LFOs");
+  // Um AudioParam se distingue de um nó por ter agenda de automação e NÃO ter
+  // o campo `tipo` que o mock põe em todo nó.
+  const ganhosEmParam = registro.ganhos.filter((g) =>
+    g.conectadoA.some((d) => d && typeof d.setValueAtTime === "function" && !d.tipo)
+  );
+  assert.equal(ganhosEmParam.length, 4, "algum LFO não chegou a modular nada");
+
+  await pararEsperando(som);
+  assert.equal(som.inspecionar().nos, 0);
+});
+
+test("dois toques no play antes de o navegador liberar o áudio não montam dois grafos", async (t) => {
+  // Chrome/Safari entregam o AudioContext SUSPENSO até o primeiro gesto: é
+  // exatamente aí que start() dorme num await e o guarda `tocando` ainda é
+  // false. Dois toques rápidos (ou o botão do dock + o do card da Home)
+  // montavam dois grafos completos: volume dobrado e CPU dobrada.
+  const { registro } = comAudio(t, { estadoInicial: "suspended" });
+  const som = createCosmicSound({ agora: () => dia("2026-07-30") });
+
+  const a = som.start();
+  const b = som.start();
+  const [ra, rb] = await Promise.all([a, b]);
+
+  assert.equal(ra.ok, true);
+  assert.equal(rb.ok, true);
+  assert.equal(registro.osciladores.length, 7, "montou o grafo duas vezes (volume e CPU dobrados)");
+  assert.equal(registro.fontesBuffer.length, 1, "duas camadas de ruído tocando juntas");
+  assert.equal(som.inspecionar().fontes, 8, "3 drone + 4 LFO + 1 ruído");
+
+  await pararEsperando(som);
+  assert.equal(som.inspecionar().nos, 0, "sobrou nó vivo depois do stop");
+});
+
+test("pausar enquanto o navegador libera o áudio para de verdade — o som não sobe sozinho depois", async (t) => {
+  comAudio(t, { estadoInicial: "suspended" });
+  const som = createCosmicSound({ agora: () => dia("2026-07-30") });
+
+  const p = som.start();
+  const s = som.stop();
+  await adiantar(6_000);
+  await p;
+  await s;
+
+  assert.equal(som.isPlaying(), false, "a pessoa apertou pausar e o som começou assim mesmo");
+  assert.equal(som.inspecionar().nos, 0, "grafo vivo depois de um pause que devia ter valido");
+  assert.equal(som.inspecionar().temporizadores, 0);
 });
 
 test("start() duas vezes seguidas não duplica o grafo", async (t) => {

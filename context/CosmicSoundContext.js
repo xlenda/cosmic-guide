@@ -90,17 +90,19 @@ export function CosmicSoundProvider({ children }) {
   const [ocupado, setOcupado] = useState(false);
   const [volume, setVolume] = useState(0.45);
   const [presetId, setPresetId] = useState(PRESETS[0].id);
-  // A afinação PARADA é calculada na hora (getSkyTuning é puro e roda sem
-  // áudio nenhum) só pra tela poder explicar o som ANTES de a pessoa tocar.
-  // Enquanto toca, vale a afinação que o motor montou de fato — o grafo não
-  // muda de timbre no meio da sessão, então dizer outra coisa seria mentira.
-  const [afinacao, setAfinacao] = useState(() => {
-    try {
-      return getSkyTuning();
-    } catch {
-      return null;
-    }
-  });
+  // A afinação PARADA existe só pra tela poder explicar o som ANTES de a
+  // pessoa tocar. Enquanto toca, vale a afinação que o motor montou de fato —
+  // o grafo não muda de timbre no meio da sessão, então dizer outra coisa
+  // seria mentira.
+  //
+  // COMEÇA NULA DE PROPÓSITO: getSkyTuning() roda a efeméride
+  // (astronomy-engine) e este provider fica ACIMA de todas as telas. Calcular
+  // no inicializador do useState punha esse custo no PRIMEIRO RENDER de todo
+  // mundo — inclusive de quem nunca vai ligar o som e de quem abriu direto num
+  // link pra uma tela que não usa astrologia nenhuma. O efeito logo abaixo
+  // calcula depois da primeira pintura; até lá a tela só não mostra a linha do
+  // porquê, e nada mais muda.
+  const [afinacao, setAfinacao] = useState(null);
   const [timerMinutos, setTimerMinutos] = useState(SEM_TIMER);
   const [restanteS, setRestanteS] = useState(null);
   const [escutaS, setEscutaS] = useState(0);
@@ -125,6 +127,11 @@ export function CosmicSoundProvider({ children }) {
   const ultimoMinutoPublicadoRef = useRef(-1);
   const fechandoRef = useRef(false);
   const sessaoAtivaRef = useRef(false);
+  // Nº do pedido de "tocar" em voo. Todo pararTudo() incrementa, invalidando
+  // qualquer start que ainda esteja esperando o navegador liberar o áudio —
+  // sem isso, quem apertasse pausar durante a liberação via o botão voltar
+  // sozinho pra "tocando" quando o start antigo finalmente resolvesse.
+  const pedidoRef = useRef(0);
   // Os controles da tela de bloqueio são registrados uma vez e vivem fora do
   // ciclo de render — por isso chamam as ações por ref, e não pela closure da
   // render em que foram criados (que ficaria velha na primeira troca de
@@ -161,6 +168,16 @@ export function CosmicSoundProvider({ children }) {
     return () => {
       vivo = false;
     };
+  }, []);
+
+  // O céu de hoje, calculado DEPOIS da primeira pintura (ver o comentário do
+  // useState de `afinacao`). Um efeito é passivo: não atrasa o primeiro
+  // desenho de ninguém, e quem nunca liga o som paga no máximo uma renderização
+  // a mais de dois controles pequenos.
+  useEffect(() => {
+    try {
+      setAfinacao(getSkyTuning());
+    } catch {}
   }, []);
 
   // ---------------------------------------------------------------------
@@ -260,6 +277,7 @@ export function CosmicSoundProvider({ children }) {
   const pararTudo = useCallback(
     async (motivo) => {
       const motor = motorRef.current;
+      pedidoRef.current += 1; // invalida um tocar() que ainda esteja em voo
       tocandoRef.current = false;
       setTocando(false);
       fimTimerRef.current = null;
@@ -309,11 +327,22 @@ export function CosmicSoundProvider({ children }) {
       return;
     }
     if (tocandoRef.current || fechandoRef.current) return;
+    const meuPedido = ++pedidoRef.current;
     setOcupado(true);
     setAviso(null);
     try {
       const motor = await obterMotor();
       const r = await motor.start();
+      // Pausou no meio da liberação do áudio: pararTudo() já incrementou o
+      // pedido e já mandou o motor parar. Marcar "tocando" aqui deixaria a tela
+      // anunciando um som que não existe (e o dock com botão de pausa que não
+      // pausa nada).
+      if (pedidoRef.current !== meuPedido) {
+        try {
+          await motor.stop();
+        } catch {}
+        return;
+      }
       if (!r || !r.ok) {
         setAviso((r && r.motivo) || 'falha-audio');
         return;

@@ -463,3 +463,87 @@ test('moonBodyTransit devolve a região de hoje e a próxima troca, dentro de ~3
   const i = ZODIAC_BODY.findIndex((e) => e.id === tr.entry.id);
   assert.equal(tr.nextEntry.id, ZODIAC_BODY[(i + 1) % 12].id);
 });
+
+// ---------------------------------------------------------------------------
+// 5. Fidelidade das citações (auditoria de 30/07/2026)
+// ---------------------------------------------------------------------------
+// Quatro erros de citação chegaram até aqui vindos da pesquisa e foram
+// corrigidos contra as fontes. Ficam pinados: reintroduzi-los é fácil, porque
+// as versões erradas são as que circulam por aí e "soam certas".
+
+test('os versos de Manílio batem com a numeração impressa do Latin Library', () => {
+  // A página marca 450/455/460/465 na margem: 453 "Accipe divisas", 456
+  // "exercent. Aries caput…", 460 "sub Cancro est…", 465 "…Piscesque pedum".
+  // As três primeiras entradas vinham erradas por uma a duas linhas (Áries
+  // 454-456, Touro 456-457, Gêmeos 457-459) — a própria pesquisa se
+  // contradizia com o intervalo geral que ela mesma dava, II.453-465.
+  const ESPERADO = {
+    aries: 'Astronomica II.456-457',
+    touro: 'Astronomica II.457-458',
+    gemeos: 'Astronomica II.458-459',
+    cancer: 'Astronomica II.459-460',
+    leao: 'Astronomica II.460',
+    virgem: 'Astronomica II.461',
+    libra: 'Astronomica II.462',
+    escorpiao: 'Astronomica II.462',
+    sagitario: 'Astronomica II.463',
+    capricornio: 'Astronomica II.463-464',
+    aquario: 'Astronomica II.464-465',
+    peixes: 'Astronomica II.465',
+  };
+  for (const e of ZODIAC_BODY) {
+    assert.equal(e.locus, ESPERADO[e.id], `${e.id}: verso divergente — recontar na margem da fonte`);
+  }
+  // O conjunto tem que caber dentro do intervalo canônico II.453-465.
+  for (const e of ZODIAC_BODY) {
+    for (const n of e.locus.replace('Astronomica II.', '').split('-').map(Number)) {
+      assert.ok(n >= 453 && n <= 465, `${e.id}: verso ${n} fora de II.453-465`);
+    }
+  }
+});
+
+test('citação de Culpeper cortada no meio da frase termina em reticências', () => {
+  // Três verbetes terminavam com PONTO onde o original tem VÍRGULA e continua
+  // (vervain, camomile, angelica) — frase truncada passando por frase inteira.
+  // Numa tela que se vende como verbatim, apagar o corte é pior que o corte.
+  const CORTADAS = {
+    vervain: 'This is an herb of Venus',
+    camomile: 'They are under the dominion of the Moon',
+    angelica: 'observe the like in gathering the herbs of other planets',
+  };
+  for (const [id, fim] of Object.entries(CORTADAS)) {
+    const herb = CULPEPER_HERBS.find((h) => h.id === id);
+    assert.ok(herb, `verbete ${id} sumiu`);
+    assert.ok(
+      herb.quote.endsWith(`${fim}...`),
+      `${id}: o texto de 1653 continua depois de "${fim}" — o corte precisa das ` +
+        `reticências, senão a citação mente sobre onde a frase acabava`
+    );
+  }
+});
+
+test('a lista de acréscimos modernos credita Daath, não Alan Leo', () => {
+  // "Medical Astrology" (manual n.º 9, 1914) é de HEINRICH DAATH. Alan Leo era
+  // o editor da série, não o autor — creditar o livro a ele é o mesmo tipo de
+  // erro de atribuição que a tela inteira existe para desmontar.
+  for (const lang of LANGUAGES) {
+    const v = _DICTS_FOR_TESTS[lang]['zodiacBody.modern.intro'];
+    assert.match(v, /Daath/, `${lang}: o autor de Medical Astrology sumiu do crédito`);
+    assert.doesNotMatch(
+      v,
+      /Alan Leo \(19/,
+      `${lang}: Alan Leo está creditado como autor com data de publicação — ele editava a série`
+    );
+  }
+});
+
+test('o Centiloquium não é atribuído a Ptolomeu, e o nome do autor proposto está inteiro', () => {
+  // Lemay propõe Abu Jaʿfar AHMAD ibn Yusuf. O "Ĝ" que estava aqui não é
+  // transliteração de nada, e o "Ahmad" tinha caído.
+  for (const lang of LANGUAGES) {
+    const v = _DICTS_FOR_TESTS[lang]['zodiacBody.history.rule.body'];
+    assert.match(v, /Ahmad ibn Yusuf/, `${lang}: nome do autor proposto incompleto`);
+    assert.doesNotMatch(v, /Ĝ/, `${lang}: transliteração inválida no nome`);
+    assert.match(v, /Lemay/, `${lang}: a tese precisa continuar atribuída a quem a fez`);
+  }
+});

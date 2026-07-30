@@ -118,6 +118,39 @@ function useMovimentoReduzido() {
   return reduzido;
 }
 
+// ---------------------------------------------------------------------------
+// PULSO DO ÍCONE — e por que na WEB ele não é Animated
+// ---------------------------------------------------------------------------
+// react-native-web não tem driver nativo: `useNativeDriver: true` cai em
+// silêncio pro driver JS (o próprio RNW avisa isso no console) e a animação
+// vira um laço de requestAnimationFrame escrevendo estilo a cada quadro.
+// Medido no Chrome em 30/07/2026 com o som tocando: ~120 callbacks de rAF por
+// segundo — dois laços, um do dock e um do card da Home — CONTÍNUOS. Numa
+// feature cujo propósito é ficar aberta por HORAS, essa animação custava mais
+// bateria que o áudio inteiro (o grafo tem 8 fontes e nenhum convolver).
+//
+// Na web o pulso passa a ser uma animação CSS: roda no compositor, não acorda
+// o JS nenhuma vez, o navegador congela sozinho quando a aba sai da frente e
+// o próprio CSS respeita prefers-reduced-motion sem precisar de listener.
+// No nativo, onde o driver nativo existe de verdade, nada muda.
+const CSS_PULSO =
+  '@keyframes cgPulso{0%,100%{opacity:1}50%{opacity:.45}}' +
+  '[data-cgpulso="on"]{animation:cgPulso 4.4s ease-in-out infinite}' +
+  '@media (prefers-reduced-motion: reduce){[data-cgpulso="on"]{animation:none;opacity:1}}';
+
+let cssPulsoInjetado = false;
+function garantirCssDoPulso() {
+  if (cssPulsoInjetado) return;
+  if (Platform.OS !== 'web' || typeof document === 'undefined' || !document.head) return;
+  cssPulsoInjetado = true;
+  try {
+    const el = document.createElement('style');
+    el.setAttribute('data-cosmic-sound', 'pulso');
+    el.textContent = CSS_PULSO;
+    document.head.appendChild(el);
+  } catch {}
+}
+
 // Pulso lento do ícone enquanto toca. Desligado por completo com movimento
 // reduzido (o valor fica parado em 1, sem loop rodando em segundo plano).
 function usePulso(ativo) {
@@ -138,6 +171,22 @@ function usePulso(ativo) {
     return () => loop.stop();
   }, [ativo, reduzido, valor]);
   return { opacidade: valor, reduzido };
+}
+
+// O ícone que pulsa enquanto o som toca. Web = CSS (zero rAF), nativo =
+// Animated com driver nativo. Os dois caminhos mostram a MESMA coisa, e em
+// nenhum dos dois o estado de "tocando" depende só da animação pra ser lido:
+// o ícone troca de play pra pause e o texto diz "Tocando".
+function IconePulsante({ ativo, children }) {
+  // Na web o hook recebe sempre false: o Animated.loop nunca chega a começar,
+  // que é justamente o ponto (era ele o gasto de bateria).
+  const naWeb = Platform.OS === 'web';
+  const { opacidade } = usePulso(!naWeb && !!ativo);
+  if (naWeb) {
+    garantirCssDoPulso();
+    return <View dataSet={{ cgpulso: ativo ? 'on' : 'off' }}>{children}</View>;
+  }
+  return <Animated.View style={{ opacity: ativo ? opacidade : 1 }}>{children}</Animated.View>;
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +231,19 @@ function nomeDoPreset(t, preset) {
 function textoDeTradicao(t, preset) {
   if (!preset.baseHz) return t('sound.preset.skyHint');
   return t(`sound.assoc.${preset.baseHz}`);
+}
+
+// A palavra "tradição" sozinha deixa o leitor supor ANTIGA — e é exatamente
+// isso que o mercado de frequências vende ("escala Solfeggio ancestral",
+// "canto gregoriano"). A numeração é dos anos 1970 (Joseph Puleo; Horowitz
+// entra nos anos 1990). Omitir a data não é neutro: é deixar o mito trabalhar
+// a nosso favor. Então a origem vai na tela, junto da frase da tradição.
+//
+// Só para os presets de Solfeggio: 432 Hz NÃO é Solfeggio — é uma proposta de
+// afinação de concerto, de outra época e outra história. Carimbar "anos 1970"
+// embaixo dele seria trocar um erro por outro.
+function ehSolfeggio(preset) {
+  return !!preset.baseHz && String(preset.id).startsWith('solfeggio-');
 }
 
 // ---------------------------------------------------------------------------
@@ -280,6 +342,7 @@ function Painel({ aberto, aoFechar }) {
               })}
             </ScrollView>
             <Text style={s.tradicao}>{textoDeTradicao(t, preset)}</Text>
+            {ehSolfeggio(preset) ? <Text style={s.disclaimer}>{t('sound.assoc.origin')}</Text> : null}
             {preset.baseHz ? <Text style={s.disclaimer}>{t('sound.disclaimer')}</Text> : null}
 
             {/* Timer */}
@@ -353,7 +416,6 @@ export default function CosmicSoundPlayer({ variant = 'dock', style }) {
   const som = useCosmicSound();
   const insets = useSafeAreaInsets();
   const [aberto, setAberto] = useState(false);
-  const { opacidade } = usePulso(!!(som && som.tocando));
 
   // Um controle embutido na tela avisa o contexto que existe — o dock some
   // enquanto ele está visível e o som está parado, pra não haver dois botões
@@ -378,9 +440,9 @@ export default function CosmicSoundPlayer({ variant = 'dock', style }) {
     return (
       <View style={[s.card, style]}>
         <View style={s.cardTopo}>
-          <Animated.View style={{ opacity: som.tocando ? opacidade : 1 }}>
+          <IconePulsante ativo={!!som.tocando}>
             <Ionicons name="musical-notes" size={16} color={colors.teal} />
-          </Animated.View>
+          </IconePulsante>
           <Text style={s.cardTitulo}>{t('sound.title')}</Text>
           {som.tocando ? <Text style={s.selo}>{t('sound.playing')}</Text> : null}
         </View>
@@ -431,9 +493,9 @@ export default function CosmicSoundPlayer({ variant = 'dock', style }) {
           accessibilityRole="button"
           accessibilityLabel={t('sound.open')}
         >
-          <Animated.View style={{ opacity: som.tocando ? opacidade : 1 }}>
+          <IconePulsante ativo={!!som.tocando}>
             <Ionicons name="musical-notes" size={15} color={som.tocando ? colors.teal : colors.textMuted} />
-          </Animated.View>
+          </IconePulsante>
           <Text style={[s.pilulaTexto, som.tocando && { color: colors.text }]} numberOfLines={1}>
             {t('sound.title')}
           </Text>
@@ -486,7 +548,11 @@ const s = StyleSheet.create({
   cardTopo: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
   cardTitulo: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
   selo: { color: colors.teal, fontSize: 11, fontWeight: '700' },
-  cardLinha: { color: colors.textSecondary, fontSize: 12.5, lineHeight: 18, marginBottom: 10 },
+  // minHeight reserva a linha do porquê: a afinação é calculada DEPOIS da
+  // primeira pintura (ver context/CosmicSoundContext.js), então sem isso o card
+  // cresceria um quadro depois e empurraria a Home pra baixo — salto de layout
+  // à toa logo no arranque.
+  cardLinha: { color: colors.textSecondary, fontSize: 12.5, lineHeight: 18, marginBottom: 10, minHeight: 18 },
   cardBotoes: { flexDirection: 'row', gap: 8 },
   cardNota: { color: colors.textMuted, fontSize: 11, lineHeight: 15, marginTop: 10 },
 
