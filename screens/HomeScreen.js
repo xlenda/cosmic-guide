@@ -605,7 +605,13 @@ export default function HomeScreen() {
   // que chegou — o texto de verdade sempre vive aqui dentro. Passa o `sign`
   // já calculado acima (real, casal ou solo — nunca inventado aqui) pra
   // personalizar o endereçamento da frase.
-  const todaysThought = getTodaysThought(sign);
+  //
+  // `lang` é o 3º argumento e é a ÚNICA coisa que mudou aqui em 31/07/2026: o
+  // pensamento passou a existir em es/en (packs em lib/traducoes/pensamento.*).
+  // O cálculo não muda com o idioma — mesmo dia + mesmo signo dá o mesmo
+  // pensamento nos três. `sign.name` continua sendo o nome CANÔNICO em
+  // português (theme.js): quem traduz o nome pra tela é o pack, dentro do lib.
+  const todaysThought = getTodaysThought(sign, new Date(), lang);
 
   // A Espiada de Amanhã saiu da Home em 31/07/2026 (ver o comentário no lugar
   // onde o card ficava). O cálculo saiu junto — deixar getThoughtForDate()

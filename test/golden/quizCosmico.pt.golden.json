@@ -674,5 +674,22 @@
       "hist-mercurio-retro",
       "taro-78-cartas"
     ]
+  },
+  "chromeTela": {
+    "titulo": "Você sabia?",
+    "subtitulo": "Sete perguntas por dia — o mito cai, a fonte fica",
+    "certo": "Na fonte certa!",
+    "errado": "Não foi dessa vez — a certa está marcada.",
+    "fontePrefixo": "Fonte: ",
+    "proxima": "Próxima pergunta",
+    "verPlacar": "Ver placar",
+    "placarTitulo": "Rodada de hoje",
+    "amanha": "Amanhã tem sete novas. A rodada muda com o dia — e é a mesma pra todo mundo, então dá pra comparar.",
+    "rodadaFeitaAviso": "Você já fez a rodada de hoje.",
+    "contador(3,7)": "Pergunta 3 de 7",
+    "placarDe(5,7)": "5 de 7",
+    "acumulado(1,1)": "No total, você já respondeu 1 pergunta — 1 na fonte certa.",
+    "acumulado(42,30)": "No total, você já respondeu 42 perguntas — 30 na fonte certa.",
+    "a11yOpcao(2)": "Alternativa 2"
   }
 }

@@ -14,10 +14,12 @@
 // escapar da varredura pela porta dos fundos — e o teste também varre este
 // arquivo inteiro, de propósito, pra fechar essa porta.
 //
-// O chrome (rótulos de botão, contadores) vive na constante TXT abaixo, em
-// PT literal. TODO(i18n): migrar pro dicionário é trabalho do integrador da
-// fase 2 — NESTA FASE lib/i18n.js não é tocado por ninguém desta frente, e é
-// por isso que este arquivo não importa useLanguage nem lib/i18n.
+// O chrome (rótulos de botão, contadores) TAMBÉM sai do motor: chromeDaTela(lang)
+// devolve as mesmas frases que viviam aqui como constante PT, agora nos três
+// idiomas. lib/i18n.js continua fora desta tela de propósito — o texto do quiz
+// inteiro, conteúdo e chrome, viaja pelos packs de lib/traducoes/quiz.<lang>.js.
+// O que `lang` NÃO muda: a rodada do dia (mesmas 7 perguntas em qualquer
+// língua) e qual alternativa é a certa.
 //
 // ===========================================================================
 // COMO O PROGRESSO FUNCIONA (e por que recarregar no FOCO)
@@ -46,10 +48,12 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import { useLanguage } from '../context/LanguageContext';
 import { localDayStr } from '../lib/localDay';
 import {
   TAMANHO_RODADA,
-  TEMA_ROTULOS,
+  temaRotulos,
+  chromeDaTela,
   rodadaDoDia,
   fraseDoPlacar,
   carregarQuizCosmico,
@@ -57,26 +61,6 @@ import {
   aplicarResposta,
   rodadaFeita,
 } from '../lib/quizCosmico';
-
-// Chrome da tela, PT literal — ver o cabeçalho pro porquê de não haver t()
-// aqui nesta fase.
-const TXT = {
-  titulo: 'Você sabia?',
-  subtitulo: 'Sete perguntas por dia — o mito cai, a fonte fica',
-  contador: (n, total) => `Pergunta ${n} de ${total}`,
-  certo: 'Na fonte certa!',
-  errado: 'Não foi dessa vez — a certa está marcada.',
-  fontePrefixo: 'Fonte: ',
-  proxima: 'Próxima pergunta',
-  verPlacar: 'Ver placar',
-  placarTitulo: 'Rodada de hoje',
-  placarDe: (acertos, total) => `${acertos} de ${total}`,
-  acumulado: (respondidas, acertos) =>
-    `No total, você já respondeu ${respondidas} pergunta${respondidas === 1 ? '' : 's'} — ${acertos} na fonte certa.`,
-  amanha: 'Amanhã tem sete novas. A rodada muda com o dia — e é a mesma pra todo mundo, então dá pra comparar.',
-  rodadaFeitaAviso: 'Você já fez a rodada de hoje.',
-  a11yOpcao: (n) => `Alternativa ${n}`,
-};
 
 // ---------------------------------------------------------------------------
 // Peças pequenas
@@ -104,6 +88,11 @@ function Pontos({ feitos, total, atual }) {
 // ---------------------------------------------------------------------------
 export default function QuizCosmicoScreen() {
   const navigation = useNavigation();
+  // `lang` é o fio inteiro do idioma aqui: chrome, perguntas, rótulo de tema e
+  // frase de placar saem do motor já na língua da pessoa. Nada de texto escrito
+  // nesta tela — ver cabeçalho.
+  const { lang } = useLanguage();
+  const TXT = chromeDaTela(lang);
 
   const [estado, setEstado] = useState(null); // carregarQuizCosmico()
   const [dia, setDia] = useState(localDayStr());
@@ -134,7 +123,8 @@ export default function QuizCosmicoScreen() {
   );
 
   // Determinística por dia: recarregar no meio da rodada devolve as MESMAS 7.
-  const perguntas = useMemo(() => rodadaDoDia(dia), [dia]);
+  // Trocar de idioma no meio também: a rodada não depende de `lang`, só o texto.
+  const perguntas = useMemo(() => rodadaDoDia(dia, lang), [dia, lang]);
 
   const feita = estado ? rodadaFeita(estado, dia) : null;
   const pergunta = !feita && posicao < TAMANHO_RODADA ? perguntas[posicao] : null;
@@ -172,13 +162,13 @@ export default function QuizCosmicoScreen() {
         {!estado ? (
           <ActivityIndicator color={colors.purple} style={styles.carregando} />
         ) : feita ? (
-          <Placar feita={feita} totais={estado.totais} />
+          <Placar feita={feita} totais={estado.totais} TXT={TXT} lang={lang} />
         ) : pergunta ? (
           <View>
             <View style={styles.topoRodada}>
               <Text style={styles.contador}>{TXT.contador(posicao + 1, TAMANHO_RODADA)}</Text>
               <View style={styles.temaBadge}>
-                <Text style={styles.temaTexto}>{TEMA_ROTULOS[pergunta.tema] || ''}</Text>
+                <Text style={styles.temaTexto}>{temaRotulos(lang)[pergunta.tema] || ''}</Text>
               </View>
             </View>
             <Pontos
@@ -262,13 +252,13 @@ export default function QuizCosmicoScreen() {
 
 // O placar do dia: nota da rodada, frase por faixa (do motor), acumulado da
 // vida e o convite de amanhã. Nenhuma medalha — ver cabeçalho.
-function Placar({ feita, totais }) {
+function Placar({ feita, totais, TXT, lang }) {
   return (
     <View style={styles.placar}>
       <Text style={styles.placarAviso}>{TXT.rodadaFeitaAviso}</Text>
       <Text style={styles.placarTitulo}>{TXT.placarTitulo}</Text>
       <Text style={styles.placarNota}>{TXT.placarDe(feita.acertos, feita.total)}</Text>
-      <Text style={styles.placarFrase}>{fraseDoPlacar(feita.acertos, feita.total)}</Text>
+      <Text style={styles.placarFrase}>{fraseDoPlacar(feita.acertos, feita.total, lang)}</Text>
       <View style={styles.separador} />
       <Text style={styles.acumulado}>{TXT.acumulado(totais.respondidas, totais.acertos)}</Text>
       <Text style={styles.amanha}>{TXT.amanha}</Text>

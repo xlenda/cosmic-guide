@@ -364,7 +364,7 @@ test('o código-fonte da tela passa inteiro na varredura (comentários incluído
       'a porta dos fundos que esta varredura fecha:\n  ' + violacoes.join('\n  '));
 });
 
-test('a tela respeita as fronteiras da fase: storage via lib, sem i18n, sem o quiz do casal', () => {
+test('a tela respeita as fronteiras: storage via lib, sem dicionário, sem o quiz do casal', () => {
   assert.ok(
     !/@react-native-async-storage/.test(FONTE_TELA),
     'AsyncStorage direto na tela — SEMPRE via lib/storage.js (o fallback errado apagava progresso)'
@@ -372,8 +372,36 @@ test('a tela respeita as fronteiras da fase: storage via lib, sem i18n, sem o qu
   // Só linhas de IMPORT contam — o cabeçalho da tela tem todo direito de
   // EXPLICAR por que não importa i18n, e a explicação cita o nome do arquivo.
   assert.ok(
-    !/from\s+['"][^'"]*(i18n|LanguageContext)['"]/.test(FONTE_TELA),
-    'NESTA FASE ninguém desta frente toca i18n — chrome em constante local, integrador da fase 2 migra'
+    !/from\s+['"][^'"]*lib\/i18n['"]/.test(FONTE_TELA) && !/require\(['"][^'"]*lib\/i18n/.test(FONTE_TELA),
+    'o texto desta tela mora nos packs de lib/traducoes/quiz.<lang>.js, não no dicionário de chrome'
+  );
+  // ESTA ASSERÇÃO MUDOU EM 31/07/2026, e a razão é que a antiga envelheceu.
+  // Ela proibia LanguageContext junto com i18n — andaime da fase em que só o
+  // integrador podia ligar idioma. A fase acabou: o quiz fala três línguas, e a
+  // tela PRECISA do useLanguage() pra saber em qual pedir o conteúdo ao motor.
+  // O que continua proibido é ela ESCREVER texto: chrome, pergunta, opção,
+  // explicação e recibo saem todos de lib/quizCosmico.js.
+  assert.ok(
+    /useLanguage/.test(FONTE_TELA),
+    'a tela precisa do useLanguage() pra passar o idioma ao lib/quizCosmico'
+  );
+  // A guarda é de CONTEÚDO, não de NOME: proibir literalmente `const TXT = {`
+  // seria contornável renomeando a constante pra TEXTOS, L ou COPIA, e o chrome
+  // voltaria pra tela com o teste verde. O que se proíbe é a FORMA: (a) texto
+  // corrido escrito dentro de <Text> no JSX e (b) qualquer objeto literal de
+  // chrome (o tell é a chave `titulo:` com string logo em seguida).
+  const TEXTO_SOLTO_NO_JSX = FONTE_TELA.match(/<Text[^>]*>\s*[A-Za-zÀ-ÿ]{4,}/g) || [];
+  assert.deepEqual(
+    TEXTO_SOLTO_NO_JSX,
+    [],
+    'a tela voltou a ESCREVER texto no JSX — toda string visível sai de ' +
+      'chromeDaTela()/perguntasParaIdioma() em lib/quizCosmico.js:\n  ' +
+      TEXTO_SOLTO_NO_JSX.join('\n  ')
+  );
+  assert.ok(
+    !/const\s+\w+\s*=\s*\{[^}]*titulo:\s*['"`]/.test(FONTE_TELA),
+    'o chrome voltou a ser constante literal na tela (com outro nome, dá no mesmo) — ' +
+      'ele mora em CHROME_TELA/packs desde a tradução'
   );
   assert.ok(
     /from '\.\.\/lib\/quizCosmico'/.test(FONTE_TELA),

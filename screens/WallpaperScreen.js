@@ -17,31 +17,19 @@
 // relógio, ícones e notificações. Por isso o desenho é: gradiente, um glifo,
 // uma linha de fase, uma frase, a data e a marca pequena. Nada mais.
 //
-// TEXTOS DIRETO EM PT, de propósito: nesta fase lib/i18n.js é território do
-// integrador da fase 2 — quando ele plugar a rota, promove estas constantes a
-// chaves de i18n sem mexer no resto.
+// OS TEXTOS SAÍRAM DAQUI em 31/07/2026 (era o TODO que este cabeçalho
+// prometia). Foram pra lib/wallpaper.js — TELA_PT e textosDaTela(lang), com
+// packs em lib/traducoes/wallpaper.es.js e .en.js — porque é lá que a feature
+// inteira mora e é lá que o teste já varre a linha vermelha. Esta tela voltou
+// a ser só desenho e download: recebe o idioma do useLanguage() e repassa.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
-import { getWallpaperData } from '../lib/wallpaper';
-
-const T = {
-  titulo: 'Papel de Parede',
-  subtitulo: 'O céu de hoje na sua tela',
-  baixar: 'BAIXAR PAPEL DE PAREDE',
-  baixado: 'Baixado. Agora é só definir como papel de parede nas configurações do celular.',
-  falhou: 'Não deu pra gerar a imagem agora. Tenta de novo.',
-  tamanho: '1080 × 1920 — cabe em qualquer tela de celular.',
-  amanha: 'Amanhã o céu muda — e o desenho muda junto. Volta aqui.',
-  soWeb: 'Baixar a imagem é da versão web por enquanto. Abre cosmicguide.cloud no navegador do celular que o botão aparece.',
-  semCeu: 'A posição da Lua não pôde ser calculada agora — o desenho de hoje é neutro e diz isso na própria frase.',
-  luaEm: 'LUA EM',
-  diaDe: 'DIA DE',
-  iluminada: 'iluminada',
-};
+import { getWallpaperData, textosDaTela } from '../lib/wallpaper';
+import { useLanguage } from '../context/LanguageContext';
 
 // ---------------------------------------------------------------------------
 // DESENHO — funções puras de canvas (só rodam na web)
@@ -94,7 +82,10 @@ function espacar(texto) {
   return String(texto).toUpperCase().split('').join(' ');
 }
 
-function desenhar(canvas, d) {
+// `T` entra por argumento (e não mais como constante de módulo) porque os
+// rótulos agora dependem do idioma. O DESENHO em si não depende: gradiente,
+// glifo, estrelas e disco de iluminação saem iguais nos três.
+function desenhar(canvas, d, T) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -138,10 +129,12 @@ function desenhar(canvas, d) {
   // é o mesmo dado honesto que getSkyTuning mantém no ramo sem céu.
   ctx.fillStyle = 'rgba(196, 184, 230, 0.9)';
   ctx.font = '600 34px system-ui, -apple-system, sans-serif';
-  const linhaPequena = d.signoLua
-    ? `${T.luaEm} ${d.signoLua}`
-    : d.regente
-    ? `${T.diaDe} ${d.regente}`
+  // *Texto e não os canônicos: `signoLua`/`regente` continuam em português em
+  // qualquer idioma de propósito (são chave de cálculo em lib/wallpaper.js).
+  const linhaPequena = d.signoLuaTexto
+    ? `${T.luaEm} ${d.signoLuaTexto}`
+    : d.regenteTexto
+    ? `${T.diaDe} ${d.regenteTexto}`
     : '';
   if (linhaPequena) ctx.fillText(espacar(linhaPequena), LARGURA / 2, 850);
 
@@ -165,7 +158,7 @@ function desenhar(canvas, d) {
 
     ctx.fillStyle = 'rgba(196, 184, 230, 0.85)';
     ctx.font = '400 30px system-ui, -apple-system, sans-serif';
-    const rotuloFase = `${d.fase} · ${d.iluminacao}% ${T.iluminada}`;
+    const rotuloFase = `${d.faseTexto} · ${d.iluminacao}% ${T.iluminada}`;
     ctx.fillText(rotuloFase, LARGURA / 2, 1080);
   }
 
@@ -196,22 +189,25 @@ export default function WallpaperScreen() {
   const canvasRef = useRef(null);
   const [recado, setRecado] = useState(null);
   const ehWeb = Platform.OS === 'web';
+  const { lang } = useLanguage();
+  const T = textosDaTela(lang);
 
-  // Uma vez por montagem: o desenho é determinístico por dia local (garantido
-  // por lib/wallpaper.js), então não há o que "atualizar" durante a sessão.
-  const dados = useMemo(() => getWallpaperData(new Date()), []);
+  // Uma vez por idioma: o desenho é determinístico por dia local (garantido
+  // por lib/wallpaper.js), então não há o que "atualizar" durante a sessão —
+  // só quando a pessoa troca de idioma, que é quando as palavras mudam.
+  const dados = useMemo(() => getWallpaperData(new Date(), lang), [lang]);
 
   useEffect(() => {
     if (!ehWeb) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     try {
-      desenhar(canvas, dados);
+      desenhar(canvas, dados, T);
     } catch {
       // Canvas indisponível (navegador muito velho): a tela ainda mostra os
       // dados em texto logo abaixo — não há o que quebrar.
     }
-  }, [ehWeb, dados]);
+  }, [ehWeb, dados, T]);
 
   function baixar() {
     setRecado(null);
@@ -272,13 +268,13 @@ export default function WallpaperScreen() {
           // -----------------------------------------------------------------
           <View style={[styles.previewNativo, { backgroundColor: dados.gradiente[0] }]}>
             <Text style={styles.glifoNativo}>{dados.glifo}</Text>
-            {dados.signoLua ? (
-              <Text style={styles.linhaPequena}>{`${T.luaEm} ${dados.signoLua.toUpperCase()}`}</Text>
-            ) : dados.regente ? (
-              <Text style={styles.linhaPequena}>{`${T.diaDe} ${dados.regente.toUpperCase()}`}</Text>
+            {dados.signoLuaTexto ? (
+              <Text style={styles.linhaPequena}>{`${T.luaEm} ${dados.signoLuaTexto.toUpperCase()}`}</Text>
+            ) : dados.regenteTexto ? (
+              <Text style={styles.linhaPequena}>{`${T.diaDe} ${dados.regenteTexto.toUpperCase()}`}</Text>
             ) : null}
-            {dados.fase && Number.isFinite(dados.iluminacao) ? (
-              <Text style={styles.faseNativo}>{`${dados.fase} · ${dados.iluminacao}% ${T.iluminada}`}</Text>
+            {dados.faseTexto && Number.isFinite(dados.iluminacao) ? (
+              <Text style={styles.faseNativo}>{`${dados.faseTexto} · ${dados.iluminacao}% ${T.iluminada}`}</Text>
             ) : null}
             <Text style={styles.fraseNativo}>{dados.frase}</Text>
             <Text style={styles.dataNativo}>{dados.dataFormatada}</Text>

@@ -13,15 +13,19 @@
 //
 // A ORDEM DO CARD É A REGRA DO APP, prende primeiro: o mito como ele circula
 // vem em cima (é a frase que a pessoa reconhece da própria timeline), a
-// correção vem grande logo abaixo, o `detalhe` conta a história em português
-// de conversa, e o recibo (obra, autor, ano) fecha embaixo, como recibo mesmo
-// — caixa pontilhada, cinza, sutil (feedback_design_sutil: elemento auxiliar
-// não grita).
+// correção vem grande logo abaixo, o `detalhe` conta a história na língua do
+// app, em voz de conversa, e o recibo (obra, autor, ano) fecha embaixo, como
+// recibo mesmo — caixa pontilhada, cinza, sutil (feedback_design_sutil:
+// elemento auxiliar não grita).
 //
-// i18n: NADA DAQUI PASSA POR t(). Nesta fase lib/i18n.js não é tocado — o
-// chrome usa as constantes locais UI abaixo, em PT, e a migração pra chave é
-// trabalho do integrador da fase 2 (mesmo caminho declarado no cabeçalho de
-// lib/rituais.js: primeiro o conteúdo estabiliza, depois vira chave).
+// i18n: NADA DAQUI PASSA POR t(), e continua não passando — lib/i18n.js segue
+// intocado. O que mudou é de onde vem o texto: o chrome que morava em
+// constantes locais aqui foi para CHROME_TELA, em lib/mitos.js, e sai
+// traduzido por chromeDaTela(lang); o conteúdo dos 25 mitos sai por
+// mitosParaIdioma(lang). Esta tela só passa o `lang` do useLanguage() adiante —
+// ela não escolhe idioma, não tem fallback próprio e não redige nada. A
+// migração pra chave de i18n é do integrador da fase 2, e é de CHROME_TELA que
+// ele vai tirar as strings.
 //
 // MITO DO DIA: determinístico por data (lib/mitos.js, padrão dailyThought) —
 // mesmo dia, mesmo mito, em qualquer aparelho. A tela abre nele, e o índice é
@@ -43,34 +47,24 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import { useLanguage } from '../context/LanguageContext';
 import {
-  MITOS,
+  chromeDaTela,
   indiceDoMitoDoDia,
   marcarMitoVisto,
+  mitosParaIdioma,
+  preencher,
   textoCompartilhavel,
 } from '../lib/mitos';
 
-// Chrome em PT, local de propósito — ver o bloco de i18n no cabeçalho.
-const UI = {
-  titulo: 'Mito × Fonte',
-  subtitulo: 'O que te contaram × o que está escrito',
-  mitoDoDia: 'MITO DO DIA',
-  teContaram: 'TE CONTARAM',
-  fonteDiz: 'A FONTE DIZ',
-  recibo: 'RECIBO',
-  anterior: 'Anterior',
-  proximo: 'Próximo',
-  compartilhar: 'Compartilhar',
-  voltarAoDia: 'Voltar ao mito do dia',
-  contador: (n, total) => `${n} de ${total}`,
-  progresso: (n, total) => `Você já conferiu ${n} de ${total} mitos.`,
-  copiado: 'Texto copiado — cola onde quiser.',
-  naoCopiou: 'Não deu pra copiar aqui — seleciona o texto e copia.',
-  marca: 'cosmicguide.cloud',
-};
-
 export default function MitosScreen() {
   const navigation = useNavigation();
+  const { lang } = useLanguage();
+
+  // Chrome e catálogo no idioma do app. `mitosParaIdioma` preserva a ORDEM de
+  // MITOS, que é o que faz o índice do mito do dia continuar valendo.
+  const UI = chromeDaTela(lang);
+  const mitosDoIdioma = React.useMemo(() => mitosParaIdioma(lang), [lang]);
 
   // O índice do dia é recalculado a cada foco (tique), nunca congelado no
   // mount — ver o cabeçalho. O índice NAVEGADO começa no do dia.
@@ -87,8 +81,8 @@ export default function MitosScreen() {
   const [vistos, setVistos] = useState(0);
   const [recado, setRecado] = useState(null);
 
-  const mito = MITOS[indice];
-  const total = MITOS.length;
+  const mito = mitosDoIdioma[indice];
+  const total = mitosDoIdioma.length;
 
   // Marca o mito atual como visto e atualiza a contagem. marcarMitoVisto nunca
   // lança (lib/storage.js cai pra memória de sessão) e devolve a lista já
@@ -112,7 +106,7 @@ export default function MitosScreen() {
   // A mesma cadeia de RituaisScreen.compartilhar — folha do SO primeiro,
   // clipboard só quando não existe folha nenhuma (desktop antigo).
   async function compartilhar() {
-    const texto = textoCompartilhavel(mito);
+    const texto = textoCompartilhavel(mito, lang);
     if (!texto) return;
     setRecado(null);
     const temFolhaWeb =
@@ -155,7 +149,7 @@ export default function MitosScreen() {
         ------------------------------------------------------------------ */}
         <View style={styles.card} testID={`mitos-card-${mito.id}`}>
           <View style={styles.cardTopo}>
-            <Text style={styles.contador}>{UI.contador(indice + 1, total)}</Text>
+            <Text style={styles.contador}>{preencher(UI.contador, { n: indice + 1, total })}</Text>
             {ehDoDia ? (
               <View style={styles.pillDia} testID="mitos-pill-dia">
                 <Ionicons name="sunny" size={11} color={colors.gold} />
@@ -254,7 +248,9 @@ export default function MitosScreen() {
         {recado ? <Text style={styles.nota}>{recado}</Text> : null}
 
         {/* Progresso — informação, nunca cobrança. */}
-        {vistos > 0 ? <Text style={styles.progresso}>{UI.progresso(vistos, total)}</Text> : null}
+        {vistos > 0 ? (
+          <Text style={styles.progresso}>{preencher(UI.progresso, { n: vistos, total })}</Text>
+        ) : null}
       </ScrollView>
     </View>
   );

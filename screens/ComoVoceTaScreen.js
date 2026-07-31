@@ -52,6 +52,10 @@ export default function ComoVoceTaScreen() {
 
   const abrirDestino = useCallback(
     (idDestino) => {
+      // SEM `lang`, de propósito: navegação não é texto. `rota` e `abaPai` são
+      // os mesmos nos três idiomas (os packs só trocam rótulo e botão), e ler a
+      // tabela canônica aqui é a garantia de que trocar de idioma nunca move um
+      // botão de lugar. test/emocoesIdiomas.test.js cobra essa igualdade.
       const alvo = alvoDeNavegacao(destinoDe(idDestino));
       if (!alvo) return;
       if (alvo.viaAbaPai) {
@@ -77,7 +81,7 @@ export default function ComoVoceTaScreen() {
 
         {/* Os estados, como chips grandes tocáveis. */}
         <View style={styles.chips} testID="emocoes-estados">
-          {ESTADOS.map((e) => {
+          {estados.map((e) => {
             const ativo = e.id === estadoId;
             return (
               <TouchableOpacity
@@ -101,7 +105,10 @@ export default function ComoVoceTaScreen() {
           <View style={styles.pontes} testID="emocoes-pontes">
             <Text style={styles.overline}>{TXT.overlinePontes}</Text>
             {estado.pontes.map((p, i) => {
-              const destino = destinoDe(p.destino);
+              // Com `lang`: o rótulo e o texto do botão são texto de tela e
+              // viajam pelos packs. Sem ele, o card vinha em espanhol com o
+              // botão em português.
+              const destino = destinoDe(p.destino, lang);
               if (!destino) return null;
               return (
                 <View key={`${estado.id}-${p.destino}-${i}`} style={styles.ponteCard}>

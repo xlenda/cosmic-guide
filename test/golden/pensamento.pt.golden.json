@@ -1,0 +1,333 @@
+{
+  "capturadoEm": "2026-07-31",
+  "nota": "Saída REAL de lib/dailyThought.js e lib/wallpaper.js rodados ANTES da parcela de idiomas (Frente 4). test/pensamentoIdiomas.test.js prova que a chamada sem lang e a chamada com lang='pt' devolvem exatamente isto, byte a byte. Datas fixas de propósito: 25/jan/2024 é Lua Cheia real (quinta), 15/abr/2024 cai em Mercúrio retrógrado real, 02/ago/2026 é domingo. Se este arquivo divergir do motor, o português mudou — isso é falha, nunca melhoria.",
+  "dailyThought": {
+    "ABERTURA_POR_PERIODO": {
+      "manha": "O dia está começando agora, inteiro, sem nada escrito nele ainda.",
+      "tarde": "Metade do dia já passou — bom momento pra olhar se ele está indo pro lado que você queria.",
+      "noite": "O dia está se fechando — antes de dormir, vale anotar o que ele te deixou."
+    },
+    "RULER_BY_WEEKDAY": [
+      {
+        "planet": "Sol",
+        "emoji": "☀️",
+        "theme": "brilhar do seu próprio jeito, sem precisar se explicar pra ninguém",
+        "next": "Amanhã a Lua chega trazendo espaço pra sentir mais fundo — guarda um lugar pra isso."
+      },
+      {
+        "planet": "Lua",
+        "emoji": "🌙",
+        "theme": "sentir com profundidade e cuidar de quem você ama — inclusive você mesma(o)",
+        "next": "Amanhã Marte empresta coragem pro que você sentiu hoje virar ação."
+      },
+      {
+        "planet": "Marte",
+        "emoji": "🔥",
+        "theme": "agir mesmo com medo — coragem de verdade é dar o passo apesar dele",
+        "next": "Amanhã Mercúrio ajuda a colocar em palavras o que você começou a mover hoje."
+      },
+      {
+        "planet": "Mercúrio",
+        "emoji": "💬",
+        "theme": "dizer o que precisa ser dito, mesmo que a voz saia tremendo um pouco",
+        "next": "Amanhã Júpiter abre horizontes a partir do que foi conversado hoje."
+      },
+      {
+        "planet": "Júpiter",
+        "emoji": "🍀",
+        "theme": "acreditar que ainda dá tempo pras coisas boas acontecerem",
+        "next": "Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje."
+      },
+      {
+        "planet": "Vênus",
+        "emoji": "💛",
+        "theme": "se permitir receber amor, beleza e abundância sem culpa",
+        "next": "Amanhã Saturno ajuda a dar forma e raiz a tudo isso."
+      },
+      {
+        "planet": "Saturno",
+        "emoji": "🪐",
+        "theme": "encarar o que pesa com maturidade — nem tudo precisa ser leve pra valer a pena",
+        "next": "Amanhã o ciclo recomeça com o Sol — um capítulo novo da sua semana."
+      }
+    ],
+    "getThoughtForDate": {
+      "2024-01-11": {
+        "semSigno": "🌑 Lua Nova. A Lua está em Capricórnio ♑. Céu escuro, mês começando: a Lua Nova é o ponto zero do ciclo. Fica o convite simbólico à pausa antes de agir — vale anotar o que você quer deixar nascer neste ciclo. E o recibo é honesto: abrir o mês na Lua Nova é costume genuinamente milenar, de todo calendário lunisolar antigo (o que conta os meses pela Lua); já lê-la como hora de «plantar uma intenção» é leitura contemporânea, não antiga. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Sol e Lua estão em conjunção hoje — somando forças a seu favor.",
+        "touro": "♉ Touro, 🌑 Lua Nova. A Lua está em Capricórnio ♑. Céu escuro, mês começando: a Lua Nova é o ponto zero do ciclo. Fica o convite simbólico à pausa antes de agir — vale anotar o que você quer deixar nascer neste ciclo. E o recibo é honesto: abrir o mês na Lua Nova é costume genuinamente milenar, de todo calendário lunisolar antigo (o que conta os meses pela Lua); já lê-la como hora de «plantar uma intenção» é leitura contemporânea, não antiga. A Lua flui fácil com o seu signo hoje — as coisas tendem a se resolver com menos esforço que o normal. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Sol e Lua estão em conjunção hoje — somando forças a seu favor.",
+        "capricornio": "♑ Capricórnio, 🌑 Lua Nova. A Lua está em Capricórnio ♑. Céu escuro, mês começando: a Lua Nova é o ponto zero do ciclo. Fica o convite simbólico à pausa antes de agir — vale anotar o que você quer deixar nascer neste ciclo. E o recibo é honesto: abrir o mês na Lua Nova é costume genuinamente milenar, de todo calendário lunisolar antigo (o que conta os meses pela Lua); já lê-la como hora de «plantar uma intenção» é leitura contemporânea, não antiga. A Lua está bem no seu signo hoje — leve o dia com o coração mais exposto, sua sensibilidade está em alta. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Sol e Lua estão em conjunção hoje — somando forças a seu favor."
+      },
+      "2024-01-25": {
+        "semSigno": "🌕 Lua Cheia. A Lua está em Leão ♌. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Mercúrio e Marte estão em conjunção hoje — somando forças a seu favor.",
+        "touro": "♉ Touro, 🌕 Lua Cheia. A Lua está em Leão ♌. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. A Lua tensiona um pouco o seu signo hoje — pode cobrar uma decisão que você vinha adiando. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Mercúrio e Marte estão em conjunção hoje — somando forças a seu favor.",
+        "capricornio": "♑ Capricórnio, 🌕 Lua Cheia. A Lua está em Leão ♌. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. A Lua pede um pequeno reajuste de expectativa hoje — o que parece fora do lugar só precisa de outro ângulo. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Mercúrio e Marte estão em conjunção hoje — somando forças a seu favor."
+      },
+      "2024-03-10": {
+        "semSigno": "🌑 Lua Nova. A Lua está em Peixes ♓. Céu escuro, mês começando: a Lua Nova é o ponto zero do ciclo. Fica o convite simbólico à pausa antes de agir — vale anotar o que você quer deixar nascer neste ciclo. E o recibo é honesto: abrir o mês na Lua Nova é costume genuinamente milenar, de todo calendário lunisolar antigo (o que conta os meses pela Lua); já lê-la como hora de «plantar uma intenção» é leitura contemporânea, não antiga. Hoje é dia de Sol ☀️ — deixa espaço pra brilhar do seu próprio jeito, sem precisar se explicar pra ninguém. Amanhã a Lua chega trazendo espaço pra sentir mais fundo — guarda um lugar pra isso. Marte e Urano estão em quadratura hoje — cobrando uma decisão difícil — dói, mas é o tipo de dor que faz crescer.",
+        "touro": "♉ Touro, 🌑 Lua Nova. A Lua está em Peixes ♓. Céu escuro, mês começando: a Lua Nova é o ponto zero do ciclo. Fica o convite simbólico à pausa antes de agir — vale anotar o que você quer deixar nascer neste ciclo. E o recibo é honesto: abrir o mês na Lua Nova é costume genuinamente milenar, de todo calendário lunisolar antigo (o que conta os meses pela Lua); já lê-la como hora de «plantar uma intenção» é leitura contemporânea, não antiga. A Lua abre uma oportunidade leve pro seu signo hoje — vale aproveitar sem forçar. Hoje é dia de Sol ☀️ — deixa espaço pra brilhar do seu próprio jeito, sem precisar se explicar pra ninguém. Amanhã a Lua chega trazendo espaço pra sentir mais fundo — guarda um lugar pra isso. Marte e Urano estão em quadratura hoje — cobrando uma decisão difícil — dói, mas é o tipo de dor que faz crescer.",
+        "capricornio": "♑ Capricórnio, 🌑 Lua Nova. A Lua está em Peixes ♓. Céu escuro, mês começando: a Lua Nova é o ponto zero do ciclo. Fica o convite simbólico à pausa antes de agir — vale anotar o que você quer deixar nascer neste ciclo. E o recibo é honesto: abrir o mês na Lua Nova é costume genuinamente milenar, de todo calendário lunisolar antigo (o que conta os meses pela Lua); já lê-la como hora de «plantar uma intenção» é leitura contemporânea, não antiga. A Lua abre uma oportunidade leve pro seu signo hoje — vale aproveitar sem forçar. Hoje é dia de Sol ☀️ — deixa espaço pra brilhar do seu próprio jeito, sem precisar se explicar pra ninguém. Amanhã a Lua chega trazendo espaço pra sentir mais fundo — guarda um lugar pra isso. Marte e Urano estão em quadratura hoje — cobrando uma decisão difícil — dói, mas é o tipo de dor que faz crescer."
+      },
+      "2024-04-15": {
+        "semSigno": "🌓 Quarto Crescente. A Lua está em Câncer ♋. Metade da luz, primeira encruzilhada do ciclo: o convite simbólico é revisar o plano — vale perguntar o que precisa de mais foco esta semana. Ajuste de rota e tensão criativa são leitura contemporânea, isso fica dito. Mas o marco em si é divisão antiga de verdade: Ptolomeu parte o ciclo em quatro (Tetrabiblos I.8), e é este um dos quatro. Hoje é dia de Lua 🌙 — deixa espaço pra sentir com profundidade e cuidar de quem você ama — inclusive você mesma(o). Amanhã Marte empresta coragem pro que você sentiu hoje virar ação. Se hoje parecer que nada anda no ritmo certo, Mercúrio retrógrado ↩️ explica isso — não é impressão sua. É um convite pra rever e ajustar com calma, sem pressa de decidir tudo agora. Lua e Urano estão em sextil hoje — abrindo uma oportunidade leve de aproveitar.",
+        "touro": "♉ Touro, 🌓 Quarto Crescente. A Lua está em Câncer ♋. Metade da luz, primeira encruzilhada do ciclo: o convite simbólico é revisar o plano — vale perguntar o que precisa de mais foco esta semana. Ajuste de rota e tensão criativa são leitura contemporânea, isso fica dito. Mas o marco em si é divisão antiga de verdade: Ptolomeu parte o ciclo em quatro (Tetrabiblos I.8), e é este um dos quatro. A Lua abre uma oportunidade leve pro seu signo hoje — vale aproveitar sem forçar. Hoje é dia de Lua 🌙 — deixa espaço pra sentir com profundidade e cuidar de quem você ama — inclusive você mesma(o). Amanhã Marte empresta coragem pro que você sentiu hoje virar ação. Se hoje parecer que nada anda no ritmo certo, Mercúrio retrógrado ↩️ explica isso — não é impressão sua. É um convite pra rever e ajustar com calma, sem pressa de decidir tudo agora. Lua e Urano estão em sextil hoje — abrindo uma oportunidade leve de aproveitar.",
+        "capricornio": "♑ Capricórnio, 🌓 Quarto Crescente. A Lua está em Câncer ♋. Metade da luz, primeira encruzilhada do ciclo: o convite simbólico é revisar o plano — vale perguntar o que precisa de mais foco esta semana. Ajuste de rota e tensão criativa são leitura contemporânea, isso fica dito. Mas o marco em si é divisão antiga de verdade: Ptolomeu parte o ciclo em quatro (Tetrabiblos I.8), e é este um dos quatro. A Lua está bem em frente ao seu signo hoje — é normal sentir um puxa-empurra entre o que você quer e o que o momento pede. Hoje é dia de Lua 🌙 — deixa espaço pra sentir com profundidade e cuidar de quem você ama — inclusive você mesma(o). Amanhã Marte empresta coragem pro que você sentiu hoje virar ação. Se hoje parecer que nada anda no ritmo certo, Mercúrio retrógrado ↩️ explica isso — não é impressão sua. É um convite pra rever e ajustar com calma, sem pressa de decidir tudo agora. Lua e Urano estão em sextil hoje — abrindo uma oportunidade leve de aproveitar."
+      },
+      "2024-06-01": {
+        "semSigno": "🌘 Lua Minguante. A Lua está em Áries ♈. A Lua está sumindo do céu: são os últimos dias antes de ela se encontrar com o Sol (a conjunção) e o ciclo recomeçar. Descanso e recolhimento são a leitura contemporânea desse esvaziamento — um convite simbólico a desacelerar. Bom momento pra silêncio e balanço pessoal. Recibo: pra lua velha romana, esse fim de mês seguia sendo o de tirar, não o de pôr (Plínio, Naturalis Historia XVIII.321–322). Hoje é dia de Saturno 🪐 — deixa espaço pra encarar o que pesa com maturidade — nem tudo precisa ser leve pra valer a pena. Amanhã o ciclo recomeça com o Sol — um capítulo novo da sua semana. Sol e Vênus estão em conjunção hoje — somando forças a seu favor.",
+        "touro": "♉ Touro, 🌘 Lua Minguante. A Lua está em Áries ♈. A Lua está sumindo do céu: são os últimos dias antes de ela se encontrar com o Sol (a conjunção) e o ciclo recomeçar. Descanso e recolhimento são a leitura contemporânea desse esvaziamento — um convite simbólico a desacelerar. Bom momento pra silêncio e balanço pessoal. Recibo: pra lua velha romana, esse fim de mês seguia sendo o de tirar, não o de pôr (Plínio, Naturalis Historia XVIII.321–322). A Lua pede um ajuste fino na sua rotina hoje — pequenas adaptações rendem mais que grandes decisões. Hoje é dia de Saturno 🪐 — deixa espaço pra encarar o que pesa com maturidade — nem tudo precisa ser leve pra valer a pena. Amanhã o ciclo recomeça com o Sol — um capítulo novo da sua semana. Sol e Vênus estão em conjunção hoje — somando forças a seu favor.",
+        "capricornio": "♑ Capricórnio, 🌘 Lua Minguante. A Lua está em Áries ♈. A Lua está sumindo do céu: são os últimos dias antes de ela se encontrar com o Sol (a conjunção) e o ciclo recomeçar. Descanso e recolhimento são a leitura contemporânea desse esvaziamento — um convite simbólico a desacelerar. Bom momento pra silêncio e balanço pessoal. Recibo: pra lua velha romana, esse fim de mês seguia sendo o de tirar, não o de pôr (Plínio, Naturalis Historia XVIII.321–322). A Lua tensiona um pouco o seu signo hoje — pode cobrar uma decisão que você vinha adiando. Hoje é dia de Saturno 🪐 — deixa espaço pra encarar o que pesa com maturidade — nem tudo precisa ser leve pra valer a pena. Amanhã o ciclo recomeça com o Sol — um capítulo novo da sua semana. Sol e Vênus estão em conjunção hoje — somando forças a seu favor."
+      },
+      "2026-07-31": {
+        "semSigno": "🌕 Lua Cheia. A Lua está em Aquário ♒. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. Hoje é dia de Vênus 💛 — deixa espaço pra se permitir receber amor, beleza e abundância sem culpa. Amanhã Saturno ajuda a dar forma e raiz a tudo isso. Vênus e Marte estão em quadratura hoje — cobrando uma decisão difícil — dói, mas é o tipo de dor que faz crescer.",
+        "touro": "♉ Touro, 🌕 Lua Cheia. A Lua está em Aquário ♒. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. A Lua tensiona um pouco o seu signo hoje — pode cobrar uma decisão que você vinha adiando. Hoje é dia de Vênus 💛 — deixa espaço pra se permitir receber amor, beleza e abundância sem culpa. Amanhã Saturno ajuda a dar forma e raiz a tudo isso. Vênus e Marte estão em quadratura hoje — cobrando uma decisão difícil — dói, mas é o tipo de dor que faz crescer.",
+        "capricornio": "♑ Capricórnio, 🌕 Lua Cheia. A Lua está em Aquário ♒. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. A Lua pede um ajuste fino na sua rotina hoje — pequenas adaptações rendem mais que grandes decisões. Hoje é dia de Vênus 💛 — deixa espaço pra se permitir receber amor, beleza e abundância sem culpa. Amanhã Saturno ajuda a dar forma e raiz a tudo isso. Vênus e Marte estão em quadratura hoje — cobrando uma decisão difícil — dói, mas é o tipo de dor que faz crescer."
+      },
+      "2026-08-01": {
+        "semSigno": "🌖 Lua Gibosa Minguante. A Lua está em Peixes ♓. A luz começou a ceder, e era agora que a lavoura romana colhia para guardar. Gratidão e partilha são a camada contemporânea por cima disso — um convite simbólico a olhar pra trás com mais leveza. Bom momento pra repassar algo que você aprendeu. O recibo da parte antiga: Plínio registra que o que se corta, se colhe e se tosquia sofre menos dano com a lua decrescente (Naturalis Historia XVIII.321). Hoje é dia de Saturno 🪐 — deixa espaço pra encarar o que pesa com maturidade — nem tudo precisa ser leve pra valer a pena. Amanhã o ciclo recomeça com o Sol — um capítulo novo da sua semana. Vênus e Marte estão em quadratura hoje — cobrando uma decisão difícil — dói, mas é o tipo de dor que faz crescer.",
+        "touro": "♉ Touro, 🌖 Lua Gibosa Minguante. A Lua está em Peixes ♓. A luz começou a ceder, e era agora que a lavoura romana colhia para guardar. Gratidão e partilha são a camada contemporânea por cima disso — um convite simbólico a olhar pra trás com mais leveza. Bom momento pra repassar algo que você aprendeu. O recibo da parte antiga: Plínio registra que o que se corta, se colhe e se tosquia sofre menos dano com a lua decrescente (Naturalis Historia XVIII.321). A Lua abre uma oportunidade leve pro seu signo hoje — vale aproveitar sem forçar. Hoje é dia de Saturno 🪐 — deixa espaço pra encarar o que pesa com maturidade — nem tudo precisa ser leve pra valer a pena. Amanhã o ciclo recomeça com o Sol — um capítulo novo da sua semana. Vênus e Marte estão em quadratura hoje — cobrando uma decisão difícil — dói, mas é o tipo de dor que faz crescer.",
+        "capricornio": "♑ Capricórnio, 🌖 Lua Gibosa Minguante. A Lua está em Peixes ♓. A luz começou a ceder, e era agora que a lavoura romana colhia para guardar. Gratidão e partilha são a camada contemporânea por cima disso — um convite simbólico a olhar pra trás com mais leveza. Bom momento pra repassar algo que você aprendeu. O recibo da parte antiga: Plínio registra que o que se corta, se colhe e se tosquia sofre menos dano com a lua decrescente (Naturalis Historia XVIII.321). A Lua abre uma oportunidade leve pro seu signo hoje — vale aproveitar sem forçar. Hoje é dia de Saturno 🪐 — deixa espaço pra encarar o que pesa com maturidade — nem tudo precisa ser leve pra valer a pena. Amanhã o ciclo recomeça com o Sol — um capítulo novo da sua semana. Vênus e Marte estão em quadratura hoje — cobrando uma decisão difícil — dói, mas é o tipo de dor que faz crescer."
+      },
+      "2026-08-02": {
+        "semSigno": "🌖 Lua Gibosa Minguante. A Lua está em Peixes ♓. A luz começou a ceder, e era agora que a lavoura romana colhia para guardar. Gratidão e partilha são a camada contemporânea por cima disso — um convite simbólico a olhar pra trás com mais leveza. Bom momento pra repassar algo que você aprendeu. O recibo da parte antiga: Plínio registra que o que se corta, se colhe e se tosquia sofre menos dano com a lua decrescente (Naturalis Historia XVIII.321). Hoje é dia de Sol ☀️ — deixa espaço pra brilhar do seu próprio jeito, sem precisar se explicar pra ninguém. Amanhã a Lua chega trazendo espaço pra sentir mais fundo — guarda um lugar pra isso. Lua e Vênus estão em oposição hoje — puxando pra dois lados — tudo bem sentir o peso disso antes de achar o equilíbrio.",
+        "touro": "♉ Touro, 🌖 Lua Gibosa Minguante. A Lua está em Peixes ♓. A luz começou a ceder, e era agora que a lavoura romana colhia para guardar. Gratidão e partilha são a camada contemporânea por cima disso — um convite simbólico a olhar pra trás com mais leveza. Bom momento pra repassar algo que você aprendeu. O recibo da parte antiga: Plínio registra que o que se corta, se colhe e se tosquia sofre menos dano com a lua decrescente (Naturalis Historia XVIII.321). A Lua abre uma oportunidade leve pro seu signo hoje — vale aproveitar sem forçar. Hoje é dia de Sol ☀️ — deixa espaço pra brilhar do seu próprio jeito, sem precisar se explicar pra ninguém. Amanhã a Lua chega trazendo espaço pra sentir mais fundo — guarda um lugar pra isso. Lua e Vênus estão em oposição hoje — puxando pra dois lados — tudo bem sentir o peso disso antes de achar o equilíbrio.",
+        "capricornio": "♑ Capricórnio, 🌖 Lua Gibosa Minguante. A Lua está em Peixes ♓. A luz começou a ceder, e era agora que a lavoura romana colhia para guardar. Gratidão e partilha são a camada contemporânea por cima disso — um convite simbólico a olhar pra trás com mais leveza. Bom momento pra repassar algo que você aprendeu. O recibo da parte antiga: Plínio registra que o que se corta, se colhe e se tosquia sofre menos dano com a lua decrescente (Naturalis Historia XVIII.321). A Lua abre uma oportunidade leve pro seu signo hoje — vale aproveitar sem forçar. Hoje é dia de Sol ☀️ — deixa espaço pra brilhar do seu próprio jeito, sem precisar se explicar pra ninguém. Amanhã a Lua chega trazendo espaço pra sentir mais fundo — guarda um lugar pra isso. Lua e Vênus estão em oposição hoje — puxando pra dois lados — tudo bem sentir o peso disso antes de achar o equilíbrio."
+      }
+    },
+    "getTodaysThought": {
+      "8": {
+        "semSigno": "O dia está começando agora, inteiro, sem nada escrito nele ainda. 🌕 Lua Cheia. A Lua está em Leão ♌. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Mercúrio e Marte estão em conjunção hoje — somando forças a seu favor.",
+        "touro": "O dia está começando agora, inteiro, sem nada escrito nele ainda. ♉ Touro, 🌕 Lua Cheia. A Lua está em Leão ♌. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. A Lua tensiona um pouco o seu signo hoje — pode cobrar uma decisão que você vinha adiando. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Mercúrio e Marte estão em conjunção hoje — somando forças a seu favor."
+      },
+      "14": {
+        "semSigno": "Metade do dia já passou — bom momento pra olhar se ele está indo pro lado que você queria. 🌕 Lua Cheia. A Lua está em Leão ♌. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Mercúrio e Marte estão em conjunção hoje — somando forças a seu favor.",
+        "touro": "Metade do dia já passou — bom momento pra olhar se ele está indo pro lado que você queria. ♉ Touro, 🌕 Lua Cheia. A Lua está em Leão ♌. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. A Lua tensiona um pouco o seu signo hoje — pode cobrar uma decisão que você vinha adiando. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Mercúrio e Marte estão em conjunção hoje — somando forças a seu favor."
+      },
+      "21": {
+        "semSigno": "O dia está se fechando — antes de dormir, vale anotar o que ele te deixou. 🌕 Lua Cheia. A Lua está em Leão ♌. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Mercúrio e Marte estão em conjunção hoje — somando forças a seu favor.",
+        "touro": "O dia está se fechando — antes de dormir, vale anotar o que ele te deixou. ♉ Touro, 🌕 Lua Cheia. A Lua está em Leão ♌. A Lua está no pico de luz do ciclo — isso é astronomia — e o convite simbólico é ver com clareza: observar o que já vinha se desenhando. Todo mundo repete que Lua Cheia é dia de colheita, mas a fonte romana diz o contrário. Columela põe na cheia o dia de SEMEAR fava (XI.2.85). Colher e guardar é coisa da minguante — é Plínio quem a reserva pra isso (Naturalis Historia XVIII.321). Ou seja: a fama de fase da colheita inverte a fonte. A Lua tensiona um pouco o seu signo hoje — pode cobrar uma decisão que você vinha adiando. Hoje é dia de Júpiter 🍀 — deixa espaço pra acreditar que ainda dá tempo pras coisas boas acontecerem. Amanhã Vênus convida pro amor e pra abundância — aproveita o que se abriu hoje. Mercúrio e Marte estão em conjunção hoje — somando forças a seu favor."
+      }
+    }
+  },
+  "wallpaper": {
+    "MARCA": "cosmicguide.cloud",
+    "FRASES_POR_FASE": {
+      "Lua Nova": [
+        "Céu escuro, mês zerado. O que você quer deixar nascer até a Lua encher?",
+        "Ninguém vê a Lua hoje. Bom dia pra dar, em silêncio, o primeiro passo de algo.",
+        "Ponto zero do ciclo. Anota uma coisa só: a que você quer levar este mês."
+      ],
+      "Lua Crescente": [
+        "A luz está voltando. O que você começou merece dez minutos hoje.",
+        "Lua fininha no céu: passo pequeno também é passo. Dá o de hoje.",
+        "A Lua cresce um pouco por noite. Tem coisa sua que pode ir no mesmo ritmo."
+      ],
+      "Quarto Crescente": [
+        "Metade da luz: primeira encruzilhada do mês. O plano ainda é o mesmo?",
+        "Meia Lua no céu. Boa hora de revisar a rota antes de seguir.",
+        "A semana pede foco num ponto só. Qual?"
+      ],
+      "Lua Gibosa Crescente": [
+        "Quase cheia. Falta pouco: ajuste o detalhe, não recomece do zero.",
+        "Mais de meia Lua acesa — é isso que «gibosa» diz. Termina o que está a um passo do fim.",
+        "Antes do pico, o retoque. O que dá pra lapidar hoje?"
+      ],
+      "Lua Cheia": [
+        "Pico de luz do mês. Olha pro que já vinha se desenhando na sua vida.",
+        "Céu claro a noite toda. Boa hora de ver o todo, não o detalhe.",
+        "Dizem que Lua Cheia é dia de colher. A fonte romana punha a colheita na minguante (Plínio, séc. I)."
+      ],
+      "Lua Gibosa Minguante": [
+        "A luz começou a ceder. Repassa pra alguém uma coisa que você aprendeu no mês.",
+        "Era agora que a lavoura romana colhia pra guardar (Plínio, séc. I). O que você guarda deste mês?",
+        "Depois do pico, a partilha. Conta pra alguém o que deu certo."
+      ],
+      "Quarto Minguante": [
+        "Metade da luz, caindo. O que sai da sua lista hoje?",
+        "Uma coisa a menos hoje: um compromisso, uma aba aberta, um peso na mochila.",
+        "Na minguante, o campo romano cortava e capinava (Plínio, séc. I). Corta uma coisa hoje."
+      ],
+      "Lua Minguante": [
+        "Últimos dias do ciclo. Menos barulho, mais silêncio — o mês novo já vem.",
+        "A Lua está sumindo do céu. Bom momento de balanço: o que fica, o que vai?",
+        "Fim de ciclo é inventário. Uma linha no diário já conta."
+      ]
+    },
+    "FRASES_SEM_CEU": [
+      "O céu de hoje não pôde ser calculado — e céu a gente não inventa. Fica o convite: um minuto longe da tela.",
+      "Sem efeméride agora. No lugar de um céu inventado, uma pergunta: o que você adia desde ontem?",
+      "Hoje o app não alcançou o céu. O dia continua sendo seu: escolhe uma coisa pra terminar."
+    ],
+    "FRASES_GENERICAS": [
+      "Levanta o olho da tela hoje à noite: o céu de verdade continua aí em cima."
+    ],
+    "GRADIENTE_POR_FASE": {
+      "Lua Nova": [
+        "#050310",
+        "#0B0620",
+        "#140C30"
+      ],
+      "Lua Crescente": [
+        "#070420",
+        "#140C38",
+        "#1E1444"
+      ],
+      "Quarto Crescente": [
+        "#0A0628",
+        "#1C1246",
+        "#2A1A54"
+      ],
+      "Lua Gibosa Crescente": [
+        "#0C0730",
+        "#241852",
+        "#342463"
+      ],
+      "Lua Cheia": [
+        "#120A38",
+        "#31205C",
+        "#4A2A8A"
+      ],
+      "Lua Gibosa Minguante": [
+        "#0D0830",
+        "#251A50",
+        "#30215E"
+      ],
+      "Quarto Minguante": [
+        "#0A0626",
+        "#1A1040",
+        "#26184E"
+      ],
+      "Lua Minguante": [
+        "#060318",
+        "#100A28",
+        "#181038"
+      ]
+    },
+    "GLIFO_POR_SIGNO": {
+      "Áries": "♈",
+      "Touro": "♉",
+      "Gêmeos": "♊",
+      "Câncer": "♋",
+      "Leão": "♌",
+      "Virgem": "♍",
+      "Libra": "♎",
+      "Escorpião": "♏",
+      "Sagitário": "♐",
+      "Capricórnio": "♑",
+      "Aquário": "♒",
+      "Peixes": "♓"
+    },
+    "formatarDataLonga": {
+      "2026-07-31": "sexta-feira, 31 de julho",
+      "2026-01-01": "quinta-feira, 1 de janeiro",
+      "2026-12-25": "sexta-feira, 25 de dezembro",
+      "2026-03-08": "domingo, 8 de março",
+      "2026-11-02": "segunda-feira, 2 de novembro"
+    },
+    "getWallpaperData": {
+      "2026-07-30": {
+        "dia": "2026-07-30",
+        "ceuDisponivel": true,
+        "gradiente": [
+          "#120A38",
+          "#31205C",
+          "#4A2A8A"
+        ],
+        "glifo": "♒",
+        "signoLua": "Aquário",
+        "fase": "Lua Cheia",
+        "iluminacao": 99,
+        "regente": "Júpiter",
+        "frase": "Pico de luz do mês. Olha pro que já vinha se desenhando na sua vida.",
+        "dataFormatada": "quinta-feira, 30 de julho",
+        "marca": "cosmicguide.cloud"
+      },
+      "2026-08-06": {
+        "dia": "2026-08-06",
+        "ceuDisponivel": true,
+        "gradiente": [
+          "#0A0626",
+          "#1A1040",
+          "#26184E"
+        ],
+        "glifo": "♉",
+        "signoLua": "Touro",
+        "fase": "Quarto Minguante",
+        "iluminacao": 46,
+        "regente": "Júpiter",
+        "frase": "Na minguante, o campo romano cortava e capinava (Plínio, séc. I). Corta uma coisa hoje.",
+        "dataFormatada": "quinta-feira, 6 de agosto",
+        "marca": "cosmicguide.cloud"
+      },
+      "2026-07-31": {
+        "dia": "2026-07-31",
+        "ceuDisponivel": true,
+        "gradiente": [
+          "#120A38",
+          "#31205C",
+          "#4A2A8A"
+        ],
+        "glifo": "♒",
+        "signoLua": "Aquário",
+        "fase": "Lua Cheia",
+        "iluminacao": 97,
+        "regente": "Vênus",
+        "frase": "Céu claro a noite toda. Boa hora de ver o todo, não o detalhe.",
+        "dataFormatada": "sexta-feira, 31 de julho",
+        "marca": "cosmicguide.cloud"
+      },
+      "2026-01-01": {
+        "dia": "2026-01-01",
+        "ceuDisponivel": true,
+        "gradiente": [
+          "#0C0730",
+          "#241852",
+          "#342463"
+        ],
+        "glifo": "♊",
+        "signoLua": "Gêmeos",
+        "fase": "Lua Gibosa Crescente",
+        "iluminacao": 94,
+        "regente": "Júpiter",
+        "frase": "Quase cheia. Falta pouco: ajuste o detalhe, não recomece do zero.",
+        "dataFormatada": "quinta-feira, 1 de janeiro",
+        "marca": "cosmicguide.cloud"
+      }
+    },
+    "montarWallpaper": {
+      "semCeu": {
+        "dia": "2026-07-31",
+        "ceuDisponivel": false,
+        "gradiente": [
+          "#0E0821",
+          "#160E30",
+          "#1A1235"
+        ],
+        "glifo": "✦",
+        "signoLua": null,
+        "fase": null,
+        "iluminacao": null,
+        "regente": "Vênus",
+        "frase": "Sem efeméride agora. No lugar de um céu inventado, uma pergunta: o que você adia desde ontem?",
+        "dataFormatada": "sexta-feira, 31 de julho",
+        "marca": "cosmicguide.cloud"
+      },
+      "faseDesconhecida": {
+        "dia": "2026-07-31",
+        "ceuDisponivel": true,
+        "gradiente": [
+          "#0E0821",
+          "#160E30",
+          "#1A1235"
+        ],
+        "glifo": "♓",
+        "signoLua": "Peixes",
+        "fase": "Lua Renomeada",
+        "iluminacao": 80,
+        "regente": "Vênus",
+        "frase": "Levanta o olho da tela hoje à noite: o céu de verdade continua aí em cima.",
+        "dataFormatada": "sexta-feira, 31 de julho",
+        "marca": "cosmicguide.cloud"
+      }
+    }
+  }
+}
