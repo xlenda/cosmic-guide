@@ -60,6 +60,68 @@ const WEEK_LABEL_KEYS = [
 // no AsyncStorage; só interessa saber se o de HOJE já foi lido).
 const THOUGHT_READ_KEY = 'cosmic-daily-thought-last-read';
 
+// ---------------------------------------------------------------------------
+// A LINHA DE HOJE — a única coisa das três telas novas que sobe pra cima
+// ---------------------------------------------------------------------------
+// AS TRÊS ENTRARAM NO GRID (Rituais, Jornada, Calendário Cósmico), junto das
+// outras leituras, que é onde a pessoa vai procurar o que fazer. Nenhuma delas
+// virou card na dobra de cima: em 31/07/2026 o dono tirou de lá "Temporada de
+// Leão" e "Espiada de Amanhã" porque "fica perdido no meio", e responder a isso
+// com três cards novos seria desfazer o pedido no mesmo dia.
+//
+// O QUE SOBE, E É UMA COISA SÓ: uma LINHA (não card — sem fundo, sem borda, sem
+// gradiente, a altura de um texto) com o motivo de voltar HOJE. As duas telas
+// que têm esse motivo são a Jornada (o passo do dia) e os Rituais (o que casa
+// com a fase da Lua e o dia da semana de hoje). O Calendário Cósmico não tem
+// linha nenhuma e não deveria ter: ele é uma consulta, não um compromisso
+// diário — nada nele muda entre hoje e amanhã.
+//
+// QUANDO AS DUAS ESTÃO ATIVAS, GANHA A TRILHA. Três razões, em ordem de peso:
+//   1. só a trilha EXPIRA. O passo é um por dia e em ordem: o dia que passa não
+//      volta como oportunidade de hoje. A lista de rituais de hoje é uma
+//      prateleira que reabre amanhã com outra fase — perder não custa nada.
+//   2. a trilha é dela. Ela já concluiu ao menos um dia, tem medalha e
+//      progresso guardados; a sugestão de ritual é a mesma pra todo mundo que
+//      abrir o app hoje. Lembrar do que a pessoa começou vale mais do que
+//      apresentar de novo o que ela ainda não escolheu.
+//   3. só a trilha tem fim. Ela caminha pro dia 7 e pra medalha; a prateleira
+//      de rituais não vai a lugar nenhum — e é justamente por isso que ela
+//      aguenta esperar o dia em que a trilha não tem passo aberto.
+// Quando não há trilha em andamento (a maioria dos dias, pra maioria das
+// pessoas), a linha é a do ritual. Quando não há nem uma nem outra, não existe
+// linha — em vez de uma linha vazia ocupando a dobra.
+//
+// POR QUE OS DOIS MOTORES ENTRAM POR import() DINÂMICO E NÃO NO TOPO DO
+// ARQUIVO. lib/rituais.js carrega os 21 rituais inteiros e lib/jornada.js as 28
+// leituras das trilhas — e as duas TELAS são lazy() em App.js exatamente pra
+// esse peso não entrar no parse inicial (o comentário está lá, em cada uma).
+// A Home é raiz de aba, carrega sempre: um `import` estático aqui em cima
+// mataria as duas decisões de lazy em silêncio, porque o conteúdo é o grosso do
+// chunk. Aqui os módulos só são pedidos depois que a Home já pintou, dentro do
+// efeito, e o chunk que vier fica quente pra quando a tela abrir.
+//
+// Entre os rituais que casam com hoje, o mais forte é o que declarava OS DOIS
+// critérios — fase da Lua E dia da semana — e acertou os dois.
+// `rituaisDeHoje().rituais` já só devolve quem bateu tudo o que declarou (o
+// matcher é E, não OU: ver a seção 8 de lib/rituais.js), então basta contar
+// quantos critérios cada um declarava. Empate fica com o primeiro, que é a
+// ordem do catálogo. Medido sobre 2026 inteiro com o motor de verdade: nos 365
+// dias a lista de casamento exato nunca vem vazia (de 1 a 6 rituais por dia),
+// então esta linha aparece praticamente todo dia pra quem não tem trilha.
+function ritualMaisForteDeHoje(lista) {
+  let melhor = null;
+  let melhorPeso = -1;
+  for (const r of lista || []) {
+    const m = r.momento || {};
+    const peso = ((m.fasesLua || []).length > 0 ? 1 : 0) + ((m.diasSemana || []).length > 0 ? 1 : 0);
+    if (peso > melhorPeso) {
+      melhor = r;
+      melhorPeso = peso;
+    }
+  }
+  return melhor;
+}
+
 export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -195,6 +257,67 @@ export default function HomeScreen() {
     }, [])
   );
 
+  // A linha de hoje (ver o bloco grande no topo do arquivo pro porquê de ser
+  // UMA linha, de a trilha ganhar do ritual, e de os motores virem por import()
+  // dinâmico). `null` = não há motivo de voltar hoje, e aí não se desenha nada.
+  //
+  // Recalcula a cada FOCO, por duas razões que se somam: a pessoa pode ter
+  // acabado de fechar o passo do dia na Jornada e voltado pra cá (a linha tem
+  // que sumir), e à meia-noite tanto o passo quanto o casamento de fase-e-dia
+  // viram outros — a Home fica montada na stack e sem isso mostraria o de
+  // ontem. É a mesma lição de virada de dia que as próprias telas resolvem com
+  // useFocusEffect.
+  const [todayLine, setTodayLine] = useState(null);
+  useFocusEffect(
+    useCallback(() => {
+      let vivo = true;
+      (async () => {
+        let escolha = null;
+
+        // 1º a trilha — ganha sempre que estiver ativa.
+        try {
+          const { TRILHAS, carregarJornada, podeConcluir } = await import('../lib/jornada');
+          const estado = await carregarJornada();
+          // Percorre na ordem de TRILHAS, e não em Object.values(estado.trilhas):
+          // quem assina pode ter duas trilhas abertas ao mesmo tempo, e a linha
+          // tem que ser a MESMA a cada abertura, não a que o objeto devolveu
+          // primeiro.
+          for (const tr of TRILHAS) {
+            const p = estado.trilhas[tr.id];
+            // "Ativa" é exigente de propósito: trilha começada (tem dia
+            // fechado), ainda não inteira, e com o passo de HOJE liberado pelo
+            // motor. Quem já fez o passo hoje não vê linha nenhuma — o app não
+            // cutuca pra fazer o que não dá pra fazer, e a trava de um-por-dia é
+            // perguntada ao motor (podeConcluir), nunca reimplementada aqui.
+            if (!p || p.concluida || p.diasConcluidos.length === 0) continue;
+            if (!podeConcluir(p, p.diaAtual).ok) continue;
+            escolha = { tipo: 'jornada', nome: tr.nome, dia: p.diaAtual, total: p.total };
+            break;
+          }
+        } catch {
+          // Sem o módulo (chunk que não baixou, storage indisponível) a Home
+          // não tem linha — nunca um erro na cara de quem só abriu o app.
+        }
+
+        // 2º o ritual de hoje, só se a trilha não tomou o lugar. O import fica
+        // DENTRO do if: quem está no meio de uma trilha não paga o download dos
+        // 21 rituais por causa de uma linha que não vai aparecer.
+        if (!escolha) {
+          try {
+            const { rituaisDeHoje } = await import('../lib/rituais');
+            const forte = ritualMaisForteDeHoje(rituaisDeHoje(new Date()).rituais);
+            if (forte) escolha = { tipo: 'ritual', titulo: forte.titulo };
+          } catch {}
+        }
+
+        if (vivo) setTodayLine(escolha);
+      })();
+      return () => {
+        vivo = false;
+      };
+    }, [])
+  );
+
   // Iniciais da semana no idioma atual (mesma ordem seg→dom do getWeekActivity).
   const WEEK_LABELS = WEEK_LABEL_KEYS.map((k) => t(k));
 
@@ -260,6 +383,22 @@ export default function HomeScreen() {
   // de cadeado no grid (FeatureCard.js já tinha o prop `locked` pronto, só não
   // era usado ainda); o bloqueio real acontece na tela em si, via feature gate.
   // Solo também vê o cadeado aqui (ainda não tem par pra desbloquear).
+  //
+  // AS TRÊS TELAS NOVAS (rituais, jornada, calendario) NÃO ENTRAM AQUI, e a
+  // decisão de paywall é essa: elas seguem o padrão do app — 1 uso grátis
+  // vitalício por feature (lib/featureUsage.js + OneTimeLock), com a assinatura
+  // destravando sem limite —, e esse padrão é cobrado DENTRO da tela, no ponto
+  // em que a pessoa já viu o que está pedindo (o detalhe do ritual, a segunda
+  // trilha, o mês que não é o de agora). Cada uma dessas telas já resolveu isso
+  // no próprio arquivo, e cada uma escolheu o que conta como "um uso" pelo
+  // formato dela — ritual: o primeiro detalhe aberto fica aberto pra sempre;
+  // jornada: a unidade é a TRILHA inteira, senão o muro cairia no dia 2;
+  // calendário: o mês vigente é sempre livre, o passeio é que é da assinatura.
+  // Pôr `locked: true` no card seria um quarto muro, desenhado por cima, e ele
+  // mentiria: mostraria cadeado numa porta que abre. Cadeado no grid é
+  // exclusivo de feature que a pessoa NÃO consegue abrir sem formar casal —
+  // que é o caso das cinco daqui de cima, e não é o caso das três novas. É a
+  // mesma razão por que grounding, palm e coffee nunca tiveram cadeado no card.
   const LOCKED_KEYS = ['reconectar', 'descobrir', 'agir', 'progresso', 'retrospectiva'];
 
   const ALL_ITEMS = [
@@ -275,6 +414,16 @@ export default function HomeScreen() {
     { key: 'retrospectiva', title: t('home.card.retrospectiva.title'), subtitle: t('home.card.retrospectiva.subtitle'), icon: 'gift', gradient: ['#FFC85C', '#FF7BD5'], onPress: () => navigation.navigate(ROUTES.RETROSPECTIVA) },
     { key: 'dream', title: t('home.card.dream.title'), subtitle: t('home.card.dream.subtitle'), icon: 'moon', gradient: ['#5CE0D8', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.DREAM) },
     { key: 'lunarCalendar', title: t('home.card.lunarCalendar.title'), subtitle: t('home.card.lunarCalendar.subtitle'), icon: 'planet', gradient: ['#5CA8FF', '#5CE0D8'], onPress: () => navigation.navigate(ROUTES.LUNAR_CALENDAR) },
+    // Calendário Cósmico: a grade do mês com as datas medidas (lua exata,
+    // ingresso do Sol, retrógrado, aspecto exato). Vizinho do Calendário Lunar
+    // de propósito — são as duas telas de DATA, e quem procura uma procura a
+    // outra. É também a casa pra onde foram as "Temporadas do Céu" que saíram
+    // da Home hoje (ver o comentário mais abaixo, onde o card ficava): este
+    // card é a entrada que restou pra elas, e é uma entrada melhor, porque lá
+    // a temporada aparece em ordem de data junto com o resto do mês.
+    // Fora de READING_CARD_KEYS pelo mesmo motivo do Homem Zodiacal: é
+    // efeméride do céu, não uma leitura sobre a pessoa.
+    { key: 'calendario', title: t('home.card.calendario.title'), subtitle: t('home.card.calendario.subtitle'), icon: 'calendar', gradient: ['#FFC85C', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.CALENDARIO_COSMICO) },
     // Homem Zodiacal: tela de HISTÓRIA (o que a astrologia médica medieval
     // dizia), não uma leitura sobre a pessoa — por isso fica fora de
     // READING_CARD_KEYS lá em cima. Entra ao lado do Calendário Lunar porque é
@@ -286,6 +435,16 @@ export default function HomeScreen() {
     // (components/GroundingInvite.js); este card é a porta pra quem quiser
     // voltar sozinho, sem precisar tirar uma carta antes.
     { key: 'grounding', title: t('home.card.grounding.title'), subtitle: t('home.card.grounding.subtitle'), icon: 'leaf', gradient: ['#5CE0D8', '#5FD98C'], onPress: () => navigation.navigate(ROUTES.GROUNDING) },
+    // Rituais: 21 práticas em 7 objetivos (lib/rituais.js). Colado em Assentar
+    // porque as duas são PRÁTICA — coisa que se faz com o corpo e com a mão,
+    // não leitura sobre a pessoa. Por isso as duas ficam fora de
+    // READING_CARD_KEYS: contar um toque aqui como "pediu a 1ª leitura"
+    // encheria o degrau de gente que não leu nada.
+    { key: 'rituais', title: t('home.card.rituais.title'), subtitle: t('home.card.rituais.subtitle'), icon: 'flame', gradient: ['#FFB84D', '#FF6BA0'], onPress: () => navigation.navigate(ROUTES.RITUAIS) },
+    // Jornada Guiada: quatro trilhas de 7 dias (lib/jornada.js). Também fora de
+    // READING_CARD_KEYS — é estudo em série, com um passo por dia, e a coisa
+    // que ela produz não é uma leitura sobre a pessoa.
+    { key: 'jornada', title: t('home.card.jornada.title'), subtitle: t('home.card.jornada.subtitle'), icon: 'footsteps', gradient: ['#5FD98C', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.JORNADA) },
     { key: 'palm', title: t('home.card.palm.title'), subtitle: t('home.card.palm.subtitle'), icon: 'hand-left', gradient: ['#FFB84D', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.PALM) },
     { key: 'coffee', title: t('home.card.coffee.title'), subtitle: t('home.card.coffee.subtitle'), icon: 'cafe', gradient: ['#B57BFF', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.COFFEE) },
     { key: 'chat', title: t('home.card.chat.title'), subtitle: t('home.card.chat.subtitle'), icon: 'chatbubbles', gradient: ['#6C7BFF', '#5CE0D8'], onPress: () => navigation.getParent()?.navigate(ROUTES.CHAT_TAB) },
@@ -364,6 +523,18 @@ export default function HomeScreen() {
       // usuário cancelou ou o compartilhamento falhou — sem tela de erro, mesmo padrão de RetrospectivaScreen.js
     }
   };
+
+  // O texto da linha de hoje, montado uma vez. Os dois casos são a MESMA
+  // forma — o que está aberto hoje, e a palavra que leva pra lá — porque a
+  // linha precisa ser lida de relance, sem a pessoa ter que descobrir de qual
+  // das duas features ela está falando.
+  const ehTrilha = todayLine && todayLine.tipo === 'jornada';
+  const todayLineText = !todayLine
+    ? ''
+    : ehTrilha
+    ? t('home.today.jornada', { nome: todayLine.nome, dia: todayLine.dia, total: todayLine.total })
+    : t('home.today.ritual', { titulo: todayLine.titulo });
+  const todayLineCta = !todayLine ? '' : t(ehTrilha ? 'home.today.jornada.cta' : 'home.today.ritual.cta');
 
   if (loading) {
     return (
@@ -467,6 +638,36 @@ export default function HomeScreen() {
             ))}
           </View>
         </TouchableOpacity>
+
+        {/* A LINHA DE HOJE — logo abaixo da sequência da semana, de propósito:
+            o card de cima diz há quantos dias a pessoa vem voltando, e esta
+            linha diz o que tem pra fazer HOJE pra não quebrar isso. As duas
+            leem como um bloco só de hábito.
+            É uma linha e não um card: sem fundo, sem borda, sem gradiente —
+            três cards novos na dobra de cima era exatamente o "fica perdido no
+            meio" que o dono mandou tirar hoje. Ver o bloco no topo do arquivo
+            pra escolha entre trilha e ritual. */}
+        {todayLine && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.todayLine}
+            onPress={() => navigation.navigate(ehTrilha ? ROUTES.JORNADA : ROUTES.RITUAIS)}
+            accessibilityRole="button"
+            accessibilityLabel={`${todayLineText} — ${todayLineCta}`}
+            testID="home-today-line"
+          >
+            <Ionicons name={ehTrilha ? 'footsteps' : 'flame'} size={14} color={colors.teal} />
+            {/* numberOfLines={1}: o nome da trilha e o título do ritual vêm dos
+                motores e podem ser longos — a linha encolhe o texto com
+                reticências em vez de virar duas ou três linhas e deixar de ser
+                uma linha. */}
+            <Text style={styles.todayLineText} numberOfLines={1}>
+              {todayLineText}
+            </Text>
+            <Text style={styles.todayLineCta}>{todayLineCta}</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
 
         {/* Opt-in de notificação no momento certo: só depois da 1ª atividade
             real, uma vez só (ver components/NotifPromptCard.js). */}
@@ -769,6 +970,17 @@ const styles = StyleSheet.create({
   },
   weekDotActive: { backgroundColor: colors.teal, borderColor: colors.teal },
   weekDotToday: { borderWidth: 2, borderColor: colors.gold },
+  // A linha de hoje. Sem backgroundColor, sem borderWidth, sem borderRadius —
+  // a lista de estilos é curta de propósito: o que a distingue de um card é
+  // justamente não ter nada disso. O marginTop negativo encosta ela na
+  // sequência da semana (que fecha com marginBottom: 14), pra as duas lerem
+  // como um bloco só em vez de dois avulsos.
+  todayLine: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 16, marginTop: -6, marginBottom: 14, paddingVertical: 2,
+  },
+  todayLineText: { color: colors.textSecondary, fontSize: 13, flex: 1 },
+  todayLineCta: { color: colors.teal, fontSize: 13, fontWeight: '800' },
   goalCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 16, marginBottom: 14, padding: 16,

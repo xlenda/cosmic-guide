@@ -15,8 +15,17 @@ export const ROUTES = {
   DREAM: 'Dream',
   PALM: 'Palm',
   LUNAR_CALENDAR: 'LunarCalendar',
+  // Calendário Cósmico — a grade do mês com as datas reais do céu (lua exata,
+  // ingresso do Sol, retrógrado, aspecto exato). É a casa das "Temporadas do
+  // Céu" que saíram da Home em 31/07/2026.
+  CALENDARIO_COSMICO: 'CalendarioCosmico',
   ZODIAC_BODY: 'ZodiacBody',
   GROUNDING: 'Grounding',
+  RITUAIS: 'Rituais',
+  // A Jornada Guiada (trilhas de 7 dias, lib/jornada.js). Mora no HomeStack
+  // como as outras telas de conteúdo — as ações do dia levam pra features que
+  // já existem, e o Tarô é a única que fica em outra aba.
+  JORNADA: 'Jornada',
   COFFEE: 'Coffee',
   COMPATIBILITY: 'Compatibility',
   QUIZ: 'Quiz',

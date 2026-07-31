@@ -96,6 +96,11 @@ const CompatibilityScreen = lazy(() => import('./screens/CompatibilityScreen'));
 const DreamScreen = lazy(() => import('./screens/DreamScreen'));
 const PalmScreen = lazy(() => import('./screens/PalmScreen'));
 const LunarCalendarScreen = lazy(() => import('./screens/LunarCalendarScreen'));
+// Calendário Cósmico — a grade do mês com as datas reais do céu
+// (lib/calendarioCosmico.js). Lazy pelo mesmo motivo das outras, e aqui o peso
+// nem é só o do módulo: o motor calcula um mês inteiro de efeméride, e quem
+// nunca abrir a tela não paga nem o parse nem a conta.
+const CalendarioCosmicoScreen = lazy(() => import('./screens/CalendarioCosmicoScreen'));
 // Homem Zodiacal — tela de história (iatromatemática). Entra lazy pelo mesmo
 // motivo das outras: é conteúdo denso que nem todo mundo abre, e o HomeStack
 // já tem <Suspense> próprio.
@@ -104,6 +109,15 @@ const ZodiacBodyScreen = lazy(() => import('./screens/ZodiacBodyScreen'));
 // (components/GroundingInvite.js) e disponível pela Home. Lazy pelo mesmo
 // motivo: quem nunca abrir não paga o bundle.
 const GroundingScreen = lazy(() => import('./screens/GroundingScreen'));
+// Rituais — a biblioteca de 21 rituais em 7 objetivos (lib/rituais.js). Lazy
+// pelo mesmo motivo das de cima: o módulo carrega os 21 rituais inteiros, com
+// os cinco campos e o aparato de fontes, e quem nunca abrir a tela não paga
+// esse peso no parse inicial do bundle.
+const RituaisScreen = lazy(() => import('./screens/RituaisScreen'));
+// A Jornada Guiada — quatro trilhas de 7 dias (lib/jornada.js). Lazy pelo mesmo
+// motivo das de cima: carrega as 28 leituras inteiras junto com o módulo, e
+// quem nunca abrir a tela não paga esse peso no parse inicial do bundle.
+const JornadaScreen = lazy(() => import('./screens/JornadaScreen'));
 const CoffeeScreen = lazy(() => import('./screens/CoffeeScreen'));
 const QuizScreen = lazy(() => import('./screens/QuizScreen'));
 const DiaryScreen = lazy(() => import('./screens/DiaryScreen'));
@@ -214,12 +228,29 @@ function HomeStack() {
         <Stack.Screen name={ROUTES.DREAM} component={DreamScreen} />
         <Stack.Screen name={ROUTES.PALM} component={PalmScreen} />
         <Stack.Screen name={ROUTES.LUNAR_CALENDAR} component={LunarCalendarScreen} />
+        {/* Calendário Cósmico — vizinho do Calendário Lunar de propósito: um
+            mostra a fase de cada dia, o outro as datas em que o céu de fato
+            muda de estado. Sem withFeatureGate na borda da rota: o mês corrente
+            é aberto pra todo mundo e a assinatura entra só na navegação entre
+            meses, por dentro da tela (a justificativa inteira está no cabeçalho
+            de screens/CalendarioCosmicoScreen.js). */}
+        <Stack.Screen name={ROUTES.CALENDARIO_COSMICO} component={CalendarioCosmicoScreen} />
         <Stack.Screen name={ROUTES.ZODIAC_BODY} component={ZodiacBodyScreen} />
         {/* Registrada só aqui, na stack da Home. O convite do fim da leitura
             (components/GroundingInvite.js) sobe pro navegador de abas e pede
             esta tela por dentro da Home — funciona igual vindo do Tarô, que
             mora em outra aba, sem duplicar a rota em duas stacks. */}
         <Stack.Screen name={ROUTES.GROUNDING} component={GroundingScreen} />
+        {/* Rituais: na stack da Home pelo mesmo motivo de Assentar — é tela de
+            conteúdo, alcançável da Home, e o paywall dela mora DENTRO da tela
+            (só o detalhe de um ritual é que passa pelo OneTimeLock), então não
+            leva withFeatureGate na borda da rota. */}
+        <Stack.Screen name={ROUTES.RITUAIS} component={RituaisScreen} />
+        {/* Jornada: registrada aqui, na stack da Home, porque quatro das cinco
+            features que as ações do dia abrem (Mapa, Calendário Lunar,
+            Assentar, Diário) são telas DESTA stack — só o Tarô mora em outra
+            aba, e a tela sobe pro Tab.Navigator só nesse caso. */}
+        <Stack.Screen name={ROUTES.JORNADA} component={JornadaScreen} />
         <Stack.Screen name={ROUTES.COFFEE} component={CoffeeScreen} />
         <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
         <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
