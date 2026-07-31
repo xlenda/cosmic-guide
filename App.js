@@ -118,6 +118,15 @@ const RituaisScreen = lazy(() => import('./screens/RituaisScreen'));
 // motivo das de cima: carrega as 28 leituras inteiras junto com o módulo, e
 // quem nunca abrir a tela não paga esse peso no parse inicial do bundle.
 const JornadaScreen = lazy(() => import('./screens/JornadaScreen'));
+// A leva de 31/07/2026 — Mito × Fonte, "Como você tá?", o quiz "Você sabia?"
+// e o Papel de Parede do céu. Lazy pelo mesmo motivo das outras telas de
+// conteúdo: MitosScreen carrega os 25 mitos inteiros (lib/mitos.js),
+// QuizCosmicoScreen as 40 perguntas (lib/quizCosmico.js) — quem nunca abre não
+// paga esse peso no parse inicial do bundle.
+const MitosScreen = lazy(() => import('./screens/MitosScreen'));
+const ComoVoceTaScreen = lazy(() => import('./screens/ComoVoceTaScreen'));
+const QuizCosmicoScreen = lazy(() => import('./screens/QuizCosmicoScreen'));
+const WallpaperScreen = lazy(() => import('./screens/WallpaperScreen'));
 const CoffeeScreen = lazy(() => import('./screens/CoffeeScreen'));
 const QuizScreen = lazy(() => import('./screens/QuizScreen'));
 const DiaryScreen = lazy(() => import('./screens/DiaryScreen'));
@@ -200,6 +209,14 @@ const linking = {
           [ROUTES.CALENDARIO_COSMICO]: 'calendario',
           [ROUTES.RITUAIS]: 'rituais',
           [ROUTES.JORNADA]: 'jornada',
+          // A leva de 31/07: sem path explícito, a web caía no autogerado pelo
+          // nome da rota (/cosmic-guide/QuizCosmico, /cosmic-guide/Mitos) —
+          // casing inconsistente, e justamente no Mitos, a tela desenhada pra
+          // print/compartilhamento, o link feio é a cara da feature.
+          [ROUTES.MITOS]: 'mitos',
+          [ROUTES.COMO_VOCE_TA]: 'como-voce-ta',
+          [ROUTES.QUIZ_COSMICO]: 'voce-sabia',
+          [ROUTES.WALLPAPER]: 'papel-de-parede',
         },
       },
     },
@@ -305,6 +322,15 @@ function HomeStack() {
             Assentar, Diário) são telas DESTA stack — só o Tarô mora em outra
             aba, e a tela sobe pro Tab.Navigator só nesse caso. */}
         <Stack.Screen name={ROUTES.JORNADA} component={JornadaScreen} />
+        {/* A leva de 31/07/2026 — quatro telas de conteúdo, todas alcançáveis
+            pelo grid da Home. Sem withFeatureGate na borda: nenhuma delas é
+            exclusiva de casal, e o que for de assinatura se resolve DENTRO da
+            tela (mesma razão de Rituais/Jornada logo acima). ComoVoceTa navega
+            pra telas DESTA stack (e pro Tarô via aba pai, como Jornada faz). */}
+        <Stack.Screen name={ROUTES.MITOS} component={MitosScreen} />
+        <Stack.Screen name={ROUTES.COMO_VOCE_TA} component={ComoVoceTaScreen} />
+        <Stack.Screen name={ROUTES.QUIZ_COSMICO} component={QuizCosmicoScreen} />
+        <Stack.Screen name={ROUTES.WALLPAPER} component={WallpaperScreen} />
         <Stack.Screen name={ROUTES.COFFEE} component={CoffeeScreen} />
         <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
         <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />

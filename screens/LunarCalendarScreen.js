@@ -9,6 +9,12 @@ import { getMoonPhaseToday, getMoonPhaseForCurrentMonth } from '../lib/lunarCale
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
+
+// O rótulo do mês segue o idioma do APP (LanguageContext), não o locale do
+// aparelho — 'pt-BR' cravado aqui era o exemplo citado no cabeçalho do bloco
+// CALENDARIO_COSMICO_I18N de lib/i18n.js do que não repetir.
+const LOCALE_DO_IDIOMA = { pt: 'pt-BR', es: 'es', en: 'en-US' };
 
 const FEATURE_KEY = 'lunarCalendar';
 const DIARY_RECORDED_KEY = 'cosmic-lunar-diary-date';
@@ -43,6 +49,10 @@ export default function LunarCalendarScreen() {
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
   const { hasAccess, accessConfirmed } = useCouple();
+  // O fio do idioma: o CONTEÚDO (nome da fase + reflexão) sai do motor já no
+  // idioma do app. O chrome desta tela (título, disclaimer) ainda é PT
+  // cravado — segundo passe, junto com o resto do chrome antigo.
+  const { lang } = useLanguage() || {};
   const [refreshTick, setRefreshTick] = useState(0);
   const [locked, setLocked] = useState(false);
 
@@ -85,11 +95,17 @@ export default function LunarCalendarScreen() {
 
   // getMoonPhaseForCurrentMonth já é barata (no máximo 31 cálculos
   // trigonométricos O(1)), então recalcular a cada refreshTick não pesa.
-  const today = useMemo(() => getMoonPhaseToday(), [refreshTick]);
-  const monthDays = useMemo(() => getMoonPhaseForCurrentMonth(), [refreshTick]);
+  const today = useMemo(() => getMoonPhaseToday(lang), [refreshTick, lang]);
+  const monthDays = useMemo(() => getMoonPhaseForCurrentMonth(lang), [refreshTick, lang]);
   const monthLabel = useMemo(
-    () => capitalize(new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })),
-    [refreshTick]
+    () =>
+      capitalize(
+        new Date().toLocaleDateString(LOCALE_DO_IDIOMA[lang] || LOCALE_DO_IDIOMA.pt, {
+          month: 'long',
+          year: 'numeric',
+        })
+      ),
+    [refreshTick, lang]
   );
   const todayNumber = new Date().getDate();
 

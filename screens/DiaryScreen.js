@@ -21,6 +21,8 @@ import {
   getActivePin,
   getPinCredits,
   pinEntry,
+  toggleFavorito,
+  isEntradaFavorita,
 } from '../lib/journal';
 import { fetchAiWeeklyInsight, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { useAuth } from '../context/AuthContext';
@@ -42,6 +44,10 @@ const TYPE_ICONS = {
 // labels viram chaves i18n — t() onde forem exibidos (padrão do STEPS em QuizScreen.js).
 const FILTERS = [
   { key: 'all', label: 'diary.filter.all' },
+  // 'fav' não é um TYPE de leitura — é um corte transversal (favoritas de
+  // qualquer tipo). O tratamento especial dele vive em `filtered` e em
+  // `visibleFilters`, nunca aqui no array.
+  { key: 'fav', label: 'diary.filter.fav' },
   { key: 'tarot', label: 'diary.filter.tarot' },
   { key: 'palma', label: 'diary.filter.palma' },
   { key: 'rosto', label: 'diary.filter.rosto' },
@@ -65,10 +71,13 @@ function excerpt(body, length = 80) {
   return `${clean.slice(0, length).trim()}...`;
 }
 
-function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sharing, pinned, canPin, onPin }) {
+function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sharing, pinned, canPin, onPin, onToggleFavorito }) {
   const { t } = useLanguage();
   const hasInsight = !!(entry.voiceTranscript || entry.aiInsight);
   const iconName = TYPE_ICONS[entry.type] || 'sparkles';
+  // Sempre pelo predicado de lib/journal.js — entrada antiga não tem o campo
+  // `favorito` e a regra "ausente = não-favorita" mora lá, não aqui.
+  const favorito = isEntradaFavorita(entry);
 
   return (
     <TouchableOpacity
@@ -92,7 +101,24 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
           <Text style={styles.title}>{entry.title}</Text>
         </View>
         <View style={styles.headerRight}>
-          <Text style={styles.date}>{formatDate(entry.date, t)}</Text>
+          <View style={styles.headerRightTop}>
+            {/* Coração TouchableOpacity aninhado no card: o toque no filho não
+                propaga pro pai no RN, então favoritar não expande o card. Pink,
+                não red — red aqui é a cor de apagar (deleteBtn), e coração da
+                mesma cor do lixo confunde. */}
+            <TouchableOpacity
+              onPress={onToggleFavorito}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={favorito ? 'heart' : 'heart-outline'}
+                size={18}
+                color={favorito ? colors.pink : colors.textMuted}
+              />
+            </TouchableOpacity>
+            <Text style={styles.date}>{formatDate(entry.date, t)}</Text>
+          </View>
           <Ionicons
             name={expanded ? 'chevron-up' : 'chevron-down'}
             size={16}
@@ -276,6 +302,14 @@ export default function DiaryScreen() {
     }
   }
 
+  async function handleToggleFavorito(entry) {
+    const next = await toggleFavorito(entry.id);
+    if (next === null) return; // id sumiu do storage (ex.: apagada em outra aba) — nada a refletir
+    // Espelha só a entrada tocada no estado local — sem reload da lista
+    // inteira, o coração responde no mesmo frame do toque.
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, favorito: next } : e)));
+  }
+
   async function handlePin(entry) {
     const ok = await pinEntry(entry.id);
     if (!ok) return;
@@ -285,7 +319,12 @@ export default function DiaryScreen() {
     Alert.alert('Fixada!', `"${entry.title}" fica no topo do seu Diário pelos próximos 7 dias.`);
   }
 
-  const filtered = filter === 'all' ? entries : entries.filter((e) => e.type === filter);
+  const filtered =
+    filter === 'all'
+      ? entries
+      : filter === 'fav'
+        ? entries.filter(isEntradaFavorita)
+        : entries.filter((e) => e.type === filter);
   // Entrada em destaque sempre primeiro (dentro do filtro atual) — a ordem
   // original (mais recente primeiro) continua pras demais.
   const pinnedId = activePin?.entryId || null;
@@ -293,7 +332,16 @@ export default function DiaryScreen() {
     ? [...filtered.filter((e) => e.id === pinnedId), ...filtered.filter((e) => e.id !== pinnedId)]
     : filtered;
   const usedTypes = new Set(entries.map((e) => e.type));
-  const visibleFilters = FILTERS.filter((f) => f.key === 'all' || usedTypes.has(f.key));
+  // O chip Favoritas segue a mesma regra dos chips de tipo (só aparece quando
+  // tem o que mostrar) — MAS nunca some enquanto está selecionado: sem o
+  // `filter === 'fav'`, desfavoritar a última favorita com o filtro ativo
+  // apagava o chip debaixo do dedo e deixava a tela presa num filtro sem botão.
+  const hasFavorites = entries.some(isEntradaFavorita);
+  const visibleFilters = FILTERS.filter((f) => {
+    if (f.key === 'all') return true;
+    if (f.key === 'fav') return hasFavorites || filter === 'fav';
+    return usedTypes.has(f.key);
+  });
 
   return (
     <View style={styles.root}>
@@ -400,6 +448,7 @@ export default function DiaryScreen() {
               pinned={item.id === pinnedId}
               canPin={pinCredits > 0}
               onPin={() => handlePin(item)}
+              onToggleFavorito={() => handleToggleFavorito(item)}
             />
           )}
           ListEmptyComponent={
@@ -465,6 +514,7 @@ const styles = StyleSheet.create({
   typeLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
   title: { color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 2 },
   headerRight: { alignItems: 'flex-end', marginLeft: 8 },
+  headerRightTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   date: { color: colors.textMuted, fontSize: 12 },
 
   excerpt: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 10 },

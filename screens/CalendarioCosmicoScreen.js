@@ -12,10 +12,13 @@
 // histórica com obra, autor e século. test/calendarioCosmico.test.js varre
 // aquele vocabulário e derruba o build.
 //
-// O texto interno do motor está em português nos três idiomas — é o gap
-// CONHECIDO e declarado no cabeçalho dele (mesma situação de lib/synastry.js).
-// O que esta tela escreve (cabeçalho, navegação, rótulos, a temporada) está
-// nas três línguas em lib/i18n.js, no bloco CALENDARIO_COSMICO_I18N do fim.
+// O texto do motor agora sai nos TRÊS idiomas: esta tela passa o `lang` do
+// useLanguage() para calendarioCosmico(ano, mes, lang) e o motor escolhe o
+// pack (lib/traducoes/calendario.*.js). O que esta tela escreve (cabeçalho,
+// navegação, rótulos, a temporada) está nas três línguas em lib/i18n.js, no
+// bloco CALENDARIO_COSMICO_I18N do fim. Nome de signo interpolado na
+// temporada usa os campos *Display do evento (rótulo por idioma); os campos
+// canônicos de `detalhe` seguem sendo a chave de signByName().
 //
 // ===========================================================================
 // A FORMA DE CADA CARD: PRENDE PRIMEIRO, RECIBO DEPOIS — E DÁ PRA VER
@@ -251,7 +254,7 @@ function EventoCard({ evento, selecionado, onLayout }) {
 export default function CalendarioCosmicoScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { hasAccess, accessConfirmed, isOwnerAccount } = useCouple();
 
   // Mesmo cuidado de screens/LunarCalendarScreen.js: a tela fica montada dentro
@@ -298,10 +301,11 @@ export default function CalendarioCosmicoScreen() {
     });
   }, [liberado, accessConfirmed]);
 
-  // O motor cacheia por `${ano}-${mes}` (138 ms na primeira conta de um mês,
-  // ~52 ms depois), então o useMemo aqui é só pra não recalcular a cada
-  // re-render de estado local.
-  const resultado = useMemo(() => calendarioCosmico(ano, mes), [ano, mes]);
+  // O motor cacheia por `${ano}-${mes}-${idioma}` (138 ms na primeira conta
+  // de um mês, ~52 ms depois), então o useMemo aqui é só pra não recalcular a
+  // cada re-render de estado local. O `lang` entra nas dependências: trocar o
+  // idioma do app troca o texto dos eventos.
+  const resultado = useMemo(() => calendarioCosmico(ano, mes, lang), [ano, mes, lang]);
   const eventos = resultado.eventos;
 
   // A TEMPORADA CORRENTE, tirada do MESMO evento de ingresso que a lista
@@ -310,17 +314,22 @@ export default function CalendarioCosmicoScreen() {
   // "onde o Sol está agora", não uma propriedade do mês exibido. Custo zero no
   // caso comum: é a mesma chave de cache do mês que abre por padrão.
   const temporada = useMemo(() => {
-    const mesDeHoje = calendarioCosmico(agora.getFullYear(), agora.getMonth() + 1);
+    const mesDeHoje = calendarioCosmico(agora.getFullYear(), agora.getMonth() + 1, lang);
     if (!mesDeHoje.ceuDisponivel) return null;
     const ingressos = mesDeHoje.eventos.filter((e) => e.tipo === 'ingressoSolar');
     if (ingressos.length === 0) return null;
     const jaPassaram = ingressos.filter((e) => e.data.getTime() <= agora.getTime());
+    // `signo`/`outro` seguem CANÔNICOS (chave de signByName); os campos
+    // *Display são o rótulo no idioma do app, que é o que se interpola em
+    // 'calendario.season.*'. Em PT os dois coincidem.
     if (jaPassaram.length > 0) {
       const ultimo = jaPassaram[jaPassaram.length - 1];
       return {
         fase: 'comecou',
         signo: ultimo.detalhe.signoNovo,
+        signoDisplay: ultimo.detalhe.signoNovoDisplay || ultimo.detalhe.signoNovo,
         outro: ultimo.detalhe.signoAnterior,
+        outroDisplay: ultimo.detalhe.signoAnteriorDisplay || ultimo.detalhe.signoAnterior,
         quando: ultimo.data,
       };
     }
@@ -328,10 +337,12 @@ export default function CalendarioCosmicoScreen() {
     return {
       fase: 'termina',
       signo: proximo.detalhe.signoAnterior,
+      signoDisplay: proximo.detalhe.signoAnteriorDisplay || proximo.detalhe.signoAnterior,
       outro: proximo.detalhe.signoNovo,
+      outroDisplay: proximo.detalhe.signoNovoDisplay || proximo.detalhe.signoNovo,
       quando: proximo.data,
     };
-  }, [agora]);
+  }, [agora, lang]);
 
   // Agrupamento pela data LOCAL, que é o campo que a tela consome por convenção
   // do app (lib/localDay.js). EFEITO DE BORDA CONHECIDO: um evento cujo
@@ -579,17 +590,17 @@ export default function CalendarioCosmicoScreen() {
             <Text style={styles.kicker}>{t('calendario.season.kicker')}</Text>
             <Text style={styles.temporadaTitulo}>
               {emojiTemporada ? `${emojiTemporada} ` : ''}
-              {t('calendario.season.title', { signo: temporada.signo })}
+              {t('calendario.season.title', { signo: temporada.signoDisplay })}
             </Text>
             <Text style={styles.temporadaQuando}>
               {temporada.fase === 'comecou'
                 ? t('calendario.season.startedAt', {
                     data: diaMesLocal(temporada.quando),
-                    anterior: temporada.outro,
+                    anterior: temporada.outroDisplay,
                   })
                 : t('calendario.season.endsAt', {
                     data: diaMesLocal(temporada.quando),
-                    proximo: temporada.outro,
+                    proximo: temporada.outroDisplay,
                   })}
             </Text>
             <Text style={styles.body}>{t('calendario.season.note')}</Text>

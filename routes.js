@@ -26,6 +26,14 @@ export const ROUTES = {
   // como as outras telas de conteúdo — as ações do dia levam pra features que
   // já existem, e o Tarô é a única que fica em outra aba.
   JORNADA: 'Jornada',
+  // A leva de 31/07/2026 — quatro telas de conteúdo no HomeStack: Mito × Fonte
+  // (lib/mitos.js), a entrada por emoção "Como você tá?" (lib/emocoes.js), o
+  // quiz "Você sabia?" (lib/quizCosmico.js) e o Papel de Parede do céu
+  // (lib/wallpaper.js). Mesmo padrão das telas de conteúdo acima.
+  MITOS: 'Mitos',
+  COMO_VOCE_TA: 'ComoVoceTa',
+  QUIZ_COSMICO: 'QuizCosmico',
+  WALLPAPER: 'Wallpaper',
   COFFEE: 'Coffee',
   COMPATIBILITY: 'Compatibility',
   QUIZ: 'Quiz',

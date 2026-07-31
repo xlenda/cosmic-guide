@@ -1,0 +1,488 @@
+{
+  "capturadoEm": "2026-07-31",
+  "nota": "Saída REAL de lib/emocoes.js rodado ANTES do refactor de idiomas, mais o chrome PT que morava em screens/ComoVoceTaScreen.js. test/emocoesIdiomas.test.js prova que lang='pt' e a chamada sem lang devolvem exatamente isto, byte a byte.",
+  "textosVisiveis": [
+    [
+      "estado:ansiosaComOFuturo.fala",
+      "Tô ansiosa com o futuro"
+    ],
+    [
+      "estado:ansiosaComOFuturo.ponte[0]",
+      "A tiragem de três cartas tem uma casa só pra frente: o Futuro, lido como direção — pra onde o assunto aponta se nada mudar. É exatamente essa pergunta que a casa cobre."
+    ],
+    [
+      "estado:ansiosaComOFuturo.ponte[1]",
+      "O horóscopo de hoje descreve o céu do seu dia, pro seu signo — o dia que vem aí é exatamente o assunto que ele cobre."
+    ],
+    [
+      "estado:brigueiComQuemAmo.fala",
+      "Briguei com quem eu amo"
+    ],
+    [
+      "estado:brigueiComQuemAmo.ponte[0]",
+      "A leitura de compatibilidade nomeia a relação entre os dois signos — inclusive as combinações duras, que ela chama pelo nome em vez de maquiar com nota alta."
+    ],
+    [
+      "estado:brigueiComQuemAmo.ponte[1]",
+      "O diário é a página sem plateia: a sua versão da briga, escrita com data, pra reler quando a poeira baixar."
+    ],
+    [
+      "estado:semRumo.fala",
+      "Não sei que rumo tomar"
+    ],
+    [
+      "estado:semRumo.ponte[0]",
+      "A tiragem de três casas divide a pergunta em partes: de onde o assunto vem, onde ele está e pra onde aponta. Rumo é exatamente o que ela olha."
+    ],
+    [
+      "estado:semRumo.ponte[1]",
+      "A Jornada é uma trilha de sete dias com um passo marcado por dia — pra quem quer começar a andar sem ter que decidir o mapa inteiro hoje."
+    ],
+    [
+      "estado:saudadeDeAlguem.fala",
+      "Tô com saudade de alguém"
+    ],
+    [
+      "estado:saudadeDeAlguem.ponte[0]",
+      "Na prateleira de Amor dos Rituais existe um gesto feito pra esse assunto: a carta que não se envia — escrever o que você sente, ler em voz alta e guardar."
+    ],
+    [
+      "estado:saudadeDeAlguem.ponte[1]",
+      "O diário guarda a saudade com data. Daqui a um mês dá pra reler e ver o que ela virou."
+    ],
+    [
+      "estado:medoDeDecidirErrado.fala",
+      "Medo de tomar a decisão errada"
+    ],
+    [
+      "estado:medoDeDecidirErrado.ponte[0]",
+      "O tarô abre a decisão em três casas — de onde ela vem, onde ela está, pra onde aponta. É leitura da situação, com a escolha ficando na sua mão."
+    ],
+    [
+      "estado:medoDeDecidirErrado.ponte[1]",
+      "No diário dá pra escrever os dois lados da decisão, com data — e voltar depois pra conferir o que você já tinha visto."
+    ],
+    [
+      "estado:querendoRecomecar.fala",
+      "Querendo recomeçar"
+    ],
+    [
+      "estado:querendoRecomecar.ponte[0]",
+      "A Jornada começa do dia um de propósito: sete dias, um passo por dia, progresso marcado na tela. Recomeço com trilho."
+    ],
+    [
+      "estado:querendoRecomecar.ponte[1]",
+      "A prateleira de Limpeza dos Rituais é toda de encerramento — esvaziar, largar, fechar o que ficou aberto, com a própria mão."
+    ],
+    [
+      "estado:cabecaCheia.fala",
+      "Cabeça cheia, pensamento que não desliga"
+    ],
+    [
+      "estado:cabecaCheia.ponte[0]",
+      "O Assentar é respiração contada: quatro tempos, começo e fim marcados no relógio. A tela só conta o ritmo — o resto é seu."
+    ],
+    [
+      "estado:cabecaCheia.ponte[1]",
+      "O diário aceita a lista inteira, do jeito que ela está — despejar no papel é um gesto, e a página guarda com data."
+    ],
+    [
+      "estado:sonhoQueNaoLargou.fala",
+      "Sonhei uma coisa estranha e ela não me largou"
+    ],
+    [
+      "estado:sonhoQueNaoLargou.ponte[0]",
+      "A leitura de sonhos parte da imagem que ficou: você conta o que sonhou e a leitura percorre o que essa imagem carrega na tradição."
+    ],
+    [
+      "estado:divididaEntreDuasPessoas.fala",
+      "Dividida entre duas pessoas"
+    ],
+    [
+      "estado:divididaEntreDuasPessoas.ponte[0]",
+      "A compatibilidade lê um par por vez — dá pra rodar as duas duplas e comparar a relação que sai nomeada em cada uma."
+    ],
+    [
+      "estado:divididaEntreDuasPessoas.ponte[1]",
+      "No tarô, o tema de Amor lê as cartas pela pergunta do vínculo — o desejo, o que ainda não virou palavra, o que precisa ser dito."
+    ],
+    [
+      "estado:granaApertada.fala",
+      "A grana apertou esse mês"
+    ],
+    [
+      "estado:granaApertada.ponte[0]",
+      "O tarô tem um tema só de dinheiro: as mesmas cartas, lidas pelo número olhado de frente, sem a história em volta."
+    ],
+    [
+      "estado:granaApertada.ponte[1]",
+      "A prateleira de Prosperidade dos Rituais começa com as contas na mesa, literalmente — papel, caneta e o tamanho real do que existe."
+    ],
+    [
+      "estado:conheciAlguem.fala",
+      "Conheci alguém e já tô sonhando alto"
+    ],
+    [
+      "estado:conheciAlguem.ponte[0]",
+      "A leitura de compatibilidade pega os dois signos e diz que relação existe entre eles — relação com nome, não porcentagem solta."
+    ],
+    [
+      "estado:conheciAlguem.ponte[1]",
+      "O tema de Amor do tarô recebe exatamente esse tipo de pergunta — o vínculo que está nascendo, lido carta a carta."
+    ],
+    [
+      "estado:diaGrandeAmanha.fala",
+      "Amanhã é um dia grande pra mim"
+    ],
+    [
+      "estado:diaGrandeAmanha.ponte[0]",
+      "O Calendário Cósmico mostra o que o céu tem marcado pra data: fase exata da Lua, ingresso do Sol, retrógrado — tudo calculado, nada tabelado."
+    ],
+    [
+      "estado:diaGrandeAmanha.ponte[1]",
+      "O horóscopo do dia lê o céu de hoje pro seu signo — o retrato do céu na véspera do seu dia grande."
+    ],
+    [
+      "destino:taro.rotulo",
+      "Tarô"
+    ],
+    [
+      "destino:taro.botao",
+      "Abrir o Tarô"
+    ],
+    [
+      "destino:horoscopo.rotulo",
+      "Horóscopo do dia"
+    ],
+    [
+      "destino:horoscopo.botao",
+      "Ver o horóscopo de hoje"
+    ],
+    [
+      "destino:compatibilidade.rotulo",
+      "Compatibilidade"
+    ],
+    [
+      "destino:compatibilidade.botao",
+      "Abrir Compatibilidade"
+    ],
+    [
+      "destino:sonhos.rotulo",
+      "Leitura de sonhos"
+    ],
+    [
+      "destino:sonhos.botao",
+      "Contar o sonho"
+    ],
+    [
+      "destino:diario.rotulo",
+      "Diário Cósmico"
+    ],
+    [
+      "destino:diario.botao",
+      "Escrever no Diário"
+    ],
+    [
+      "destino:aterramento.rotulo",
+      "Assentar"
+    ],
+    [
+      "destino:aterramento.botao",
+      "Abrir o Assentar"
+    ],
+    [
+      "destino:rituais.rotulo",
+      "Rituais"
+    ],
+    [
+      "destino:rituais.botao",
+      "Ver os Rituais"
+    ],
+    [
+      "destino:jornada.rotulo",
+      "Jornada Guiada"
+    ],
+    [
+      "destino:jornada.botao",
+      "Começar a Jornada"
+    ],
+    [
+      "destino:calendarioCosmico.rotulo",
+      "Calendário Cósmico"
+    ],
+    [
+      "destino:calendarioCosmico.botao",
+      "Abrir o Calendário Cósmico"
+    ]
+  ],
+  "estados": [
+    {
+      "id": "ansiosaComOFuturo",
+      "emoji": "🌫️",
+      "fala": "Tô ansiosa com o futuro",
+      "pontes": [
+        {
+          "destino": "taro",
+          "texto": "A tiragem de três cartas tem uma casa só pra frente: o Futuro, lido como direção — pra onde o assunto aponta se nada mudar. É exatamente essa pergunta que a casa cobre."
+        },
+        {
+          "destino": "horoscopo",
+          "texto": "O horóscopo de hoje descreve o céu do seu dia, pro seu signo — o dia que vem aí é exatamente o assunto que ele cobre."
+        }
+      ]
+    },
+    {
+      "id": "brigueiComQuemAmo",
+      "emoji": "💔",
+      "fala": "Briguei com quem eu amo",
+      "pontes": [
+        {
+          "destino": "compatibilidade",
+          "texto": "A leitura de compatibilidade nomeia a relação entre os dois signos — inclusive as combinações duras, que ela chama pelo nome em vez de maquiar com nota alta."
+        },
+        {
+          "destino": "diario",
+          "texto": "O diário é a página sem plateia: a sua versão da briga, escrita com data, pra reler quando a poeira baixar."
+        }
+      ]
+    },
+    {
+      "id": "semRumo",
+      "emoji": "🧭",
+      "fala": "Não sei que rumo tomar",
+      "pontes": [
+        {
+          "destino": "taro",
+          "texto": "A tiragem de três casas divide a pergunta em partes: de onde o assunto vem, onde ele está e pra onde aponta. Rumo é exatamente o que ela olha."
+        },
+        {
+          "destino": "jornada",
+          "texto": "A Jornada é uma trilha de sete dias com um passo marcado por dia — pra quem quer começar a andar sem ter que decidir o mapa inteiro hoje."
+        }
+      ]
+    },
+    {
+      "id": "saudadeDeAlguem",
+      "emoji": "💌",
+      "fala": "Tô com saudade de alguém",
+      "pontes": [
+        {
+          "destino": "rituais",
+          "texto": "Na prateleira de Amor dos Rituais existe um gesto feito pra esse assunto: a carta que não se envia — escrever o que você sente, ler em voz alta e guardar."
+        },
+        {
+          "destino": "diario",
+          "texto": "O diário guarda a saudade com data. Daqui a um mês dá pra reler e ver o que ela virou."
+        }
+      ]
+    },
+    {
+      "id": "medoDeDecidirErrado",
+      "emoji": "⚖️",
+      "fala": "Medo de tomar a decisão errada",
+      "pontes": [
+        {
+          "destino": "taro",
+          "texto": "O tarô abre a decisão em três casas — de onde ela vem, onde ela está, pra onde aponta. É leitura da situação, com a escolha ficando na sua mão."
+        },
+        {
+          "destino": "diario",
+          "texto": "No diário dá pra escrever os dois lados da decisão, com data — e voltar depois pra conferir o que você já tinha visto."
+        }
+      ]
+    },
+    {
+      "id": "querendoRecomecar",
+      "emoji": "🌱",
+      "fala": "Querendo recomeçar",
+      "pontes": [
+        {
+          "destino": "jornada",
+          "texto": "A Jornada começa do dia um de propósito: sete dias, um passo por dia, progresso marcado na tela. Recomeço com trilho."
+        },
+        {
+          "destino": "rituais",
+          "texto": "A prateleira de Limpeza dos Rituais é toda de encerramento — esvaziar, largar, fechar o que ficou aberto, com a própria mão."
+        }
+      ]
+    },
+    {
+      "id": "cabecaCheia",
+      "emoji": "🌀",
+      "fala": "Cabeça cheia, pensamento que não desliga",
+      "pontes": [
+        {
+          "destino": "aterramento",
+          "texto": "O Assentar é respiração contada: quatro tempos, começo e fim marcados no relógio. A tela só conta o ritmo — o resto é seu."
+        },
+        {
+          "destino": "diario",
+          "texto": "O diário aceita a lista inteira, do jeito que ela está — despejar no papel é um gesto, e a página guarda com data."
+        }
+      ]
+    },
+    {
+      "id": "sonhoQueNaoLargou",
+      "emoji": "🌙",
+      "fala": "Sonhei uma coisa estranha e ela não me largou",
+      "pontes": [
+        {
+          "destino": "sonhos",
+          "texto": "A leitura de sonhos parte da imagem que ficou: você conta o que sonhou e a leitura percorre o que essa imagem carrega na tradição."
+        }
+      ]
+    },
+    {
+      "id": "divididaEntreDuasPessoas",
+      "emoji": "💞",
+      "fala": "Dividida entre duas pessoas",
+      "pontes": [
+        {
+          "destino": "compatibilidade",
+          "texto": "A compatibilidade lê um par por vez — dá pra rodar as duas duplas e comparar a relação que sai nomeada em cada uma."
+        },
+        {
+          "destino": "taro",
+          "texto": "No tarô, o tema de Amor lê as cartas pela pergunta do vínculo — o desejo, o que ainda não virou palavra, o que precisa ser dito."
+        }
+      ]
+    },
+    {
+      "id": "granaApertada",
+      "emoji": "💸",
+      "fala": "A grana apertou esse mês",
+      "pontes": [
+        {
+          "destino": "taro",
+          "texto": "O tarô tem um tema só de dinheiro: as mesmas cartas, lidas pelo número olhado de frente, sem a história em volta."
+        },
+        {
+          "destino": "rituais",
+          "texto": "A prateleira de Prosperidade dos Rituais começa com as contas na mesa, literalmente — papel, caneta e o tamanho real do que existe."
+        }
+      ]
+    },
+    {
+      "id": "conheciAlguem",
+      "emoji": "✨",
+      "fala": "Conheci alguém e já tô sonhando alto",
+      "pontes": [
+        {
+          "destino": "compatibilidade",
+          "texto": "A leitura de compatibilidade pega os dois signos e diz que relação existe entre eles — relação com nome, não porcentagem solta."
+        },
+        {
+          "destino": "taro",
+          "texto": "O tema de Amor do tarô recebe exatamente esse tipo de pergunta — o vínculo que está nascendo, lido carta a carta."
+        }
+      ]
+    },
+    {
+      "id": "diaGrandeAmanha",
+      "emoji": "🗓️",
+      "fala": "Amanhã é um dia grande pra mim",
+      "pontes": [
+        {
+          "destino": "calendarioCosmico",
+          "texto": "O Calendário Cósmico mostra o que o céu tem marcado pra data: fase exata da Lua, ingresso do Sol, retrógrado — tudo calculado, nada tabelado."
+        },
+        {
+          "destino": "horoscopo",
+          "texto": "O horóscopo do dia lê o céu de hoje pro seu signo — o retrato do céu na véspera do seu dia grande."
+        }
+      ]
+    }
+  ],
+  "destinos": {
+    "taro": {
+      "rotulo": "Tarô",
+      "botao": "Abrir o Tarô",
+      "rota": "TarotMain",
+      "abaPai": "Tarô"
+    },
+    "horoscopo": {
+      "rotulo": "Horóscopo do dia",
+      "botao": "Ver o horóscopo de hoje",
+      "rota": "Horoscope"
+    },
+    "compatibilidade": {
+      "rotulo": "Compatibilidade",
+      "botao": "Abrir Compatibilidade",
+      "rota": "Compatibility"
+    },
+    "sonhos": {
+      "rotulo": "Leitura de sonhos",
+      "botao": "Contar o sonho",
+      "rota": "Dream"
+    },
+    "diario": {
+      "rotulo": "Diário Cósmico",
+      "botao": "Escrever no Diário",
+      "rota": "Diary"
+    },
+    "aterramento": {
+      "rotulo": "Assentar",
+      "botao": "Abrir o Assentar",
+      "rota": "Grounding"
+    },
+    "rituais": {
+      "rotulo": "Rituais",
+      "botao": "Ver os Rituais",
+      "rota": "Rituais"
+    },
+    "jornada": {
+      "rotulo": "Jornada Guiada",
+      "botao": "Começar a Jornada",
+      "rota": "Jornada"
+    },
+    "calendarioCosmico": {
+      "rotulo": "Calendário Cósmico",
+      "botao": "Abrir o Calendário Cósmico",
+      "rota": "CalendarioCosmico"
+    }
+  },
+  "alvos": {
+    "taro": {
+      "viaAbaPai": true,
+      "nome": "Tarô"
+    },
+    "horoscopo": {
+      "viaAbaPai": false,
+      "nome": "Horoscope"
+    },
+    "compatibilidade": {
+      "viaAbaPai": false,
+      "nome": "Compatibility"
+    },
+    "sonhos": {
+      "viaAbaPai": false,
+      "nome": "Dream"
+    },
+    "diario": {
+      "viaAbaPai": false,
+      "nome": "Diary"
+    },
+    "aterramento": {
+      "viaAbaPai": false,
+      "nome": "Grounding"
+    },
+    "rituais": {
+      "viaAbaPai": false,
+      "nome": "Rituais"
+    },
+    "jornada": {
+      "viaAbaPai": false,
+      "nome": "Jornada"
+    },
+    "calendarioCosmico": {
+      "viaAbaPai": false,
+      "nome": "CalendarioCosmico"
+    }
+  },
+  "chromeTela": {
+    "titulo": "Como você tá?",
+    "subtitulo": "Diz do seu jeito",
+    "intro": "Toca no que mais parece com você agora. Cada estado aponta pra leitura que cobre esse assunto.",
+    "overlinePontes": "Onde esse assunto mora no app"
+  }
+}

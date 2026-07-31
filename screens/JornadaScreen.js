@@ -14,9 +14,10 @@
 //
 // O que nasce aqui é só a moldura (rótulos, botões, estados), e ela vai pro
 // dicionário nos três idiomas — bloco JORNADA_I18N no fim de lib/i18n.js. O
-// CONTEÚDO continua em português nos três, que é o mesmo gap conhecido e
-// declarado no topo de lib/jornada.js e em lib/synastry.js: gap declarado, não
-// esquecimento.
+// CONTEÚDO também é traduzido, mas NÃO por aqui: os packs es/en moram em
+// lib/traducoes/jornada.<lang>.js e o motor os aplica quando esta tela passa
+// `lang` (useLanguage) para os acessores. A tela continua sem redigir nada —
+// ela só escolhe o idioma do que o motor entrega.
 //
 // ===========================================================================
 // AS DUAS TRAVAS DO MOTOR, E COMO A TELA AS MOSTRA SEM PARECER CASTIGO
@@ -80,18 +81,18 @@ import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordActiveDay } from '../lib/streak';
 import {
-  TRILHAS,
   FEATURES,
-  MEDALHAS_JORNADA,
   carregarJornada,
   concluirDia,
   diaDaTrilha,
   fontesDoDia,
+  medalhasJornadaParaIdioma,
   medalhasPara,
   podeConcluir,
   proximaMedalha,
   reiniciarTrilha,
   trilhaPorId,
+  trilhasParaIdioma,
 } from '../lib/jornada';
 
 const FEATURE_KEY = 'jornada';
@@ -172,7 +173,10 @@ function Medalha({ nome, legenda, nova, rotuloNova }) {
 // ---------------------------------------------------------------------------
 export default function JornadaScreen() {
   const navigation = useNavigation();
-  const { t } = useLanguage();
+  // `lang` é o fio inteiro do i18n de conteúdo aqui: ele vai pros acessores do
+  // motor (trilhasParaIdioma, trilhaPorId, diaDaTrilha, medalhas*) e pro
+  // concluirDia — a tela nunca escolhe texto, só o idioma do que o motor dá.
+  const { t, lang } = useLanguage();
   const { hasAccess, accessConfirmed } = useCouple();
 
   const [estado, setEstado] = useState(null); // carregarJornada()
@@ -185,10 +189,10 @@ export default function JornadaScreen() {
   const [revendo, setRevendo] = useState(null); // dia anterior aberto pra reler
 
   const recarregar = useCallback(async () => {
-    const j = await carregarJornada();
+    const j = await carregarJornada(lang);
     setEstado(j);
     return j;
-  }, []);
+  }, [lang]);
 
   // Recarrega a cada FOCO, não só na montagem — e são duas razões distintas:
   //   · a tela fica montada na stack da aba enquanto a pessoa vai fazer a ação
@@ -255,7 +259,9 @@ export default function JornadaScreen() {
       if (gravando) return;
       setGravando(true);
       try {
-        const r = await concluirDia(trilhaId, dia);
+        // `lang` só localiza o texto das medalhas devolvidas — a trava, a
+        // gravação e os ids são idênticos nos três idiomas (lib/jornada.js).
+        const r = await concluirDia(trilhaId, dia, new Date(), { lang });
         setUltimo(r);
         await recarregar();
         if (r.ok) {
@@ -274,7 +280,7 @@ export default function JornadaScreen() {
         setGravando(false);
       }
     },
-    [gravando, trilhaId, recarregar, hasAccess, accessConfirmed, gasta]
+    [gravando, trilhaId, lang, recarregar, hasAccess, accessConfirmed, gasta]
   );
 
   const refazer = useCallback(async () => {
@@ -284,15 +290,15 @@ export default function JornadaScreen() {
     await recarregar();
   }, [trilhaId, recarregar]);
 
-  const trilha = trilhaId ? trilhaPorId(trilhaId) : null;
+  const trilha = trilhaId ? trilhaPorId(trilhaId, lang) : null;
   const progresso = estado && trilhaId ? estado.trilhas[trilhaId] : null;
 
   // O passo de hoje e o veredito do motor sobre ele. `diaAtual` é null quando a
   // trilha fechou — aí não existe passo, existe a medalha final.
   const passo = useMemo(() => {
     if (!progresso || progresso.concluida || progresso.diaAtual === null) return null;
-    return diaDaTrilha(trilhaId, progresso.diaAtual);
-  }, [progresso, trilhaId]);
+    return diaDaTrilha(trilhaId, progresso.diaAtual, lang);
+  }, [progresso, trilhaId, lang]);
 
   const veredito = useMemo(() => {
     if (!progresso || !passo) return null;
@@ -331,8 +337,10 @@ export default function JornadaScreen() {
   // 1. A LISTA DAS QUATRO TRILHAS
   // -------------------------------------------------------------------------
   if (!trilha || !progresso) {
+    // Memoizado no motor por idioma — chamar na renderização é barato.
+    const trilhas = trilhasParaIdioma(lang);
     const proximaDaJornada =
-      MEDALHAS_JORNADA.find((m) => estado.trilhasConcluidas < m.trilhas) || null;
+      medalhasJornadaParaIdioma(lang).find((m) => estado.trilhasConcluidas < m.trilhas) || null;
 
     return (
       <View style={styles.root}>
@@ -350,14 +358,14 @@ export default function JornadaScreen() {
             <Text style={styles.resumoTexto}>
               {t('jornada.resumo', {
                 feitas: estado.trilhasConcluidas,
-                total: TRILHAS.length,
+                total: trilhas.length,
               })}
             </Text>
           </View>
 
           <Text style={styles.grupo}>{t('jornada.trilhas.title')}</Text>
 
-          {TRILHAS.map((tr) => {
+          {trilhas.map((tr) => {
             const p = estado.trilhas[tr.id];
             const feitos = p.diasConcluidos.length;
             const aberta = liberada(p);
@@ -443,8 +451,8 @@ export default function JornadaScreen() {
   // 2. DENTRO DE UMA TRILHA
   // -------------------------------------------------------------------------
   const feitos = progresso.diasConcluidos.length;
-  const conquistadas = medalhasPara(feitos);
-  const proxima = proximaMedalha(feitos);
+  const conquistadas = medalhasPara(feitos, lang);
+  const proxima = proximaMedalha(feitos, lang);
   const novas = ultimo && ultimo.ok ? ultimo.medalhasNovas : [];
   const novasDaJornada = ultimo && ultimo.ok ? ultimo.medalhasJornadaNovas : [];
   const idsNovas = new Set(novas.map((m) => m.id));

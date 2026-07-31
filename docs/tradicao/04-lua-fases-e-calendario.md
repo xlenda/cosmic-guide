@@ -121,6 +121,19 @@ carrega doutrina.
 > **Regra editorial:** pode-se dizer que os **quartos** lunares têm leitura antiga
 > (Ptolomeu). **Não** se pode chamar as **oito** fases de "tradição milenar".
 
+> **Resolução de divergência interna (04 §3.1 × 10 §13, registrada em 31/07/2026):**
+> a tabela de 10 §13 data o "Ciclo lunar em 8 fases" de **Rudhyar, 1936** (e a regra de
+> ouro nº 3 / tabela F de 00-LEIA-PRIMEIRO repetem 1936/1967 lado a lado), enquanto este
+> parágrafo — o doc de domínio — diz que os oito tipos sololunares são **formulados pela
+> primeira vez em *The Lunation Cycle* (1967)**. As duas datas não competem: **1936**
+> (*The Astrology of Personality*) é o marco da moldura psicológica e o germe da ideia,
+> que Rudhyar desenvolve dali em diante; **1967** é onde os oito tipos aparecem
+> formulados como sistema. **Formulação única para texto do app:** "a leitura psicológica
+> das oito fases é de Dane Rudhyar — formulada nos oito tipos sololunares em *The
+> Lunation Cycle* (1967), sobre ideia que ele vinha desenvolvendo desde os anos 1930-40
+> (*The Astrology of Personality*, 1936)". Nem "é de 1936" seco, nem "1936, retomada em
+> 1967": a data da formulação é 1967, e 1936 entra como origem da ideia.
+
 ### 3.2 O que a Antiguidade de fato mandava fazer em cada fase
 
 Esta é a parte com mais fonte primária de todo o documento, e é a que o app mais usa —

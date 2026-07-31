@@ -83,7 +83,9 @@ const MANCHETE = {
 
 export default function CompatibilityScreen() {
   const navigation = useNavigation();
-  const { t } = useLanguage();
+  // `lang` é o fio que leva o idioma até o motor: o conteúdo da leitura sai de
+  // lib/traducoes/synastry.<lang>.js (pt continua byte a byte o de sempre).
+  const { t, lang } = useLanguage();
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
   const { hasAccess, accessConfirmed } = useCouple();
@@ -115,7 +117,7 @@ export default function CompatibilityScreen() {
     // verificação adversarial: dava cálculos grátis infinitos no mesmo par).
     if (!hasAccess && locked) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const compat = compatibility(signA.name, signB.name);
+    const compat = compatibility(signA.name, signB.name, lang);
     if (!compat) { setResult(null); return; }
     setResult(compat);
     setShowSource(false);

@@ -93,10 +93,12 @@
 // tela nunca lê `.nome` cru — sempre pelos helpers nomeDaCategoria/nomeDoDia/
 // nomeDaFase/nomeDoPlaneta, com o `t` do contexto.
 //
-// O que AINDA está em português nos três idiomas: título e os cinco campos dos
-// 21 rituais, e os três blocos de lastro. É o gap declarado no topo de
-// lib/rituais.js, com o resto do caminho escrito lá. Não é esquecimento, e a
-// tela não reescreve nada pra disfarçar.
+// A SEGUNDA PARCELA SAIU: título e os cinco campos dos 21 rituais, o aviso
+// ético, os blocos de lastro e os recibos agora vêm do motor JÁ NO IDIOMA —
+// esta tela só passa o `lang` do useLanguage() adiante (ritualPorId,
+// rituaisPorCategoria, rituaisDeHoje, textoCompartilhavel, recibo,
+// lastroMomentoIdeal). Ela continua sem escrever conteúdo nenhum: quem traduz
+// é lib/traducoes/rituais.<lang>.js, cobrado por test/rituaisIdiomas.test.js.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Platform } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -110,7 +112,7 @@ import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import {
   AVISO_ETICO,
   CATEGORIAS,
-  LASTRO_MOMENTO_IDEAL,
+  lastroMomentoIdeal,
   descricaoDaCategoria,
   lerRitualLivre,
   marcarRitualLivre,
@@ -192,7 +194,9 @@ function CardRitual({ ritual, onPress, bloqueado }) {
 
 export default function RituaisScreen() {
   const navigation = useNavigation();
-  const { t } = useLanguage();
+  // `lang` é o fio novo: ele desce pro motor em toda chamada que devolve
+  // conteúdo, e o motor decide o pack. `t` continua cuidando do chrome.
+  const { t, lang } = useLanguage();
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — mesma leitura das outras nove telas com uso grátis.
   const { hasAccess, accessConfirmed } = useCouple();
@@ -236,11 +240,11 @@ export default function RituaisScreen() {
     }, [])
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const hoje = useMemo(() => rituaisDeHoje(new Date()), [tique]);
+  const hoje = useMemo(() => rituaisDeHoje(new Date(), lang, t), [tique, lang]);
 
   const categoria = categoriaId ? CATEGORIAS.find((c) => c.id === categoriaId) : null;
-  const ritual = ritualId ? ritualPorId(ritualId) : null;
-  const ritualLivre = ritualLivreId ? ritualPorId(ritualLivreId) : null;
+  const ritual = ritualId ? ritualPorId(ritualId, lang) : null;
+  const ritualLivre = ritualLivreId ? ritualPorId(ritualLivreId, lang) : null;
 
   // Trancado = já gastou o uso grátis E não é o ritual que ficou sendo dele.
   const bloqueado = useCallback(
@@ -294,7 +298,7 @@ export default function RituaisScreen() {
     // `t` vai junto: este é o único artefato desta tela que sai do app e
     // circula em público, e sem ele um usuário EN/ES publicava um texto em
     // português com o nome da marca colado.
-    const texto = textoCompartilhavel(r, t);
+    const texto = textoCompartilhavel(r, t, lang);
     if (!texto) return;
     setRecado(null);
     const temFolhaWeb =
@@ -457,7 +461,7 @@ export default function RituaisScreen() {
                 <Text style={styles.subLabel}>
                   {t('rituais.category.count', { n: rituaisPorCategoria(categoria.id).length })}
                 </Text>
-                {rituaisPorCategoria(categoria.id).map((r) => (
+                {rituaisPorCategoria(categoria.id, lang).map((r) => (
                   <CardRitual
                     key={r.id}
                     ritual={r}
@@ -486,7 +490,7 @@ export default function RituaisScreen() {
                 já mostrou o que fazer hoje), fonte depois.
             --------------------------------------------------------------- */}
             <Text style={styles.groupLabel}>{t('rituais.lastro.title')}</Text>
-            {Object.entries(LASTRO_MOMENTO_IDEAL).map(([chave, bloco]) => (
+            {Object.entries(lastroMomentoIdeal(lang)).map(([chave, bloco]) => (
               <Section key={chave} title={bloco.titulo}>
                 <Text style={styles.body}>{bloco.texto}</Text>
                 {(bloco.ressalvas || []).map((r, i) => (
@@ -495,8 +499,8 @@ export default function RituaisScreen() {
                     <Text style={styles.bulletText}>{r}</Text>
                   </View>
                 ))}
-                {recibo(bloco.fontes) ? (
-                  <Text style={styles.source}>{recibo(bloco.fontes)}</Text>
+                {recibo(bloco.fontes, lang) ? (
+                  <Text style={styles.source}>{recibo(bloco.fontes, lang)}</Text>
                 ) : null}
               </Section>
             ))}
@@ -515,16 +519,20 @@ export default function RituaisScreen() {
 // Nenhum deles é colapsável — ritual escondido atrás de um chevron é ritual que
 // não se faz.
 function DetalheRitual({ ritual, recado, onShare, onVoltar }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const categoria = CATEGORIAS.find((c) => c.id === ritual.categoria);
   const momento = resumoDoMomento(ritual, t);
-  const fontes = recibo(ritual.fontes);
+  const fontes = recibo(ritual.fontes, lang);
 
   // O aviso ético é o FIM literal de `cuidados` (lib/rituais.js cola nos dois
-  // lugares). Aqui ele é separado só pra ganhar caixa própria — a soma dos dois
-  // pedaços continua sendo a string inteira, sem uma palavra a mais nem a menos.
+  // lugares, em qualquer idioma). Aqui ele é separado só pra ganhar caixa
+  // própria — a soma dos dois pedaços continua sendo a string inteira, sem uma
+  // palavra a mais nem a menos. O separador é `ritual.aviso` porque num ritual
+  // localizado o fim de `cuidados` é o aviso DO IDIOMA; AVISO_ETICO fica só de
+  // rede de segurança.
   const cuidados = ritual.cuidados || '';
-  const pedacos = cuidados.split(AVISO_ETICO);
+  const aviso = ritual.aviso || AVISO_ETICO;
+  const pedacos = cuidados.split(aviso);
   const corpoCuidados = (pedacos.length > 1 ? pedacos[0] : cuidados).trim();
 
   return (

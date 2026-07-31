@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -31,6 +30,11 @@ import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration, rec
 import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
 import { localDayStr } from '../lib/localDay';
 import { getShieldCount } from '../lib/streakShield';
+// Storage SEMPRE via lib/storage.js: se o disco falhar (SecurityError em
+// iframe/web), os wrappers caem pra memória de sessão em vez de engolir a
+// escrita — sem isso o flag "leitura do dia lida" nunca persistia e o card
+// voltava a pedir leitura a cada foco.
+import { getItemSeguro, setItemSeguro } from '../lib/storage';
 import { getAgirData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -190,11 +194,9 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      AsyncStorage.getItem(THOUGHT_READ_KEY)
-        .then((v) => {
-          if (active) setThoughtReadToday(v === localDayStr());
-        })
-        .catch(() => {});
+      getItemSeguro(THOUGHT_READ_KEY).then((v) => {
+        if (active) setThoughtReadToday(v === localDayStr());
+      });
       return () => {
         active = false;
       };
@@ -225,9 +227,7 @@ export default function HomeScreen() {
   const markThoughtReadToday = useCallback(async () => {
     if (thoughtReadToday) return;
     setThoughtReadToday(true);
-    try {
-      await AsyncStorage.setItem(THOUGHT_READ_KEY, localDayStr());
-    } catch {}
+    await setItemSeguro(THOUGHT_READ_KEY, localDayStr());
     await recordActiveDay();
     // Reflete na hora o dot de hoje + contagem no widget da semana (e, se um
     // marco 7/30/100 acabou de bater, loadStreak consome e celebra já).
@@ -456,6 +456,13 @@ export default function HomeScreen() {
 
   const ALL_ITEMS = [
     { key: 'horoscope', title: t('home.card.horoscope.title'), subtitle: t('home.card.horoscope.subtitle'), icon: 'planet', gradient: ['#7B3FB5', '#A66CFF'], onPress: () => navigation.navigate(ROUTES.HOROSCOPE, { sign }) },
+    // Como você tá?: a entrada por emoção — um ROTEADOR pras leituras que já
+    // existem, e roteador que ninguém acha não roteia nada. Por isso mora aqui
+    // no COMEÇO de Leituras, logo depois do horóscopo, e não enterrado no fim
+    // do grid atrás de chat e social (onde a leva de 31/07 o deixou primeiro).
+    // Coração, mas heart-half pra não confundir com o heart cheio da
+    // Compatibilidade no mesmo grid.
+    { key: 'comovoceta', title: t('home.card.comovoceta.title'), subtitle: t('home.card.comovoceta.subtitle'), icon: 'heart-half', gradient: ['#FF7BD5', '#FF6B7A'], onPress: () => navigation.navigate(ROUTES.COMO_VOCE_TA) },
     { key: 'birthchart', title: t('home.card.birthchart.title'), subtitle: t('home.card.birthchart.subtitle'), icon: 'compass', gradient: ['#5CA8FF', '#6C7BFF'], onPress: () => navigation.navigate(ROUTES.BIRTH_CHART) },
     { key: 'tarot', title: t('home.card.tarot.title'), subtitle: t('home.card.tarot.subtitle'), icon: 'sparkles', gradient: ['#FF6BA0', '#B57BFF'], onPress: () => navigation.getParent()?.navigate(ROUTES.TAROT_TAB) },
     { key: 'compatibility', title: t('home.card.compatibility.title'), subtitle: t('home.card.compatibility.subtitle'), icon: 'heart', gradient: ['#FF8C5C', '#FF6B7A'], onPress: () => navigation.navigate(ROUTES.COMPATIBILITY) },
@@ -502,6 +509,25 @@ export default function HomeScreen() {
     { key: 'coffee', title: t('home.card.coffee.title'), subtitle: t('home.card.coffee.subtitle'), icon: 'cafe', gradient: ['#B57BFF', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.COFFEE) },
     { key: 'chat', title: t('home.card.chat.title'), subtitle: t('home.card.chat.subtitle'), icon: 'chatbubbles', gradient: ['#6C7BFF', '#5CE0D8'], onPress: () => navigation.getParent()?.navigate(ROUTES.CHAT_TAB) },
     { key: 'social', title: t('home.card.social.title'), subtitle: t('home.card.social.subtitle'), icon: 'people', gradient: ['#5CE0D8', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.SOCIAL) },
+    // -----------------------------------------------------------------------
+    // A LEVA DE 31/07/2026 — entradas NO GRID, nenhuma virou card solto na
+    // dobra de cima: no mesmo dia o dono tirou dois cards da Home por
+    // empilhamento ("fica perdido no meio"), e responder com cards novos fora
+    // do grid seria desfazer o pedido. Todas ficam fora de READING_CARD_KEYS —
+    // nenhuma é leitura sobre a pessoa (mitos e quiz são história com fonte, e
+    // o papel de parede é uma imagem do céu do dia; "Como você tá?", o roteador
+    // por emoção da mesma leva, subiu pro começo de Leituras — ver lá em cima,
+    // logo após horoscope). Fora de LOCKED_KEYS também: nenhuma exige casal,
+    // mesma razão dos cards de Rituais/Jornada logo acima. Estas três formam o
+    // grupo "Curiosidades" do grid (CURIOSIDADES_KEYS, abaixo) — são feitas pra
+    // compartilhar, não pra assinar.
+    // -----------------------------------------------------------------------
+    // Mito × Fonte: o card feito pra print/compartilhar — daí o share-social.
+    { key: 'mitos', title: t('home.card.mitos.title'), subtitle: t('home.card.mitos.subtitle'), icon: 'share-social', gradient: ['#B57BFF', '#FF7BD5'], onPress: () => navigation.navigate(ROUTES.MITOS) },
+    // Você sabia?: sete perguntas por dia — a interrogação é literal.
+    { key: 'quizcosmico', title: t('home.card.quizcosmico.title'), subtitle: t('home.card.quizcosmico.subtitle'), icon: 'help-circle', gradient: ['#5CA8FF', '#B57BFF'], onPress: () => navigation.navigate(ROUTES.QUIZ_COSMICO) },
+    // Papel de Parede: o PNG do céu de hoje — ícone de imagem.
+    { key: 'wallpaper', title: t('home.card.wallpaper.title'), subtitle: t('home.card.wallpaper.subtitle'), icon: 'image', gradient: ['#7B3FB5', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.WALLPAPER) },
   ];
   // Diário Cósmico saiu do grid — vira uma faixa inteira fixa no topo (ver
   // abaixo, logo depois do HeroSection), sempre visível em vez de ser só
@@ -554,16 +580,27 @@ export default function HomeScreen() {
   // sobre você), Práticas (o que você faz com a mão) e Datas (o que o céu faz,
   // com dia e hora). Quem não cai em Práticas nem Datas fica em Leituras — o
   // grupo padrão —, então card novo nunca some do grid por esquecimento.
+  // Curiosidades: a leva de 31/07 menos o roteador — mitos, quiz e papel de
+  // parede são compartilhamento/curiosidade gratuitos, não leitura sobre a
+  // pessoa nem coisa que se "assine e use sem limite". Sem este grupo os
+  // quatro caíam todos em Leituras pelo grupo-padrão, inflando-o pra 13 cards
+  // — a escala menor do mesmo problema que a subdivisão em grupos resolveu.
   const PRATICAS_KEYS = ['grounding', 'rituais', 'jornada'];
   const DATAS_KEYS = ['lunarCalendar', 'calendario', 'zodiacbody'];
+  const CURIOSIDADES_KEYS = ['mitos', 'quizcosmico', 'wallpaper'];
   const praticasCardItems = individualCardItems.filter((c) => PRATICAS_KEYS.includes(c.key));
   const datasCardItems = individualCardItems.filter((c) => DATAS_KEYS.includes(c.key));
+  const curiosidadesCardItems = individualCardItems.filter((c) => CURIOSIDADES_KEYS.includes(c.key));
   const leiturasCardItems = individualCardItems.filter(
-    (c) => !PRATICAS_KEYS.includes(c.key) && !DATAS_KEYS.includes(c.key)
+    (c) => !PRATICAS_KEYS.includes(c.key) && !DATAS_KEYS.includes(c.key) && !CURIOSIDADES_KEYS.includes(c.key)
   );
 
-  // Determinístico por data (lib/dailyThought.js) — mesmo texto pra todo
-  // mundo que abrir o app hoje, muda sozinho à meia-noite. Mesmo conteúdo
+  // Determinístico por data (lib/dailyThought.js) — mesmo pensamento-base pra
+  // todo mundo que abrir o app hoje, muda sozinho à meia-noite. Desde
+  // 31/07/2026 getTodaysThought PREFIXA uma abertura por período (manhã/tarde/
+  // noite, hora local — periodoDoDia no mesmo lib), então o texto do card já
+  // vem com ela embutida: nada a montar aqui, e como a Home re-renderiza a
+  // cada foco, quem volta à noite vê a abertura da noite. Mesmo conteúdo
   // que a notificação diária (Perfil > Pensamento cósmico diário) só avisa
   // que chegou — o texto de verdade sempre vive aqui dentro. Passa o `sign`
   // já calculado acima (real, casal ou solo — nunca inventado aqui) pra
@@ -1007,9 +1044,9 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Feature grid — individual (solo ou casal, assina direto), em três
-            grupos: Leituras, Práticas e Datas. Ver o porquê acima, onde as
-            listas são montadas. */}
+        {/* Feature grid — individual (solo ou casal, assina direto), em quatro
+            grupos: Leituras, Práticas, Datas e Curiosidades. Ver o porquê
+            acima, onde as listas são montadas. */}
         <Text style={styles.sectionTitle}>{t('home.sectionExplore')}</Text>
         <Text style={styles.sectionSubtitle}>{t('home.sectionExploreSubtitle')}</Text>
         <CardGrid items={leiturasCardItems} />
@@ -1027,6 +1064,14 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>{t('home.sectionDatas')}</Text>
             <Text style={styles.sectionSubtitle}>{t('home.sectionDatasSubtitle')}</Text>
             <CardGrid items={datasCardItems} />
+          </>
+        )}
+
+        {curiosidadesCardItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{t('home.sectionCuriosidades')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('home.sectionCuriosidadesSubtitle')}</Text>
+            <CardGrid items={curiosidadesCardItems} />
           </>
         )}
 
