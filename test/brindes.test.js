@@ -52,7 +52,12 @@ test('catálogo saudável: ids únicos, custo positivo e campos de card completo
   assert.strictEqual(new Set(ids).size, ids.length, 'id de brinde duplicado');
   for (const b of brindes.BRINDES) {
     assert.ok(Number.isFinite(b.cost) && b.cost > 0, `custo inválido em ${b.id}`);
-    assert.ok(b.title && b.description && b.icon, `card incompleto em ${b.id}`);
+    assert.ok(b.icon, `card sem ícone em ${b.id}`);
+    // title/description saíram daqui de propósito: são traduzidos e moram no
+    // dicionário (loja.brinde.<id>.*). Quem guarda que existem nos três
+    // idiomas é test/i18nKeysExist.test.js — se voltarem para cá, a Loja volta
+    // a mostrar português para quem usa o app em es/en.
+    assert.ok(!('title' in b) && !('description' in b), `${b.id}: texto de card pertence ao dicionário, não ao catálogo`);
     assert.ok(['conteudo', 'repetivel', 'fisico'].includes(b.kind), `kind desconhecido em ${b.id}: ${b.kind}`);
   }
 });

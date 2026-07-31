@@ -28,7 +28,8 @@ import { useLanguage } from '../context/LanguageContext';
 const DISCLAIMER =
   'Esta interpretação une IA com a simbologia dos sonhos — a tradição milenar de ler o que os ' +
   'sonhos dizem sobre quem sonha. E não é moda nova: o grego Artemidoro já escrevia sobre isso ' +
-  'na Antiguidade. Séculos depois, o psiquiatra Jung levou os sonhos a sério de novo. Não é ' +
+  'na Antiguidade. Séculos depois, Carl Jung (1875-1961) voltou a tratá-los como material ' +
+  'simbólico. Não é ' +
   'diagnóstico psicológico nem previsão; é um espelho simbólico para reflexão.';
 
 // Estados possíveis da tela: intro (digitando o sonho) -> result (leitura exibida).

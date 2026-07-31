@@ -69,7 +69,8 @@ const MODES = [
     // não está nas obras dele. Ver docs/tradicao/00-tese.md, proposição 3.
     disclaimer:
       'Esta leitura une IA com a quiromancia, a leitura das linhas da mão. A prática é antiga de ' +
-      'verdade. Já o sistema usado hoje — montes, tipos de mão e os nomes das linhas que ' +
+      'verdade: o Samudrika Shastra, em sânscrito, e Anaxágoras, na Grécia, já falam em ler as ' +
+      'mãos. Já o sistema usado hoje — montes, tipos de mão e os nomes das linhas que ' +
       'conhecemos — é bem mais novo: foi organizado na Europa do século XIX. Não substitui exame ' +
       'médico nem garante resultados; é um espelho simbólico para autoconhecimento.',
   },

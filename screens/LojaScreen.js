@@ -162,7 +162,7 @@ export default function LojaScreen() {
     }
     setRedeeming(brinde.id);
     try {
-      const result = await spendTokens(brinde.cost, brinde.title);
+      const result = await spendTokens(brinde.cost, t(`loja.brinde.${brinde.id}.title`));
       if (!result.ok) {
         alertaSemSaldo(t('loja.alert.noBalance.brindeText', { balance: result.balance, cost: brinde.cost }));
         return;
@@ -252,8 +252,8 @@ export default function LojaScreen() {
                   <Ionicons name={brinde.icon} size={22} color={colors.gold} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{brinde.title}</Text>
-                  <Text style={styles.cardDesc}>{brinde.description}</Text>
+                  <Text style={styles.cardTitle}>{t(`loja.brinde.${brinde.id}.title`)}</Text>
+                  <Text style={styles.cardDesc}>{t(`loja.brinde.${brinde.id}.description`)}</Text>
                   <View style={styles.costRow}>
                     {owned ? (
                       <>

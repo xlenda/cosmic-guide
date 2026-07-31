@@ -42,7 +42,11 @@ function arquivosJs(pasta) {
 function chavesDefinidas() {
   const src = fs.readFileSync(path.join(RAIZ, 'lib', 'i18n.js'), 'utf8');
   const achadas = new Set();
-  const re = /['"]([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)+)['"]\s*:/g;
+  // O hífen ENTRA na classe: as chaves de recompensa e de brinde da Loja são
+  // hifenizadas (loja.reward.selo-cosmico.title, loja.brinde.brinde-ritual-lua
+  // .title). Sem o hífen, as duas famílias ficavam invisíveis nos DOIS lados do
+  // teste — nem definidas nem usadas — e apagar uma delas passava verde.
+  const re = /['"]([a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+)['"]\s*:/g;
   let m;
   while ((m = re.exec(src))) achadas.add(m[1]);
   return achadas;
@@ -69,7 +73,7 @@ function pareceChave(s) {
   if (IGNORAR.has(s)) return false;
   // dois+ segmentos, só letra/número/underscore, sem espaço, e não é caminho de
   // arquivo nem domínio nem versão
-  if (!/^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+$/.test(s)) return false;
+  if (!/^[a-zA-Z][a-zA-Z0-9_-]*(?:\.[a-zA-Z0-9_-]+)+$/.test(s)) return false;
   if (/\.(js|json|png|jpg|svg|ttf|com|br|cloud|bet|org|net|io)$/i.test(s)) return false;
   if (/^\d+(\.\d+)+$/.test(s)) return false;
   // LOCUS DE CITAÇÃO, não chave: `I.8` (Tetrabiblos), `XVIII.321` (Naturalis
@@ -95,12 +99,12 @@ function chavesUsadas() {
       const rel = path.relative(RAIZ, arq);
 
       // (1) forma direta — sempre conta
-      const direta = /\bt\(\s*['"]([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)+)['"]/g;
+      const direta = /\bt\(\s*['"]([a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+)['"]/g;
       let m;
       while ((m = direta.exec(src))) if (!usos.has(m[1])) usos.set(m[1], rel);
 
       // (2) e (3) — qualquer literal com cara de chave no arquivo
-      const solta = /['"]([a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+)['"]/g;
+      const solta = /['"]([a-zA-Z][a-zA-Z0-9_-]*(?:\.[a-zA-Z0-9_-]+)+)['"]/g;
       while ((m = solta.exec(src))) {
         if (pareceChave(m[1]) && !usos.has(m[1])) usos.set(m[1], rel);
       }
@@ -127,6 +131,55 @@ test('toda chave t() usada nas telas existe no dicionário', () => {
       `essas telas mostrariam o nome da chave pro usuário:\n  ` +
       faltando.slice(0, 40).join('\n  ') +
       (faltando.length > 40 ? `\n  ... e mais ${faltando.length - 40}` : '')
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Famílias montadas em runtime na Loja
+// ---------------------------------------------------------------------------
+// A varredura estática acima nunca vê t(`loja.reward.${reward.id}.title`) — ela
+// só enxerga literais. Então as duas famílias da Loja ganham um teste próprio,
+// no molde do "toda chave montada em runtime existe nos três idiomas" de
+// test/zodiacBody.test.js e test/grounding.test.js: a lista de ids sai da FONTE
+// (o array de REWARDS na tela, o de BRINDES no catálogo) e cada id tem que ter
+// .title e .description nos três idiomas. Sem isso, um reward novo sem entrada
+// no dicionário passava verde e a Loja imprimia a chave crua na tela.
+//
+// Os ids são lidos do texto do arquivo, não importados: screens/LojaScreen.js
+// puxa react-native e @expo/vector-icons, que não carregam sob node:test.
+function idsDeArray(arquivo, nomeDoArray) {
+  const src = fs.readFileSync(path.join(RAIZ, arquivo), 'utf8');
+  const bloco = new RegExp(`(?:const|export const)\\s+${nomeDoArray}\\s*=\\s*\\[([\\s\\S]*?)\\n\\];`).exec(src);
+  assert.ok(bloco, `não achei o array ${nomeDoArray} em ${arquivo}`);
+  return [...bloco[1].matchAll(/\bid:\s*'([^']+)'/g)].map((m) => m[1]);
+}
+
+test('toda recompensa e todo brinde da Loja tem título e descrição nos três idiomas', () => {
+  const { LANGUAGES, _DICTS_FOR_TESTS } = require('../lib/i18n.js');
+  const familias = [
+    ['loja.reward', idsDeArray(path.join('screens', 'LojaScreen.js'), 'REWARDS')],
+    ['loja.brinde', idsDeArray(path.join('lib', 'brindes.js'), 'BRINDES')],
+  ];
+
+  const faltando = [];
+  for (const [prefixo, ids] of familias) {
+    assert.ok(ids.length > 0, `nenhum id lido para ${prefixo}.* — o parser quebrou`);
+    for (const id of ids) {
+      for (const campo of ['title', 'description']) {
+        const chave = `${prefixo}.${id}.${campo}`;
+        for (const lang of LANGUAGES) {
+          const v = _DICTS_FOR_TESTS[lang][chave];
+          if (typeof v !== 'string' || v.trim() === '') faltando.push(`${lang}: ${chave}`);
+        }
+      }
+    }
+  }
+
+  assert.equal(
+    faltando.length,
+    0,
+    `${faltando.length} chave(s) da Loja montada(s) em runtime sem tradução — ` +
+      `a tela mostraria o nome da chave:\n  ` + faltando.join('\n  ')
   );
 });
 
