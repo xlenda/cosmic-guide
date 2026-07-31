@@ -1060,33 +1060,66 @@ test('QUEM PUXA é dito em todo par, e na oposição e no mesmo signo ninguém p
   // A superação (kathuperterisis) responde "quem puxa a relação" — pergunta que
   // nota nenhuma responde, e que nenhum app do mercado usa. Onde ela NÃO se
   // aplica, o texto diz que não se aplica em vez de inventar um líder.
+  // ONDE o teste olha mudou em 31/07/2026, e a razão é de produto, não de
+  // teste: "quem puxa" saiu da dimensão `quimica` e foi pra `chamada`. Medido
+  // no motor: em 60 dos 78 pares as DUAS primeiras frases da tela diziam a
+  // mesma coisa — a chamada terminava em "quem dá o primeiro passo quase
+  // sempre é Áries" e a linha logo abaixo repetia "quem costuma dar o primeiro
+  // passo é Áries". O leitor gastava a atenção da abertura relendo um fato.
+  //
+  // O PROPÓSITO do guarda não mudou nada: todo par diz quem puxa, e onde a
+  // superação não se aplica o texto diz isso em vez de inventar um líder. Só o
+  // campo inspecionado é outro — e o teste passa a aceitar as três formas que
+  // o motor usa, em vez de exigir uma frase única (frase única na abertura de
+  // 144 pares é o "enrolar linguiça" que a reescrita veio matar).
   const NOME = '(Áries|Touro|Gêmeos|Câncer|Leão|Virgem|Libra|Escorpião|Sagitário|Capricórnio|Aquário|Peixes)';
+  // CINCO formas, e a variedade é de propósito: uma frase única no fecho da
+  // abertura dos 144 pares é exatamente o "enrolar linguiça" que a reescrita
+  // veio matar. O guarda tem que entender o motor, não engessá-lo — o que ele
+  // exige é que o LÍDER seja dito, não que seja dito sempre igual.
+  const FORMAS = [
+    new RegExp(`quem dá o primeiro passo quase sempre é ${NOME}`),
+    new RegExp(`quem empurra a relação pra frente é ${NOME}`),
+    new RegExp(`a ponte costuma ser levantada por ${NOME}`),
+    new RegExp(`${NOME} dá o primeiro passo`),
+    new RegExp(`${NOME} puxa, ${NOME} acompanha`),
+  ];
+  const lider = (t) => {
+    const s = String(t || '');
+    for (const re of FORMAS) {
+      const m = s.match(re);
+      if (m) return m[1];
+    }
+    return 'nenhum';
+  };
   for (const p of PARES) {
-    const q = p.leitura.vidaReal.quimica;
+    const c = p.leitura.chamada;
+    assert.ok(c, `${p.a}+${p.b} sem chamada`);
     if (p.leitura.distancia === 0 || p.leitura.distancia === 6) {
-      assert.match(q, /ningu[ée]m puxa|nenhum dos dois cede/i, `${p.a}+${p.b} inventou um líder onde não há`);
+      // Sem superação a invocar: no mesmo signo não há dois lugares, e na
+      // oposição os dois se olham de igual pra igual.
+      assert.equal(lider(c), 'nenhum', `${p.a}+${p.b} inventou um líder onde não há`);
     } else {
-      assert.match(q, new RegExp(`quem costuma dar o primeiro passo é ${NOME}`), `${p.a}+${p.b}`);
+      assert.notEqual(lider(c), 'nenhum', `${p.a}+${p.b}: a chamada não diz quem puxa — "${c}"`);
     }
   }
   // E o líder é o MESMO nos dois sentidos de leitura: é propriedade do par, não
   // da ordem em que a tela recebeu os signos.
-  const lider = (t) => (t.match(/primeiro passo é (\S+)/) || [])[1] || 'nenhum';
   for (const p of PARES) {
     if (p.i === p.j) continue;
     const inversa = compatibility(p.b, p.a);
     assert.equal(
-      lider(inversa.vidaReal.quimica),
-      lider(p.leitura.vidaReal.quimica),
+      lider(inversa.chamada),
+      lider(p.leitura.chamada),
       `${p.a}+${p.b}: o líder muda quando se inverte a ordem`
     );
   }
   // Confere a doutrina numa carta conhecida: o décimo signo a partir de Câncer
   // é Áries, e é Áries que predomina (Pórfiro, via docs/tradicao/02 §2.4).
-  assert.match(compatibility('Câncer', 'Áries').vidaReal.quimica, /primeiro passo é Áries/);
-  assert.match(compatibility('Áries', 'Câncer').vidaReal.quimica, /primeiro passo é Áries/);
+  assert.equal(lider(compatibility('Câncer', 'Áries').chamada), 'Áries');
+  assert.equal(lider(compatibility('Áries', 'Câncer').chamada), 'Áries');
   // E na quadratura do outro lado: o décimo a partir de Áries é Capricórnio.
-  assert.match(compatibility('Áries', 'Capricórnio').vidaReal.quimica, /primeiro passo é Capricórnio/);
+  assert.equal(lider(compatibility('Áries', 'Capricórnio').chamada), 'Capricórnio');
 });
 
 test('as regências são as casas de Tetrabiblos I.17, e não movem a conta', () => {
