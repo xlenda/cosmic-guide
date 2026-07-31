@@ -60,10 +60,18 @@ const MODES = [
     headerSubtitle: 'Quiromancia simbólica',
     instructions:
       'Tire uma foto da palma da sua mão bem aberta, com boa luz, ou escolha uma foto já existente na galeria.',
+    // "Milênios... refinados através de gerações" sugeria transmissão
+    // ininterrupta do sistema que se lê hoje, e isso não se sustenta. Ler as
+    // mãos é antigo mesmo (Samudrika Shastra em sânscrito; Anaxágoras na
+    // Grécia), mas o sistema atual — montes, tipos de mão, as linhas com os
+    // nomes que usamos — é do séc. XIX: D'Arpentigny (1839), Heron-Allen
+    // (1883), Benham (1900). E o tratado "de Aristóteles" que os manuais citam
+    // não está nas obras dele. Ver docs/tradicao/00-tese.md, proposição 3.
     disclaimer:
-      'Esta leitura une IA com milênios de tradição da quiromancia — símbolos das linhas da mão ' +
-      'interpretados e refinados através de gerações. Não substitui exame médico nem garante ' +
-      'resultados; é um espelho simbólico para autoconhecimento.',
+      'Esta leitura une IA com a quiromancia. Ler as mãos é prática antiga, mas o sistema usado ' +
+      'hoje — montes, tipos de mão e as linhas com os nomes que conhecemos — foi organizado na ' +
+      'Europa do século XIX. Não substitui exame médico nem garante resultados; é um espelho ' +
+      'simbólico para autoconhecimento.',
   },
   {
     key: 'rosto',

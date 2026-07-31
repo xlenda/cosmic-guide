@@ -53,10 +53,18 @@ async function resizeForUpload(uri) {
   return result;
 }
 
+// "Tradição milenar" era falso e dava pra provar: a leitura de borra de café
+// aparece nos palácios otomanos no séc. XVI, e não pode ser mais velha que a
+// própria bebida por lá. O dicionário de símbolos que todo site repete (cobra =
+// inimizade, casa = mudança) é mais novo ainda — entretenimento de salão inglês
+// do fim do séc. XIX, consolidado por Cicely Kent em 1922. Datar a prática é
+// mais interessante que inflá-la, e é a única versão que aguenta ser checada.
+// Ver docs/tradicao/00-tese.md, proposição 3.
 const DISCLAIMER =
-  'Esta leitura une IA com a tasseografia — tradição milenar de interpretar símbolos na borra ' +
-  'do café. Não garante resultados nem prevê eventos específicos; é um espelho simbólico para ' +
-  'reflexão.';
+  'Esta leitura une IA com a tasseografia, a arte de ler símbolos na borra do café. A prática ' +
+  'aparece nos palácios otomanos no século XVI, e o dicionário de símbolos que se usa hoje foi ' +
+  'consolidado na Inglaterra do fim do século XIX. Não garante resultados nem prevê eventos ' +
+  'específicos; é um espelho simbólico para reflexão.';
 
 // Estados possíveis da tela: intro (sem foto) -> preview (foto escolhida,
 // aguardando "Analisar") -> result (leitura exibida).

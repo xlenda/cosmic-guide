@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
-import { compatibility, compatPercent } from '../lib/signs.js';
+import { compatibility } from '../lib/signs.js';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
@@ -17,6 +17,25 @@ import { ROUTES } from '../routes';
 
 const FEATURE_KEY = 'compatibility';
 const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
+
+// A MANCHETE DE CADA CATEGORIA — o que substituiu a roda de porcentagem.
+//
+// O que havia aqui: um círculo com "{pct}%" e a palavra "Combinação", e um
+// título que ramificava em >= 80 / >= 60 / resto. Como o piso da tabela antiga
+// era 74, o terceiro ramo ("Requer dedicação e diálogo") era CÓDIGO MORTO —
+// nunca executou uma vez sequer. O app tinha dois veredictos, os dois positivos.
+//
+// Agora a manchete é a categoria da própria fonte, e os quatro ramos são
+// alcançáveis: harmônico (48 dos 144 pares), desarmônico (36), sem aspecto (48)
+// e co-presença (12). Nenhuma das quatro frases decreta desfecho — a regra 2 do
+// cabeçalho de lib/synastry.js vale aqui na tela também, e test/synastry.test.js
+// varre estas strings junto com as do motor.
+const MANCHETE = {
+  harmonico: 'Aspecto harmônico entre os signos de vocês',
+  desarmonico: 'Aspecto desarmônico — e a tradição não para aí',
+  semAspecto: 'A tradição não registra aspecto entre estes dois signos',
+  copresenca: 'Mesmo signo — co-presença, e não aspecto',
+};
 
 export default function CompatibilityScreen() {
   const navigation = useNavigation();
@@ -42,18 +61,20 @@ export default function CompatibilityScreen() {
   const compute = () => {
     // Guarda o uso-único-na-vida aqui dentro, não só no gate de render — sem
     // isso, reapertar "Calcular Compatibilidade" sem trocar de signo nunca
-    // zera `result` (compatibility()/compatPercent() são determinísticas),
+    // zera `result` (compatibility() é determinística),
     // então o gate baseado em `!result` nunca voltaria a bloquear (achado por
     // verificação adversarial: dava cálculos grátis infinitos no mesmo par).
     if (!hasAccess && locked) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const compat = compatibility(signA.name, signB.name);
-    const pct = compatPercent(signA.name, signB.name);
-    if (!compat || pct === null) { setResult(null); return; }
-    setResult({ overall: pct, texto: compat.texto, forte: compat.forte, cuidado: compat.cuidado });
-    // Oferta de pico emocional: compatibilidade >= 80 pra quem não assina,
-    // uma vez na vida — checa e marca juntos pra nunca repetir.
-    if (pct >= 80 && !hasAccess) {
+    if (!compat) { setResult(null); return; }
+    setResult(compat);
+    // Oferta de pico emocional: reancorada no que o cálculo novo produz.
+    // Era `pct >= 80`, que com a tabela antiga pegava 6 dos 10 baldes de
+    // elemento; agora dispara nos aspectos que a FONTE chama de harmônicos
+    // (trígono e sextil) — 48 dos 144 pares, um terço. Uma vez na vida, checa e
+    // marca juntos pra nunca repetir.
+    if (compat.categoriaId === 'harmonico' && !hasAccess) {
       AsyncStorage.getItem(HIGH_COMPAT_OFFER_KEY).then((shown) => {
         if (shown) return;
         AsyncStorage.setItem(HIGH_COMPAT_OFFER_KEY, 'true');
@@ -62,10 +83,12 @@ export default function CompatibilityScreen() {
     }
     // Vira entrada no Diário Cósmico — antes essa tela não deixava rastro
     // nenhum de uso real (achado real de auditoria de retenção, 25/07/2026).
+    // O título guardava "{pct}% de combinação". Guarda o aspecto: é o que o
+    // app calcula de fato, e não envelhece toda vez que a escala mudar.
     recordReadingCompletion({
       type: 'compatibility',
       typeLabel: 'Compatibilidade',
-      title: `${signA.pt} + ${signB.pt} — ${pct}% de combinação`,
+      title: `${signA.pt} + ${signB.pt} — ${compat.aspecto} (${compat.categoria})`,
       body: compat.texto,
     });
     markFeatureUsedOnce(FEATURE_KEY);
@@ -151,13 +174,20 @@ export default function CompatibilityScreen() {
               <LinearGradient colors={gradients.card} style={styles.resultInner}>
                 <View style={styles.circleWrap}>
                   <LinearGradient colors={gradients.pink} style={styles.circle}>
-                    <Text style={styles.circlePct}>{result.overall}%</Text>
-                    <Text style={styles.circleLabel}>Combinação</Text>
+                    {/* Onde havia "92%" agora há "Trígono". O que sobrou de
+                        número no círculo é a GEOMETRIA — graus e signos de
+                        distância —, que é fato conferível em qualquer
+                        efeméride, e não uma nota que ninguém sabe de onde vem. */}
+                    <Text style={styles.circleAspect}>{result.aspecto}</Text>
+                    <Text style={styles.circleLabel}>
+                      {result.distancia === 0
+                        ? 'mesmo signo'
+                        : `${result.graus}° · ${result.distancia} ${result.distancia === 1 ? 'signo' : 'signos'}`}
+                    </Text>
                   </LinearGradient>
                 </View>
-                <Text style={styles.resultTitle}>
-                  {result.overall >= 80 ? 'O encontro gera paixão!' : result.overall >= 60 ? 'Uma bela conexão em potencial' : 'Requer dedicação e diálogo'}
-                </Text>
+                <Text style={styles.categoryChip}>{result.categoria}</Text>
+                <Text style={styles.resultTitle}>{MANCHETE[result.categoriaId]}</Text>
                 <Text style={styles.resultDesc}>{result.texto}</Text>
               </LinearGradient>
             </View>
@@ -182,11 +212,48 @@ export default function CompatibilityScreen() {
               </View>
             </View>
 
+            {/* A FONTE, na tela. O verbatim de Robbins fica SEM tradução (mesma
+                regra do latim de Manílio em lib/zodiacBody.js) e o locus vem
+                logo abaixo — a pessoa pode ir conferir. É o que separa este
+                resultado de um texto de revista: ele diz de onde veio. */}
+            <View style={styles.sourceCard}>
+              <Text style={styles.sourceTitle}>O que a fonte diz</Text>
+              {result.verbatins.map((v) => (
+                <View key={v.locus + v.texto.slice(0, 24)} style={styles.sourceItem}>
+                  <Text style={styles.sourceQuote}>“{v.texto}”</Text>
+                  <Text style={styles.sourceLocus}>{v.locus}</Text>
+                </View>
+              ))}
+              <Text style={styles.sourceDegree}>
+                Grau {result.grau} de 4 na escala de Tetrabiblos IV.7 — {result.grauNome}.
+              </Text>
+              {/* NOTA_GRAU vem COLADA no grau, e não lá embaixo com as outras
+                  ressalvas. Motivo: "Grau 4 de 4" é um número numa escala, ou
+                  seja exatamente a forma que este trabalho inteiro tirou da
+                  tela — e ele cai em 60 dos 144 pares. Sem a linha abaixo, o
+                  app troca "74%" por "grau 4 de 4" e não corrige nada. O
+                  cabeçalho de lib/synastry.js já exige que a citação ande junto
+                  do grau; até aqui `notaGrau` era calculado e nunca renderizado
+                  em tela nenhuma. */}
+              <Text style={styles.sourceDegreeNote}>{result.notaGrau}</Text>
+            </View>
+
+            {/* AS RESSALVAS. Ficam depois do conteúdo e antes de qualquer
+                oferta, de propósito: quem leu o resultado precisa ler também o
+                que ele não é. A primeira explica a ausência da porcentagem; a
+                segunda admite que comparar signo solar com signo solar é
+                recorte de jornal de 1930, e não a sinastria da fonte. */}
+            <View style={styles.noteCard}>
+              <Text style={styles.noteTitle}>Duas coisas que este resultado não é</Text>
+              <Text style={styles.noteText}>{result.notaEscala}</Text>
+              <Text style={styles.noteText}>{result.ressalvaSignoSolar}</Text>
+            </View>
+
             {highCompatOffer && (
               <View style={styles.offerCard}>
-                <Text style={styles.offerTitle}>✨ {result.overall}% de conexão!</Text>
+                <Text style={styles.offerTitle}>✨ {result.aspecto} entre vocês!</Text>
                 <Text style={styles.offerText}>
-                  Uma combinação assim merece ser explorada por inteiro — leituras sem limite, Tarô todo dia e o céu de vocês dois. 7 dias grátis pra testar.
+                  Um aspecto que a tradição chama de harmônico merece ser explorado por inteiro — leituras sem limite, Tarô todo dia e o céu de vocês dois. 7 dias grátis pra testar.
                 </Text>
                 <TouchableOpacity
                   style={styles.offerBtn}
@@ -242,11 +309,29 @@ const styles = StyleSheet.create({
   resultCard: { marginTop: 20, borderRadius: 18, overflow: 'hidden' },
   resultInner: { padding: 20, borderWidth: 1, borderColor: colors.border, borderRadius: 18, alignItems: 'center' },
   circleWrap: { marginBottom: 16 },
-  circle: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center' },
-  circlePct: { color: '#fff', fontSize: 32, fontWeight: '800' },
-  circleLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12 },
+  circle: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
+  // Era `circlePct` (fontSize 32, pra caber "92%"). O nome do aspecto é mais
+  // comprido que dois dígitos — "Co-presença" é o pior caso —, daí 20 e o
+  // adjustsFontSizeToFit não ser necessário nas larguras de tela reais.
+  circleAspect: { color: '#fff', fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  circleLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 4, textAlign: 'center' },
+  categoryChip: {
+    color: colors.accent, fontSize: 12, fontWeight: '800', letterSpacing: 0.5,
+    backgroundColor: colors.accent + '1F', borderRadius: 10, overflow: 'hidden',
+    paddingHorizontal: 10, paddingVertical: 4, marginBottom: 10,
+  },
   resultTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
   resultDesc: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 8 },
+  sourceCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: colors.border },
+  sourceTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8 },
+  sourceItem: { marginBottom: 10 },
+  sourceQuote: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, fontStyle: 'italic' },
+  sourceLocus: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
+  sourceDegree: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 2 },
+  sourceDegreeNote: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 6, fontStyle: 'italic' },
+  noteCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: colors.border },
+  noteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8 },
+  noteText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 8 },
   traitCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
   traitIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   traitLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },

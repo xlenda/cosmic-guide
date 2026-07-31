@@ -1,4 +1,37 @@
-import React, { useState, useEffect } from 'react';
+// screens/HoroscopeScreen.js
+//
+// ===========================================================================
+// O QUE MUDOU AQUI EM 31/07/2026, e por quê
+// ===========================================================================
+// Esta tela montava a leitura do dia com três sorteios por hash de
+// `signo|aba|data`:
+//
+//   READING_POOL — 8 textos prontos por aba, girando para 12 signos e 365 dias;
+//   SCORE_POOL   — 10 conjuntos fixos de nota ({ Amor: 62, Trabalho: 74… })
+//                  desenhados como barra de progresso;
+//   LUCK_*       — cor, número e hora "da sorte", também literais sorteados.
+//
+// Os três eram invenção apresentada como leitura. Pior: os textos AFIRMAVAM
+// posição planetária que o app nunca calculou ("A Lua minguante favoreceu o
+// encerramento de ciclos" saía em dia de Lua crescente, com o Calendário Lunar
+// mostrando a fase certa duas telas adiante), e as notas contradiziam o próprio
+// prompt do assistente do app, que proíbe porcentagem porque "a tradição não
+// sustenta essa promessa".
+//
+// Agora a tela não escolhe conteúdo: ela RENDERIZA o que lib/dailyHoroscope.js
+// calcula da efeméride. O porquê de cada bloco, com a fonte de cada afirmação,
+// está no cabeçalho daquele arquivo — é lá que se discute tradição, não aqui.
+//
+// AS TRÊS COISAS QUE NÃO PODEM VOLTAR:
+//   1. Texto que afirme posição de planeta sem cálculo por trás.
+//   2. Nota, porcentagem ou barra preenchida para área da vida.
+//   3. Pool de frases sorteado por hash.
+// test/dailyHoroscope.test.js cobra as três.
+//
+// O QUE FOI PRESERVADO DE PROPÓSITO: testID 'horoscope-reading', o OneTimeLock
+// da prévia grátis e a marcação de uso — tests/e2e/paywall/one-time-lock.spec.js
+// depende dos três, e o funil de assinatura depende do teste.
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -7,10 +40,10 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
-import ScoreBar from '../components/ScoreBar';
 import OneTimeLock from '../components/OneTimeLock';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
+import { horoscopeFor, resumoDoDia } from '../lib/dailyHoroscope';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -18,10 +51,8 @@ const DIARY_RECORDED_KEY = 'cosmic-horoscope-diary-date';
 
 const FEATURE_KEY = 'horoscope';
 
-// As strings de TABS seguem sendo os identificadores internos (seed do hash,
-// chaves de READING_POOL, comparações em dateForTab) — só a EXIBIÇÃO passa
-// pelo t() com as chaves abaixo, pra troca de idioma não mexer no conteúdo
-// sorteado do dia.
+// As strings de TABS seguem sendo os identificadores internos (comparação em
+// dateForTab) — só a EXIBIÇÃO passa pelo t().
 const TABS = ['Ontem', 'Hoje', 'Amanhã'];
 const TAB_LABEL_KEYS = {
   Ontem: 'horoscope.tab.yesterday',
@@ -38,17 +69,6 @@ const ELEMENT_LABEL_KEYS = {
   'Água': 'horoscope.elementName.agua',
 };
 
-// Mesmo esquema do "Gesto do dia" em AgirScreen.js: hash simples da string ->
-// índice num pool de conteúdo. Aqui o seed combina signo + aba + data, então
-// (a) signos diferentes no mesmo dia caem em índices diferentes do pool e
-// (b) o mesmo signo em dias diferentes também muda, sem precisar de backend
-// nem de Math.random (que quebraria a consistência ao re-renderizar).
-function hashStr(s) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
 function isoDate(d) {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
@@ -58,69 +78,28 @@ function todayISO() {
   return isoDate(new Date());
 }
 
-// Data real que cada aba representa (ontem/hoje/amanhã), para que o conteúdo
-// mude de fato de um dia para o outro em vez de ficar fixo.
+// Data real que cada aba representa. Ontem e amanhã são dias de verdade, com
+// céu de verdade: a Lua pode ter trocado de signo, o quarto lunar pode ter
+// virado, Mercúrio pode ter estacionado. É por isso que as três abas mostram
+// coisas diferentes agora — antes era o hash da string que mudava.
 function dateForTab(tab) {
   const d = new Date();
   if (tab === 'Ontem') d.setDate(d.getDate() - 1);
   if (tab === 'Amanhã') d.setDate(d.getDate() + 1);
-  return isoDate(d);
+  return d;
 }
 
-// Pool de leituras por aba (o tempo verbal muda: passado/presente/futuro),
-// com várias variações genéricas de conteúdo de entretenimento — sem inventar
-// previsões reais, só "sabores" diferentes de energia do dia. Os textos em si
-// moram no dicionário i18n (horoscope.reading.*) — aqui ficam só as chaves,
-// pro sorteio por hash continuar idêntico em qualquer idioma.
-const READING_POOL = {
-  Ontem: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `horoscope.reading.ontem.${n}`),
-  Hoje: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `horoscope.reading.hoje.${n}`),
-  'Amanhã': [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `horoscope.reading.amanha.${n}`),
-};
-
-// Pool de conjuntos de pontuação (Amor/Trabalho/Saúde/Dinheiro), selecionado
-// pelo mesmo hash — assim os quatro números também variam por signo/dia.
-const SCORE_POOL = [
-  { Amor: 62, Trabalho: 74, Saúde: 58, Dinheiro: 70 },
-  { Amor: 88, Trabalho: 76, Saúde: 82, Dinheiro: 65 },
-  { Amor: 71, Trabalho: 90, Saúde: 68, Dinheiro: 84 },
-  { Amor: 55, Trabalho: 60, Saúde: 90, Dinheiro: 58 },
-  { Amor: 80, Trabalho: 55, Saúde: 72, Dinheiro: 92 },
-  { Amor: 65, Trabalho: 85, Saúde: 60, Dinheiro: 77 },
-  { Amor: 92, Trabalho: 68, Saúde: 75, Dinheiro: 60 },
-  { Amor: 58, Trabalho: 72, Saúde: 85, Dinheiro: 66 },
-  { Amor: 76, Trabalho: 62, Saúde: 66, Dinheiro: 88 },
-  { Amor: 84, Trabalho: 80, Saúde: 70, Dinheiro: 54 },
-];
-
-// Pools da "sorte do dia" — antes eram literais fixos (Violeta/7/15h) iguais
-// para qualquer signo em qualquer dia; agora saem do mesmo hash, com um "sal"
-// próprio para cada campo para não andarem sempre em bloco. Os valores viraram
-// chaves do i18n (o hash só usa o length, então o sorteio não muda).
-const LUCK_COLORS = [
-  'horoscope.luck.colorName.violeta', 'horoscope.luck.colorName.rosa',
-  'horoscope.luck.colorName.dourado', 'horoscope.luck.colorName.turquesa',
-  'horoscope.luck.colorName.verde', 'horoscope.luck.colorName.ambar',
-  'horoscope.luck.colorName.vermelho', 'horoscope.luck.colorName.azul',
-];
-const LUCK_NUMBERS = [2, 3, 4, 7, 8, 9, 11, 13, 17, 21];
-const LUCK_HOURS = [9, 11, 13, 15, 17, 18, 20, 21].map((h) => `horoscope.luck.hourValue.${h}`);
-
-function readingFor(sign, tab, t) {
-  const seed = `${sign.name}|${tab}|${dateForTab(tab)}`;
-  const textPool = READING_POOL[tab];
-  const text = t(textPool[hashStr(seed) % textPool.length]);
-  const scores = SCORE_POOL[hashStr(`${seed}|scores`) % SCORE_POOL.length];
-  return { text, scores };
-}
-
-function luckFor(sign, t) {
-  const seed = `${sign.name}|${todayISO()}`;
-  return {
-    cor: t(LUCK_COLORS[hashStr(`${seed}|cor`) % LUCK_COLORS.length]),
-    numero: LUCK_NUMBERS[hashStr(`${seed}|numero`) % LUCK_NUMBERS.length],
-    hora: t(LUCK_HOURS[hashStr(`${seed}|hora`) % LUCK_HOURS.length]),
-  };
+// lib/dailyHoroscope.js devolve vars que podem ser string (nome de signo, graus)
+// ou { i18n: 'chave' } (nome de planeta, dia da semana). O módulo é puro e não
+// conhece idioma; a resolução acontece aqui, onde o `t` do idioma ativo existe.
+function resolveVars(vars, t) {
+  if (!vars) return undefined;
+  const out = {};
+  for (const k of Object.keys(vars)) {
+    const v = vars[k];
+    out[k] = v && typeof v === 'object' && v.i18n ? t(v.i18n) : v;
+  }
+  return out;
 }
 
 export default function HoroscopeScreen() {
@@ -134,9 +113,17 @@ export default function HoroscopeScreen() {
   const [tab, setTab] = useState('Hoje');
   const [showPicker, setShowPicker] = useState(false);
   const [locked, setLocked] = useState(false);
+  // Qual bloco está com o método aberto. Começa tudo fechado, e é assim de
+  // propósito: a fonte tem que estar A UM TOQUE, não em primeiro plano. Estado
+  // por bloco (e não um interruptor geral) porque quem abre a régua do aspecto
+  // não está necessariamente querendo reler Plínio no mesmo instante.
+  const [metodoAberto, setMetodoAberto] = useState({});
 
-  const r = readingFor(sign, tab, t);
-  const luck = luckFor(sign, t);
+  // lib/dailyHoroscope.js já guarda o céu de cada data em memória, mas o
+  // useMemo evita até o trabalho de remontar os blocos a cada render — a tela
+  // re-renderiza no toque do seletor de signo e na troca de aba.
+  const leitura = useMemo(() => horoscopeFor(sign.name, dateForTab(tab)), [sign.name, tab]);
+  const f = leitura.facts;
 
   // Sem botão de ação aqui — o conteúdo já aparece ao montar a tela. Por isso
   // checagem e marcação acontecem juntas: só marca como usado quando a checagem
@@ -157,18 +144,21 @@ export default function HoroscopeScreen() {
   }, [hasAccess, accessConfirmed]);
 
   // Vira entrada no Diário Cósmico 1x por dia (não a cada troca de aba/signo,
-  // senão o Diário enche de quase-duplicatas) — antes o Horóscopo não deixava
-  // rastro nenhum de uso real (achado real de auditoria de retenção, 25/07/2026).
+  // senão o Diário enche de quase-duplicatas). O corpo agora é o resumo do céu
+  // REAL do dia — se o motor de efeméride não responder, resumoDoDia devolve
+  // null e o Diário simplesmente não recebe entrada, em vez de guardar uma
+  // frase inventada para sempre.
   useEffect(() => {
     const today = todayISO();
     AsyncStorage.getItem(DIARY_RECORDED_KEY).then((lastDate) => {
       if (lastDate === today) return;
-      const todayReading = readingFor(sign, 'Hoje', t);
+      const resumo = resumoDoDia(sign.name, new Date());
+      if (!resumo) return;
       recordReadingCompletion({
         type: 'horoscope',
         typeLabel: t('home.card.horoscope.title'),
         title: t('horoscope.diary.title', { sign: sign.pt }),
-        body: todayReading.text,
+        body: resumo,
       }).then(() => AsyncStorage.setItem(DIARY_RECORDED_KEY, today));
     });
   }, [sign]);
@@ -241,36 +231,134 @@ export default function HoroscopeScreen() {
               </View>
             </View>
           </LinearGradient>
-          <Text style={styles.reading}>{r.text}</Text>
+
+          {/* Sem céu calculado não há leitura. Antes, este era o caso em que a
+              tela caía num texto genérico — que é justamente o defeito. */}
+          {!leitura.available && (
+            <Text style={styles.unavailable} testID="horoscope-unavailable">
+              {t('horoscope.sky.unavailable')}
+            </Text>
+          )}
         </View>
 
-        <Text style={styles.sub}>{t('horoscope.areasTitle')}</Text>
-        <View style={styles.scoresCard}>
-          <ScoreBar label={t('horoscope.area.amor')} value={r.scores.Amor} gradient={['#FF6BA0', '#FF8C5C']} />
-          <ScoreBar label={t('horoscope.area.trabalho')} value={r.scores.Trabalho} gradient={['#5CA8FF', '#6C7BFF']} />
-          <ScoreBar label={t('horoscope.area.saude')} value={r.scores.Saúde} gradient={['#5FD98C', '#5CE0D8']} />
-          <ScoreBar label={t('horoscope.area.dinheiro')} value={r.scores.Dinheiro} gradient={['#FFB84D', '#FFC85C']} />
-        </View>
+        {leitura.available && (
+          <>
+            {/* Os três fatos brutos, no lugar exato onde ficavam a cor, o
+                número e a hora "da sorte". Ali havia literal sorteado; aqui há
+                efeméride. */}
+            <Text style={styles.sub}>{t('horoscope.sky.factsTitle')}</Text>
+            <View style={styles.factsRow}>
+              <FactItem
+                icon="moon"
+                color={colors.teal}
+                label={t('horoscope.sky.fact.moon')}
+                value={`${f.luaEmoji || ''} ${f.luaSigno}`.trim()}
+              />
+              <FactItem
+                icon="ellipse"
+                color={colors.gold}
+                label={t('horoscope.sky.fact.phase')}
+                value={`${f.faseEmoji || ''} ${f.faseNome}`.trim()}
+                hint={typeof f.iluminacao === 'number' ? t('horoscope.sky.fact.illum', { pct: String(f.iluminacao) }) : null}
+              />
+              <FactItem
+                icon="planet"
+                color={colors.pink}
+                label={t('horoscope.sky.fact.dayRuler')}
+                value={t(`grounding.ruler.${slugPlaneta(f.regenteDoDia)}.name`)}
+              />
+            </View>
 
-        <Text style={styles.sub}>{t('horoscope.luckTitle')}</Text>
-        <View style={styles.luckRow}>
-          <LuckItem icon="color-palette" color={colors.pink} label={t('horoscope.luck.color')} value={luck.cor} />
-          <LuckItem icon="dice" color={colors.gold} label={t('horoscope.luck.number')} value={String(luck.numero)} />
-          <LuckItem icon="time" color={colors.teal} label={t('horoscope.luck.hour')} value={luck.hora} />
-        </View>
+            {/* LEITURA em cima, MÉTODO atrás de um toque.
+                (31/07/2026) Auditoria de leitura: renderizados os doze signos
+                no mesmo dia, cada um recebia 596 palavras, e a sobreposição
+                entre dois signos quaisquer era de 0,81 — pior par 0,93. As
+                oito palavras em dez que se repetiam não eram enchimento: eram
+                as FONTES (a dedução de Ptolomeu em I.17, a régua de signo
+                inteiro, Plínio e Columela, o aviso sobre Rudhyar). O que é
+                sobre ESTE signo HOJE cabe em ~60 palavras e ficava soterrado.
+                Nada saiu. Cada linha declara em lib/dailyHoroscope.js se é
+                leitura ou método, e o método fica um toque adiante, por bloco.
+                Quem quer a costura abre; quem quer o dia lê o dia. */}
+            {leitura.blocks.map((bloco) => {
+              const leituraLinhas = bloco.lines.filter((l) => l.role !== 'metodo');
+              const metodoLinhas = bloco.lines.filter((l) => l.role === 'metodo');
+              const aberto = !!metodoAberto[bloco.id];
+              return (
+                <View key={bloco.id}>
+                  <Text style={styles.sub}>{t(bloco.titleKey)}</Text>
+                  <View style={styles.blockCard} testID={`horoscope-block-${bloco.id}`}>
+                    {leituraLinhas.map((line, i) => (
+                      <Text key={line.key + i} style={[styles.line, i > 0 && styles.lineSpaced]}>
+                        {t(line.key, resolveVars(line.vars, t))}
+                      </Text>
+                    ))}
+                    {metodoLinhas.length > 0 && (
+                      <>
+                        <TouchableOpacity
+                          onPress={() => setMetodoAberto((s) => ({ ...s, [bloco.id]: !s[bloco.id] }))}
+                          style={styles.methodToggle}
+                          testID={`horoscope-method-toggle-${bloco.id}`}
+                          accessibilityRole="button"
+                        >
+                          <Ionicons
+                            name={aberto ? 'chevron-up' : 'chevron-down'}
+                            size={13}
+                            color={colors.textMuted}
+                          />
+                          <Text style={styles.methodToggleText}>
+                            {t('horoscope.sky.methodToggle')}
+                          </Text>
+                        </TouchableOpacity>
+                        {aberto &&
+                          metodoLinhas.map((line, i) => (
+                            <Text
+                              key={line.key + i}
+                              style={[styles.methodLine, i > 0 && styles.lineSpaced]}
+                              testID={`horoscope-method-${bloco.id}`}
+                            >
+                              {t(line.key, resolveVars(line.vars, t))}
+                            </Text>
+                          ))}
+                      </>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+
+            {/* Rodapé: a régua do app declarada, e a explicação de por que não
+                há mais barras de nota. Não é letra miúda por acaso — é o
+                contrato com quem lê. */}
+            <View style={styles.footerCard}>
+              <Text style={styles.footerText}>{t('horoscope.sky.footer.tropical')}</Text>
+              <Text style={[styles.footerText, styles.lineSpaced]}>{t('horoscope.sky.footer.noScores')}</Text>
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
 }
 
-function LuckItem({ icon, color, label, value }) {
+// Mesmo mapa de lib/dailyHoroscope.js — aqui só para o chip do regente do dia
+// reaproveitar o nome já traduzido em grounding.ruler.<slug>.name.
+function slugPlaneta(planeta) {
+  return {
+    'Sol': 'sol', 'Lua': 'lua', 'Mercúrio': 'mercurio', 'Vênus': 'venus',
+    'Marte': 'marte', 'Júpiter': 'jupiter', 'Saturno': 'saturno',
+  }[planeta] || 'sol';
+}
+
+function FactItem({ icon, color, label, value, hint }) {
   return (
-    <View style={styles.luckItem}>
-      <View style={[styles.luckIcon, { backgroundColor: color + '22' }]}>
-        <Ionicons name={icon} size={20} color={color} />
+    <View style={styles.factItem}>
+      <View style={[styles.factIcon, { backgroundColor: color + '22' }]}>
+        <Ionicons name={icon} size={18} color={color} />
       </View>
-      <Text style={styles.luckLabel}>{label}</Text>
-      <Text style={styles.luckValue}>{value}</Text>
+      <Text style={styles.factLabel}>{label}</Text>
+      <Text style={styles.factValue}>{value}</Text>
+      {hint ? <Text style={styles.factHint}>{hint}</Text> : null}
     </View>
   );
 }
@@ -296,12 +384,31 @@ const styles = StyleSheet.create({
   bigDates: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   elementRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },
   element: { fontSize: 12, fontWeight: '700' },
-  reading: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, padding: 18, paddingTop: 4 },
+  unavailable: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, padding: 18, paddingTop: 4 },
   sub: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 24, marginBottom: 12 },
-  scoresCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border },
-  luckRow: { flexDirection: 'row', gap: 12 },
-  luckItem: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
-  luckIcon: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  luckLabel: { color: colors.textMuted, fontSize: 12 },
-  luckValue: { color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 2 },
+  factsRow: { flexDirection: 'row', gap: 12 },
+  factItem: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  factIcon: { width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  factLabel: { color: colors.textMuted, fontSize: 11, textAlign: 'center' },
+  factValue: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 2, textAlign: 'center' },
+  factHint: { color: colors.textMuted, fontSize: 10, marginTop: 2, textAlign: 'center' },
+  blockCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border },
+  line: { color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
+  lineSpaced: { marginTop: 10 },
+  // O método é discreto de propósito — menor, apagado, atrás de um toque —, e
+  // discreto NÃO é escondido: fica no mesmo cartão do bloco a que se refere,
+  // com rótulo próprio, e a ressalva que enquadra a leitura nunca é removida.
+  methodToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  methodToggleText: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  methodLine: { color: colors.textMuted, fontSize: 12, lineHeight: 19, marginTop: 8 },
+  footerCard: { backgroundColor: colors.surfaceElevated, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, marginTop: 24 },
+  footerText: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
 });

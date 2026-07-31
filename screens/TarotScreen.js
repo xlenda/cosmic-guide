@@ -6,9 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, gradients } from '../theme';
-import { TAROT_DECK } from '../lib/tarotDeck';
+import { TAROT_DECK, getSpreadPattern } from '../lib/tarotDeck';
 import { getTarotImage } from '../lib/tarotImages';
-import { getThemedMeaning } from '../lib/tarotThemes';
+import { getThemedMeaning, getElementalDignity, getWaiteNote } from '../lib/tarotThemes';
 import { canDrawToday, recordDraw } from '../lib/tarotDailyLimit';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
@@ -31,6 +31,22 @@ const THEMES = [
   { key: 'Saúde', icon: 'medkit', color: '#5CE0D8', grad: ['#5CE0D8', '#6C7BFF'] },
 ];
 
+// As três casas da tiragem. A POSIÇÃO É PARTE DO SIGNIFICADO — isso é a
+// afirmação mais antiga e mais segura da leitura documentada (Etteilla,
+// 1770/1783; Waite, "Pictorial Key", 1911). Por isso ela é passada para
+// getThemedMeaning e a mesma carta lê diferente em cada casa.
+//
+// BUG QUE ISTO CORRIGE (31/07/2026): as três chamadas de getThemedMeaning aqui
+// omitiam o quarto argumento. O rótulo "Passado / Presente / Futuro" aparecia
+// em cima da carta, mas o texto embaixo ignorava a casa: A Torre no Passado e
+// A Torre no Futuro saíam com a MESMA leitura, palavra por palavra. A camada de
+// interpretação sabia ler por casa desde a véspera; a tela nunca perguntou.
+//
+// E o que NÃO se pode dizer: esta tiragem de três rotulada
+// Passado/Presente/Futuro é popularização do século XX. Não está em Waite (que
+// dá 10, 42 e 35 cartas), não está no "Book T", e não há fonte primária datada
+// para ela. Por isso o app nunca a chama de "clássica" nem de "tradicional".
+// Ver docs/tradicao/05, §3.6.
 const POSITIONS = ['Passado', 'Presente', 'Futuro'];
 
 export default function TarotScreen() {
@@ -136,12 +152,18 @@ export default function TarotScreen() {
     if (!hasAccess) setLocked(true);
     setDailyBlocked(true);
 
-    const body = shuffled
+    // O que vai pro Diário Cósmico é a leitura INTEIRA, casa por casa, mais a
+    // leitura transversal da tiragem (dignidade elemental + grau repetido /
+    // naipe dominante). Sem isso o diário guardava três verbetes soltos, e a
+    // tiragem de três não é três leituras soltas.
+    const readings = shuffled
       .map((card, i) => {
         const orientationTag = newOrientations[i] ? ' (invertida)' : '';
-        return `${POSITIONS[i]} — ${card.name}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i])}`;
-      })
-      .join('\n\n');
+        return `${POSITIONS[i]} — ${card.name}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i], POSITIONS[i])}`;
+      });
+    const dignity = getElementalDignity(shuffled);
+    const pattern = getSpreadPattern(shuffled);
+    const body = [...readings, dignity, pattern].filter(Boolean).join('\n\n');
     const { entryId } = await recordReadingCompletion({
       type: 'tarot',
       typeLabel: 'Leitura de Tarô',
@@ -332,17 +354,121 @@ export default function TarotScreen() {
               ))}
             </View>
 
-            {drawn.map((card, i) => revealed[i] && (
-              <View key={i} style={styles.meaningCard}>
-                <View style={[styles.meaningIcon, { backgroundColor: theme.color + '22' }]}>
-                  <Ionicons name={card.icon} size={20} color={theme.color} />
+            {drawn.map((card, i) => {
+              if (!revealed[i]) return null;
+              // Waite, 1911, verbatim — só nas cartas em que a citação está
+              // conferida (11 das 78). Fica FORA da leitura, numa nota
+              // rotulada: é história do baralho, não é o app dizendo isso
+              // sobre a vida de quem consultou. Nas outras 67 cartas não
+              // aparece nada, porque não citar é melhor que citar de ouvido.
+              const waite = getWaiteNote(card);
+              return (
+                <View key={i} style={styles.meaningCard}>
+                  <View style={[styles.meaningIcon, { backgroundColor: theme.color + '22' }]}>
+                    <Ionicons name={card.icon} size={20} color={theme.color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.meaningPos}>{POSITIONS[i]} · {card.name}{orientations[i] ? " (invertida)" : ""}</Text>
+                    <Text style={styles.meaningText}>
+                      {getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i])}
+                    </Text>
+                    {waite && (
+                      <View style={styles.sourceBox}>
+                        <Text style={styles.sourceTitle}>{waite.titulo}</Text>
+                        <Text style={styles.sourceQuote}>“{waite.verbatim}”</Text>
+                        <Text style={styles.sourceNote}>{waite.nota}</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.meaningPos}>{POSITIONS[i]} · {card.name}{orientations[i] ? " (invertida)" : ""}</Text>
-                  <Text style={styles.meaningText}>{getThemedMeaning(card, theme.key, orientations[i])}</Text>
+              );
+            })}
+
+            {/* AS RESSALVAS, UMA VEZ — e só as que valem para ESTA tiragem.
+                (31/07/2026) Antes elas vinham coladas dentro do texto de cada
+                carta: "que pode ser uma pessoa ou uma postura sua" nas 16
+                cortes, "travado, em excesso ou virado pra dentro" nas 78
+                invertidas, e "um Arcano Maior põe em jogo o eixo da relação,
+                não o episódio" nos 22 Maiores. As três são verdadeiras. As três
+                são iguais para dezenas de cartas — e é por isso mesmo que elas
+                não podem morar dentro da leitura: uma frase que serve para 22
+                arcanos não diz nada sobre o arcano que saiu, e repetida três
+                vezes na mesma tela ela deixa de ser lida.
+                Ressalva é contrato: vale uma vez, no lugar de contrato. Aqui.
+                E aparece condicional — quem tirou três cartas direitas e sem
+                corte não lê nada disto. */}
+            {revealed.every(Boolean) && (() => {
+              const temInvertida = orientations.some(Boolean);
+              const temCorte = drawn.some((c) => c.suit && c.number >= 11);
+              const temMaior = drawn.some((c) => c.arcana === 'maior');
+              if (!temInvertida && !temCorte && !temMaior) return null;
+              return (
+                <View style={styles.spreadCard}>
+                  <Text style={styles.spreadTitle}>Como ler o que saiu</Text>
+                  {temMaior && (
+                    <Text style={styles.spreadText}>
+                      Saiu Arcano Maior. A tradição lê os 22 como assunto de outra ordem de grandeza:
+                      o eixo, não o episódio; o rumo, não a tarefa. Isso vale igual para os 22 — o que
+                      diferencia o seu está na leitura dele, acima.
+                    </Text>
+                  )}
+                  {temCorte && (
+                    <Text style={[styles.spreadText, temMaior && { marginTop: 10 }]}>
+                      Saiu figura de corte (Valete, Cavaleiro, Rainha ou Rei). Corte pode ser uma pessoa
+                      da sua vida ou uma postura sua — ler corte como se fosse sempre gente é o erro mais
+                      comum da tiragem de três.
+                    </Text>
+                  )}
+                  {temInvertida && (
+                    <Text style={[styles.spreadText, (temMaior || temCorte) && { marginTop: 10 }]}>
+                      Saiu carta invertida. Invertida aqui não é o oposto da carta: é a mesma energia
+                      travada, em excesso ou virada para dentro — qual das três é o caso está escrito na
+                      leitura da carta. Nota honesta: ler assim é escola contemporânea (Eden Gray,
+                      Rachel Pollack, Mary K. Greer). Em Waite, 1911, a invertida costuma ser lateral, e
+                      às vezes melhor que a direta.
+                    </Text>
+                  )}
                 </View>
-              </View>
-            ))}
+              );
+            })()}
+
+            {/* A TIRAGEM INTEIRA, não três leituras soltas.
+                Duas camadas, as duas com fonte e as duas marcadas com o grau
+                da fonte:
+                • Dignidade elemental — regra da tríade do "Book T" (Mathers,
+                  fim do séc. XIX, publicado por Regardie em 1937-1940): a
+                  carta do meio é lida através das duas ao lado. A tiragem
+                  deste app é exatamente uma tríade, então a doutrina cabe
+                  inteira, sem adaptação.
+                • Grau repetido / naipe dominante / concentração de Maiores —
+                  leitura transversal consolidada no séc. XX. É boa, e o
+                  código não a chama de antiga.
+                As duas funções devolvem null quando a doutrina não se aplica
+                (Maior de atribuição planetária no meio, nenhum padrão na
+                tiragem) — nunca fabricam padrão onde não há. Só aparece com as
+                três cartas viradas: antes disso seria entregar o desfecho de
+                uma carta que a pessoa ainda não abriu. */}
+            {revealed.every(Boolean) && (() => {
+              const dignity = getElementalDignity(drawn);
+              const pattern = getSpreadPattern(drawn);
+              if (!dignity && !pattern) return null;
+              return (
+                <View style={styles.spreadCard}>
+                  <Text style={styles.spreadTitle}>As três juntas</Text>
+                  {dignity && <Text style={styles.spreadText}>{dignity}</Text>}
+                  {pattern && <Text style={[styles.spreadText, dignity && { marginTop: 10 }]}>{pattern}</Text>}
+                  {/* Toda vez que o app cita astrologia de carta, ele diz de
+                      QUEM é a tabela. Há pelo menos três incompatíveis entre
+                      si, e quem escreve "a correspondência astrológica do
+                      tarô" está escondendo uma escolha. */}
+                  <Text style={styles.spreadFootnote}>
+                    As atribuições acima são as da Golden Dawn (“Book T”). Existem pelo menos três tabelas
+                    incompatíveis — a continental de Lévi/Papus desloca todas as letras em uma casa, e o Thoth
+                    de Crowley (1944) troca Heh e Tzaddi. Este app escolheu uma e diz qual.
+                  </Text>
+                </View>
+              );
+            })()}
 
             {journalEntryId && (
               <VoiceInsightRecorder
@@ -478,4 +604,17 @@ const styles = StyleSheet.create({
   meaningIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   meaningPos: { color: colors.text, fontSize: 14, fontWeight: '800' },
   meaningText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  sourceBox: {
+    marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  sourceTitle: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  sourceQuote: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, fontStyle: 'italic', marginTop: 4 },
+  sourceNote: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 6 },
+  spreadCard: {
+    backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 4, marginBottom: 10,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  spreadTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 6 },
+  spreadText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  spreadFootnote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 10 },
 });

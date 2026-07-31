@@ -16,7 +16,8 @@ import DailyMissionsCard from '../components/DailyMissionsCard';
 // components/CosmicSoundPlayer.js). Sem este card, a única porta de entrada
 // seria a pílula de 40 px acima da barra de abas, que ninguém descobre.
 import CosmicSoundPlayer from '../components/CosmicSoundPlayer';
-import { compatibility, compatPercent, aspects } from '../lib/signs';
+import { compatibility, aspects } from '../lib/signs';
+import { CHAVES_DE_TRADUCAO } from '../lib/synastry';
 import { getTodaysThought, getThoughtForDate } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { personalSkyToday } from '../lib/personalSky';
@@ -237,9 +238,11 @@ export default function HomeScreen() {
   // do casal quando existir, senão o signo solo, com o mesmo fallback de antes.
   const sign = (coupleData?.sa && zodiacSigns.find((z) => z.name === coupleData.sa)) || soloSign || zodiacSigns[0];
 
-  // Sinastria real do casal (lib/signs.js) — null enquanto não houver os dois signos salvos.
+  // Sinastria por aspecto (lib/signs.js → lib/synastry.js) — null enquanto não
+  // houver os dois signos salvos. O cartão mostrava "{pct}% de compatibilidade";
+  // mostra o ASPECTO e a CATEGORIA, que é o que o app calcula de verdade.
+  // A porcentagem saiu do app inteiro — ver o cabeçalho de lib/synastry.js.
   const compat = coupleData?.sa && coupleData?.sb ? compatibility(coupleData.sa, coupleData.sb) : null;
-  const pct = coupleData?.sa && coupleData?.sb ? compatPercent(coupleData.sa, coupleData.sb) : null;
 
   const greeting = isCouple
     ? t('home.greetingCouple', { voce: coupleData.voce, amor: coupleData.amor })
@@ -684,11 +687,20 @@ export default function HomeScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.horoSign}>{coupleData.sa} + {coupleData.sb}</Text>
-                  <Text style={styles.horoDates}>{t('home.compatPercent', { pct })}</Text>
+                  <Text style={styles.horoDates}>
+                    {t('home.compatAspect', {
+                      aspecto: t(CHAVES_DE_TRADUCAO.aspecto[compat.familia]),
+                      categoria: t(CHAVES_DE_TRADUCAO.categoria[compat.categoriaId]),
+                    })}
+                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
               </View>
-              <Text style={styles.horoText}>{compat.texto}</Text>
+              {/* `resumo`, não `texto`: a leitura inteira agora tem quatro
+                  frases (elemento, qualidades, modalidade, o que a fonte diz) e
+                  não cabe num cartão de Home. O resumo é uma linha e diz a
+                  mesma coisa sem prometer nada a mais. */}
+              <Text style={styles.horoText}>{compat.resumo}</Text>
               <Text style={styles.horoLink}>{t('home.compatSeeMore')}</Text>
             </LinearGradient>
           </TouchableOpacity>

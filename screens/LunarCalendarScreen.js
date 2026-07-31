@@ -22,10 +22,17 @@ function todayISO() {
 // Mesmo tom honesto de lib/palmReadings.js / lib/chatResponses.js: a fase em
 // si é astronomia real (astronomy-engine), mas a reflexão que a acompanha é
 // simbólica — nunca previsão garantida.
+// A primeira metade deste texto é verificável e continua igual. A segunda dizia
+// "seguem a tradição milenar dos ciclos lunares", e era falsa no pior lugar
+// possível — a frase que se apresenta como o selo de honestidade da tela.
+// A divisão em OITO fases nomeadas, com leitura de cada uma, é de Dane Rudhyar,
+// "The Lunation Cycle", 1967. A moldura milenar é a de QUATRO quartos
+// (Ptolomeu, Tetrabiblos I.8). Ver docs/tradicao/04, §3.1 e §6.
 const DISCLAIMER =
   'A fase da Lua é calculada com astronomia real (posição Sol-Lua). As reflexões que ' +
-  'acompanham cada fase seguem a tradição milenar dos ciclos lunares — um convite simbólico, ' +
-  'não uma garantia de resultado.';
+  'acompanham cada fase misturam duas idades, e a tela diz qual é qual: a divisão em quatro ' +
+  'quartos e o calendário agrícola romano são antigos; a leitura das oito fases nomeadas é ' +
+  'de 1967 (Dane Rudhyar). Convite simbólico, não garantia de resultado.';
 
 function capitalize(text) {
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
