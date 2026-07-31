@@ -35,6 +35,7 @@ import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import OneTimeLock from '../components/OneTimeLock';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
+import GroundingInvite from '../components/GroundingInvite';
 
 // FEATURE_KEY único pra tela inteira (hub de 4 modos) — NÃO varia por modo.
 // O bloqueio de 1 uso grátis (lib/featureUsage.js) é vitalício por FEATURE_KEY,
@@ -429,6 +430,12 @@ export default function PalmScreen() {
                 readingTitle={reading.title}
               />
             )}
+
+            {/* Fecha a leitura: convite pra ficar alguns minutos com o que
+                acabou de ler (screens/GroundingScreen.js). Card, nunca modal,
+                e sem recompensa nenhuma — o porquê está em
+                components/GroundingInvite.js. */}
+            <GroundingInvite />
 
             {!hasAccess && (
               <View style={styles.upsellCard}>

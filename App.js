@@ -94,6 +94,10 @@ const LunarCalendarScreen = lazy(() => import('./screens/LunarCalendarScreen'));
 // motivo das outras: é conteúdo denso que nem todo mundo abre, e o HomeStack
 // já tem <Suspense> próprio.
 const ZodiacBodyScreen = lazy(() => import('./screens/ZodiacBodyScreen'));
+// Assentar — o ritual de respiração e presença oferecido no fim de uma leitura
+// (components/GroundingInvite.js) e disponível pela Home. Lazy pelo mesmo
+// motivo: quem nunca abrir não paga o bundle.
+const GroundingScreen = lazy(() => import('./screens/GroundingScreen'));
 const CoffeeScreen = lazy(() => import('./screens/CoffeeScreen'));
 const QuizScreen = lazy(() => import('./screens/QuizScreen'));
 const DiaryScreen = lazy(() => import('./screens/DiaryScreen'));
@@ -205,6 +209,11 @@ function HomeStack() {
         <Stack.Screen name={ROUTES.PALM} component={PalmScreen} />
         <Stack.Screen name={ROUTES.LUNAR_CALENDAR} component={LunarCalendarScreen} />
         <Stack.Screen name={ROUTES.ZODIAC_BODY} component={ZodiacBodyScreen} />
+        {/* Registrada só aqui, na stack da Home. O convite do fim da leitura
+            (components/GroundingInvite.js) sobe pro navegador de abas e pede
+            esta tela por dentro da Home — funciona igual vindo do Tarô, que
+            mora em outra aba, sem duplicar a rota em duas stacks. */}
+        <Stack.Screen name={ROUTES.GROUNDING} component={GroundingScreen} />
         <Stack.Screen name={ROUTES.COFFEE} component={CoffeeScreen} />
         <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
         <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />

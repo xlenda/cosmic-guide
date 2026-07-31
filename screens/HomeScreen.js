@@ -278,6 +278,12 @@ export default function HomeScreen() {
     // READING_CARD_KEYS lá em cima. Entra ao lado do Calendário Lunar porque é
     // a outra tela que muda sozinha com a Lua.
     { key: 'zodiacbody', title: t('home.card.zodiacbody.title'), subtitle: t('home.card.zodiacbody.subtitle'), icon: 'body', gradient: ['#B57BFF', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.ZODIAC_BODY) },
+    // Assentar: o ritual de respiração e presença. Também fica fora de
+    // READING_CARD_KEYS — não é leitura sobre a pessoa, é uma prática. A porta
+    // principal dele é o convite no fim de cada leitura
+    // (components/GroundingInvite.js); este card é a porta pra quem quiser
+    // voltar sozinho, sem precisar tirar uma carta antes.
+    { key: 'grounding', title: t('home.card.grounding.title'), subtitle: t('home.card.grounding.subtitle'), icon: 'leaf', gradient: ['#5CE0D8', '#5FD98C'], onPress: () => navigation.navigate(ROUTES.GROUNDING) },
     { key: 'palm', title: t('home.card.palm.title'), subtitle: t('home.card.palm.subtitle'), icon: 'hand-left', gradient: ['#FFB84D', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.PALM) },
     { key: 'coffee', title: t('home.card.coffee.title'), subtitle: t('home.card.coffee.subtitle'), icon: 'cafe', gradient: ['#B57BFF', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.COFFEE) },
     { key: 'chat', title: t('home.card.chat.title'), subtitle: t('home.card.chat.subtitle'), icon: 'chatbubbles', gradient: ['#6C7BFF', '#5CE0D8'], onPress: () => navigation.getParent()?.navigate(ROUTES.CHAT_TAB) },

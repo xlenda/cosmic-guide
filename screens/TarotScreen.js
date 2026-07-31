@@ -19,6 +19,7 @@ import { useLanguage } from '../context/LanguageContext';
 import OneTimeLock from '../components/OneTimeLock';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
+import GroundingInvite from '../components/GroundingInvite';
 
 const FEATURE_KEY = 'tarot';
 
@@ -350,6 +351,12 @@ export default function TarotScreen() {
                 readingTitle={`Tarô de ${theme.key} — Passado, Presente e Futuro`}
               />
             )}
+
+            {/* Fecha a leitura: convite pra ficar alguns minutos com o que
+                acabou de ler (screens/GroundingScreen.js). Card, nunca modal,
+                e sem recompensa nenhuma — o porquê está em
+                components/GroundingInvite.js. */}
+            <GroundingInvite />
 
             {/* ORDEM IMPORTA: o ramo do limite diário vinha primeiro e, como
                 drawCards() liga dailyBlocked em TODA tiragem, quem não assina

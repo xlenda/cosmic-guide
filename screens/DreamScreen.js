@@ -17,6 +17,7 @@ import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
+import GroundingInvite from '../components/GroundingInvite';
 import { getMockDreamReading } from '../lib/dreamReadings';
 import { fetchAiDreamReading, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
@@ -190,6 +191,12 @@ export default function DreamScreen() {
                   readingTitle={reading.title}
                 />
               )}
+
+              {/* Fecha a leitura: convite pra ficar alguns minutos com o que
+                  acabou de ler (screens/GroundingScreen.js). Card, nunca modal,
+                  e sem recompensa nenhuma — o porquê está em
+                  components/GroundingInvite.js. */}
+              <GroundingInvite />
 
               {!hasAccess && (
                 <View style={styles.upsellCard}>

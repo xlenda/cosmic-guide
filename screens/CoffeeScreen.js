@@ -35,6 +35,7 @@ import {
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import OneTimeLock from '../components/OneTimeLock';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
+import GroundingInvite from '../components/GroundingInvite';
 
 const FEATURE_KEY = 'coffee';
 
@@ -362,6 +363,12 @@ export default function CoffeeScreen() {
                 readingTitle={reading.title}
               />
             )}
+
+            {/* Fecha a leitura: convite pra ficar alguns minutos com o que
+                acabou de ler (screens/GroundingScreen.js). Card, nunca modal,
+                e sem recompensa nenhuma — o porquê está em
+                components/GroundingInvite.js. */}
+            <GroundingInvite />
 
             {!hasAccess && (
               <View style={styles.upsellCard}>
