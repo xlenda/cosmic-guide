@@ -59,6 +59,13 @@ import HomeScreen from './screens/HomeScreen';
 import TarotScreen from './screens/TarotScreen';
 import ChatScreen from './screens/ChatScreen';
 import ProfileScreen from './screens/ProfileScreen';
+// Eager de propósito: é a tela MAIS visitada do produto — 118 das 128 sessões
+// de 30/07 passaram por ela (92% dos aparelhos do dia não têm perfil). Estava
+// no lote "raramente visitadas" abaixo, e o custo era duplo pra quem chega:
+// o spinner do Gate esperando o AsyncStorage e, logo em seguida, o
+// LoadingFallback do Suspense — dois spinners idênticos e um round-trip de
+// chunk antes da primeira palavra do app.
+import OnboardingChoiceScreen from './screens/OnboardingChoiceScreen';
 import { withFeatureGate } from './components/FeatureGate';
 
 // Telas raramente visitadas (config/legal, ou exclusivas de assinante e já
@@ -67,7 +74,6 @@ import { withFeatureGate } from './components/FeatureGate';
 // auditoria de performance, 19/07/2026). Cada Stack.Navigator que renderiza
 // alguma destas precisa de um <Suspense> ancestral (ver LoadingFallback).
 const PrivacyScreen = lazy(() => import('./screens/PrivacyScreen'));
-const OnboardingChoiceScreen = lazy(() => import('./screens/OnboardingChoiceScreen'));
 const TimelineScreen = lazy(() => import('./screens/TimelineScreen'));
 const ReconectarScreen = lazy(() => import('./screens/ReconectarScreen'));
 const DescobrirScreen = lazy(() => import('./screens/DescobrirScreen'));

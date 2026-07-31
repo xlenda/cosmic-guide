@@ -28,7 +28,6 @@ import CityPickerModal from '../components/CityPickerModal';
 import {
   SIGNS,
   compatibility,
-  compatPercent,
   cosmicNumbers,
   frequenciaFor,
   CARDS,
@@ -36,6 +35,7 @@ import {
   signoFromDate,
   ascendantSign,
 } from '../lib/signs';
+import { CHAVES_DE_TRADUCAO } from '../lib/synastry';
 import { cityLabel } from '../lib/cities';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -348,7 +348,6 @@ export default function QuizScreen() {
   }
 
   const compat = signoVoce && signoAmor ? compatibility(signoVoce, signoAmor) : null;
-  const pct = signoVoce && signoAmor ? compatPercent(signoVoce, signoAmor) : null;
   // 3º argumento = a cidade (mesma razão do 5º do Ascendente logo abaixo): sem
   // ele a hora informada era lida como UTC e a Lua natal saía no instante
   // errado — 5,15% dos nascimentos em São Paulo com o SIGNO lunar trocado.
@@ -367,7 +366,11 @@ export default function QuizScreen() {
 
   const canNext =
     (step === 1 && !!voce && !!amor) ||
-    (step === 2 && !!nascVoce && !!nascAmor && !!signoVoce && !!signoAmor) ||
+    // `nascAmor` saiu do portão de propósito: a leitura de compatibilidade só
+    // precisa dos NOMES dos signos, e o par pode chegar pelo SignGrid manual.
+    // A data do parceiro continua sendo pedida — ela dá Lua e Ascendente dele —
+    // mas como bônus, não como pedágio.
+    (step === 2 && !!nascVoce && !!signoVoce && !!signoAmor) ||
     (step === 3 && !!desejo) ||
     (step === 4 && cartas.length === 3) ||
     step === 5;
@@ -377,10 +380,11 @@ export default function QuizScreen() {
     1: !voce ? t('quiz.aviso.needYourName') : !amor ? t('quiz.aviso.needPartnerName') : '',
     2: !nascVoce
       ? t('quiz.aviso.needBirthDate', { name: voce || t('quiz.fallback.voces') })
-      : !nascAmor
-      ? t('quiz.aviso.needBirthDate', { name: amor || t('quiz.fallback.seuAmor') })
-      : !signoVoce || !signoAmor
+      : !signoVoce
       ? t('quiz.aviso.checkDates')
+      : // O aviso do par aponta as DUAS saídas, em vez de só cobrar a data.
+      !signoAmor
+      ? t('quiz.aviso.needPartnerSign', { name: amor || t('quiz.fallback.seuAmor') })
       : '',
     3: !desejo ? t('quiz.aviso.chooseEnergy') : '',
     4:
@@ -692,16 +696,27 @@ export default function QuizScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            {!!signoAmor && (
-              <View style={styles.signInfoRow}>
+            {/* A linha renderiza SEMPRE. Antes era `{!!signoAmor && ...}`, e
+                como signoAmor só nasce da data do par, quem não sabia a data
+                nunca via o link que abre o SignGrid — a saída só existia depois
+                que já não era necessária. Sem signo ainda, o link vira "não sei
+                a data"; com signo, continua sendo "não é esse o signo". */}
+            <View style={styles.signInfoRow}>
+              {!!signoAmor && (
                 <Text style={styles.mutedText}>
                   {t('quiz.birth.signOf', { name: amor })} <Text style={styles.signInfoStrong}>{signoAmor}</Text>
                 </Text>
-                <TouchableOpacity onPress={() => setSignoManualAmor((v) => !v)}>
-                  <Text style={styles.linkText}>{signoManualAmor ? t('quiz.birth.hide') : t('quiz.birth.notThisSign')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+              )}
+              <TouchableOpacity onPress={() => setSignoManualAmor((v) => !v)}>
+                <Text style={styles.linkText}>
+                  {signoManualAmor
+                    ? t('quiz.birth.hide')
+                    : signoAmor
+                    ? t('quiz.birth.notThisSign')
+                    : t('quiz.birth.dontKnowDate')}
+                </Text>
+              </TouchableOpacity>
+            </View>
             {signoManualAmor && <SignGrid current={signoAmor} onSelect={setSignoAmor} />}
           </View>
         )}
@@ -808,19 +823,36 @@ export default function QuizScreen() {
             <Text style={styles.revealTitle}>{compat.titulo}</Text>
             <Text style={styles.mutedCenter}>{t('quiz.reveal.energyOf', { voce, amor })}</Text>
 
+            {/* Aqui ficava "{pct}%" em 42px dourados, com o texto do ponto
+                forte ramificando em >= 88 / >= 80 / resto. A porcentagem saiu do
+                app inteiro (o porquê está no cabeçalho de lib/synastry.js): o
+                que aparece agora é o ASPECTO — que é geometria conferível — e a
+                categoria que a fonte dá a ele. O ponto forte não ramifica mais
+                por faixa de nota porque não há mais nota: cada aspecto já traz
+                o seu, escrito com os fatos daquele par. */}
             <View style={styles.card}>
-              <Text style={styles.pct}>{pct}%</Text>
-              <Text style={styles.badge}>{t('quiz.reveal.compatBadge')}</Text>
+              <Text style={styles.aspectName}>{t(CHAVES_DE_TRADUCAO.aspecto[compat.familia])}</Text>
+              <Text style={styles.badge}>{t('quiz.reveal.aspectBadge')}</Text>
               <Text style={styles.disclaimer}>
-                {t('quiz.reveal.affinity', { elementoA: compat.elementoA, elementoB: compat.elementoB })}
+                {compat.distancia === 0
+                  ? t('quiz.reveal.aspectGeometrySame', {
+                      categoria: t(CHAVES_DE_TRADUCAO.categoria[compat.categoriaId]),
+                    })
+                  : t('quiz.reveal.aspectGeometry', {
+                      graus: compat.graus,
+                      distancia: compat.distancia,
+                      categoria: t(CHAVES_DE_TRADUCAO.categoria[compat.categoriaId]),
+                    })}
               </Text>
-              <Text style={styles.revealForte}>
-                {pct >= 88
-                  ? t('quiz.reveal.strongHigh', { forte: compat.forte })
-                  : pct >= 80
-                  ? t('quiz.reveal.strongMid', { forte: compat.forte })
-                  : t('quiz.reveal.strongLow', { forte: compat.forte })}
-              </Text>
+              {/* `resumo`, e NÃO `forte`. A versão com porcentagem punha aqui
+                  `strongHigh/strongMid/strongLow`, que embrulhavam `forte` num
+                  prefixo diferente por faixa de nota ("Elementos que se
+                  acendem: …"), então o `forte` repetido três linhas abaixo,
+                  onde tem o rótulo "Ponto forte de vocês:", não lia como
+                  repetição. Sem as faixas, os dois viraram o MESMO parágrafo
+                  duas vezes na mesma tela. `resumo` é a linha que nomeia o par
+                  e a figura — é o que a Home já usa neste lugar. */}
+              <Text style={styles.revealForte}>{compat.resumo}</Text>
             </View>
 
             <View style={styles.card}>
@@ -1101,7 +1133,7 @@ const styles = StyleSheet.create({
   cardAccentTitle: { color: colors.gold, fontSize: 17, fontWeight: '800', fontStyle: 'italic', textAlign: 'center', marginBottom: 8 },
   cardTitle: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'center', marginBottom: 12 },
 
-  pct: { color: colors.gold, fontSize: 42, fontWeight: '800', textAlign: 'center' },
+  aspectName: { color: colors.gold, fontSize: 30, fontWeight: '800', textAlign: 'center' },
   badge: {
     color: colors.accent, fontSize: 12, fontWeight: '700', textAlign: 'center',
     backgroundColor: colors.accent + '22', alignSelf: 'center', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, marginTop: 8,

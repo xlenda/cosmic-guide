@@ -33,6 +33,16 @@ export default function OnboardingChoiceScreen() {
     funnel.onboardingStart();
   }, []);
 
+  // Era o único passo do app sem telemetria nenhuma: entre "viu a escolha" e
+  // "salvou o perfil" não existia evento no caminho solo, então quem tocava
+  // aqui e desistia diante do grid de 12 signos era invisível no relatório.
+  // Com a chave por variação em funnel.js, este disparo convive com o
+  // 'choice' do mount em vez de ser engolido por ele.
+  function escolherSolo() {
+    funnel.onboardingStart('solo');
+    setShowSignPicker(true);
+  }
+
   async function pickSign(z) {
     if (saving) return;
     Haptics.selectionAsync();
@@ -69,7 +79,7 @@ export default function OnboardingChoiceScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {!showSignPicker ? (
           <>
-            <TouchableOpacity activeOpacity={0.9} style={styles.card} onPress={() => setShowSignPicker(true)}>
+            <TouchableOpacity activeOpacity={0.9} style={styles.card} onPress={escolherSolo}>
               <LinearGradient colors={gradients.purple} style={styles.cardIcon}>
                 <Ionicons name="person" size={26} color="#fff" />
               </LinearGradient>
