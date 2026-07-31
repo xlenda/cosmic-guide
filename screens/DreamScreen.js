@@ -25,12 +25,16 @@ import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 
+// Cauda defensiva removida em 31/07/2026 (mesma decisão do dono explicada em
+// CoffeeScreen). Aqui sobrou UMA linha, e ela não é ressalva de efeito: é a
+// única do app que manda procurar gente de verdade. Sonho é a porta por onde
+// entra quem está em sofrimento — a pessoa digita o pesadelo às três da manhã.
+// A linha é curta, no fim, e não desmente a leitura; só diz onde fica a ajuda.
 const DISCLAIMER =
   'Esta interpretação une IA com a simbologia dos sonhos — a tradição milenar de ler o que os ' +
   'sonhos dizem sobre quem sonha. E não é moda nova: o grego Artemidoro já escrevia sobre isso ' +
   'na Antiguidade. Séculos depois, Carl Jung (1875-1961) voltou a tratá-los como material ' +
-  'simbólico. Não é ' +
-  'diagnóstico psicológico nem previsão; é um espelho simbólico para reflexão.';
+  'simbólico. Não substitui acompanhamento profissional.';
 
 // Estados possíveis da tela: intro (digitando o sonho) -> result (leitura exibida).
 const STEP = { INTRO: 'intro', RESULT: 'result' };

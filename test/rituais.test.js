@@ -29,6 +29,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const {
   AVISO_ETICO,
@@ -61,7 +63,7 @@ const { getMoonPhase } = require('../lib/lunarCalendar.js');
 // Devolve [caminho, texto] para toda string dentro de um objeto. `fontes` sai
 // (são ids técnicos, não texto de tela) e `base` também (é caminho de arquivo
 // da pesquisa, não vai pra tela).
-const CHAVES_TECNICAS = new Set(['fontes', 'base', 'token', 'id', 'categoria']);
+const CHAVES_TECNICAS = new Set(['fontes', 'base', 'token', 'id', 'categoria', 'provas']);
 
 function coletar(valor, caminho, saida) {
   if (typeof valor === 'string') {
@@ -78,12 +80,25 @@ function coletar(valor, caminho, saida) {
 }
 
 // Tudo que a pessoa pode ler: os 21 rituais, as categorias, os três blocos de
-// lastro e os 21 textos de compartilhar.
+// lastro, a lista de fontes e os 21 textos de compartilhar.
+//
+// FONTES_TRADICAO ficava INTEIRA fora das três varreduras, e o objeto é
+// exportado justamente pra tela que quiser renderizar a lista de fontes de um
+// ritual. Foi por esse buraco que passou "A lua minguante mata as sementes de
+// erva daninha no esterco" — presente do indicativo, efeito lunar AFIRMADO.
+// Entra aqui. O recibo (autor + obra + século) é coletado JUNTO, na forma em
+// que a tela o mostra: separar o campo `seculo` num item próprio criaria um
+// "séc. III" sem autor por perto, que é exatamente o que o teste de século
+// órfão existe pra proibir.
 function todoTextoVisivel() {
   const saida = [];
   RITUAIS.forEach((r) => coletar(r, `ritual:${r.id}`, saida));
   coletar(CATEGORIAS, 'categorias', saida);
   coletar(LASTRO_MOMENTO_IDEAL, 'lastro', saida);
+  for (const [id, f] of Object.entries(FONTES_TRADICAO)) {
+    saida.push([`fonte:${id}.recibo`, `${f.autor}, ${f.obra}, ${f.seculo}`]);
+    if (f.nota) saida.push([`fonte:${id}.nota`, f.nota]);
+  }
   RITUAIS.forEach((r) => saida.push([`compartilhar:${r.id}`, textoCompartilhavel(r)]));
   return saida;
 }
@@ -345,6 +360,11 @@ const PROMESSA = [
   /\bfunciona mesmo\b/i,
   /\bcontrol(a|ar|e|ando)\b/i,
   /\bdomina(r)?\b/i,
+  // IMPERATIVO + CAUSALIDADE. "o que você quer que cresça, faça com a Lua
+  // crescendo" não é vocabulário proibido — é uma REGRA DE VIDA dirigida a quem
+  // lê, e a fonte antiga fala de semente, madeira e lã. A lista era só de
+  // vocabulário e não pegava a forma.
+  /\bfaça (na|com|no) (lua|quarto)/i,
 ];
 
 // 3. MECANISMO PSEUDOCIENTÍFICO. Mesma decisão que baniu o vocabulário de
@@ -446,6 +466,33 @@ test('a única isenção da varredura é o próprio aviso ético, e ela é neces
 
 const SECULO = /\bs[ée]c\.\s*[IVXL]+/;
 
+// ---------------------------------------------------------------------------
+// A BASE, ABERTA DE VERDADE
+// ---------------------------------------------------------------------------
+// Até 31/07/2026 o teste abaixo validava o campo `base` só com um regex de
+// FORMATO de caminho — nunca abria o arquivo. Foi por isso que "Kitāb
+// al-Tafhīm" como veículo da carta de Bagdá (é a Cronologia das Nações
+// Antigas) e "ordem caldaica" como nome da sequência dos dias (é derivada
+// dela) passaram verdes. Agora vale o mesmo mecanismo de test/jornada.test.js:
+// cada fonte declara `provas` LITERAIS e o teste procura cada uma dentro do(s)
+// arquivo(s) apontados por `base`.
+const RAIZ = path.join(__dirname, '..');
+const _arquivos = {};
+
+function lerArquivo(rel) {
+  if (!(rel in _arquivos)) {
+    const alvo = path.join(RAIZ, rel);
+    _arquivos[rel] = fs.existsSync(alvo) ? fs.readFileSync(alvo, 'utf8') : null;
+  }
+  return _arquivos[rel];
+}
+
+// `base` é texto de prosa ("docs/tradicao/09-...md; ressalva em
+// docs/tradicao/99-...md") — daqui saem os caminhos citados nele.
+function caminhosDaBase(base) {
+  return (base || '').match(/(?:docs\/tradicao\/[\w.\-]+\.md|lib\/[\w.\-]+\.js)/g) || [];
+}
+
 test('toda entrada de FONTES_TRADICAO tem obra, autor, século e endereço na base', () => {
   const ids = Object.keys(FONTES_TRADICAO);
   assert.ok(ids.length >= 12, 'a base de fontes encolheu demais');
@@ -465,6 +512,10 @@ test('toda entrada de FONTES_TRADICAO tem obra, autor, século e endereço na ba
       /^docs\/tradicao\/|^lib\//,
       `${id}: a fonte precisa apontar para onde foi conferida na base (achei "${f.base}")`
     );
+    assert.ok(
+      Array.isArray(f.provas) && f.provas.length >= 2,
+      `${id}: menos de 2 provas — sem prova literal o campo \`base\` é só um caminho bonito`
+    );
   }
   // Doroteu é o caso-limite e ele tem que continuar marcado. A base registra a
   // obra e NÃO a leu (docs/tradicao/99-o-que-falta.md). Citar como se tivesse
@@ -473,6 +524,67 @@ test('toda entrada de FONTES_TRADICAO tem obra, autor, século e endereço na ba
     FONTES_TRADICAO.doroteu.atribuicaoNaoLida,
     true,
     'Doroteu de Sídon precisa continuar marcado como atribuição registrada, não leitura própria'
+  );
+});
+
+test('todo arquivo citado em `base` existe, e TODA prova aparece literalmente nele', () => {
+  const faltando = [];
+  for (const [id, f] of Object.entries(FONTES_TRADICAO)) {
+    const caminhos = caminhosDaBase(f.base);
+    assert.ok(caminhos.length > 0, `${id}: \`base\` não cita nenhum arquivo real (achei "${f.base}")`);
+    const textos = [];
+    for (const rel of caminhos) {
+      const conteudo = lerArquivo(rel);
+      assert.ok(conteudo !== null, `${id}: \`base\` aponta pra ${rel}, que não existe`);
+      textos.push(conteudo);
+    }
+    const palheiro = textos.join('\n');
+    for (const prova of f.provas || []) {
+      if (!palheiro.includes(prova)) {
+        faltando.push(`${id} → ${caminhos.join(' + ')} não contém ${JSON.stringify(prova)}`);
+      }
+    }
+  }
+  assert.deepEqual(
+    faltando,
+    [],
+    'Fonte declarada sem lastro na base — obra, autor ou locus que a pesquisa não sustenta:\n  ' +
+      faltando.join('\n  ')
+  );
+});
+
+test('a carta de fundação de Bagdá é creditada à obra certa de al-Bīrūnī', () => {
+  // docs/tradicao/10 §4.2: quem transmite a carta é a Cronologia das Nações
+  // Antigas. O Kitāb al-Tafhīm (1029) é o MANUAL descrito em §4.3 — outra obra.
+  // Autor certo, livro errado, repetido em três lugares do app.
+  assert.match(FONTES_TRADICAO.albiruni.obra, /Cronologia das Nações Antigas/);
+  const prosa = [
+    LASTRO_MOMENTO_IDEAL.eletiva.texto,
+    ritualPorId('protecao-hora-escolhida').intencao,
+    ritualPorId('protecao-hora-escolhida').momento.texto,
+  ].join('\n');
+  assert.doesNotMatch(prosa, /Tafhīm/, 'a carta de Bagdá voltou a ser creditada ao Kitāb al-Tafhīm');
+  assert.match(prosa, /Cronologia das Nações Antigas/);
+  // E o eleitor principal na fonte é Nawbakht, o Persa — Māshā'allāh assistiu.
+  assert.match(prosa, /Nawbakht/, 'o eleitor principal da carta de Bagdá sumiu de novo');
+});
+
+test('a sequência dos dias nunca é chamada de "ordem caldaica" — ela é DERIVADA dela', () => {
+  // docs/tradicao/14 §3.1 item 2 e §3.2c: a ordem caldaica é
+  // Saturno·Júpiter·Marte·Sol·Vênus·Mercúrio·Lua; a dos dias sai dela pulando
+  // três posições (24 mod 7 = 3). Chamar uma de outra era erro em 14 lugares.
+  const erros = [];
+  for (const [caminho, texto] of todoTextoVisivel()) {
+    if (/ordem caldaica d(os|e) dias/i.test(texto)) {
+      erros.push(`${caminho}: chama a sequência dos dias de "ordem caldaica"`);
+    }
+  }
+  assert.deepEqual(erros, [], erros.join('\n  '));
+  // E o apelido "caldaica" continua declarado como não verificado (14 §3.3).
+  assert.match(
+    LASTRO_MOMENTO_IDEAL.semana.ressalvas.join(' '),
+    /apelido "caldaica"|não conseguiu verificar/i,
+    'sumiu a ressalva de que "caldaica" é apelido não conferido contra os textos babilônicos'
   );
 });
 
@@ -619,14 +731,36 @@ const CAMPOS_DE_PROSA = [
   ['momento.texto', (r) => r.momento.texto],
 ];
 
+// O contrato de tom cobria SÓ `intencao` e `momento.texto`. LASTRO_MOMENTO_IDEAL
+// — que é a tela mais expositiva do arquivo — e as descrições de CATEGORIAS, que
+// são card de menu, ficavam de fora, e era exatamente ali que três ressalvas
+// abriam pelo recibo. Entram aqui.
+function prosaDeTela() {
+  const out = [];
+  for (const r of RITUAIS) {
+    for (const [nome, pegar] of CAMPOS_DE_PROSA) out.push([`${r.id} ${nome}`, pegar(r)]);
+  }
+  for (const [bloco, b] of Object.entries(LASTRO_MOMENTO_IDEAL)) {
+    out.push([`lastro.${bloco}.texto`, b.texto]);
+    (b.ressalvas || []).forEach((rr, i) => out.push([`lastro.${bloco}.ressalvas[${i}]`, rr]));
+  }
+  for (const c of CATEGORIAS) out.push([`categoria.${c.id}.descricao`, c.descricao]);
+  return out;
+}
+
+// Nas ressalvas, que são curtas, 60 caracteres fixos seriam quase o texto
+// inteiro — o limiar é proporcional, e o teto de 60 mantém a régua original nos
+// textos longos.
+function tamanhoDaAbertura(texto) {
+  return Math.max(1, Math.min(60, Math.floor(texto.length / 3)));
+}
+
 test('toda prosa ABRE em português de conversa — sem autor nem século na largada', () => {
   const erros = [];
-  for (const r of RITUAIS) {
-    for (const [nome, pegar] of CAMPOS_DE_PROSA) {
-      const abertura = pegar(r).slice(0, 60);
-      if (tokensNoTexto(abertura).length > 0 || SECULO.test(abertura) || /\d{4}/.test(abertura)) {
-        erros.push(`${r.id} ${nome}: abre com fonte — "${abertura}…"`);
-      }
+  for (const [onde, texto] of prosaDeTela()) {
+    const abertura = texto.slice(0, tamanhoDaAbertura(texto));
+    if (tokensNoTexto(abertura).length > 0 || SECULO.test(abertura) || /\d{4}/.test(abertura)) {
+      erros.push(`${onde}: abre com fonte — "${abertura}…"`);
     }
   }
   assert.equal(
@@ -640,27 +774,54 @@ test('toda prosa ABRE em português de conversa — sem autor nem século na lar
 
 test('toda prosa FECHA no recibo — a fonte fica na segunda metade do texto', () => {
   const erros = [];
-  for (const r of RITUAIS) {
-    for (const [nome, pegar] of CAMPOS_DE_PROSA) {
-      const texto = pegar(r);
-      const posicoes = [
-        ...TOKENS.map((t) => texto.lastIndexOf(t)),
-        texto.lastIndexOf(SEM_FONTE_ANTIGA),
-      ].filter((i) => i >= 0);
-      if (posicoes.length === 0) {
-        erros.push(`${r.id} ${nome}: não tem recibo nenhum`);
-        continue;
-      }
-      const ultimo = Math.max(...posicoes);
-      if (ultimo < texto.length / 2) {
-        erros.push(
-          `${r.id} ${nome}: o último recibo está a ${Math.round((ultimo / texto.length) * 100)}% do texto — ` +
-            'ele tem que fechar a peça, não abrir'
-        );
-      }
+  for (const [onde, texto] of prosaDeTela()) {
+    const posicoes = [
+      ...TOKENS.map((t) => texto.lastIndexOf(t)),
+      texto.lastIndexOf(SEM_FONTE_ANTIGA),
+    ].filter((i) => i >= 0);
+    // Duas isenções, e as duas são o contrário de um buraco:
+    // (a) descrição de categoria é rótulo de menu, não peça de prosa histórica;
+    // (b) ressalva cuja função é dizer que ali NÃO há fonte ("é leitura nossa",
+    //     "o apelido não foi verificado") não pode ser obrigada a exibir uma.
+    // O que nenhuma das duas pode é ABRIR no recibo, e disso o teste acima
+    // cuida. Exigir recibo aqui empurraria a citação para dentro da ressalva de
+    // ausência, que é o pior lugar possível pra ela.
+    const declaraAusencia = /\bnoss[ao]\b|apelido|não conseguiu verificar|não foi verificad/i.test(texto);
+    if (posicoes.length === 0) {
+      if (onde.startsWith('categoria.') || declaraAusencia) continue;
+      erros.push(`${onde}: não tem recibo nenhum`);
+      continue;
+    }
+    const ultimo = Math.max(...posicoes);
+    if (ultimo < texto.length / 2) {
+      erros.push(
+        `${onde}: o último recibo está a ${Math.round((ultimo / texto.length) * 100)}% do texto — ` +
+          'ele tem que fechar a peça, não abrir'
+      );
     }
   }
   assert.equal(erros.length, 0, `Recibo fora do fim:\n  ${erros.join('\n  ')}`);
+});
+
+test('nenhuma data solta na prosa — todo século e todo ano pertencem a uma fonte declarada', () => {
+  // A varredura no sentido contrário, portada de test/jornada.test.js: as
+  // `provas` garantem que o que está na TABELA existe na base; esta garante que
+  // o que está no TEXTO existe na tabela. Sem ela dava pra escrever "desde 3000
+  // a.C." numa intenção e passar por todos os outros testes.
+  const palheiro = Object.values(FONTES_TRADICAO)
+    .map((f) => [f.autor, f.obra, f.seculo, ...(f.provas || [])].join(' | '))
+    .join(' || ');
+
+  const soltas = [];
+  for (const [onde, texto] of todoTextoVisivel()) {
+    const achados = new Set();
+    for (const m of texto.matchAll(/\b(1[0-9]{3}|20[0-9]{2})\b/g)) achados.add(m[1]);
+    for (const m of texto.matchAll(/s[ée]c\.\s*[IVXL]+/gi)) achados.add(m[0]);
+    for (const achado of achados) {
+      if (!palheiro.includes(achado)) soltas.push(`${onde}: "${achado}" não pertence a fonte nenhuma`);
+    }
+  }
+  assert.deepEqual(soltas, [], `Data sem dono no texto:\n  ${soltas.join('\n  ')}`);
 });
 
 test('os passos são ação observável, e o primeiro nunca é uma promessa', () => {

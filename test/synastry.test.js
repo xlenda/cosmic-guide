@@ -50,8 +50,36 @@ function porId(id) {
   return PARES.filter((p) => p.leitura.id === id);
 }
 
+// TUDO que a tela mostra como leitura, os dois blocos juntos. A varredura de
+// veredito, de saúde e de porcentagem morde este texto inteiro — o bloco quente
+// não ganha licença nenhuma por ser quente (regra 7 de lib/synastry.js).
 function corpo(leitura) {
-  return [leitura.resumo, leitura.texto, leitura.forte, leitura.cuidado].join(' \n ');
+  return [leitura.resumo, leitura.texto, leitura.forte, leitura.cuidado, ...vidaReal(leitura)].join(' \n ');
+}
+
+// Só o BLOCO 1, na ordem em que a tela desenha, com a chamada na frente.
+function vidaReal(leitura) {
+  return [leitura.chamada, ...S.DIMENSOES_VIDA_REAL.map((d) => leitura.vidaReal[d.id])];
+}
+
+function blocoUm(leitura) {
+  return vidaReal(leitura).join(' \n ');
+}
+
+// Conta frases pelo que termina frase. O bloco 1 é escrito sem abreviação e
+// sem número decimal exatamente pra esta contagem ser confiável.
+function frases(texto) {
+  return (texto.match(/[.!?](\s|$)/g) || []).length;
+}
+
+// Troca os nomes dos doze signos por um curinga. Serve pra provar que a
+// variação entre pares NÃO vem só de interpolar nome — que é o defeito que
+// este arquivo inteiro existe pra impedir.
+const NOMES_DOS_SIGNOS = SIGNS.map((s) => s.name);
+function semNomes(texto) {
+  let t = texto;
+  for (const n of NOMES_DOS_SIGNOS) t = t.split(n).join('◆');
+  return t;
 }
 
 // ===========================================================================
@@ -322,6 +350,41 @@ const FATALISMO = [
   // sustenta "harmônico" (I.13) e, atribuído, "costumam durar" (IV.5).
   [/briga[^.!?]*rara/i, 'previsão de frequência de conflito'],
   [/nunca brigam/i, 'previsão de frequência de conflito'],
+  // ACRÉSCIMOS DO BLOCO 1 (31/07/2026). O texto quente é onde o veredito entra
+  // sem pedir licença: quem escreve "prende atenção" escreve "almas gêmeas" no
+  // parágrafo seguinte sem perceber. Estas formas são as do lado POSITIVO, que
+  // a lista original não cobria — e um veredito de casamento perfeito é tão
+  // veredito quanto um de separação.
+  [/alma[s]? g[êe]mea/i, 'o veredito positivo que a fonte não autoriza'],
+  [/(casamento|casal|par|rela[çc][ãa]o|combina[çc][ãa]o|amor) (perfeit|ideal)/i, 'veredito positivo'],
+  [/feito[s]? um (pro|para o) outro/i, 'veredito positivo'],
+  [/foi feito pra (dar certo|durar)|nasceu pra dar certo/i, 'desfecho decretado'],
+  [/\bfuja[mo]?\b|\bcorra enquanto\b/i, 'conselho de terminar'],
+  [/vale a pena (ficar|continuar|insistir|tentar)|deveriam? (ficar|terminar|se separar|continuar)/i, 'conselho sobre a relação'],
+  [/garantia de|garantido|garantimos|prometemos|com certeza v[ãa]o/i, 'promessa de resultado'],
+  [/\bsempre vai\b|\bnunca vai\b|\bvai ser (feliz|eterno)\b/i, 'futuro decretado'],
+];
+
+// SAÚDE. A regra 4 de lib/synastry.js não tem exceção e não aceita metáfora, e
+// o bloco 1 fala de cama — que é exatamente onde a linguagem de saúde entra
+// disfarçada de elogio ("faz bem", "cura o outro", "melhora a libido"). Os dois
+// últimos grupos são os que o dono nomeou de fora: nada de fertilidade, nada de
+// gravidez, e nada de emprestar vocabulário de consultório.
+const SAUDE = [
+  [/\b(cura|curar|curam|sarar|sara|alivia|aliviar|tratamento|rem[ée]dio|terap[êe]utic|terapia)\b/i, 'linguagem de tratamento'],
+  [/faz bem (à|a) sa[úu]de|faz bem pro corpo|melhora a sa[úu]de|é saud[áa]vel pra/i, 'alegação de benefício à saúde'],
+  [/\bfertilidade\b|\bf[ée]rtil\b|engravidar|gravidez|gesta[çc][ãa]o|concep[çc][ãa]o/i, 'fertilidade e gravidez'],
+  [/\blibido\b|\bhorm[ôo]n|\bdepress[ãa]o\b|\bansiedade\b|\bautoestima cl[íi]nic/i, 'vocabulário de consultório'],
+];
+
+// O bloco 1 fala de desejo. A licença é de coluna de revista boa, não de
+// conteúdo adulto: o app tem classificação livre. A lista é de EXPLÍCITO e de
+// anatomia, não de "sexo" — a palavra não é o problema, a cena é.
+const EXPLICITO = [
+  /\bp[êe]nis\b|\bvagina\b|\bgenital|\bpenetra|\bfelaç|\borgasm|\bmasturb|\bejacul/i,
+  /\bbunda\b|\bpeito(s|nes)?\b|\bcoxas?\b|\bn[uú]a?s?\b(?! e crua)/i,
+  /\btransar\b|\btransam\b|\bfoder|\btrepar\b|\bgozar\b|\bputaria\b|\bsafad/i,
+  /\bposi[çc][ãa]o sexual|\bfetich|\bp[oó]rn/i,
 ];
 
 test('NENHUMA das 144 leituras decreta o desfecho do casal', () => {
@@ -637,9 +700,13 @@ test('NAO_ACHADO continua registrando a lacuna da porcentagem — não foi preen
 });
 
 test('nenhuma leitura faz alegação de saúde', () => {
-  const SAUDE = /\b(cura|curar|sarar|alivia|aliviar|tratamento|remédio|terapêutic|faz bem à saúde)\b/i;
+  // A lista mora no topo do arquivo desde 31/07/2026, porque o bloco 1 fala de
+  // cama e é ali que a linguagem de saúde entra disfarçada de elogio.
   for (const p of PARES) {
-    assert.ok(!SAUDE.test(corpo(p.leitura)), `${p.a}+${p.b}`);
+    const t = corpo(p.leitura);
+    for (const [re, motivo] of SAUDE) {
+      assert.ok(!re.test(t), `${p.a}+${p.b} (${p.leitura.id}) — ${motivo}: ${t.match(re)}`);
+    }
   }
 });
 
@@ -812,4 +879,441 @@ test('entrada inválida devolve null, nunca uma leitura fabricada', () => {
   assert.equal(compatibility(null, 'Áries'), null);
   assert.equal(S.sinastria(null, null), null);
   assert.equal(S.sinastria({ index: 0 }, { name: 'x' }), null);
+});
+
+// ===========================================================================
+// 12. O BLOCO 1 — "COMO É NA VIDA REAL"
+// ===========================================================================
+// Segundo feedback do dono na mesma tela, 31/07/2026: "tá muito científico
+// ainda, cada as coisas que o povão gosta de ler, fala de sexo entre eles, de
+// conversa, de harmonia, de brigas, se vai ser quente na cama, no início tem
+// que ser algo que prenda atenção. Depois a parte científica."
+//
+// O risco de uma mudança dessas é conhecido e é duplo: (a) o texto quente vira
+// veredito, porque escrever bonito puxa pra "almas gêmeas" e pra "não vai dar
+// certo"; e (b) o texto quente vira molde com o miolo trocado — sete parágrafos
+// para 144 pares, que é EXATAMENTE o defeito que este arquivo existe pra
+// impedir e que já aconteceu uma vez neste app. Os testes abaixo medem os dois.
+
+const DIMS = S.DIMENSOES_VIDA_REAL.map((d) => d.id);
+
+test('as cinco dimensões existem, na ordem, e a tela não inventa nenhuma', () => {
+  assert.deepEqual(DIMS, ['quimica', 'conversa', 'briga', 'convivencia', 'longoPrazo']);
+  for (const d of S.DIMENSOES_VIDA_REAL) {
+    assert.match(d.chaveTitulo, /^compat\.dim\./, `${d.id} sem chave de título`);
+    assert.ok(d.icone && d.icone.length > 2, `${d.id} sem ícone`);
+  }
+});
+
+test('TODA relação tem as CINCO dimensões preenchidas, nos 144 pares', () => {
+  // O jeito de esta feature apodrecer em silêncio é uma dimensão voltar string
+  // vazia num aspecto que ninguém testou à mão — a tela renderiza o título com
+  // nada embaixo e passa verde.
+  for (const p of PARES) {
+    assert.ok(p.leitura.vidaReal, `${p.a}+${p.b} sem bloco 1`);
+    assert.deepEqual(Object.keys(p.leitura.vidaReal).sort(), [...DIMS].sort(), `${p.a}+${p.b}`);
+    for (const d of DIMS) {
+      const t = p.leitura.vidaReal[d];
+      assert.equal(typeof t, 'string', `${p.a}+${p.b}/${d} não é texto`);
+      assert.ok(t.trim().length >= 200, `${p.a}+${p.b}/${d} com ${t.length} caracteres — curto demais pra ser leitura`);
+      // "cada uma com 2 a 4 frases" é literal no pedido do dono. Menos que 2
+      // é bullet, mais que 4 é ensaio — e ensaio foi o que a tela já era.
+      const n = frases(t);
+      assert.ok(n >= 2 && n <= 4, `${p.a}+${p.b}/${d} tem ${n} frases`);
+      // E cada dimensão fala DAQUELE par, com os dois nomes na mesa.
+      assert.match(t, new RegExp(p.a), `${p.a}+${p.b}/${d} não nomeia ${p.a}`);
+      if (p.i !== p.j) assert.match(t, new RegExp(p.b), `${p.a}+${p.b}/${d} não nomeia ${p.b}`);
+    }
+  }
+});
+
+test('a chamada abre a leitura: curta, dos dois signos, e distinta por relação', () => {
+  for (const p of PARES) {
+    assert.ok(p.leitura.chamada, `${p.a}+${p.b} sem chamada`);
+    assert.ok(p.leitura.chamada.length <= 200, `${p.a}+${p.b}: chamada com ${p.leitura.chamada.length} caracteres`);
+    assert.match(p.leitura.chamada, new RegExp(p.a), `${p.a}+${p.b}`);
+    if (p.i !== p.j) assert.match(p.leitura.chamada, new RegExp(p.b), `${p.a}+${p.b}`);
+    assert.ok(!p.leitura.chamada.includes('%'));
+  }
+  const porRelacao = new Map(RELACOES.map((id) => [id, new Set(porId(id).map((x) => x.leitura.chamada))]));
+  for (const idA of RELACOES) {
+    for (const idB of RELACOES) {
+      if (idA >= idB) continue;
+      for (const ch of porRelacao.get(idA)) {
+        assert.ok(!porRelacao.get(idB).has(ch), `chamada repetida entre ${idA} e ${idB}`);
+      }
+    }
+  }
+});
+
+test('OS 144 PARES CONTINUAM DISTINTOS — e não só por trocar o nome do signo', () => {
+  // Com nome: 144 de 144, sem exceção.
+  const comNome = new Set(PARES.map((p) => blocoUm(p.leitura)));
+  assert.equal(comNome.size, 144, `só ${comNome.size} blocos distintos em 144 pares`);
+
+  // SEM nome: é aqui que o molde com o miolo trocado aparece. Se o bloco 1
+  // fosse sete textos com os signos interpolados, este número cairia para 7.
+  // Ele fica em 139 porque os cinco pares que dividem o MESMO planeta de casa
+  // (Áries/Escorpião, Touro/Libra, Gêmeos/Virgem, Sagitário/Peixes,
+  // Capricórnio/Aquário) descrevem os dois lados com uma frase só — e aí A+B e
+  // B+A ficam simétricos depois de apagar os nomes. É a colisão certa, e são
+  // exatamente cinco.
+  const semNome = new Set(PARES.map((p) => semNomes(blocoUm(p.leitura))));
+  assert.ok(semNome.size >= 130, `só ${semNome.size} formas distintas depois de apagar os nomes`);
+
+  // E dentro de CADA relação: os pares de uma mesma figura não podem ler igual.
+  // É o teste que teria pegado o defeito histórico — Áries+Leão, Áries+Sagitário
+  // e Leão+Sagitário recebiam a MESMA frase por serem os três trígonos de fogo.
+  for (const id of RELACOES) {
+    const grupo = porId(id);
+    const formas = new Set(grupo.map((p) => semNomes(blocoUm(p.leitura))));
+    assert.ok(formas.size >= grupo.length / 2, `${id}: ${grupo.length} pares e só ${formas.size} formas`);
+  }
+
+  const trigonosDeFogo = [
+    compatibility('Áries', 'Leão'),
+    compatibility('Áries', 'Sagitário'),
+    compatibility('Leão', 'Sagitário'),
+  ];
+  for (const l of trigonosDeFogo) assert.equal(l.id, 'trigono');
+  assert.equal(
+    new Set(trigonosDeFogo.map((l) => semNomes(blocoUm(l)))).size,
+    3,
+    'os três trígonos de fogo voltaram a ler igual'
+  );
+
+  // As duas oposições que o dono citou: mesma figura, textos que não se parecem.
+  const arieslibra = compatibility('Áries', 'Libra');
+  const touroescorpiao = compatibility('Touro', 'Escorpião');
+  assert.equal(arieslibra.id, 'oposicao');
+  assert.equal(touroescorpiao.id, 'oposicao');
+  assert.notEqual(semNomes(blocoUm(arieslibra)), semNomes(blocoUm(touroescorpiao)));
+});
+
+test('o bloco 1 não decreta, não promete e não fala de saúde', () => {
+  for (const p of PARES) {
+    const t = blocoUm(p.leitura);
+    for (const [re, motivo] of FATALISMO) {
+      assert.ok(!re.test(t), `bloco 1 de ${p.a}+${p.b} — ${motivo}: ${t.match(re)}`);
+    }
+    for (const [re, motivo] of SAUDE) {
+      assert.ok(!re.test(t), `bloco 1 de ${p.a}+${p.b} — ${motivo}: ${t.match(re)}`);
+    }
+  }
+});
+
+test('o bloco 1 é adulto e direto sem ser explícito — o app tem classificação livre', () => {
+  for (const p of PARES) {
+    const t = blocoUm(p.leitura);
+    for (const re of EXPLICITO) {
+      assert.ok(!re.test(t), `bloco 1 de ${p.a}+${p.b} passou do ponto: ${t.match(re)}`);
+    }
+  }
+  // Contrapartida: se a varredura não morde, ela não protege ninguém.
+  assert.ok(EXPLICITO.some((re) => re.test('vão transar na primeira noite')));
+  assert.ok(!EXPLICITO.some((re) => re.test('o desejo entre os dois esquenta rápido e esfria na rotina')));
+});
+
+test('o bloco 1 NÃO usa jargão — ele é o texto que abre, e quem abre não explica capítulo', () => {
+  // A regra 6 mandava glosar o termo técnico na primeira aparição. A regra 7 vai
+  // além: no bloco 1 o termo técnico simplesmente não entra, porque ele tem um
+  // lugar próprio logo abaixo. Nome de aspecto, nome de autor e locus ficam no
+  // bloco 2 — inteiros, e é por isso que dá pra tirá-los daqui.
+  const JARGAO = [
+    /tr[íi]gono|sextil|quadratura|oposi[çc][ãa]o|avers[ãa]o|co-presen[çc]a|conjun[çc][ãa]o/i,
+    /Ptolomeu|Tetrabiblos|Robbins|Arist[óo]teles|Lilly|Man[íi]lio|Naylor|Goodman|Alan Leo/i,
+    /\b[IVX]+\.\d+\b/,
+    /harm[ôo]nic|desarm[ôo]nic|disjunt|alheios/i,
+    /modalidade|cardeal|mut[áa]vel|bicorp[óo]re|solsticial|equinocial/i,
+    /regente|reg[êe]ncia|kathuperter|supera[çc][ãa]o|verbatim|par[áa]frase/i,
+    /\d+\s*graus|°|\bgrau \d/i,
+  ];
+  for (const p of PARES) {
+    const t = blocoUm(p.leitura);
+    for (const re of JARGAO) {
+      assert.ok(!re.test(t), `bloco 1 de ${p.a}+${p.b} vazou jargão: ${t.match(re)}`);
+    }
+  }
+});
+
+test('TODA leitura dura carrega, JÁ NO BLOCO 1, a nuance de IV.5 que impede a sentença', () => {
+  // No bloco 2 isso já era exigido (verbatim do modificador + "recomeços e
+  // lembranças"). Mas o bloco 2 nasce recolhido: quem lê só o bloco quente
+  // levaria embora uma condenação que a fonte não dá. Então a nuance aparece
+  // nos dois lugares, em duas línguas.
+  const duros = PARES.filter((p) => p.leitura.categoriaId === 'desarmonico');
+  assert.equal(duros.length, 36);
+  for (const p of duros) {
+    assert.match(p.leitura.vidaReal.longoPrazo, /atrito não é sentença/i, `${p.a}+${p.b}`);
+    assert.match(p.leitura.vidaReal.longoPrazo, /não termina/i, `${p.a}+${p.b}`);
+  }
+  // E o bloco 1 da aversão diz que descreve o começo, não o fim — mesma
+  // disciplina do bloco 2, que já era testada.
+  for (const p of PARES.filter((x) => x.leitura.familia === 'aversao')) {
+    assert.match(p.leitura.vidaReal.longoPrazo, /descreve o começo de vocês, não o fim/i, `${p.a}+${p.b}`);
+  }
+  // E nenhuma das quatro categorias fica sem fecho.
+  assert.equal(new Set(PARES.map((p) => p.leitura.categoriaId)).size, 4);
+});
+
+test('QUEM PUXA é dito em todo par, e na oposição e no mesmo signo ninguém puxa', () => {
+  // A superação (kathuperterisis) responde "quem puxa a relação" — pergunta que
+  // nota nenhuma responde, e que nenhum app do mercado usa. Onde ela NÃO se
+  // aplica, o texto diz que não se aplica em vez de inventar um líder.
+  const NOME = '(Áries|Touro|Gêmeos|Câncer|Leão|Virgem|Libra|Escorpião|Sagitário|Capricórnio|Aquário|Peixes)';
+  for (const p of PARES) {
+    const q = p.leitura.vidaReal.quimica;
+    if (p.leitura.distancia === 0 || p.leitura.distancia === 6) {
+      assert.match(q, /ningu[ée]m puxa|nenhum dos dois cede/i, `${p.a}+${p.b} inventou um líder onde não há`);
+    } else {
+      assert.match(q, new RegExp(`quem costuma dar o primeiro passo é ${NOME}`), `${p.a}+${p.b}`);
+    }
+  }
+  // E o líder é o MESMO nos dois sentidos de leitura: é propriedade do par, não
+  // da ordem em que a tela recebeu os signos.
+  const lider = (t) => (t.match(/primeiro passo é (\S+)/) || [])[1] || 'nenhum';
+  for (const p of PARES) {
+    if (p.i === p.j) continue;
+    const inversa = compatibility(p.b, p.a);
+    assert.equal(
+      lider(inversa.vidaReal.quimica),
+      lider(p.leitura.vidaReal.quimica),
+      `${p.a}+${p.b}: o líder muda quando se inverte a ordem`
+    );
+  }
+  // Confere a doutrina numa carta conhecida: o décimo signo a partir de Câncer
+  // é Áries, e é Áries que predomina (Pórfiro, via docs/tradicao/02 §2.4).
+  assert.match(compatibility('Câncer', 'Áries').vidaReal.quimica, /primeiro passo é Áries/);
+  assert.match(compatibility('Áries', 'Câncer').vidaReal.quimica, /primeiro passo é Áries/);
+  // E na quadratura do outro lado: o décimo a partir de Áries é Capricórnio.
+  assert.match(compatibility('Áries', 'Capricórnio').vidaReal.quimica, /primeiro passo é Capricórnio/);
+});
+
+test('as regências são as casas de Tetrabiblos I.17, e não movem a conta', () => {
+  assert.deepEqual(Object.keys(S.REGENTES).sort(), SIGNS.map((s) => s.name).sort());
+  assert.equal(S.REGENTES['Áries'], 'Marte');
+  assert.equal(S.REGENTES['Escorpião'], 'Marte');
+  assert.equal(S.REGENTES['Touro'], 'Vênus');
+  assert.equal(S.REGENTES['Libra'], 'Vênus');
+  assert.equal(S.REGENTES['Câncer'], 'Lua');
+  assert.equal(S.REGENTES['Leão'], 'Sol');
+  assert.equal(S.REGENTES['Capricórnio'], 'Saturno');
+  assert.equal(S.REGENTES['Aquário'], 'Saturno');
+  // Sete planetas e só sete: nada de Urano, Netuno ou Plutão numa doutrina do
+  // séc. II. É o mesmo cuidado de lib/zodiacBody.js.
+  const planetas = new Set(Object.values(S.REGENTES));
+  assert.deepEqual([...planetas].sort(), ['Júpiter', 'Lua', 'Marte', 'Mercúrio', 'Saturno', 'Sol', 'Vênus'].sort());
+  // E a regência NÃO move a conta: pares com regentes completamente diferentes
+  // têm o mesmo grau quando têm a mesma figura. NAO_ACHADO.regentesInimigos
+  // registra por quê — não existe fonte antiga que autorize o contrário.
+  for (const id of RELACOES) {
+    assert.equal(new Set(porId(id).map((p) => p.leitura.grau)).size, 1, `${id} tem grau variável`);
+  }
+  assert.match(
+    S.NAO_ACHADO.find((n) => n.id === 'regentesInimigos').texto,
+    /não move o grau, a categoria nem a figura/,
+    'a lacuna dos regentes não registra que a regência entrou só como vocabulário'
+  );
+});
+
+// ===========================================================================
+// 13. O BLOCO 2 NÃO PERDEU NADA — a reordenação não pode virar amputação
+// ===========================================================================
+
+// Inventário congelado do que cada relação citava ANTES do bloco 1 existir
+// (medido em 31/07/2026, rodando os 144 pares). Se uma fonte sumir na próxima
+// refatoração, é aqui que o build para.
+const FONTES_ESPERADAS = {
+  copresenca: {
+    verbatins: ['quatroAspectos', 'disjuntos', 'escala'],
+    fontes: ['Tetrabiblos I.13', 'Tetrabiblos I.16', 'William Lilly, Christian Astrology, Londres, 1647', 'Da Geração e Corrupção II.3', 'Tetrabiblos I.11'],
+  },
+  aversao30: {
+    verbatins: ['disjuntos', 'separacao', 'escala'],
+    fontes: ['Tetrabiblos I.16', 'Tetrabiblos IV.5', 'Da Geração e Corrupção II.3', 'Tetrabiblos I.11'],
+  },
+  aversao150: {
+    verbatins: ['disjuntos', 'separacao', 'escala'],
+    fontes: ['Tetrabiblos I.16', 'Tetrabiblos IV.5', 'Da Geração e Corrupção II.3', 'Tetrabiblos I.11'],
+  },
+  sextil: {
+    verbatins: ['harmonicos', 'duradouro', 'escala'],
+    fontes: ['Tetrabiblos I.13', 'Tetrabiblos I.12', 'Tetrabiblos IV.7', 'William Lilly, Christian Astrology, Londres, 1647', 'Tetrabiblos IV.5', 'Da Geração e Corrupção II.3'],
+  },
+  trigono: {
+    verbatins: ['harmonicos', 'duradouro', 'escala'],
+    fontes: ['Tetrabiblos I.13', 'Tetrabiblos IV.7', 'William Lilly, Christian Astrology, Londres, 1647', 'Tetrabiblos IV.5', 'Da Geração e Corrupção II.3'],
+  },
+  quadratura: {
+    verbatins: ['harmonicos', 'modificador', 'escala'],
+    fontes: ['Tetrabiblos I.13', 'Tetrabiblos IV.5', 'Da Geração e Corrupção II.3', 'Tetrabiblos I.11'],
+  },
+  oposicao: {
+    verbatins: ['harmonicos', 'modificador', 'escala'],
+    fontes: ['Tetrabiblos I.13', 'Tetrabiblos I.12', 'Tetrabiblos I.17', 'Tetrabiblos IV.5', 'Da Geração e Corrupção II.3', 'Julius Firmicus Maternus, Mathesis'],
+  },
+};
+
+test('O BLOCO 2 NÃO PERDEU NENHUMA FONTE que existia antes da reordenação', () => {
+  const chaveDoVerbatim = (v) => Object.keys(S.VERBATIM).find((k) => S.VERBATIM[k].texto === v.texto);
+  for (const [id, esperado] of Object.entries(FONTES_ESPERADAS)) {
+    const pares = porId(id);
+    assert.ok(pares.length > 0, `${id} não produz nenhum par`);
+    for (const p of pares) {
+      const chaves = p.leitura.verbatins.map(chaveDoVerbatim);
+      assert.deepEqual(chaves, esperado.verbatins, `${p.a}+${p.b}: os verbatins de ${id} mudaram`);
+      const bibliografia = p.leitura.fontes.join(' || ');
+      for (const marca of esperado.fontes) {
+        assert.ok(bibliografia.includes(marca), `${p.a}+${p.b} (${id}) perdeu a fonte "${marca}"`);
+      }
+      assert.equal(p.leitura.fontes.length, esperado.fontes.length, `${p.a}+${p.b} (${id}): a bibliografia mudou de tamanho`);
+    }
+  }
+});
+
+test('todo campo do bloco 2 continua saindo do motor, nos 144 pares', () => {
+  // A lista é exaustiva de propósito: é o contrato entre o motor e a tela, e a
+  // reordenação de 31/07/2026 é exatamente o tipo de mudança em que um campo
+  // deixa de ser lido e ninguém percebe por semanas.
+  const CAMPOS = [
+    'aspecto', 'natureza', 'categoria', 'categoriaId', 'resumo', 'texto', 'forte', 'cuidado',
+    'grau', 'grauNome', 'distancia', 'graus', 'elementoA', 'elementoB', 'modalidadeA', 'modalidadeB',
+    'notaEscala', 'notaGrau', 'ressalvaSignoSolar', 'notaCaracterologia',
+  ];
+  for (const p of PARES) {
+    for (const campo of CAMPOS) {
+      const v = p.leitura[campo];
+      assert.ok(v !== undefined && v !== null && v !== '', `${p.a}+${p.b} perdeu o campo ${campo}`);
+    }
+    assert.ok(Array.isArray(p.leitura.verbatins) && p.leitura.verbatins.length >= 3, `${p.a}+${p.b}`);
+    assert.ok(Array.isArray(p.leitura.qualidadesA) && p.leitura.qualidadesA.length === 2, `${p.a}+${p.b}`);
+  }
+});
+
+test('a DECLARAÇÃO de caracterologia acompanha toda leitura e nomeia o século e o autor', () => {
+  // A tese (docs/tradicao/00-tese.md, prop. 3) põe "ariano é impulsivo" na mesma
+  // tabela do tarô egípcio: coisa do séc. XX vendida como antiga. Escrever o
+  // bloco 1 sem esta declaração seria o app cometendo o erro que ele cataloga.
+  for (const p of PARES) {
+    assert.equal(p.leitura.notaCaracterologia, S.NOTA_CARACTEROLOGIA, `${p.a}+${p.b}`);
+  }
+  const n = S.NOTA_CARACTEROLOGIA;
+  assert.match(n, /caracterologia contempor[âa]nea/i);
+  assert.match(n, /Alan Leo/);
+  assert.match(n, /s[ée]culo XX/i);
+  assert.match(n, /não está em Ptolomeu/i);
+  // E ela tem que dizer o que VEM da fonte, senão vira autodepreciação vazia.
+  assert.match(n, /I\.13/);
+  assert.match(n, /I\.11/);
+  assert.match(n, /I\.17/);
+  assert.match(n, /Da Geração e Corrupção II\.3/);
+  // Mais o recibo da leitura moderna de modalidade, que a seção 2 do motor
+  // proíbe no bloco 2 e o bloco 1 usa — a contradição aparente precisa estar
+  // resolvida por escrito, e está.
+  assert.match(n, /leitura deste app/i);
+  assert.ok(n.length > 900, 'a declaração encolheu a ponto de não declarar nada');
+});
+
+// ===========================================================================
+// 14. A TELA — o bloco quente abre, o bloco da fonte fica atrás de um toque
+// ===========================================================================
+
+function fonteDaTela() {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  return fs.readFileSync(path.join(__dirname, '..', 'screens', 'CompatibilityScreen.js'), 'utf8');
+}
+
+test('a tela desenha o BLOCO 1 ANTES do bloco 2 — a ordem é o pedido inteiro', () => {
+  const src = semComentarios(fonteDaTela());
+  const bloco1 = src.indexOf('DIMENSOES_VIDA_REAL.map');
+  const toggle = src.indexOf('setShowSource');
+  const bloco2 = src.indexOf('result.verbatins.map');
+  assert.ok(bloco1 > 0, 'a tela não itera as dimensões do motor');
+  assert.ok(toggle > 0, 'a tela não tem o recolhimento do bloco 2');
+  assert.ok(bloco1 < bloco2, 'o bloco da fonte voltou pra frente do bloco quente');
+  const chamada = src.indexOf('result.chamada');
+  assert.ok(chamada > 0 && chamada < bloco2, 'a chamada não abre a leitura');
+  // E o bloco 2 tem que estar de fato atrás do toggle, não só depois dele.
+  assert.match(src, /\{result && showSource && \(/, 'o bloco 2 não está condicionado ao toque');
+});
+
+test('a tela não escreve o conteúdo do bloco 1 à mão — ela itera o motor', () => {
+  // Se um dia alguém copiar as cinco dimensões para dentro do JSX, elas param
+  // de acompanhar lib/synastry.js e a próxima dimensão nasce invisível.
+  const src = semComentarios(fonteDaTela());
+  assert.match(src, /DIMENSOES_VIDA_REAL\.map\(/);
+  assert.match(src, /result\.vidaReal\[d\.id\]/);
+  assert.match(src, /t\(d\.chaveTitulo\)/);
+  for (const titulo of ['Química e cama', 'Convivência', 'O que segura a longo prazo']) {
+    assert.ok(!src.includes(titulo), `o título "${titulo}" foi escrito à mão na tela em vez de vir do dicionário`);
+  }
+});
+
+test('a tela continua renderizando TODA peça do bloco 2 — nada foi recolhido para o nada', () => {
+  const src = semComentarios(fonteDaTela());
+  const PECAS = [
+    ['result.aspecto', 'o nome do aspecto'],
+    ['result.graus', 'a geometria em graus'],
+    ['result.distancia', 'a distância em signos'],
+    ['result.categoria', 'a categoria da fonte'],
+    ['MANCHETE[result.categoriaId]', 'a manchete da categoria'],
+    ['result.texto', 'a leitura longa'],
+    ['result.forte', 'o ponto forte'],
+    ['result.cuidado', 'a atenção'],
+    ['result.verbatins.map', 'os verbatins de Robbins'],
+    ['v.parafrase', 'a paráfrase em português'],
+    ['v.texto', 'o inglês de Robbins'],
+    ['v.locus', 'o locus da citação'],
+    ["t('compat.paraphrase.label')", 'o rótulo que impede a paráfrase de virar citação'],
+    ['result.grau', 'o grau de IV.7'],
+    ['result.grauNome', 'o nome do degrau'],
+    ['result.notaGrau', 'a ressalva do grau'],
+    ['result.notaEscala', 'a ressalva da porcentagem ausente'],
+    ['result.ressalvaSignoSolar', 'a ressalva do signo solar'],
+    ['result.notaCaracterologia', 'a declaração de caracterologia'],
+  ];
+  for (const [peca, oque] of PECAS) {
+    assert.ok(src.includes(peca), `a tela deixou de mostrar ${oque} (${peca})`);
+  }
+  // O aspecto e a categoria continuam visíveis com o bloco 2 FECHADO: recolher
+  // a fonte é tirá-la da abertura, não escondê-la.
+  const linhaDoToggle = src.slice(src.indexOf('sourceToggle'), src.indexOf('result && showSource'));
+  assert.match(linhaDoToggle, /result\.aspecto/, 'com o bloco fechado, o nome do aspecto some da tela');
+  assert.match(linhaDoToggle, /result\.categoria/, 'com o bloco fechado, a categoria some da tela');
+});
+
+test('os rótulos dos dois blocos existem nos três idiomas', () => {
+  const { _DICTS_FOR_TESTS, LANGUAGES } = require('../lib/i18n.js');
+  const chaves = [
+    ...S.DIMENSOES_VIDA_REAL.map((d) => d.chaveTitulo),
+    'compat.real.kicker',
+    'compat.real.title',
+    'compat.real.footnote',
+    'compat.source.toggle',
+    'compat.source.caracterologia',
+  ];
+  for (const lang of LANGUAGES) {
+    for (const k of chaves) {
+      const v = _DICTS_FOR_TESTS[lang][k];
+      assert.ok(typeof v === 'string' && v.trim() !== '', `${k} falta em ${lang}`);
+      assert.ok(!v.includes('%'), `${lang}/${k} trouxe porcentagem de volta`);
+      for (const [re, motivo] of FATALISMO) assert.ok(!re.test(v), `${lang}/${k} — ${motivo}`);
+    }
+  }
+});
+
+test('o Diário Cósmico passa a guardar o BLOCO 1, que é o que a pessoa leu', () => {
+  // Guardar o verbatim de Robbins no diário do usuário seria arquivar a nota de
+  // rodapé e jogar fora a leitura. O título continua com o aspecto — é o que o
+  // app calcula de fato e não envelhece quando a escala mudar.
+  const src = semComentarios(fonteDaTela());
+  // O corte tem que ancorar na CHAMADA de markFeatureUsedOnce, não no import
+  // dela lá em cima — senão a fatia sai vazia e o teste passa verde sem olhar
+  // nada (achado rodando a primeira versão deste próprio teste).
+  const bloco = src.slice(src.indexOf('recordReadingCompletion({'), src.indexOf('markFeatureUsedOnce(FEATURE_KEY)'));
+  assert.ok(bloco.length > 100, 'o parser do bloco do Diário quebrou');
+  assert.match(bloco, /compat\.chamada/, 'o diário não guarda a chamada');
+  assert.match(bloco, /compat\.vidaReal\[d\.id\]/, 'o diário não guarda as cinco dimensões');
+  assert.match(bloco, /compat\.aspecto/, 'o título do diário perdeu o aspecto');
 });

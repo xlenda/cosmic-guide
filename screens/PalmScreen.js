@@ -72,7 +72,7 @@ const MODES = [
       'verdade: o Samudrika Shastra, em sânscrito, e Anaxágoras, na Grécia, já falam em ler as ' +
       'mãos. Já o sistema usado hoje — montes, tipos de mão e os nomes das linhas que ' +
       'conhecemos — é bem mais novo: foi organizado na Europa do século XIX. Não substitui exame ' +
-      'médico nem garante resultados; é um espelho simbólico para autoconhecimento.',
+      'médico.',
   },
   {
     key: 'rosto',
@@ -85,9 +85,9 @@ const MODES = [
     instructions:
       'Aponte a câmera pro seu rosto, de frente e com boa luz, ou escolha uma foto já existente na galeria.',
     disclaimer:
-      'Esta leitura une IA com a fisiognomonia — tradição milenar de interpretar traços do rosto ' +
-      'como espelho de temperamento e caráter. Não substitui exame médico nem garante resultados; ' +
-      'é um espelho simbólico para autoconhecimento.',
+      'Esta leitura une IA com a fisiognomonia, a tradição de interpretar traços do rosto como ' +
+      'espelho de temperamento e caráter. Ela é antiga — há um tratado atribuído a Aristóteles no ' +
+      'séc. IV a.C. — e voltou à moda na Europa do séc. XVIII com Lavater.',
   },
   {
     key: 'pe',
@@ -100,9 +100,8 @@ const MODES = [
     instructions:
       'Tire uma foto da sola do seu pé bem aberta, com boa luz, ou escolha uma foto já existente na galeria.',
     disclaimer:
-      'Esta leitura une IA com a podomancia — tradição de interpretar as linhas e formas da planta ' +
-      'do pé como espelho simbólico da jornada de vida. Não substitui exame médico nem garante ' +
-      'resultados; é um espelho simbólico para autoconhecimento.',
+      'Esta leitura une IA com a podomancia, a tradição de interpretar as linhas e formas da ' +
+      'planta do pé como retrato simbólico da jornada de vida. Não substitui exame médico.',
   },
   {
     key: 'pintas',
@@ -116,9 +115,8 @@ const MODES = [
       'Tire uma foto nítida da região do corpo com as pintas que você quer interpretar, com boa luz, ' +
       'ou escolha uma foto já existente na galeria.',
     disclaimer:
-      'Esta leitura une IA com a moleosofia — tradição popular de interpretar a posição das pintas ' +
-      'no corpo como símbolos de sorte, temperamento e destino. Não substitui exame dermatológico ' +
-      'nem garante resultados; é um espelho simbólico para autoconhecimento.',
+      'Esta leitura une IA com a moleosofia, tradição popular de interpretar a posição das pintas ' +
+      'no corpo como símbolos de sorte, temperamento e destino. Não substitui exame dermatológico.',
   },
 ];
 

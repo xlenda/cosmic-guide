@@ -26,7 +26,34 @@ const PASTAS = ['screens', 'components', 'lib', 'context'];
 // verificar estaticamente. Elas são registradas aqui pelo PREFIXO, e o teste
 // exige que exista pelo menos UMA chave real com aquele prefixo — assim uma
 // família inteira que suma ainda é pega.
-const PREFIXOS_DINAMICOS = [];
+//
+// A lista ficou VAZIA por engano até 31/07/2026, e o custo era duplo: o aviso de
+// chave morta acusava ~30% do dicionário como lixo (quase tudo falso positivo,
+// família viva montada em runtime), e com o número inflado ninguém conseguia ver
+// o lixo de verdade no meio. Cada prefixo abaixo tem o recibo do lugar que monta
+// a chave. Quem confere o CONTEÚDO destas famílias é o teste de família de cada
+// uma (zodiacBody.test.js, grounding.test.js e o da Loja mais abaixo).
+const PREFIXOS_DINAMICOS = [
+  'diary.month.', // DiaryScreen.js — t(`diary.month.${n}`)
+  'timeline.month.', // TimelineScreen.js — t(`timeline.month.${+m - 1}`)
+  'planos.benefit.', // PlanosScreen.js — t(`planos.benefit.${n}`)
+  'planos.plan.', // PlanosScreen.js — t(`planos.plan.${plan.id}.label`) etc.
+  'planos.cta.', // PlanosScreen.js — t(`planos.cta.${selectedPlan}`)
+  'loja.reward.', // LojaScreen.js — t(`loja.reward.${reward.id}.title`)
+  'loja.brinde.', // LojaScreen.js — t(`loja.brinde.${brinde.id}.title`)
+  'sound.assoc.', // CosmicSoundScreen.js — t(`sound.assoc.${preset.baseHz}`)
+  'descobrir.att.', // DescobrirScreen.js — t(`descobrir.att.q${n}.opt.${k}`)
+  'descobrir.lang.', // DescobrirScreen.js — t(`descobrir.lang.q${n}.opt.${k}`)
+  'horoscope.reading.', // HoroscopeScreen.js — t(`horoscope.reading.${tab}.${n}`)
+  'horoscope.sky.', // lib/dailyHoroscope.js — skyKey() monta o campo (linha 460)
+  'grounding.', // lib/grounding.js — helpers de chave (cabeçalho, linha 70)
+  'zodiacBody.', // lib/zodiacBody.js — prefixo declarado no cabeçalho (linha 35)
+  // NÃO entram aqui `jornada.` nem `calendarioCosmico.`: os dois cabeçalhos
+  // (lib/jornada.js:8, lib/calendarioCosmico.js:9) descrevem a migração para o
+  // dicionário como PLANO, e hoje não existe nenhuma chave com esses prefixos.
+  // Registrar prefixo de família que ainda não nasceu é abrir buraco antes da
+  // hora — o teste logo abaixo recusa exatamente isso.
+];
 
 function arquivosJs(pasta) {
   const dir = path.join(RAIZ, pasta);
@@ -112,6 +139,41 @@ function chavesUsadas() {
   }
   return usos;
 }
+
+// A ISENÇÃO DE LOCUS, TRAVADA — mesmo espírito de "a única isenção da varredura
+// é o próprio aviso ético, e ela é necessária" (test/rituais.test.js).
+//
+// `pareceChave` dispensa da varredura tudo que começa com numeral romano
+// maiúsculo seguido de ponto (`I.8`, `XVIII.321`, `XI.2.85`, `IV.7`) porque isso
+// é capítulo-e-verso de citação, não chave de tradução. A premissa — "nenhuma
+// chave do dicionário começa assim" — vivia só num comentário, e comentário não
+// falha o build: bastava uma chave futura entrar debaixo da isenção para deixar
+// de ser verificada em silêncio. Aqui a premissa vira asserção.
+test('nenhuma chave do dicionário se esconde atrás da isenção de locus de citação', () => {
+  const escondidas = [...chavesDefinidas()].filter((k) => /^[IVXLCDM]+\./.test(k));
+  assert.deepEqual(
+    escondidas,
+    [],
+    'Estas chaves casam com a isenção de locus (/^[IVXLCDM]+\\./) e por isso NÃO seriam ' +
+      'verificadas pela varredura estática. Renomeie-as para camelCase minúscula, ou ' +
+      'estreite a isenção em pareceChave():\n  ' +
+      escondidas.join('\n  ')
+  );
+});
+
+// Prefixo dinâmico dispensa a família da varredura estática — então ele não pode
+// virar um buraco onde uma família inteira some sem ninguém ver. Cumpre o que o
+// comentário de PREFIXOS_DINAMICOS promete desde sempre.
+test('todo prefixo dinâmico registrado ainda tem chave de verdade no dicionário', () => {
+  const definidas = [...chavesDefinidas()];
+  const vazios = PREFIXOS_DINAMICOS.filter((p) => !definidas.some((k) => k.startsWith(p)));
+  assert.deepEqual(
+    vazios,
+    [],
+    `prefixo(s) registrado(s) como dinâmicos e sem NENHUMA chave no dicionário — ` +
+      `ou a família sumiu, ou o prefixo está obsoleto: ${vazios.join(', ')}`
+  );
+});
 
 test('toda chave t() usada nas telas existe no dicionário', () => {
   const definidas = chavesDefinidas();

@@ -17,6 +17,11 @@ test("todas as chaves do PT existem em ES e EN também (nenhuma cai no fallback 
     const dict = _DICTS_FOR_TESTS[lang];
     for (const key of ptKeys) {
       assert.ok(key in dict, `chave "${key}" existe em pt mas falta em "${lang}"`);
+      // Presença não basta: translate() só cai no fallback PT quando o valor é
+      // null/undefined (operador ??). Valor '' ou '   ' passa direto e a tela
+      // renderiza em branco — sem erro, sem teste vermelho.
+      assert.equal(typeof dict[key], "string", `chave "${key}" em "${lang}" não é string`);
+      assert.notEqual(dict[key].trim(), "", `chave "${key}" existe em "${lang}" mas está vazia`);
     }
   }
 });

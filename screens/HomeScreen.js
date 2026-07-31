@@ -18,7 +18,7 @@ import DailyMissionsCard from '../components/DailyMissionsCard';
 import CosmicSoundPlayer from '../components/CosmicSoundPlayer';
 import { compatibility, aspects } from '../lib/signs';
 import { CHAVES_DE_TRADUCAO } from '../lib/synastry';
-import { getTodaysThought, getThoughtForDate } from '../lib/dailyThought';
+import { getTodaysThought } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { personalSkyToday } from '../lib/personalSky';
 import { getAnyBirthData } from '../lib/birthData';
@@ -336,14 +336,11 @@ export default function HomeScreen() {
   // personalizar o endereçamento da frase.
   const todaysThought = getTodaysThought(sign);
 
-  // Espiada de Amanhã — o MESMO motor determinístico calcula o pensamento de
-  // amanhã hoje (fase da Lua, regente, aspectos de amanhã são matemática,
-  // não segredo). Assinante espia; quem não assina vê o começo borrado + CTA
-  // — dá um motivo concreto pra assinar E pra voltar amanhã (loop de
-  // reabertura diária, padrão Co-Star, custo zero de IA).
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowsThought = getThoughtForDate(tomorrow, sign);
+  // A Espiada de Amanhã saiu da Home em 31/07/2026 (ver o comentário no lugar
+  // onde o card ficava). O cálculo saiu junto — deixar getThoughtForDate()
+  // rodando a cada render pra alimentar uma tela que não existe mais é
+  // trabalho jogado fora. O motor continua em lib/dailyThought.js, intacto,
+  // pra quando a espiada voltar com corte em ponto de curiosidade.
 
   // Frase do dia de amor (lib/lovePhrase.js) — feita pra compartilhar de
   // verdade com o par (WhatsApp etc.), não só ler dentro do app: dá um motivo
@@ -574,32 +571,16 @@ export default function HomeScreen() {
             (lib/calendarioCosmico.js), onde temporada zodiacal, retrógrado e
             lua chegando aparecem em ordem de data em vez de soltos. */}
 
-        {/* Espiada de Amanhã — assinante espia o pensamento de amanhã hoje;
-            quem não assina vê o começo + cadeado (motivo pra assinar E pra
-            voltar amanhã). isOwnerAccount espia também (revisão do dono). */}
-        <View style={styles.peekCard}>
-          <View style={styles.peekHead}>
-            <Ionicons name="eye" size={16} color={colors.purple} />
-            <Text style={styles.peekLabel}>{t('home.peek.label')}</Text>
-          </View>
-          {hasAccess || isOwnerAccount ? (
-            <Text style={styles.peekText}>{tomorrowsThought}</Text>
-          ) : (
-            <>
-              <Text style={styles.peekText} numberOfLines={2}>
-                {tomorrowsThought.slice(0, 70)}…
-              </Text>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.peekBtn}
-                onPress={() => navigation.navigate(ROUTES.PLANOS)}
-              >
-                <Ionicons name="lock-closed" size={13} color={colors.purple} />
-                <Text style={styles.peekBtnText}>{t('home.peek.cta')}</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+        {/* A "Espiada de Amanhã" saiu da Home em 31/07/2026 — decisão do dono,
+            olhando a tela em produção. E o print mostrava por quê: o trecho
+            borrado cortava em `slice(0, 70)`, no meio de uma frase técnica
+            ("A Lua está em Peixes. A luz…"), então o cadeado guardava um dado
+            morno em vez de uma curiosidade. Um teaser que corta no lugar
+            errado não vende — só ocupa a dobra e empurra pra baixo o conteúdo
+            que a pessoa veio ler.
+            O motor NÃO foi apagado: getThoughtForDate() em lib/dailyThought.js
+            calcula qualquer data e continua inteiro. Se a espiada voltar, volta
+            com corte em ponto de curiosidade, não em contagem de caracteres. */}
 
         {/* Céu de hoje pra você — trânsitos reais sobre o mapa natal (ver
             lib/personalSky.js). Sem nascimento salvo, vira convite pro Mapa

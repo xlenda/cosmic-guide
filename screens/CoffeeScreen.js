@@ -60,11 +60,16 @@ async function resizeForUpload(uri) {
 // do fim do séc. XIX, consolidado por Cicely Kent em 1922. Datar a prática é
 // mais interessante que inflá-la, e é a única versão que aguenta ser checada.
 // Ver docs/tradicao/00-tese.md, proposição 3.
+// A CAUDA DEFENSIVA SAIU em 31/07/2026, a pedido do dono: "não quero avisando
+// que não dá resultado". Ele tem razão de produto — "não garante resultados nem
+// prevê eventos específicos" é o app pedindo desculpa por existir bem no
+// momento em que a pessoa vai ler. O texto agora só DESCREVE o que a coisa é e
+// de quando ela é. Não prometer continua valendo: a diferença é que agora isso
+// se cumpre por não afirmar nada, em vez de por negar em voz alta.
 const DISCLAIMER =
   'Esta leitura une IA com a tasseografia, a arte de ler símbolos na borra do café. O costume é ' +
   'antigo: aparece nos palácios otomanos lá no século XVI. Já o dicionário de símbolos usado ' +
-  'hoje é bem mais novo — foi consolidado na Inglaterra no fim do século XIX. Não garante ' +
-  'resultados nem prevê eventos específicos; é um espelho simbólico para reflexão.';
+  'hoje é bem mais novo — foi consolidado na Inglaterra no fim do século XIX.';
 
 // Estados possíveis da tela: intro (sem foto) -> preview (foto escolhida,
 // aguardando "Analisar") -> result (leitura exibida).

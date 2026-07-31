@@ -1351,8 +1351,11 @@ Registrar isto é parte do método.
 7. **Chris Brennan, *Hellenistic Astrology* (2017).** Continua não consultado (é
    obra protegida; o uso seria como referência bibliográfica). É onde a discussão
    acadêmica moderna sobre seita e dignidades está mais bem organizada.
-8. **Dião Cássio 37.18‑19** (origem dos dias da semana pela ordem caldeia). Não
-   lido; a atribuição é corrente ⚠️.
+8. **Dião Cássio 37.18‑19** (origem dos dias da semana pela sequência derivada da
+   ordem caldeia). ~~Não lido~~ — **corrigido em 31/07/2026**: 14 §3.2 registra a
+   passagem conferida no texto de Cary (LacusCurtius), com o verbatim
+   *"comparatively recent"* e a aritmética 24 mod 7 = 3 medida ✅. Este item
+   estava desatualizado e contradizia o doc 14; saiu também de 99 §1.3.
 9. **A passagem de "Gregório de Nicéia" sobre Posêidon/Peixes e Plutão/Áries**,
    citada como precedente antigo para regências modernas. **Não verificada, e
    suspeita** — precedente conveniente demais.

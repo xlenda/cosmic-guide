@@ -57,8 +57,6 @@ Aparecem em todos os documentos **por via secundária**, sempre marcadas ⚠️:
 - **Doroteu de Sídon**, *Carmen Astrologicum* — nunca lido.
 - **Retório**, *Compendium* cap. 54, e **Antíoco**, *Thesaurus* cap. 46 — nunca
   consultados no original.
-- **Dio Cássio 37.18–19** (origem dos dias da semana pela ordem caldaica) — a
-  atribuição é corrente, o texto não foi lido. (11 §10.8)
 - **Almagesto IX.1** (disputa sobre a posição de Vênus e Mercúrio) — reportado,
   não lido. (14 §10.4)
 - **Olympiodoro** no original (a divergência estanho/electro veio da *Britannica*
@@ -73,6 +71,13 @@ Aparecem em todos os documentos **por via secundária**, sempre marcadas ⚠️:
 - **Bulas de Sisto V (1586) e Urbano VIII (1631)** — sei que existem e que
   condenam a astrologia judiciária; **não li nenhuma das duas**, e os títulos que
   a literatura dá não foram verificados em fonte documental. (10 §18)
+
+**Correção de 31/07/2026 — Dio Cássio 37.18–19 saiu desta lista.** Ele constava
+aqui como "atribuição corrente, texto não lido", e ao mesmo tempo **14 §3.2**
+registrava a passagem como conferida no texto de Cary (LacusCurtius), com o
+verbatim *"comparatively recent"* transcrito e a aritmética das horas planetárias
+medida. As duas coisas não podiam ser verdade juntas. Quem tem o verbatim tem a
+leitura: a lista estava desatualizada, e 11 §10.8 foi corrigido junto.
 
 ### 1.4 Obras protegidas — lidas apenas por resenha
 

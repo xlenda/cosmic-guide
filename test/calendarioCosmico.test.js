@@ -19,6 +19,8 @@
 // confiar em "rodou sem erro"; validar contra caso conhecido.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const {
   calendarioCosmico,
@@ -29,6 +31,7 @@ const {
   ANGULO_DO_ASPECTO,
 } = require('../lib/calendarioCosmico.js');
 const { aspects } = require('../lib/signs.js');
+const { localDayStr } = require('../lib/localDay.js');
 
 // ---------------------------------------------------------------------------
 // Utilitários do teste
@@ -319,7 +322,29 @@ test('os eventos saem ordenados por data e dentro do mês pedido', () => {
       assert.equal(d.getUTCFullYear(), ano, `${e.titulo} vazou pro ano errado`);
       assert.equal(d.getUTCMonth() + 1, mes, `${e.titulo} vazou pro mês errado`);
       assert.equal(e.dia, d.getUTCDate(), `${e.titulo}: campo dia não bate com a data`);
+      // O campo que a TELA consome é o local — e ele tem que sair de
+      // lib/localDay.js, que é a convenção única do app. Caso medido:
+      // 2026-07-13T01:28Z é 12/07 no Brasil, e `dia` (UTC) dizia 13.
+      assert.equal(e.diaLocal, d.getDate(), `${e.titulo}: diaLocal não é o dia civil do aparelho`);
+      assert.equal(e.dataLocal, localDayStr(d), `${e.titulo}: dataLocal não veio de localDayStr`);
     }
+  }
+});
+
+test('o rótulo de dia é LOCAL e o instante é UTC — os dois campos existem e não se confundem', () => {
+  // A convenção do app (lib/localDay.js) é "o dia LOCAL do aparelho, nunca
+  // UTC". A efeméride é UTC e tem que continuar sendo. Por isso os dois.
+  const r = calendarioCosmico(2026, 7);
+  assert.ok(r.eventos.length > 0);
+  for (const e of r.eventos) {
+    const d = new Date(e.dataISO);
+    assert.equal(typeof e.diaLocal, 'number', `${e.titulo}: sem diaLocal`);
+    assert.match(e.dataLocal, /^\d{4}-\d{2}-\d{2}$/, `${e.titulo}: dataLocal fora do formato`);
+    assert.equal(e.dataLocal.slice(8), String(e.diaLocal).padStart(2, '0'));
+    // Diferença máxima de um dia entre o rótulo UTC e o local — mais que isso
+    // seria erro de conversão, não fuso.
+    assert.ok(Math.abs(e.dia - e.diaLocal) <= 1 || Math.abs(e.dia - e.diaLocal) >= 27, `${e.titulo}: dia e diaLocal divergem demais`);
+    assert.equal(d.getTime(), e.data.getTime(), `${e.titulo}: dataISO não é o mesmo instante de data`);
   }
 });
 
@@ -329,7 +354,21 @@ test('mês ou ano inválido não inventa nada — devolve vazio e diz por quê',
     assert.equal(r.ceuDisponivel, false, `${ano}-${mes} deveria ser recusado`);
     assert.deepEqual(r.eventos, []);
     assert.ok(r.motivoIndisponivel && r.motivoIndisponivel.length > 20);
+    assert.ok(r.mensagem && r.mensagem.length > 20, `${ano}-${mes}: sem mensagem de tela`);
   }
+});
+
+test('o mês repetido sai do cache e é o MESMO resultado — sem recalcular a efeméride', () => {
+  // calendarioCosmico() é caro (138 ms na primeira chamada de um mês nesta
+  // máquina; o grosso é a varredura de aspecto exato). O resultado é
+  // determinístico, então navegar mês a mês e voltar não pode recalcular tudo.
+  const a = calendarioCosmico(2027, 3);
+  const b = calendarioCosmico(2027, 3);
+  assert.equal(a, b, 'o mesmo mês devolveu objetos diferentes — o cache não pegou');
+  assert.deepEqual(
+    a.eventos.map((e) => e.dataISO),
+    b.eventos.map((e) => e.dataISO)
+  );
 });
 
 test('o atalho do mês atual devolve o mês atual e o mesmo formato', () => {
@@ -357,15 +396,26 @@ test('sem efeméride o calendário devolve lista vazia e o sinalizador — nunca
     assert.deepEqual(r.eventos, [], 'sem efeméride não existe evento nenhum — nem aproximado');
     assert.equal(r.ano, 2024);
     assert.equal(r.mes, 1);
+    // `motivoIndisponivel` é o campo TÉCNICO, de log: é ele que carrega
+    // "efeméride" e o nome do pacote.
     assert.match(
       r.motivoIndisponivel,
       /efeméride/i,
-      'a tela precisa poder dizer POR QUE o calendário está vazio'
+      'o log precisa poder dizer POR QUE o calendário está vazio'
     );
     assert.doesNotMatch(
       r.motivoIndisponivel,
       /aproximad|estimad|provavelmente|por volta de/i,
       'o motivo não pode oferecer estimativa como consolo'
+    );
+    // `mensagem` é o campo de TELA. Se o usuário lê o nome de um pacote npm, o
+    // app está vazando bancada de desenvolvedor pra dentro do produto.
+    assert.ok(r.mensagem && r.mensagem.length > 20, 'sem mensagem de tela');
+    assert.doesNotMatch(r.mensagem, /efem[ée]ride|astronomy-engine|npm|null|undefined/i);
+    assert.doesNotMatch(
+      r.mensagem,
+      /aproximad|estimad|provavelmente|por volta de/i,
+      'a mensagem não pode oferecer estimativa como consolo'
     );
   } finally {
     if (original) Object.defineProperty(lunar, 'getMoonPhase', original);
@@ -434,6 +484,13 @@ test('nenhum texto promete resultado', () => {
     /abre caminhos/i,
     /manifesta(r|ção) (o|a|seu|sua)/i,
     /atrai (dinheiro|amor|prosperidade)/i,
+    // As três telas (rituais, jornada, calendário) declaram a MESMA linha
+    // vermelha e aplicavam três listas diferentes. "Destrava" estava proibido no
+    // cabeçalho de lib/rituais.js e em test/rituais.test.js, e não aqui — por
+    // essa fresta passou "demora, revisita, contradiz, destrava" num campo que
+    // a tela mostra ao lado de uma DATA. Vira "no dia 23 as coisas destravam".
+    /destrava/i,
+    /desbloqueia/i,
   ];
   for (const evento of CORPUS) {
     for (const texto of textosDe(evento)) {
@@ -557,6 +614,66 @@ test('todo parágrafo abre em língua de gente e só depois mostra o recibo', ()
       `${evento.titulo}: o recibo não nomeia obra nem autor`
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// A BASE, ABERTA DE VERDADE — o mecanismo de test/jornada.test.js, portado
+// ---------------------------------------------------------------------------
+// Este arquivo não lia docs/tradicao/ em ponto nenhum: MARCAS_DE_CITACAO só
+// conferia que EXISTE uma string com cara de citação. Um capítulo inventado, um
+// autor trocado ou um ano errado passavam verdes. Agora cada evento declara
+// `lastro: { doc, provas }` e o teste abre o arquivo e procura cada prova.
+const BASE = path.join(__dirname, '..', 'docs', 'tradicao');
+const _docs = {};
+function lerDoc(arquivo) {
+  if (!_docs[arquivo]) _docs[arquivo] = fs.readFileSync(path.join(BASE, arquivo), 'utf8');
+  return _docs[arquivo];
+}
+
+test('todo evento declara lastro, e TODA prova aparece literalmente no documento da base', () => {
+  const faltando = [];
+  for (const evento of CORPUS) {
+    assert.ok(evento.lastro && evento.lastro.doc, `${evento.titulo}: sem lastro na base`);
+    assert.ok(
+      Array.isArray(evento.lastro.provas) && evento.lastro.provas.length >= 2,
+      `${evento.titulo}: menos de 2 provas — sem prova literal o \`doc\` é só um caminho bonito`
+    );
+    const alvo = path.join(BASE, evento.lastro.doc);
+    assert.ok(fs.existsSync(alvo), `${evento.titulo}: lastro aponta pra ${evento.lastro.doc}, que não existe`);
+    const texto = lerDoc(evento.lastro.doc);
+    for (const prova of evento.lastro.provas) {
+      if (!texto.includes(prova)) {
+        faltando.push(`${evento.titulo} → ${evento.lastro.doc} não contém ${JSON.stringify(prova)}`);
+      }
+    }
+  }
+  assert.deepEqual(faltando, [], `lastro sem prova na base:\n${faltando.join('\n')}`);
+});
+
+test('nenhuma data solta — todo século e todo ano da prosa pertencem a um lastro declarado', () => {
+  // A varredura no sentido contrário, que só test/jornada.test.js fazia. As
+  // provas garantem que o que está na TABELA existe na base; esta garante que o
+  // que está no TEXTO existe na tabela.
+  const palheiro = CORPUS.flatMap((e) => [
+    e.fonte,
+    e.tradicao ? `${e.tradicao.obra} ${e.tradicao.autor} ${e.tradicao.seculo}` : '',
+    ...((e.lastro && e.lastro.provas) || []),
+  ]).join(' || ');
+
+  const soltas = [];
+  for (const evento of CORPUS) {
+    for (const texto of textosDe(evento)) {
+      const achados = new Set();
+      for (const m of texto.matchAll(/\b(1[0-9]{3}|20[0-9]{2})\b/g)) achados.add(m[1]);
+      for (const m of texto.matchAll(/s[ée]c\.\s*[IVXL]+/gi)) achados.add(m[0]);
+      for (const achado of achados) {
+        if (!palheiro.includes(achado)) {
+          soltas.push(`${evento.tipo} / "${evento.titulo}": "${achado}" não pertence a lastro nenhum`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(soltas, [], `data sem dono no texto:\n${soltas.join('\n')}`);
 });
 
 test('todo evento traz o campo fonte com obra, autor e século', () => {

@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { compatibility } from '../lib/signs.js';
+import { DIMENSOES_VIDA_REAL } from '../lib/synastry.js';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
@@ -17,6 +18,44 @@ import { ROUTES } from '../routes';
 
 const FEATURE_KEY = 'compatibility';
 const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
+
+// ===========================================================================
+// A TELA TEM DOIS BLOCOS, E O QUENTE ABRE — feedback do dono, 31/07/2026
+// ===========================================================================
+// "na parte de compatibilidade de casal tá muito científico ainda, cada as
+// coisas que o povão gosta de ler, fala de sexo entre eles, de conversa, de
+// harmonia, de brigas, se vai ser quente na cama, no início tem que ser algo
+// que prenda atenção. Depois a parte científica." E: "quero criar retenção
+// calorosa".
+//
+// O que havia: a leitura abria com UMA frase humana e emendava direto na fonte
+// (nome do aspecto, geometria, capítulo, verbatim). Melhorou, mas era curto e
+// continuava abstrato — a tela inteira lia como nota de rodapé.
+//
+// O que existe agora, e é uma reordenação, não uma troca:
+//
+//   BLOCO 1 "Como é na vida real" — abre a tela, é a maior parte do texto, e
+//     tem cinco dimensões (química e cama, conversa, briga, convivência, o que
+//     segura a longo prazo) compostas com os fatos daquele par. Vem inteiro do
+//     motor (lib/synastry.js, seção 9): a tela não escreve conteúdo, ela itera
+//     DIMENSOES_VIDA_REAL. Sem isso, o dia em que o motor ganhar uma sexta
+//     dimensão a tela mostraria cinco e ninguém veria.
+//
+//   BLOCO 2 "De onde vem isso" — RECOLHIDO atrás de um toque, e com tudo o que
+//     a tela já mostrava, sem perder um item: o círculo com o nome do aspecto e
+//     a geometria, o chip da categoria, a manchete, o texto longo, ponto forte,
+//     atenção, os verbatins de Robbins com a paráfrase e o locus, o grau de
+//     IV.7 com a NOTA_GRAU colada, e as duas ressalvas. Mais uma peça nova e
+//     obrigatória: NOTA_CARACTEROLOGIA, que declara o bloco 1 como
+//     caracterologia do séc. XX. A tese (docs/tradicao/00-tese.md, prop. 3)
+//     proíbe vender perfil de signo solar como doutrina antiga — o app escreve
+//     o texto quente E diz de quem ele é, na mesma tela.
+//
+// O aspecto e a categoria continuam visíveis com o bloco 2 fechado, na própria
+// linha do botão: recolher a fonte é tirá-la da abertura, não escondê-la.
+// test/synastry.test.js varre esta tela e falha o build se qualquer peça do
+// bloco 2 sumir, se o bloco 2 subir para antes do bloco 1, ou se alguma string
+// daqui decretar desfecho.
 
 // A MANCHETE DE CADA CATEGORIA — o que substituiu a roda de porcentagem.
 //
@@ -53,6 +92,11 @@ export default function CompatibilityScreen() {
   const [picking, setPicking] = useState(null); // 'A' | 'B' | null
   const [result, setResult] = useState(null);
   const [locked, setLocked] = useState(false);
+  // O bloco 2 nasce FECHADO em toda leitura nova: é o que "depois a parte
+  // científica" quer dizer na prática. Quem quiser conferir a fonte está a um
+  // toque, e o toque fica visível o tempo todo — a linha do botão mostra o nome
+  // do aspecto e a categoria mesmo com o bloco recolhido.
+  const [showSource, setShowSource] = useState(false);
   // Motor de Oferta (pico emocional): compatibilidade alta é O momento de
   // empolgação — uma única oferta contextual, UMA vez na vida (AsyncStorage),
   // nunca insistindo. Tom honesto: sem contador falso, sem urgência inventada.
@@ -74,6 +118,7 @@ export default function CompatibilityScreen() {
     const compat = compatibility(signA.name, signB.name);
     if (!compat) { setResult(null); return; }
     setResult(compat);
+    setShowSource(false);
     // Oferta de pico emocional: reancorada no que o cálculo novo produz.
     // Era `pct >= 80`, que com a tabela antiga pegava 6 dos 10 baldes de
     // elemento; agora dispara nos aspectos que a FONTE chama de harmônicos
@@ -94,7 +139,12 @@ export default function CompatibilityScreen() {
       type: 'compatibility',
       typeLabel: 'Compatibilidade',
       title: `${signA.pt} + ${signB.pt} — ${compat.aspecto} (${compat.categoria})`,
-      body: compat.texto,
+      // O que vai pro Diário é o BLOCO 1, não o texto da fonte: é o que a
+      // pessoa leu, é o que ela quer reler, e é o que faz sentido reencontrar
+      // meses depois. A fonte continua a um toque na tela; guardar o verbatim
+      // de Robbins no diário do usuário seria arquivar a nota de rodapé e
+      // jogar fora a leitura.
+      body: [compat.chamada, ...DIMENSOES_VIDA_REAL.map((d) => `${t(d.chaveTitulo)}\n${compat.vidaReal[d.id]}`)].join('\n\n'),
     });
     markFeatureUsedOnce(FEATURE_KEY);
     // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
@@ -110,6 +160,7 @@ export default function CompatibilityScreen() {
     else setSignB(z);
     setPicking(null);
     setResult(null);
+    setShowSource(false);
   };
 
   // `!result` importa aqui: marcamos `locked=true` no instante em que a
@@ -127,7 +178,7 @@ export default function CompatibilityScreen() {
           porcentagem: prometia na manchete o que o rodapé desmente — a regra 2
           de lib/synastry.js vale pro header também, e test/synastry.test.js
           varre esta string junto com as MANCHETE. */}
-      <GradientHeader title="Compatibilidade" subtitle="Compare dois signos — e veja o que a tradição diz" onBack={() => navigation.goBack()} gradient={['#B5286B', '#7B3FB5']} />
+      <GradientHeader title="Compatibilidade" subtitle="Como é na vida real — e de onde isso vem" onBack={() => navigation.goBack()} gradient={['#B5286B', '#7B3FB5']} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={styles.pairRow}>
           <SignSlot sign={signA} onPress={() => setPicking(picking === 'A' ? null : 'A')} active={picking === 'A'} />
@@ -179,6 +230,58 @@ export default function CompatibilityScreen() {
         )}
 
         {result && (
+          <>
+            {/* ============================================================
+                BLOCO 1 — "COMO É NA VIDA REAL". Abre a tela e é a maior parte
+                do texto. Nada aqui é escrito na tela: as cinco dimensões vêm
+                de lib/synastry.js e a tela itera DIMENSOES_VIDA_REAL, então
+                dimensão nova aparece sozinha e dimensão vazia quebra o teste.
+                ============================================================ */}
+            <View style={styles.realCard}>
+              <Text style={styles.realKicker}>{t('compat.real.kicker')}</Text>
+              <Text style={styles.realTitle}>{t('compat.real.title')}</Text>
+              <Text style={styles.realHook}>{result.chamada}</Text>
+              {DIMENSOES_VIDA_REAL.map((d) => (
+                <View key={d.id} style={styles.dimBlock}>
+                  <View style={styles.dimHead}>
+                    <View style={styles.dimIcon}>
+                      <Ionicons name={d.icone} size={15} color={colors.pink} />
+                    </View>
+                    <Text style={styles.dimTitle}>{t(d.chaveTitulo)}</Text>
+                  </View>
+                  <Text style={styles.dimText}>{result.vidaReal[d.id]}</Text>
+                </View>
+              ))}
+              {/* O ponteiro pro bloco 2 fica DENTRO do bloco quente, na última
+                  linha: quem chegou até aqui é exatamente quem pode querer a
+                  fonte. Sutil, uma linha, sem competir com o conteúdo. */}
+              <Text style={styles.realFootnote}>{t('compat.real.footnote')}</Text>
+            </View>
+
+            {/* ============================================================
+                BLOCO 2 — "DE ONDE VEM ISSO". Recolhido, e com o nome do
+                aspecto e a categoria visíveis na própria linha do botão:
+                recolher a fonte é tirá-la da abertura, não escondê-la.
+                ============================================================ */}
+            <TouchableOpacity
+              style={styles.sourceToggle}
+              activeOpacity={0.85}
+              onPress={() => { Haptics.selectionAsync(); setShowSource((v) => !v); }}
+            >
+              <Ionicons name="library-outline" size={16} color={colors.accent} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sourceToggleTitle}>{t('compat.source.toggle')}</Text>
+                <Text style={styles.sourceToggleMeta}>
+                  {result.aspecto} · {result.categoria}
+                  {result.distancia === 0 ? '' : ` · ${result.graus}°`}
+                </Text>
+              </View>
+              <Ionicons name={showSource ? 'chevron-up' : 'chevron-down'} size={18} color={colors.accent} />
+            </TouchableOpacity>
+          </>
+        )}
+
+        {result && showSource && (
           <>
             <View style={styles.resultCard}>
               <LinearGradient colors={gradients.card} style={styles.resultInner}>
@@ -273,22 +376,38 @@ export default function CompatibilityScreen() {
               <Text style={styles.noteText}>{result.ressalvaSignoSolar}</Text>
             </View>
 
-            {highCompatOffer && (
-              <View style={styles.offerCard}>
-                <Text style={styles.offerTitle}>✨ {result.aspecto} entre vocês!</Text>
-                <Text style={styles.offerText}>
-                  Um aspecto que a tradição chama de harmônico merece ser explorado por inteiro — leituras sem limite, Tarô todo dia e o céu de vocês dois. 7 dias grátis pra testar.
-                </Text>
-                <TouchableOpacity
-                  style={styles.offerBtn}
-                  activeOpacity={0.85}
-                  onPress={() => navigation.navigate(ROUTES.PLANOS)}
-                >
-                  <Text style={styles.offerBtnText}>Começar meus 7 dias grátis →</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            {/* A TERCEIRA COISA QUE O RESULTADO NÃO É, e ela nasceu com o bloco
+                1: o texto quente lá de cima é caracterologia do séc. XX, não
+                Ptolomeu. A tese (docs/tradicao/00-tese.md, prop. 3) põe
+                "ariano é impulsivo" na mesma tabela do tarô egípcio e da
+                Superlua — coisa moderna vendida como antiga. O app escreve o
+                texto E o data, na mesma tela, e é isso que o separa de uma
+                revista. Card próprio e não mais uma linha do card acima: é a
+                declaração que autoriza a metade quente da tela a existir. */}
+            <View style={styles.noteCard}>
+              <Text style={styles.noteTitle}>{t('compat.source.caracterologia')}</Text>
+              <Text style={styles.noteText}>{result.notaCaracterologia}</Text>
+            </View>
           </>
+        )}
+
+        {/* A OFERTA fica FORA do bloco recolhido: ela dispara no pico emocional
+            da leitura quente, e não faria sentido depender de a pessoa abrir a
+            bibliografia pra vê-la. */}
+        {result && highCompatOffer && (
+          <View style={styles.offerCard}>
+            <Text style={styles.offerTitle}>✨ {result.aspecto} entre vocês!</Text>
+            <Text style={styles.offerText}>
+              Um aspecto que a tradição chama de harmônico merece ser explorado por inteiro — leituras sem limite, Tarô todo dia e o céu de vocês dois. 7 dias grátis pra testar.
+            </Text>
+            <TouchableOpacity
+              style={styles.offerBtn}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate(ROUTES.PLANOS)}
+            >
+              <Text style={styles.offerBtnText}>Começar meus 7 dias grátis →</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -330,7 +449,32 @@ const styles = StyleSheet.create({
   btnWrap: { borderRadius: 12, overflow: 'hidden' },
   btn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, gap: 8 },
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  resultCard: { marginTop: 20, borderRadius: 18, overflow: 'hidden' },
+  // ---------------------------------------------------------------------
+  // BLOCO 1 — o que abre a tela. Hierarquia tipográfica invertida em relação
+  // ao que havia: o texto quente é o corpo de leitura (15/23, cor cheia) e a
+  // fonte, antes protagonista, passou para o padrão dos cards secundários.
+  // ---------------------------------------------------------------------
+  realCard: {
+    marginTop: 20, padding: 18, borderRadius: 18,
+    backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.pink + '55',
+  },
+  realKicker: { color: colors.pink, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+  realTitle: { color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 4 },
+  realHook: { color: colors.text, fontSize: 16, lineHeight: 24, fontWeight: '600', marginTop: 10 },
+  dimBlock: { marginTop: 18 },
+  dimHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dimIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: colors.pink + '22', justifyContent: 'center', alignItems: 'center' },
+  dimTitle: { color: colors.text, fontSize: 14, fontWeight: '800', letterSpacing: 0.2 },
+  dimText: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, marginTop: 7 },
+  realFootnote: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 18, fontStyle: 'italic' },
+  sourceToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12,
+    backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  sourceToggleTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  sourceToggleMeta: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  resultCard: { marginTop: 12, borderRadius: 18, overflow: 'hidden' },
   resultInner: { padding: 20, borderWidth: 1, borderColor: colors.border, borderRadius: 18, alignItems: 'center' },
   circleWrap: { marginBottom: 16 },
   circle: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },

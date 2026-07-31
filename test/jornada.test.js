@@ -206,16 +206,36 @@ test('as quatro trilhas pedidas existem, com o nome combinado', () => {
 // 2. TOM — povão primeiro, recibo depois
 // ===========================================================================
 
+// A lista de autores era escrita à mão e estava incompleta — faltavam Gébelin,
+// Champollion, Nolle, Sexto Empírico, Robert Hand, Robbins, Mellet, Alan Leo,
+// Lilly. Uma leitura nova podia abrir com qualquer um deles sem quebrar o build.
+// Agora ela é DERIVADA de DATACOES: nasce completa e se mantém sozinha.
+const AUTORES_DATADOS = [
+  ...new Set(
+    Object.values(DATACOES)
+      // O primeiro segmento antes da vírgula é o nome ("Catão, o Velho" →
+      // "Catão"; "Ptolomeu, contra a prática..." → "Ptolomeu"). Descarta o que
+      // começa em minúscula, que é descrição e não nome ("tradutor anônimo").
+      .map((d) => String(d.autor).split(',')[0].trim())
+      .filter((n) => n.length > 3 && /^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ]/.test(n))
+  ),
+];
+
+function escaparRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+const ABERTURA_ACADEMICA = [
+  /^s[ée]c(ulo|\.)/i,
+  /^\d{3,4}/,
+  /^(segundo|conforme|de acordo com)\b/i,
+  new RegExp(`^(${AUTORES_DATADOS.map(escaparRegex).join('|')})(?!\\p{L})`, 'u'),
+];
+
 test('toda leitura FECHA com o recibo, e nenhuma ABRE com data ou nome de autor', () => {
   // Esta é a régua literal do dono ("mesclar para o povão entender e deixar
   // científico também") virada em teste. A ordem é o produto: recibo no fim é
   // prêmio, recibo no começo é pedágio.
-  const ABERTURA_ACADEMICA = [
-    /^s[ée]c(ulo|\.)/i,
-    /^\d{3,4}/,
-    /^(segundo|conforme|de acordo com)\b/i,
-    /^(Ptolomeu|Pl[íi]nio|Columela|Pal[áa]dio|Cat[ãa]o|Hes[íi]odo|Virg[íi]lio|Waite|Etteilla|F[íi]rmico|Paulo de Alexandria|Rudhyar|Valente)\b/,
-  ];
   for (const t of TRILHAS) {
     for (const d of t.dias) {
       const onde = `${t.id} dia ${d.dia}`;
@@ -234,6 +254,34 @@ test('toda leitura FECHA com o recibo, e nenhuma ABRE com data ou nome de autor'
       }
     }
   }
+});
+
+test('título, subtítulo e medalha também abrem em conversa — a régua não vale só para a leitura', () => {
+  // A varredura rodava SÓ em `leitura`. Por isso passaram o subtítulo do tarô
+  // ("...com a idade real: 1781 e 1911") e o nome de medalha: a primeira coisa
+  // que a pessoa lê no card era exatamente o recibo na largada.
+  const erros = [];
+  const conferir = (onde, texto) => {
+    for (const re of ABERTURA_ACADEMICA) {
+      if (re.test(String(texto).trim())) erros.push(`${onde}: abre em registro acadêmico — "${texto}"`);
+    }
+  };
+  for (const t of TRILHAS) {
+    conferir(`${t.id}.nome`, t.nome);
+    conferir(`${t.id}.subtitulo`, t.subtitulo);
+    // Nome e subtítulo de trilha são vitrine: nada de ano de quatro dígitos nem
+    // de "séc." antes de a pessoa entrar.
+    for (const campo of ['nome', 'subtitulo']) {
+      assert.doesNotMatch(t[campo], /\b\d{4}\b/, `${t.id}.${campo}: ano de quatro dígitos na vitrine`);
+      assert.doesNotMatch(t[campo], /s[ée]c\./i, `${t.id}.${campo}: século na vitrine`);
+    }
+    for (const d of t.dias) conferir(`${t.id}.dia${d.dia}.titulo`, d.titulo);
+  }
+  for (const m of [...MEDALHAS, ...MEDALHAS_JORNADA]) {
+    conferir(`medalha.${m.id}.nome`, m.nome);
+    conferir(`medalha.${m.id}.legenda`, m.legenda);
+  }
+  assert.deepEqual(erros, [], erros.join('\n  '));
 });
 
 test('o recibo de cada dia nomeia obra, autor e século da fonte principal', () => {
@@ -310,6 +358,39 @@ const PROMESSAS_DE_RESULTADO = [
   /no s[ée]timo dia voc[êe](?!\p{L})/iu,
 ];
 
+// A TERCEIRA lista, e ela nasceu de um furo real: as duas de cima só olham para
+// o que o app promete a QUEM LÊ, e por isso deixavam passar a afirmação sobre os
+// OUTROS. "O primeiro dia é o que menos gente faz" e "Poucos chegam aqui" eram
+// escassez fabricada usada como motivação — o app não mede conclusão de trilha
+// nenhuma, a feature está nascendo agora. Prova social sem número medido é
+// número inventado, e inventar número é o oposto do que esta feature vende.
+//
+// Só volta a caber frase de raridade aqui quando existir medição de verdade no
+// app — e aí ela vem com o número, não com o advérbio.
+const PROVA_SOCIAL = [
+  /menos gente/i,
+  /poucos? (chegam|conseguem|fazem)/i,
+  /muita gente/i,
+  /a maioria (das|dos) (pessoas|usuári)/i,
+  /milhares/i,
+];
+
+test('nenhum texto da Jornada afirma estatística sobre outros usuários', () => {
+  const violacoes = [];
+  const alvos = [...textosDeConteudo()];
+  for (const [chave, texto] of alvos) {
+    for (const re of PROVA_SOCIAL) {
+      const m = texto.match(re);
+      if (m) violacoes.push(`${chave}: "${m[0]}"`);
+    }
+  }
+  assert.deepEqual(
+    violacoes,
+    [],
+    `prova social inventada (o app não mede isso):\n${violacoes.join('\n')}`
+  );
+});
+
 test('nenhum texto da Jornada faz alegação de saúde, nem por implicação', () => {
   const violacoes = [];
   for (const [chave, texto] of textosDeConteudo()) {
@@ -375,6 +456,20 @@ test('as varreduras MORDEM — cada regra pega a frase proibida que ela existe p
     );
   }
 
+  const DEVE_PEGAR_PROVA_SOCIAL = [
+    'o primeiro dia é o que menos gente faz',
+    'poucos chegam aqui',
+    'muita gente desiste na metade',
+    'a maioria das pessoas não termina',
+    'milhares de pessoas já fizeram',
+  ];
+  for (const frase of DEVE_PEGAR_PROVA_SOCIAL) {
+    assert.ok(
+      PROVA_SOCIAL.some((re) => re.test(frase)),
+      `a varredura de prova social deixou passar: "${frase}"`
+    );
+  }
+
   // E o contrário: o vocabulário LEGÍTIMO da feature não pode disparar, senão
   // a varredura vira ruído e alguém a desliga.
   const NAO_PODE_PEGAR = [
@@ -385,7 +480,7 @@ test('as varreduras MORDEM — cada regra pega a frase proibida que ela existe p
     'a Lua vai crescer nos próximos dias',
   ];
   for (const frase of NAO_PODE_PEGAR) {
-    const pego = [...PROMESSAS_DE_SAUDE, ...PROMESSAS_DE_RESULTADO].find((re) => re.test(frase));
+    const pego = [...PROMESSAS_DE_SAUDE, ...PROMESSAS_DE_RESULTADO, ...PROVA_SOCIAL].find((re) => re.test(frase));
     assert.equal(pego, undefined, `falso positivo em "${frase}" pela regra ${pego}`);
   }
 });
@@ -417,12 +512,104 @@ test('a pergunta de diário é sobre a vida de quem lê — nunca uma afirmaçã
 
 test('as medalhas premiam o que a pessoa FEZ, não o que ela virou', () => {
   const VIROU = [/iluminad/i, /curad/i, /transformad/i, /desperta/i, /elevad/i, /purificad/i];
+  // A lista de particípios acima é necessária e insuficiente: ela procura seis
+  // palavras, e a promessa de resultado não precisa de nenhuma delas para ser
+  // feita. "Já não foi curiosidade", "Você já pede a fonte antes de acreditar" e
+  // "Obra, autor e século já são reflexo seu" passavam por baixo dela inteiras —
+  // são afirmações sobre o ESTADO ou o HÁBITO de quem lê, que é exatamente o que
+  // o cabeçalho de lib/jornada.js proíbe. A segunda lista fecha por FORMA, não
+  // por vocabulário: a legenda descreve o feito, nunca a pessoa.
+  const AFIRMA_SOBRE_QUEM_LE = [
+    /\bvoc[êe] (já|agora|passou a)\b/iu,
+    /\bjá não\b/i,
+    /\bé (seu|sua)\b/i,
+    /reflexo seu/i,
+    // `\b` depois de "é" nunca casa (o \b do JS é ASCII e "é" não conta como
+    // caractere de palavra) — por isso a fronteira aqui é `(?!\p{L})` com flag
+    // `u`, mesma armadilha documentada em PROMESSAS_DE_RESULTADO.
+    /\bj[áa] (é|s[ãa]o|pede|virou)(?!\p{L})/iu,
+    /passou a ser/i,
+    /agora voc[êe] (é|sabe|pede)(?!\p{L})/iu,
+  ];
   for (const m of [...MEDALHAS, ...MEDALHAS_JORNADA]) {
     for (const re of VIROU) {
       assert.doesNotMatch(m.nome, re, `medalha ${m.id}: o NOME promete uma transformação`);
       assert.doesNotMatch(m.legenda, re, `medalha ${m.id}: a LEGENDA promete uma transformação`);
     }
+    for (const re of AFIRMA_SOBRE_QUEM_LE) {
+      assert.doesNotMatch(m.nome, re, `medalha ${m.id}: o NOME afirma estado/hábito de quem lê`);
+      assert.doesNotMatch(
+        m.legenda,
+        re,
+        `medalha ${m.id}: a LEGENDA afirma estado/hábito de quem lê — descreva o FEITO`
+      );
+    }
   }
+});
+
+test('nenhuma leitura manda a pessoa agendar a vida pela Lua sem declarar a transposição', () => {
+  // lib/calendarioCosmico.js:27-30 escreve a regra com todas as letras: "A
+  // lavoura romana plantava X" é permitido; "Plante X" é proibido. A fonte
+  // agrícola fala de semente, madeira e animal — levar isso para a agenda de
+  // quem lê é leitura NOSSA, do século XXI, e tem que aparecer dita assim, do
+  // jeito que lib/rituais.js:373-378 já faz.
+  const IMPERATIVO_DE_AGENDA = [
+    /\bfaça na\b/i,
+    /\bfaça com a lua\b/i,
+    /\bplante\b/i,
+    /\bcomece na\b/i,
+  ];
+  const DECLARA_TRANSPOSICAO = /leitura nossa|transpor|transposi[çc][ãa]o/i;
+  for (const t of TRILHAS) {
+    for (const d of t.dias) {
+      const pego = IMPERATIVO_DE_AGENDA.find((re) => re.test(d.leitura));
+      if (!pego) continue;
+      assert.match(
+        d.leitura,
+        DECLARA_TRANSPOSICAO,
+        `${t.id} dia ${d.dia}: a leitura manda agendar pela Lua (${pego}) sem dizer que a ` +
+          `transposição da lavoura para a vida é nossa`
+      );
+    }
+  }
+});
+
+test('a marca de transposição é a frase LITERAL, e ela aparece onde a regra antiga vira regra de vida', () => {
+  // O cabeçalho de lib/jornada.js promete o mecanismo SEM_FONTE_ANTIGA desde o
+  // primeiro dia e NENHUMA entrada o usava — enquanto lib/rituais.js marca a
+  // mesma transposição nos 21 rituais. Dizer "leitura nossa" com palavras
+  // diferentes em cada lugar é o começo da frase amenizada; a constante existe
+  // pra que a marca seja sempre a mesma e sempre reconhecível.
+  assert.equal(
+    jornada.SEM_FONTE_ANTIGA,
+    'prática popular contemporânea, sem fonte antiga localizada',
+    'a frase de transposição é literal e compartilhada com rituais.js e calendarioCosmico.js'
+  );
+
+  // Onde a leitura enuncia a regra da lavoura E a pergunta ou a ação mandam
+  // aplicá-la à vida de quem lê, a frase literal é obrigatória. É a camada 3 da
+  // tese sendo fabricada sob recibo do séc. IV-V, e é o caso do dia 2.
+  const APLICA_A_VIDA = /na sua vida|à sua vida|na sua agenda|(aumentar|reduzir|crescer|diminuir)/i;
+  const REGRA_DA_LAVOURA = /crescer.*minguante|minguante.*crescer|crescente luna/i;
+  const faltando = [];
+  for (const t of TRILHAS) {
+    for (const d of t.dias) {
+      if (!REGRA_DA_LAVOURA.test(d.leitura)) continue;
+      if (!APLICA_A_VIDA.test(`${d.pergunta} ${d.acao.texto}`)) continue;
+      if (!d.leitura.includes(jornada.SEM_FONTE_ANTIGA)) {
+        faltando.push(
+          `${t.id} dia ${d.dia}: aplica a regra da lavoura à vida de quem lê sem a frase literal`
+        );
+      }
+    }
+  }
+  assert.deepEqual(faltando, [], faltando.join('\n  '));
+
+  // E a trava morde: o dia 2 de "7 dias de Lua" é o caso que a fez nascer.
+  assert.ok(
+    diaDaTrilha('luaSeteDias', 2).leitura.includes(jornada.SEM_FONTE_ANTIGA),
+    'o dia 2 voltou a transpor a regra da lavoura para a vida sem marca de transposição'
+  );
 });
 
 // ===========================================================================
@@ -515,6 +702,63 @@ test('a datação do tarô é 1781 e 1911 — a honesta, não a egípcia', () =>
   // O mito pode ser NOMEADO (é o que a trilha desmonta), mas nunca afirmado.
   assert.doesNotMatch(tudo, /vem do Egito antigo/i, 'o mito egípcio voltou como afirmação');
   assert.doesNotMatch(tudo, /Livro de Thoth\b(?!")/i, 'o Livro de Thoth aparece sem aspas de menção');
+});
+
+test('a Cruz Celta entrega o grau de certeza da base: o batismo é fato, a causa é hipótese', () => {
+  // docs/tradicao/05 §3.2 marca a origem do nome como [D]: "é plausível e
+  // circula amplamente, mas eu não encontrei fonte primária que a comprove;
+  // trate como [D], não como fato". O dia afirmava a causa como estabelecida.
+  const dia = diaDaTrilha('taroVinteDois', 7);
+  assert.match(dia.leitura, /1911/, 'sumiu a data do batismo, que é o que a base sustenta como [FP]');
+  assert.match(dia.leitura, /1890/, 'sumiu a atestação anterior à Golden Dawn, que é o que nega o "celta"');
+  assert.match(
+    dia.leitura,
+    /circula a tese|hipótese|não está comprovada|ninguém achou fonte primária/i,
+    'a causa do nome "celta" voltou a ser afirmada como fato — a base a marca como [D]'
+  );
+});
+
+test('a aversão traz a aplicação de IV.7, e não a leitura que a base já retratou', () => {
+  // docs/tradicao/00-tese.md, correção de 31/07/2026: "A primeira versão deste
+  // documento tratava a aversão como indiferença... Isso está certo para I.16...
+  // Mas o Livro IV, capítulo 7 faz a aplicação relacional". O dia citava IV.7 e
+  // entregava exatamente a interpretação retratada.
+  const dia = diaDaTrilha('ceuDosAntigos', 5);
+  assert.match(dia.leitura, /IV\.7|Livro IV/, 'sumiu o capítulo da aplicação relacional');
+  assert.match(
+    dia.leitura,
+    /deepest enmities/,
+    'sumiu o verbatim que põe a aversão no mesmo degrau da oposição'
+  );
+  assert.match(dia.leitura, /oposição/i, 'a aversão voltou a ser contada sem o degrau em que ela cai');
+  assert.doesNotMatch(
+    dia.pergunta,
+    /sem culpa de ninguém/i,
+    'a pergunta ainda pressupõe indiferença sem atrito, que é a leitura retratada'
+  );
+});
+
+test('a cadeia dos nomes de lua tem os elos da base, e a alegação indígena não é negada em bloco', () => {
+  // docs/tradicao/04 §4.1 dá CINCO elos, e o almanaque dos anos 1930 é o
+  // terceiro. §4.2 avisa: "Não chame de 'nome indígena' sem qualificar" — e
+  // negar em bloco ("não de tradição indígena milenar") erra para o outro lado.
+  const tudo = [
+    diaDaTrilha('luaSeteDias', 4).leitura,
+    diaDaTrilha('ceuDosAntigos', 4).leitura,
+  ].join('\n');
+  assert.match(tudo, /1918/, 'sumiu a primeira lista impressa (Beard, 1918)');
+  assert.match(tudo, /1930/, 'sumiu o Maine Farmers\' Almanac dos anos 1930');
+  assert.match(tudo, /Old Farmer's Almanac/, 'sumiu a simplificação para um nome por mês');
+  assert.match(
+    diaDaTrilha('ceuDosAntigos', 4).leitura,
+    /parcialmente verdadeira/,
+    'sumiu a avaliação corrente da base sobre a origem indígena'
+  );
+  assert.doesNotMatch(
+    tudo,
+    /não de tradição indígena/i,
+    'a alegação indígena voltou a ser negada em bloco, além do que a base sustenta'
+  );
 });
 
 test('fontesDoDia devolve o recibo montado, pronto pra tela', () => {
@@ -719,6 +963,31 @@ test('estado corrompido não derruba nem inventa progresso', async () => {
   });
   assert.deepEqual(bagunca.diasConcluidos, [1, 2, 3]);
   assert.equal(bagunca.ultimaConclusao, null, 'data inválida sobreviveu ao saneamento');
+
+  // DATA IMPOSSÍVEL COM FORMATO VÁLIDO. O saneamento antigo era um regex de
+  // formato (`/^\d{4}-\d{2}-\d{2}$/`), então '2026-13-45' sobrevivia — e como
+  // esse valor nunca é igual ao localDayStr de hoje, a trava de "um passo por
+  // dia local" abria sozinha e a trilha de 7 dias virava uma sentada só. Que é
+  // exatamente o formato que este módulo existe pra proteger.
+  for (const impossivel of ['2026-13-45', '2026-02-31', '2026-00-10', '9999-99-99', '2026-1-05']) {
+    const p = normalizarProgresso('luaSeteDias', {
+      diasConcluidos: [1],
+      ultimaConclusao: impossivel,
+    });
+    assert.equal(
+      p.ultimaConclusao,
+      null,
+      `a data impossível "${impossivel}" sobreviveu e destravaria o um-passo-por-dia`
+    );
+  }
+  // E a data real continua passando — a trava não pode virar bloqueio geral.
+  const boa = normalizarProgresso('luaSeteDias', {
+    diasConcluidos: [1],
+    ultimaConclusao: '2026-02-28',
+  });
+  assert.equal(boa.ultimaConclusao, '2026-02-28');
+  assert.equal(jornada.dataLocalValida('2026-02-29'), false, '2026 não é bissexto');
+  assert.equal(jornada.dataLocalValida('2024-02-29'), true, '2024 é bissexto');
 });
 
 test('sem nenhum dia concluído não sobra data de última conclusão', () => {
@@ -746,7 +1015,14 @@ test('cada medalha tem nome, legenda e marco — e os marcos sobem sem repetir',
   assert.equal(new Set(MEDALHAS.map((m) => m.id)).size, MEDALHAS.length, 'id de medalha repetido');
   for (const m of [...MEDALHAS, ...MEDALHAS_JORNADA]) {
     assert.ok(m.nome && m.nome.length >= 4, `medalha ${m.id} sem nome`);
-    assert.ok(m.legenda && m.legenda.length >= 20, `medalha ${m.id} sem legenda`);
+    // O piso era 20 e virou incentivo a encher linguiça: a legenda honesta de
+    // "três dias" é "Três dias seguidos." e tem 19 caracteres, então o teste
+    // empurrava quem escrevia a completar com uma frase — e a frase que aparece
+    // pra completar é sempre uma afirmação sobre quem lê ("O hábito pegou.",
+    // "Já não foi curiosidade."), que é justamente o proibido do teste logo
+    // acima. O piso continua existindo pra barrar legenda vazia ou de uma
+    // palavra; ele não pode continuar cobrando volume.
+    assert.ok(m.legenda && m.legenda.length >= 15, `medalha ${m.id} sem legenda`);
     // Nome que dá vontade de printar não é "Nível 3".
     assert.doesNotMatch(m.nome, /^(n[íi]vel|level|badge|medalha)\s*\d*$/i, `medalha ${m.id}: nome genérico`);
   }
