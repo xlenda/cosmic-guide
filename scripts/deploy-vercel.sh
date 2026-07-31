@@ -73,7 +73,8 @@ cat > deploy-vercel/vercel.json << 'EOF'
 {
   "redirects": [
     { "source": "/cosmicguide", "destination": "/cosmic-guide/", "permanent": true },
-    { "source": "/cosmicguide/:path*", "destination": "/cosmic-guide/:path*", "permanent": true }
+    { "source": "/cosmicguide/", "destination": "/cosmic-guide/", "permanent": true },
+    { "source": "/cosmicguide/:path+", "destination": "/cosmic-guide/:path+", "permanent": true }
   ],
   "rewrites": [
     { "source": "/:path*", "destination": "/cosmic-guide/index.html" }
