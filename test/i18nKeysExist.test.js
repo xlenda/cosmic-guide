@@ -72,6 +72,15 @@ function pareceChave(s) {
   if (!/^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+$/.test(s)) return false;
   if (/\.(js|json|png|jpg|svg|ttf|com|br|cloud|bet|org|net|io)$/i.test(s)) return false;
   if (/^\d+(\.\d+)+$/.test(s)) return false;
+  // LOCUS DE CITAÇÃO, não chave: `I.8` (Tetrabiblos), `XVIII.321` (Naturalis
+  // Historia), `XI.2.85` (De Re Rustica), `IV.7`. O primeiro segmento é um
+  // numeral romano em MAIÚSCULAS, e nenhuma chave do dicionário começa assim —
+  // todas são camelCase minúsculas (conferido: zero chaves em lib/i18n.js
+  // batem com /^[IVXLCDM]+\./). Regra genérica em vez de lista em IGNORAR
+  // porque capítulo-e-verso é agora um dado estrutural do app: a tese
+  // (docs/tradicao/00-tese.md) exige obra + autor + século em toda afirmação
+  // histórica, então todo módulo de conteúdo novo guarda loci e cairia aqui.
+  if (/^[IVXLCDM]+\./.test(s)) return false;
   return true;
 }
 

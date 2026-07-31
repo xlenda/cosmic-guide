@@ -61,10 +61,10 @@ async function resizeForUpload(uri) {
 // mais interessante que inflá-la, e é a única versão que aguenta ser checada.
 // Ver docs/tradicao/00-tese.md, proposição 3.
 const DISCLAIMER =
-  'Esta leitura une IA com a tasseografia, a arte de ler símbolos na borra do café. A prática ' +
-  'aparece nos palácios otomanos no século XVI, e o dicionário de símbolos que se usa hoje foi ' +
-  'consolidado na Inglaterra do fim do século XIX. Não garante resultados nem prevê eventos ' +
-  'específicos; é um espelho simbólico para reflexão.';
+  'Esta leitura une IA com a tasseografia, a arte de ler símbolos na borra do café. O costume é ' +
+  'antigo: aparece nos palácios otomanos lá no século XVI. Já o dicionário de símbolos usado ' +
+  'hoje é bem mais novo — foi consolidado na Inglaterra no fim do século XIX. Não garante ' +
+  'resultados nem prevê eventos específicos; é um espelho simbólico para reflexão.';
 
 // Estados possíveis da tela: intro (sem foto) -> preview (foto escolhida,
 // aguardando "Analisar") -> result (leitura exibida).

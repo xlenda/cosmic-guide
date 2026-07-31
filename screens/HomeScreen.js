@@ -22,7 +22,6 @@ import { getTodaysThought, getThoughtForDate } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { personalSkyToday } from '../lib/personalSky';
 import { getAnyBirthData } from '../lib/birthData';
-import { activeCelestialEvents } from '../lib/celestialSeasons';
 import { computeMonthlyWrapped, getWrappedMonth, isWrappedAvailable } from '../lib/monthlyWrapped';
 import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration, recordActiveDay } from '../lib/streak';
 import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
@@ -337,11 +336,6 @@ export default function HomeScreen() {
   // personalizar o endereçamento da frase.
   const todaysThought = getTodaysThought(sign);
 
-  // Temporadas do Céu (lib/celestialSeasons.js) — eventos celestes REAIS
-  // ativos (retrógrado, lua cheia/nova chegando, temporada zodiacal).
-  // Memoizado por dia: trigonometria só roda de novo quando o dia muda.
-  const celestialEvents = useMemo(() => activeCelestialEvents().slice(0, 2), [todayISO]);
-
   // Espiada de Amanhã — o MESMO motor determinístico calcula o pensamento de
   // amanhã hoje (fase da Lua, regente, aspectos de amanhã são matemática,
   // não segredo). Assinante espia; quem não assina vê o começo borrado + CTA
@@ -570,22 +564,15 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Temporadas do Céu — o que está acontecendo AGORA no céu real
-            (retrógrado, lua chegando, temporada do signo). Mostra os 2 mais
-            quentes; datas vêm do cálculo astronômico, nunca de contador falso. */}
-        {celestialEvents.length > 0 && (
-          <View style={styles.seasonCard}>
-            {celestialEvents.map((ev, i) => (
-              <View key={ev.title} style={[styles.seasonRow, i > 0 && styles.seasonRowBorder]}>
-                <Text style={styles.seasonEmoji}>{ev.emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.seasonTitle}>{ev.title}</Text>
-                  <Text style={styles.seasonDetail}>{ev.detail}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+        {/* As "Temporadas do Céu" saíram da Home em 31/07/2026 — decisão do
+            dono, olhando a tela em produção: "fica perdido no meio". Ele está
+            certo, e o motivo é de hierarquia: era um card de LEITURA (conteúdo
+            calculado) espremido entre dois cards de OFERTA (a Espiada de
+            Amanhã com cadeado e o convite do Céu de Hoje), então o olho pulava.
+            O MOTOR não foi apagado: lib/celestialSeasons.js continua inteiro e
+            testado, e o mesmo conteúdo tem casa melhor no Calendário Cósmico
+            (lib/calendarioCosmico.js), onde temporada zodiacal, retrógrado e
+            lua chegando aparecem em ordem de data em vez de soltos. */}
 
         {/* Espiada de Amanhã — assinante espia o pensamento de amanhã hoje;
             quem não assina vê o começo + cadeado (motivo pra assinar E pra
@@ -866,15 +853,8 @@ const styles = StyleSheet.create({
   wrappedBarEmoji: { fontSize: 24 },
   wrappedBarTitle: { color: '#2A1D00', fontSize: 14, fontWeight: '800' },
   wrappedBarSubtitle: { color: 'rgba(42,29,0,0.75)', fontSize: 12, marginTop: 1 },
-  seasonCard: {
-    marginHorizontal: 16, marginBottom: 14, paddingHorizontal: 16, paddingVertical: 6,
-    backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
-  },
-  seasonRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
-  seasonRowBorder: { borderTopWidth: 1, borderTopColor: colors.border },
-  seasonEmoji: { fontSize: 22, marginTop: 1 },
-  seasonTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  seasonDetail: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  // (os estilos season* saíram junto com o card das Temporadas do Céu —
+  //  estilo órfão é como o arquivo chegou a 15 formatos de card diferentes)
   horoCard: { marginHorizontal: 16, marginTop: 0, borderRadius: 18, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
   horoInner: { padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   horoHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },

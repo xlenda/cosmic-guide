@@ -68,10 +68,10 @@ const MODES = [
     // (1883), Benham (1900). E o tratado "de Aristóteles" que os manuais citam
     // não está nas obras dele. Ver docs/tradicao/00-tese.md, proposição 3.
     disclaimer:
-      'Esta leitura une IA com a quiromancia. Ler as mãos é prática antiga, mas o sistema usado ' +
-      'hoje — montes, tipos de mão e as linhas com os nomes que conhecemos — foi organizado na ' +
-      'Europa do século XIX. Não substitui exame médico nem garante resultados; é um espelho ' +
-      'simbólico para autoconhecimento.',
+      'Esta leitura une IA com a quiromancia, a leitura das linhas da mão. A prática é antiga de ' +
+      'verdade. Já o sistema usado hoje — montes, tipos de mão e os nomes das linhas que ' +
+      'conhecemos — é bem mais novo: foi organizado na Europa do século XIX. Não substitui exame ' +
+      'médico nem garante resultados; é um espelho simbólico para autoconhecimento.',
   },
   {
     key: 'rosto',

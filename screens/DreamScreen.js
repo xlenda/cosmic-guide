@@ -26,8 +26,10 @@ import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 
 const DISCLAIMER =
-  'Esta interpretação une IA com a tradição milenar da simbologia dos sonhos, de Artemidoro a ' +
-  'Jung. Não é diagnóstico psicológico nem previsão; é um espelho simbólico para reflexão.';
+  'Esta interpretação une IA com a simbologia dos sonhos — a tradição milenar de ler o que os ' +
+  'sonhos dizem sobre quem sonha. E não é moda nova: o grego Artemidoro já escrevia sobre isso ' +
+  'na Antiguidade. Séculos depois, o psiquiatra Jung levou os sonhos a sério de novo. Não é ' +
+  'diagnóstico psicológico nem previsão; é um espelho simbólico para reflexão.';
 
 // Estados possíveis da tela: intro (digitando o sonho) -> result (leitura exibida).
 const STEP = { INTRO: 'intro', RESULT: 'result' };
