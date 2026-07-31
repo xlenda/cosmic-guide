@@ -129,7 +129,12 @@ function formatarDataBR(iso) {
 // assinatura solo não desbloqueia (só formar casal desbloqueia, ver
 // components/FeatureGate.js e OneTimeLock.js).
 const COUPLE_BENEFIT_KEYS = [1, 2, 3, 4, 5, 6, 7].map((n) => `planos.benefit.${n}`);
-const SOLO_BENEFIT_KEYS = [1, 2].map((n) => `planos.benefit.${n}`);
+// Solo tinha DUAS linhas, e a segunda amontoava as nove leituras separadas por
+// vírgula — o olho lê isso como uma linha só, não como nove. As oito chaves
+// próprias (bloco PLANOS_SOLO_I18N em lib/i18n.js) desmontam o amontoado em
+// linhas agrupadas por desejo. A oitava não é benefício, é razão para
+// acreditar, e por isso fica por último.
+const SOLO_BENEFIT_KEYS = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `planos.benefit.solo.${n}`);
 
 function BenefitsList({ isCouple }) {
   const { t } = useLanguage();
