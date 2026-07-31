@@ -30,11 +30,16 @@ const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
 // e co-presença (12). Nenhuma das quatro frases decreta desfecho — a regra 2 do
 // cabeçalho de lib/synastry.js vale aqui na tela também, e test/synastry.test.js
 // varre estas strings junto com as do motor.
+//
+// E a manchete fala as DUAS línguas da regra 6 de lib/synastry.js (feedback do
+// dono, 31/07/2026: "muito científico tudo, preciso mesclar para o povão"):
+// primeiro o que significa em conversa de gente, depois o termo da fonte — o
+// termo não some, muda de posição.
 const MANCHETE = {
-  harmonico: 'Aspecto harmônico entre os signos de vocês',
-  desarmonico: 'Aspecto desarmônico — e a tradição não para aí',
-  semAspecto: 'A tradição não registra aspecto entre estes dois signos',
-  copresenca: 'Mesmo signo — co-presença, e não aspecto',
+  harmonico: 'Vocês se entendem fácil — a fonte chama isto de aspecto harmônico',
+  desarmonico: 'Tem atrito de verdade aqui — e a tradição não para na palavra dura',
+  semAspecto: 'Esses dois signos nem se enxergam de saída — sem aspecto na fonte',
+  copresenca: 'Dois iguais no mesmo lugar — mesmo signo, co-presença, não aspecto',
 };
 
 export default function CompatibilityScreen() {
@@ -117,7 +122,12 @@ export default function CompatibilityScreen() {
 
   return (
     <View style={styles.root}>
-      <GradientHeader title="Compatibilidade" subtitle="Encontre seu par celestial" onBack={() => navigation.goBack()} gradient={['#B5286B', '#7B3FB5']} />
+      {/* O subtítulo descreve o que a tela FAZ, sem prometer desfecho. O
+          anterior ("Encontre seu par celestial") era resquício da roda de
+          porcentagem: prometia na manchete o que o rodapé desmente — a regra 2
+          de lib/synastry.js vale pro header também, e test/synastry.test.js
+          varre esta string junto com as MANCHETE. */}
+      <GradientHeader title="Compatibilidade" subtitle="Compare dois signos — e veja o que a tradição diz" onBack={() => navigation.goBack()} gradient={['#B5286B', '#7B3FB5']} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={styles.pairRow}>
           <SignSlot sign={signA} onPress={() => setPicking(picking === 'A' ? null : 'A')} active={picking === 'A'} />
@@ -215,11 +225,25 @@ export default function CompatibilityScreen() {
             {/* A FONTE, na tela. O verbatim de Robbins fica SEM tradução (mesma
                 regra do latim de Manílio em lib/zodiacBody.js) e o locus vem
                 logo abaixo — a pessoa pode ir conferir. É o que separa este
-                resultado de um texto de revista: ele diz de onde veio. */}
+                resultado de um texto de revista: ele diz de onde veio.
+
+                NA FRENTE do inglês vem a paráfrase em português (feedback do
+                dono, 31/07/2026: o povão não é obrigado a ler Robbins pra
+                entender a própria leitura). A paráfrase é ASSINADA COMO NOSSA
+                pelo rótulo, nunca entre aspas e nunca com locus — o inglês
+                fica como recibo, não como leitura obrigatória. Quem confere,
+                confere no verbatim; quem só quer entender, entende na linha
+                de cima. */}
             <View style={styles.sourceCard}>
               <Text style={styles.sourceTitle}>O que a fonte diz</Text>
               {result.verbatins.map((v) => (
                 <View key={v.locus + v.texto.slice(0, 24)} style={styles.sourceItem}>
+                  {!!v.parafrase && (
+                    <>
+                      <Text style={styles.sourceParaphraseLabel}>{t('compat.paraphrase.label')}</Text>
+                      <Text style={styles.sourceParaphrase}>{v.parafrase}</Text>
+                    </>
+                  )}
                   <Text style={styles.sourceQuote}>“{v.texto}”</Text>
                   <Text style={styles.sourceLocus}>{v.locus}</Text>
                 </View>
@@ -325,6 +349,12 @@ const styles = StyleSheet.create({
   sourceCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: colors.border },
   sourceTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8 },
   sourceItem: { marginBottom: 10 },
+  // A paráfrase lê ANTES e MAIOR que o inglês (14 vs 13, cor de texto cheia):
+  // ela é a leitura; o verbatim é o recibo. O rótulo em cima é o que a impede
+  // de passar por citação — sem ele, isto seria tradução, que a regra 1 de
+  // lib/synastry.js proíbe.
+  sourceParaphraseLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 2 },
+  sourceParaphrase: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 6 },
   sourceQuote: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, fontStyle: 'italic' },
   sourceLocus: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
   sourceDegree: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 2 },

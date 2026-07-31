@@ -317,6 +317,11 @@ const FATALISMO = [
   [/procure outr|melhor (desistir|terminar)|termine (a|essa|o)/i, 'imperativo sobre a vida da pessoa'],
   [/vocês não combinam|incompatíveis/i, 'o rótulo que a fonte não autoriza'],
   [/impossível (dar certo|amar|ficar)/i, 'impossibilidade afirmada'],
+  // Previsão de FREQUÊNCIA de conflito é desfecho, não natureza (regra 2):
+  // "briga feia aqui é rara" afirma quantas vezes o casal briga — a fonte só
+  // sustenta "harmônico" (I.13) e, atribuído, "costumam durar" (IV.5).
+  [/briga[^.!?]*rara/i, 'previsão de frequência de conflito'],
+  [/nunca brigam/i, 'previsão de frequência de conflito'],
 ];
 
 test('NENHUMA das 144 leituras decreta o desfecho do casal', () => {
@@ -328,7 +333,7 @@ test('NENHUMA das 144 leituras decreta o desfecho do casal', () => {
   }
 });
 
-test('a tela de Compatibilidade também não decreta — as manchetes passam pelo mesmo filtro', () => {
+test('a tela de Compatibilidade também não decreta — manchetes E subtítulo passam pelo mesmo filtro', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const src = fs.readFileSync(path.join(__dirname, '..', 'screens', 'CompatibilityScreen.js'), 'utf8');
@@ -336,6 +341,19 @@ test('a tela de Compatibilidade também não decreta — as manchetes passam pel
   for (const [re, motivo] of FATALISMO) {
     assert.ok(!re.test(bloco), `manchete da tela — ${motivo}`);
   }
+  // O subtítulo do header também é texto de tela — e foi onde a promessa de
+  // resultado sobreviveu mais tempo ("Encontre seu par celestial" prometia a
+  // máquina de veredito que o resto da tela desmonta). O header descreve o que
+  // a tela FAZ; prometer O par é decretar desfecho.
+  const subtitle = (src.match(/subtitle="([^"]+)"/) || [])[1] || '';
+  assert.ok(subtitle.length > 0, 'subtitle do GradientHeader não encontrado na tela');
+  for (const [re, motivo] of FATALISMO) {
+    assert.ok(!re.test(subtitle), `subtítulo da tela — ${motivo}`);
+  }
+  assert.ok(
+    !/encontre (seu|o) par|par celestial|par ideal|par perfeito|alma gêmea|feitos um pro outro/i.test(subtitle),
+    `o subtítulo promete desfecho: "${subtitle}"`
+  );
 });
 
 test('TODA leitura de aspecto duro carrega a nuance de IV.5 que impede a sentença', () => {
@@ -724,12 +742,16 @@ test('a OPOSIÇÃO carrega o furo da justificativa de I.13 — signos opostos s�
   // repetir a frase como se fechasse.
   for (const p of porId('oposicao')) {
     const t = corpo(p.leitura);
-    assert.match(t, /MESMO gênero/, `${p.a}+${p.b} repete a justificativa sem registrar o furo`);
-    assert.match(t, /I\.12/, `${p.a}+${p.b} não cita onde está a alternância de gênero`);
+    // O corpo virou conversa (regra 6): registra o furo em português de gente
+    // ("nem fecha direito pra este caso") e manda a derivação dos gêneros pras
+    // fontes — que é onde MESMO gênero e I.12 têm que continuar, por extenso.
+    assert.match(t, /nem fecha direito/, `${p.a}+${p.b} repete a justificativa sem registrar o furo`);
+    assert.match(t, /de posição, não de temperamento|não é de elemento, é de posição/, `${p.a}+${p.b} não diz de onde vem a dureza`);
     // E não pode afirmar o contrário do que a aritmética mostra.
     assert.ok(!/gêneros opostos/i.test(t), `${p.a}+${p.b} afirma gêneros opostos, que é falso na oposição`);
     const fontes = p.leitura.fontes.join(' | ');
-    assert.match(fontes, /I\.12/, `${p.a}+${p.b} usa I.12 no texto e não a lista nas fontes`);
+    assert.match(fontes, /MESMO gênero/, `${p.a}+${p.b} tirou a aritmética do corpo e não a pôs nas fontes`);
+    assert.match(fontes, /I\.12/, `${p.a}+${p.b} não cita onde está a alternância de gênero`);
   }
   // A quadratura, essa sim, pode usar a justificativa — é onde ela fecha.
   for (const p of porId('quadratura')) {
