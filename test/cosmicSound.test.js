@@ -121,9 +121,12 @@ test("Lua Nova soa mais fechada e Lua Cheia mais aberta (fase → brilho)", () =
   assert.equal(cheia.fase, "Lua Cheia");
   assert.ok(nova.corteHz < cheia.corteHz, `nova ${nova.corteHz} deveria ser < cheia ${cheia.corteHz}`);
   assert.ok(nova.aberturaHarmonica < cheia.aberturaHarmonica);
-  // Nunca sai da faixa declarada, em nenhuma fase.
+  // Nunca sai da faixa declarada, em nenhuma fase. Faixa 480–3200 desde
+  // 31/07/2026: subiu junto com o pad de acordes, porque o corte antigo de
+  // 320 Hz na Lua Nova estrangulava a única camada que alto-falante de
+  // celular reproduz (feedback do dono: "som chato que não dá pra ouvir").
   for (const t of [nova, cheia]) {
-    assert.ok(t.corteHz >= 320 && t.corteHz <= 2400, `corte ${t.corteHz}`);
+    assert.ok(t.corteHz >= 480 && t.corteHz <= 3200, `corte ${t.corteHz}`);
     assert.ok(t.aberturaHarmonica > 0 && t.aberturaHarmonica <= 1);
   }
 });
@@ -714,8 +717,10 @@ test("start() monta o grafo completo e inicia todas as fontes", async (t) => {
   assert.equal(r.ok, true);
   assert.equal(som.isPlaying(), true);
 
-  // 3 camadas de drone + 4 LFOs; 1 fonte de ruído.
-  assert.equal(registro.osciladores.length, 7);
+  // 3 camadas de drone + 6 do pad de acordes (3 vozes × 2 osciladores
+  // desafinados) + 4 LFOs; 1 fonte de ruído. O pad entrou em 31/07/2026 —
+  // é a camada que o alto-falante de celular consegue reproduzir.
+  assert.equal(registro.osciladores.length, 13);
   assert.equal(registro.fontesBuffer.length, 1);
   assert.ok(registro.fontesBuffer[0].loop, "o ruído precisa ser contínuo");
   for (const f of todasAsFontes(registro)) {
@@ -754,14 +759,16 @@ test("stop() libera TODOS os nós e não deixa oscilador órfão", async (t) => 
   const som = createCosmicSound({ agora: () => dia("2026-07-30") });
   await som.start();
 
-  // Deixa a trama rodar: 5 minutos disparam vários pulsos (intervalo 7–23 s).
+  // Deixa a trama rodar: 5 minutos disparam vários pulsos (intervalo 4–9 s).
   adiantarRelogio(300_000);
   const durantePulsos = som.inspecionar();
-  // Intervalo de 7 a 23 s ⇒ entre 13 e 42 pulsos em 5 min. Uma faixa, não um
-  // "> 0": se o reagendamento quebrar e só o primeiro pulso disparar, o teste
-  // frouxo passaria e a trama teria virado uma nota solitária.
-  const pulsos = registro.osciladores.length - 7;
-  assert.ok(pulsos >= 13 && pulsos <= 42, `${pulsos} pulsos em 5 min (esperado 13–42)`);
+  // Intervalo de 4 a 9 s ⇒ entre 33 e 75 disparos em 5 min — e em dia de
+  // aspecto exato (30/07/2026 é um) cada disparo ganha uma SEGUNDA voz 1,4 s
+  // depois, então o teto dobra: 33 a 150 osciladores de pulso. Uma faixa, não
+  // um "> 0": se o reagendamento quebrar e só o primeiro pulso disparar, o
+  // teste frouxo passaria e a trama teria virado uma nota solitária.
+  const pulsos = registro.osciladores.length - 13;
+  assert.ok(pulsos >= 33 && pulsos <= 150, `${pulsos} pulsos em 5 min (esperado 33–150)`);
   assert.ok(durantePulsos.temporizadores > 0, "a trama tem que ter o próximo pulso agendado");
 
   await pararEsperando(som);
@@ -795,11 +802,11 @@ test("pulsos se limpam sozinhos durante a sessão (o grafo não cresce por horas
   assert.ok(inflado.nos > baseNos, "os pulsos precisam mesmo entrar no grafo");
 
   // O navegador chama onended quando a nota curta termina; aqui simulamos isso.
-  for (const o of registro.osciladores.slice(7)) {
+  for (const o of registro.osciladores.slice(13)) {
     if (typeof o.onended === "function") o.onended();
   }
   assert.equal(som.inspecionar().nos, baseNos, "os nós dos pulsos não voltaram ao número base");
-  assert.equal(som.inspecionar().fontes, 8, "3 drone + 4 LFO + 1 ruído");
+  assert.equal(som.inspecionar().fontes, 14, "3 drone + 6 pad + 4 LFO + 1 ruído");
 
   await pararEsperando(som);
 });
@@ -840,7 +847,7 @@ test("os quatro LFOs conectam mesmo — em AudioParam, que não tem connect()", 
   const som = createCosmicSound({ agora: () => dia("2026-07-30") });
   await som.start();
 
-  assert.equal(registro.osciladores.length, 7, "3 do drone + 4 LFOs");
+  assert.equal(registro.osciladores.length, 13, "3 do drone + 6 do pad + 4 LFOs");
   // Um AudioParam se distingue de um nó por ter agenda de automação e NÃO ter
   // o campo `tipo` que o mock põe em todo nó.
   const ganhosEmParam = registro.ganhos.filter((g) =>
@@ -866,9 +873,9 @@ test("dois toques no play antes de o navegador liberar o áudio não montam dois
 
   assert.equal(ra.ok, true);
   assert.equal(rb.ok, true);
-  assert.equal(registro.osciladores.length, 7, "montou o grafo duas vezes (volume e CPU dobrados)");
+  assert.equal(registro.osciladores.length, 13, "montou o grafo duas vezes (volume e CPU dobrados)");
   assert.equal(registro.fontesBuffer.length, 1, "duas camadas de ruído tocando juntas");
-  assert.equal(som.inspecionar().fontes, 8, "3 drone + 4 LFO + 1 ruído");
+  assert.equal(som.inspecionar().fontes, 14, "3 drone + 6 pad + 4 LFO + 1 ruído");
 
   await pararEsperando(som);
   assert.equal(som.inspecionar().nos, 0, "sobrou nó vivo depois do stop");
@@ -1031,12 +1038,14 @@ test("a trama de pulsos nunca cai em loop: intervalos e alturas não se repetem 
   await som.start();
   adiantarRelogio(3_600_000); // 1 hora
 
-  const pulsos = registro.osciladores.slice(7);
+  const pulsos = registro.osciladores.slice(13);
   assert.ok(pulsos.length >= 20, `só ${pulsos.length} pulsos em 1 h`);
   const alturas = pulsos.map((o) => o.frequency.value);
   assert.ok(new Set(alturas).size > 1, "todos os pulsos na mesma nota é loop disfarçado");
   for (const f of alturas) {
-    assert.ok(f >= 180 && f <= 1400, `pulso em ${f} Hz, fora da faixa confortável`);
+    // 330–1100 desde 31/07/2026: abaixo disso o celular não reproduz, acima
+    // vira apito com horas de uso.
+    assert.ok(f >= 330 && f <= 1100, `pulso em ${f} Hz, fora da faixa confortável`);
   }
 
   await pararEsperando(som);
@@ -1050,7 +1059,7 @@ test("dois dias diferentes geram tramas de pulso diferentes", async (t) => {
     const som = createCosmicSound({ agora: () => dia(iso) });
     await som.start();
     adiantarRelogio(600_000);
-    const alturas = registro.osciladores.slice(marca + 7).map((o) => Math.round(o.frequency.value));
+    const alturas = registro.osciladores.slice(marca + 13).map((o) => Math.round(o.frequency.value));
     await pararEsperando(som);
     return alturas;
   }
