@@ -346,7 +346,13 @@ export default function DiaryScreen() {
                 onPress={() => setFilter(item.key)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
+                {/* t() aqui é obrigatório: item.label é a CHAVE de tradução
+                    ('diary.filter.tarot'), não o texto. Sem o t() o chip
+                    mostrava a chave crua pro usuário — print real do dono em
+                    31/07/2026. As chaves sempre existiram nos três idiomas; o
+                    guarda de i18n não pega porque ele confere dicionário, não
+                    render — era a tela que não traduzia. */}
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{t(item.label)}</Text>
               </TouchableOpacity>
             );
           }}
