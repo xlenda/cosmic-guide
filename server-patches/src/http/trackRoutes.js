@@ -87,6 +87,7 @@ const EVENTS = [
   "login_done", //       login/cadastro concluído
   "checkout_click", //   clicou em assinar
   "checkout_open", //    o checkout da Hotmart abriu de fato na tela
+  "today_line_tap", //   tocou na "linha de hoje" da Home (kind: jornada|ritual)
 ];
 const EVENT_SET = new Set(EVENTS);
 

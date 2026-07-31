@@ -436,12 +436,13 @@ test('evento fora da allowlist é descartado no aparelho, sem contaminar o lote'
   );
 });
 
-test('a allowlist local é exatamente a do servidor (12 eventos)', () => {
+test('a allowlist local é exatamente a do servidor (13 eventos)', () => {
   assert.deepStrictEqual(
     [...FUNNEL_EVENTS].sort(),
     [
       'app_open', 'checkout_click', 'checkout_open', 'home_view', 'login_done', 'login_view',
       'onboarding_done', 'onboarding_start', 'paywall_view', 'plan_select', 'reading_done', 'reading_start',
+      'today_line_tap',
     ].sort()
   );
 });

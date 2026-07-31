@@ -48,11 +48,22 @@ const PREFIXOS_DINAMICOS = [
   'horoscope.sky.', // lib/dailyHoroscope.js — skyKey() monta o campo (linha 460)
   'grounding.', // lib/grounding.js — helpers de chave (cabeçalho, linha 70)
   'zodiacBody.', // lib/zodiacBody.js — prefixo declarado no cabeçalho (linha 35)
-  // NÃO entram aqui `jornada.` nem `calendarioCosmico.`: os dois cabeçalhos
-  // (lib/jornada.js:8, lib/calendarioCosmico.js:9) descrevem a migração para o
-  // dicionário como PLANO, e hoje não existe nenhuma chave com esses prefixos.
-  // Registrar prefixo de família que ainda não nasceu é abrir buraco antes da
-  // hora — o teste logo abaixo recusa exatamente isso.
+  // AS TRÊS FAMÍLIAS DE CONTEÚDO — `jornada.`, `rituais.` e `calendarioCosmico.`
+  // — NÃO entram aqui, e por dois motivos diferentes que vale distinguir:
+  //
+  //   · `calendarioCosmico.` porque a família ainda não nasceu: a migração é
+  //     plano (lib/calendarioCosmico.js, cabeçalho), e registrar prefixo de
+  //     família inexistente é abrir buraco antes da hora — o teste logo abaixo
+  //     recusa exatamente isso.
+  //   · `jornada.` e `rituais.` porque não PRECISAM: as parcelas de migração
+  //     que já saíram (jornada.feature.*, rituais.cat/dia/planeta/fase.*)
+  //     escrevem a chave LITERAL no arquivo, nunca montada por template. Então
+  //     a varredura estática as enxerga uma a uma, que é melhor do que isentar
+  //     a família inteira — registrar o prefixo aqui esconderia junto todas as
+  //     chaves de chrome dessas telas, que hoje são conferidas de verdade.
+  //
+  // O que NENHUM destes testes cobre é o CONTEÚDO ainda em português dentro dos
+  // três motores — pra isso existe o teste de inventário no fim deste arquivo.
 ];
 
 function arquivosJs(pasta) {
@@ -264,4 +275,124 @@ test('o dicionário não acumula chave morta (definida e nunca usada)', () => {
     );
   }
   assert.ok(true);
+});
+
+// ---------------------------------------------------------------------------
+// INVENTÁRIO DA DÍVIDA DE i18n — o número que só pode CAIR
+// ---------------------------------------------------------------------------
+// Os testes acima comparam CHAVE USADA contra CHAVE DEFINIDA. Nenhum deles vê o
+// texto que nunca passou por t(): o conteúdo dos três motores novos
+// (lib/rituais.js, lib/jornada.js, lib/calendarioCosmico.js) está em português
+// nos três idiomas, declarado nos cabeçalhos como migração pendente. São
+// centenas de strings VISÍVEIS fora de qualquer teste de i18n — e uma dívida
+// que ninguém mede é uma dívida que cresce.
+//
+// Este teste mede. Ele não exige que a migração aconteça hoje; exige que ela
+// não ANDE PRA TRÁS: se alguém acrescentar um ritual, uma trilha ou um evento
+// com texto cravado em português, o número sobe e o build falha. Quando a
+// migração de um campo sair, o número cai e a linha abaixo é atualizada pra
+// baixo. Zero significa que acabou.
+//
+// A contagem é deterministicamente definida abaixo. O calendário é medido por
+// UM MÊS FIXO (jan/2026) em vez do ano inteiro: o motor é determinístico, o mês
+// é representativo e a conta é barata.
+const TETO_PT_ONLY = {
+  // 21 rituais × (titulo, intencao, materiais[], passos[], momento.texto,
+  // cuidados, naoTemFonte[]) + os 3 blocos de lastro.
+  // JÁ MIGRADO e por isso fora da conta: nome/descrição das 7 categorias,
+  // nome/planeta dos 7 dias, os 8 nomes de fase, a moldura do compartilhar.
+  rituais: 297,
+  // 4 trilhas × (nome, subtitulo) + 28 dias × (titulo, leitura, pergunta,
+  // acao.texto) + nome/legenda das medalhas.
+  // JÁ MIGRADO e fora da conta: os 6 rótulos de FEATURES.
+  jornada: 132,
+  // Eventos de jan/2026 × (titulo, paragrafo, fonte, avisoDeIdade,
+  // tradicao.texto).
+  // JÁ MIGRADO e fora da conta: MARCA_RECIBO (virou rótulo de UI traduzido) e
+  // as duas mensagens de indisponibilidade (viraram `mensagemKey`).
+  calendarioCosmico: 53,
+};
+
+function contarStrings(...valores) {
+  let n = 0;
+  const anda = (v) => {
+    if (typeof v === 'string') {
+      if (v.trim()) n += 1;
+    } else if (Array.isArray(v)) {
+      v.forEach(anda);
+    }
+  };
+  valores.forEach(anda);
+  return n;
+}
+
+function inventarioPtOnly() {
+  const rituais = require('../lib/rituais.js');
+  const jornada = require('../lib/jornada.js');
+  const calendario = require('../lib/calendarioCosmico.js');
+
+  let nRituais = 0;
+  for (const r of rituais.RITUAIS) {
+    nRituais += contarStrings(
+      r.titulo, r.intencao, r.cuidados, r.momento && r.momento.texto,
+      r.materiais, r.passos, r.naoTemFonte
+    );
+  }
+  for (const bloco of Object.values(rituais.LASTRO_MOMENTO_IDEAL)) {
+    nRituais += contarStrings(bloco.titulo, bloco.texto, bloco.ressalvas);
+  }
+
+  let nJornada = 0;
+  for (const t of jornada.TRILHAS) {
+    nJornada += contarStrings(t.nome, t.subtitulo);
+    for (const d of t.dias) {
+      nJornada += contarStrings(d.titulo, d.leitura, d.pergunta, d.acao && d.acao.texto);
+    }
+  }
+  for (const m of [...jornada.MEDALHAS, ...jornada.MEDALHAS_JORNADA]) {
+    nJornada += contarStrings(m.nome, m.legenda);
+  }
+
+  const mes = calendario.calendarioCosmico(2026, 1);
+  let nCalendario = 0;
+  for (const e of mes.eventos) {
+    nCalendario += contarStrings(
+      e.titulo, e.paragrafo, e.fonte, e.avisoDeIdade, e.tradicao && e.tradicao.texto
+    );
+  }
+
+  return { rituais: nRituais, jornada: nJornada, calendarioCosmico: nCalendario, mes };
+}
+
+test('a dívida de i18n dos três motores não cresce (o número só pode cair)', () => {
+  const atual = inventarioPtOnly();
+
+  // Se o mês de referência vier vazio, a conta do calendário mediria zero por
+  // acidente e o teste "passaria" enquanto a dívida ficasse intacta.
+  assert.ok(
+    atual.mes.ceuDisponivel && atual.mes.eventos.length > 0,
+    'jan/2026 não trouxe evento nenhum — sem efeméride a contagem do calendário é falsa'
+  );
+
+  const subiram = [];
+  const cairam = [];
+  for (const [modulo, teto] of Object.entries(TETO_PT_ONLY)) {
+    if (atual[modulo] > teto) subiram.push(`${modulo}: ${atual[modulo]} (teto ${teto})`);
+    if (atual[modulo] < teto) cairam.push(`${modulo}: ${atual[modulo]} (teto ${teto})`);
+  }
+
+  assert.deepEqual(
+    subiram,
+    [],
+    'Texto novo cravado em português num motor que já tem migração de i18n pendente. ' +
+      'Ou escreva por chave, ou reconheça a dívida atualizando TETO_PT_ONLY pra cima ' +
+      'com o motivo escrito:\n  ' + subiram.join('\n  ')
+  );
+
+  assert.deepEqual(
+    cairam,
+    [],
+    'A dívida CAIU — é a notícia boa. Baixe TETO_PT_ONLY pros números novos pra travar o ' +
+      'ganho, senão ele pode ser desfeito sem ninguém ver:\n  ' + cairam.join('\n  ')
+  );
 });

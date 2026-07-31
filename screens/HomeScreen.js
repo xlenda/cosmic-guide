@@ -17,6 +17,10 @@ import DailyMissionsCard from '../components/DailyMissionsCard';
 // seria a pílula de 40 px acima da barra de abas, que ninguém descobre.
 import CosmicSoundPlayer from '../components/CosmicSoundPlayer';
 import { compatibility, aspects } from '../lib/signs';
+// O motor das Temporadas do Céu continua inteiro (o card saiu da Home, o motor
+// não). Ele volta aqui num papel menor e melhor: alimentar o SUBTÍTULO do card
+// do Calendário Cósmico, que é a casa pra onde as temporadas foram.
+import { activeCelestialEvents } from '../lib/celestialSeasons';
 import { CHAVES_DE_TRADUCAO } from '../lib/synastry';
 import { getTodaysThought } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
@@ -104,22 +108,46 @@ const THOUGHT_READ_KEY = 'cosmic-daily-thought-last-read';
 // critérios — fase da Lua E dia da semana — e acertou os dois.
 // `rituaisDeHoje().rituais` já só devolve quem bateu tudo o que declarou (o
 // matcher é E, não OU: ver a seção 8 de lib/rituais.js), então basta contar
-// quantos critérios cada um declarava. Empate fica com o primeiro, que é a
-// ordem do catálogo. Medido sobre 2026 inteiro com o motor de verdade: nos 365
-// dias a lista de casamento exato nunca vem vazia (de 1 a 6 rituais por dia),
-// então esta linha aparece praticamente todo dia pra quem não tem trilha.
-function ritualMaisForteDeHoje(lista) {
-  let melhor = null;
+// quantos critérios cada um declarava. Medido sobre 2026 inteiro com o motor de
+// verdade: nos 365 dias a lista de casamento exato nunca vem vazia (de 1 a 6
+// rituais por dia), então esta linha aparece praticamente todo dia pra quem não
+// tem trilha.
+//
+// O DESEMPATE É POR ROTAÇÃO, NÃO POR ORDEM DE CATÁLOGO — e essa é a correção.
+// Com `if (peso > melhorPeso)` ganhava sempre o primeiro do catálogo, e o
+// resultado medido sobre 56 dias corridos era: só 13 rituais distintos
+// apareciam, "A lista do que eu quero sentir" ocupava 11 dos 56 dias (20%), e a
+// maior sequência era de QUATRO DIAS SEGUIDOS com exatamente o mesmo texto. Uma
+// linha que se vende como "o motivo de voltar HOJE" e que diz a mesma frase
+// quatro manhãs seguidas vira papel de parede — é o mesmo "fica perdido no
+// meio" que o dono mandou consertar, só que por repetição em vez de por
+// posição.
+//
+// `diaDoAno % candidatos.length` é determinístico (todo mundo vê o mesmo hoje),
+// muda sozinho à meia-noite e não precisa guardar nada — mesma disciplina de
+// lib/dailyThought.js.
+function ritualMaisForteDeHoje(lista, agora = new Date()) {
   let melhorPeso = -1;
+  const candidatos = [];
   for (const r of lista || []) {
     const m = r.momento || {};
     const peso = ((m.fasesLua || []).length > 0 ? 1 : 0) + ((m.diasSemana || []).length > 0 ? 1 : 0);
     if (peso > melhorPeso) {
-      melhor = r;
       melhorPeso = peso;
+      candidatos.length = 0;
+      candidatos.push(r);
+    } else if (peso === melhorPeso) {
+      candidatos.push(r);
     }
   }
-  return melhor;
+  if (candidatos.length === 0) return null;
+  // Dias inteiros a partir de campos LOCAIS (Date.UTC só pra subtrair sem
+  // horário de verão no meio) — a rotação vira na meia-noite de quem lê, não na
+  // de Greenwich. Mesma razão de lib/localDay.js.
+  const inicioDoAno = Date.UTC(agora.getFullYear(), 0, 1);
+  const hoje = Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate());
+  const diaDoAno = Math.round((hoje - inicioDoAno) / 86400000);
+  return candidatos[diaDoAno % candidatos.length];
 }
 
 export default function HomeScreen() {
@@ -305,7 +333,8 @@ export default function HomeScreen() {
         if (!escolha) {
           try {
             const { rituaisDeHoje } = await import('../lib/rituais');
-            const forte = ritualMaisForteDeHoje(rituaisDeHoje(new Date()).rituais);
+            const agoraMesmo = new Date();
+            const forte = ritualMaisForteDeHoje(rituaisDeHoje(agoraMesmo).rituais, agoraMesmo);
             if (forte) escolha = { tipo: 'ritual', titulo: forte.titulo };
           } catch {}
         }
@@ -333,6 +362,30 @@ export default function HomeScreen() {
   // (aspects/planetPositions já usam meio-dia como aproximação aceitável pra
   // planetas além da Lua). Memoizado por todayISO: a trigonometria só roda de
   // novo quando o dia muda, não a cada re-render da tela (loading, foco, etc.).
+  // SUBTÍTULO VIVO DO CALENDÁRIO CÓSMICO. O card era estático ("As datas deste
+  // mês"), e com isso a Home deixou de avisar que existe uma Temporada de Leão
+  // rolando quando o card das Temporadas saiu: o conteúdo mudou de casa e
+  // perdeu o sinal. Com isto a mudança volta a ser promoção de casa em vez de
+  // sumiço — "Temporada de Leão · Mercúrio retrógrado" em vez de uma frase que
+  // é a mesma o ano inteiro.
+  //
+  // SÓ EM PT, pela mesma razão da linha de hoje: activeCelestialEvents()
+  // devolve título em português (lib/celestialSeasons.js). Em ES/EN o card cai
+  // no subtítulo estático, que tem os três idiomas — melhor a frase genérica do
+  // que a frase híbrida.
+  const calendarioSubtitle = useMemo(() => {
+    if (lang !== 'pt') return null;
+    try {
+      const ativos = activeCelestialEvents(new Date(`${todayISO}T12:00:00`));
+      if (!ativos || ativos.length === 0) return null;
+      return ativos.slice(0, 2).map((e) => e.title).join(' · ');
+    } catch {
+      // Sem efeméride o card volta ao subtítulo estático — nunca uma data
+      // chutada, mesma disciplina do resto do app.
+      return null;
+    }
+  }, [todayISO, lang]);
+
   const todaysAspects = useMemo(() => aspects(todayISO, null), [todayISO]);
   const cosmicEvent = useMemo(() => {
     if (!todaysAspects || todaysAspects.length === 0) return null;
@@ -423,7 +476,7 @@ export default function HomeScreen() {
     // a temporada aparece em ordem de data junto com o resto do mês.
     // Fora de READING_CARD_KEYS pelo mesmo motivo do Homem Zodiacal: é
     // efeméride do céu, não uma leitura sobre a pessoa.
-    { key: 'calendario', title: t('home.card.calendario.title'), subtitle: t('home.card.calendario.subtitle'), icon: 'calendar', gradient: ['#FFC85C', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.CALENDARIO_COSMICO) },
+    { key: 'calendario', title: t('home.card.calendario.title'), subtitle: calendarioSubtitle || t('home.card.calendario.subtitle'), icon: 'calendar', gradient: ['#FFC85C', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.CALENDARIO_COSMICO) },
     // Homem Zodiacal: tela de HISTÓRIA (o que a astrologia médica medieval
     // dizia), não uma leitura sobre a pessoa — por isso fica fora de
     // READING_CARD_KEYS lá em cima. Entra ao lado do Calendário Lunar porque é
@@ -487,6 +540,28 @@ export default function HomeScreen() {
   const individualCardItems = cardItems.filter((c) => !COUPLE_SECTION_KEYS.includes(c.key));
   const coupleCardItems = cardItems.filter((c) => COUPLE_SECTION_KEYS.includes(c.key));
 
+  // SUBDIVISÃO DO GRID INDIVIDUAL — mesma jogada que já tinha sido feita entre
+  // individual e casal, agora dentro do individual.
+  //
+  // O grid foi de 12 pra 15 cards no mesmo bloco "Explore", sem subdivisão
+  // nenhuma: oito fileiras de dois, chapadas. E as posições novas caíram na
+  // metade de baixo — rituais em 10º e jornada em 11º de 15 —, justamente as
+  // duas features de HÁBITO, as que precisam ser descobertas pra que a linha de
+  // hoje um dia tenha o que mostrar. Quinze cards chapados é a definição do
+  // problema que o dono apontou.
+  //
+  // Três grupos, por NATUREZA do que se faz ali: Leituras (o que o app conta
+  // sobre você), Práticas (o que você faz com a mão) e Datas (o que o céu faz,
+  // com dia e hora). Quem não cai em Práticas nem Datas fica em Leituras — o
+  // grupo padrão —, então card novo nunca some do grid por esquecimento.
+  const PRATICAS_KEYS = ['grounding', 'rituais', 'jornada'];
+  const DATAS_KEYS = ['lunarCalendar', 'calendario', 'zodiacbody'];
+  const praticasCardItems = individualCardItems.filter((c) => PRATICAS_KEYS.includes(c.key));
+  const datasCardItems = individualCardItems.filter((c) => DATAS_KEYS.includes(c.key));
+  const leiturasCardItems = individualCardItems.filter(
+    (c) => !PRATICAS_KEYS.includes(c.key) && !DATAS_KEYS.includes(c.key)
+  );
+
   // Determinístico por data (lib/dailyThought.js) — mesmo texto pra todo
   // mundo que abrir o app hoje, muda sozinho à meia-noite. Mesmo conteúdo
   // que a notificação diária (Perfil > Pensamento cósmico diário) só avisa
@@ -529,6 +604,22 @@ export default function HomeScreen() {
   // linha precisa ser lida de relance, sem a pessoa ter que descobrir de qual
   // das duas features ela está falando.
   const ehTrilha = todayLine && todayLine.tipo === 'jornada';
+
+  // A GUARDA DE IDIOMA, e ela é temporária de propósito.
+  //
+  // A moldura tem chave nos três idiomas, mas o MIOLO ({nome} da trilha, {titulo}
+  // do ritual) vem de lib/jornada.js e lib/rituais.js, que ainda declaram
+  // TODO(i18n) no cabeçalho para esses dois campos. Resultado sem guarda:
+  // "Ritual de hoy: A carta que não se envia", "Trail 7 dias de Lua · day 3 of
+  // 7" — e a frase em volta ("Ritual de hoy:") marca o miolo como nome próprio,
+  // o que deixa o descasamento mais visível, não menos.
+  //
+  // O app já tem esse defeito no pensamento do dia e nas missões, então não é
+  // regressão de classe; o que era novo é a POSIÇÃO — mistura de idioma abrindo
+  // a dobra da primeira tela. Entre uma dobra sem linha e uma dobra bilíngue,
+  // fica sem linha. A guarda cai sozinha no dia em que `nome` e `titulo`
+  // virarem chave (segunda parcela dos dois TODO(i18n)).
+  const mostrarTodayLine = !!todayLine && lang === 'pt';
   const todayLineText = !todayLine
     ? ''
     : ehTrilha
@@ -639,36 +730,6 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* A LINHA DE HOJE — logo abaixo da sequência da semana, de propósito:
-            o card de cima diz há quantos dias a pessoa vem voltando, e esta
-            linha diz o que tem pra fazer HOJE pra não quebrar isso. As duas
-            leem como um bloco só de hábito.
-            É uma linha e não um card: sem fundo, sem borda, sem gradiente —
-            três cards novos na dobra de cima era exatamente o "fica perdido no
-            meio" que o dono mandou tirar hoje. Ver o bloco no topo do arquivo
-            pra escolha entre trilha e ritual. */}
-        {todayLine && (
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.todayLine}
-            onPress={() => navigation.navigate(ehTrilha ? ROUTES.JORNADA : ROUTES.RITUAIS)}
-            accessibilityRole="button"
-            accessibilityLabel={`${todayLineText} — ${todayLineCta}`}
-            testID="home-today-line"
-          >
-            <Ionicons name={ehTrilha ? 'footsteps' : 'flame'} size={14} color={colors.teal} />
-            {/* numberOfLines={1}: o nome da trilha e o título do ritual vêm dos
-                motores e podem ser longos — a linha encolhe o texto com
-                reticências em vez de virar duas ou três linhas e deixar de ser
-                uma linha. */}
-            <Text style={styles.todayLineText} numberOfLines={1}>
-              {todayLineText}
-            </Text>
-            <Text style={styles.todayLineCta}>{todayLineCta}</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
-          </TouchableOpacity>
-        )}
-
         {/* Opt-in de notificação no momento certo: só depois da 1ª atividade
             real, uma vez só (ver components/NotifPromptCard.js). */}
         <NotifPromptCard sign={sign} hasActivity={streakInfo.totalActiveDays > 0} />
@@ -735,6 +796,56 @@ export default function HomeScreen() {
           <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
             <DailyMissionsCard />
           </View>
+        )}
+
+        {/* A LINHA DE HOJE — encostada no card de MISSÕES, e não mais no card
+            de Sequência. Duas razões que se somam:
+
+            1. COLISÃO. Pra usuário solo (a maioria, e a única configuração em
+               que DailyMissionsCard aparece na Home) a dobra passava a ter DUAS
+               superfícies de "o que fazer hoje": esta linha lá em cima, texto
+               cinza de 13 px, e o card "Missões de hoje" logo abaixo — card
+               inteiro, checkboxes, contador, tokens, botão de bônus. A linha
+               perdia a disputa por construção. Encostada no card ela deixa de
+               competir e passa a ler como a quarta linha dele.
+            2. SALTO DE LAYOUT. A linha nasce `null` e só é preenchida depois do
+               import() dinâmico dos motores e do storage — ou seja, sempre
+               DEPOIS da primeira pintura. Como ela aparece em quase toda
+               abertura, era um pulo de ~28 pt empurrando o pensamento do dia e
+               as missões pra baixo enquanto a pessoa já estava lendo. Aqui o
+               salto acontece fora do campo de visão inicial.
+
+            Continua sendo uma LINHA e não um card: sem fundo, sem borda, sem
+            gradiente — cards novos na dobra de cima era exatamente o "fica
+            perdido no meio" que o dono mandou tirar. Ver o bloco no topo do
+            arquivo pra escolha entre trilha e ritual. */}
+        {mostrarTodayLine && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.todayLine}
+            onPress={() => {
+              // Medição antes de navegar (fire-and-forget: track() é síncrona).
+              // Era a única coisa nova na dobra sem evento nenhum — sem isto,
+              // "manter, mover ou matar a linha" continua sendo opinião em vez
+              // de número.
+              funnel.todayLineTap(ehTrilha ? 'jornada' : 'ritual');
+              navigation.navigate(ehTrilha ? ROUTES.JORNADA : ROUTES.RITUAIS);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`${todayLineText} — ${todayLineCta}`}
+            testID="home-today-line"
+          >
+            <Ionicons name={ehTrilha ? 'footsteps' : 'flame'} size={14} color={colors.teal} />
+            {/* numberOfLines={1}: o nome da trilha e o título do ritual vêm dos
+                motores e podem ser longos — a linha encolhe o texto com
+                reticências em vez de virar duas ou três linhas e deixar de ser
+                uma linha. */}
+            <Text style={styles.todayLineText} numberOfLines={1}>
+              {todayLineText}
+            </Text>
+            <Text style={styles.todayLineCta}>{todayLineCta}</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
         )}
 
         {/* Som do céu — logo DEPOIS do Pensamento do dia e das Missões, de
@@ -896,10 +1007,28 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Feature grid — individual (solo ou casal, assina direto) */}
+        {/* Feature grid — individual (solo ou casal, assina direto), em três
+            grupos: Leituras, Práticas e Datas. Ver o porquê acima, onde as
+            listas são montadas. */}
         <Text style={styles.sectionTitle}>{t('home.sectionExplore')}</Text>
         <Text style={styles.sectionSubtitle}>{t('home.sectionExploreSubtitle')}</Text>
-        <CardGrid items={individualCardItems} />
+        <CardGrid items={leiturasCardItems} />
+
+        {praticasCardItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{t('home.sectionPraticas')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('home.sectionPraticasSubtitle')}</Text>
+            <CardGrid items={praticasCardItems} />
+          </>
+        )}
+
+        {datasCardItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{t('home.sectionDatas')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('home.sectionDatasSubtitle')}</Text>
+            <CardGrid items={datasCardItems} />
+          </>
+        )}
 
         {/* Feature grid — exclusivo de casal (só desbloqueia formando casal) */}
         {coupleCardItems.length > 0 && (
@@ -972,9 +1101,10 @@ const styles = StyleSheet.create({
   weekDotToday: { borderWidth: 2, borderColor: colors.gold },
   // A linha de hoje. Sem backgroundColor, sem borderWidth, sem borderRadius —
   // a lista de estilos é curta de propósito: o que a distingue de um card é
-  // justamente não ter nada disso. O marginTop negativo encosta ela na
-  // sequência da semana (que fecha com marginBottom: 14), pra as duas lerem
-  // como um bloco só em vez de dois avulsos.
+  // justamente não ter nada disso. O marginTop negativo encosta ela no card de
+  // MISSÕES (que fecha com marginBottom: 14), pra as duas lerem como um bloco
+  // só de "o que fazer hoje" em vez de duas superfícies disputando o mesmo
+  // papel. Antes ela encostava no card de Sequência, que é o bloco errado.
   todayLine: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginHorizontal: 16, marginTop: -6, marginBottom: 14, paddingVertical: 2,
@@ -1025,11 +1155,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 12, paddingVertical: 10, marginTop: 14, alignSelf: 'flex-start', paddingHorizontal: 18,
   },
   lovePhraseBtnText: { color: colors.accent, fontSize: 13, fontWeight: '800' },
-  peekCard: {
-    marginHorizontal: 16, marginBottom: 14, padding: 16,
-    backgroundColor: colors.surface, borderRadius: 16,
-    borderWidth: 1, borderColor: colors.purple + '55',
-  },
+  // (peekCard saiu junto com a Espiada de Amanhã — a remoção das Temporadas do
+  //  Céu já tinha escrito a regra: "estilo órfão é como este arquivo chegou a
+  //  15 formatos de card". peekHead/peekLabel/peekText/peekBtn/peekBtnText
+  //  FICAM: o card do Céu de Hoje ainda usa os cinco. As chaves home.peek.*
+  //  saíram de lib/i18n.js na mesma passada. A decisão inteira continua
+  //  preservada no comentário lá em cima, onde o card ficava.)
   skyCard: {
     marginHorizontal: 16, marginBottom: 14, padding: 16,
     backgroundColor: colors.surface, borderRadius: 16,

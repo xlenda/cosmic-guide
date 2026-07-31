@@ -31,6 +31,44 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const Module = require('node:module');
+
+// --- fake do AsyncStorage, injetado ANTES do módulo sob teste ---------------
+// lib/rituais.js passou a guardar "qual ritual gastou o uso grátis" (era regra
+// de tela, com import estático de AsyncStorage e um setItem fire-and-forget —
+// ou seja, fora do alcance de qualquer teste). O fake precisa entrar antes do
+// require porque lib/storage.js memoriza o módulo na primeira chamada, mesma
+// armadilha documentada em test/jornada.test.js e test/cosmicSound.test.js.
+//
+// E ele sabe QUEBRAR: o cenário que interessa não é "não tem storage" (o pacote
+// é dependência dura e sempre resolve) e sim "a chamada estoura" — window
+// ausente fora do RN, SecurityError em iframe, cota cheia.
+const memStorage = new Map();
+let storageQuebrado = false;
+
+const asyncStorageMock = {
+  __esModule: true,
+  default: {
+    async getItem(k) {
+      if (storageQuebrado) throw new Error('SecurityError: storage access denied');
+      return memStorage.has(k) ? memStorage.get(k) : null;
+    },
+    async setItem(k, v) {
+      if (storageQuebrado) throw new Error('QuotaExceededError');
+      memStorage.set(k, String(v));
+    },
+    async removeItem(k) {
+      if (storageQuebrado) throw new Error('SecurityError: storage access denied');
+      memStorage.delete(k);
+    },
+  },
+};
+
+const carregarOriginal = Module._load;
+Module._load = function (request, parent, isMain) {
+  if (request === '@react-native-async-storage/async-storage') return asyncStorageMock;
+  return carregarOriginal.call(this, request, parent, isMain);
+};
 
 const {
   AVISO_ETICO,
@@ -40,6 +78,7 @@ const {
   CATEGORIAS,
   CATEGORIA_IDS,
   FASES_LUA,
+  FASE_KEYS,
   DIAS_SEMANA,
   LASTRO_MOMENTO_IDEAL,
   RITUAIS,
@@ -52,7 +91,19 @@ const {
   textoCompartilhavel,
   textosVisiveis,
   diaSemanaPorIndice,
+  nomeDaCategoria,
+  descricaoDaCategoria,
+  nomeDaFase,
+  nomeDoDia,
+  nomeDoPlaneta,
+  CHAVE_RITUAL_LIVRE,
+  lerRitualLivre,
+  marcarRitualLivre,
 } = require('../lib/rituais.js');
+
+// Mesma instância de lib/storage.js que lib/rituais.js acabou de carregar — é
+// preciso pra baixar a flag `_semDisco`, que é de sessão de propósito.
+const storageLib = require('../lib/storage.js');
 
 const { REGENTES } = require('../lib/grounding.js');
 const { getMoonPhase } = require('../lib/lunarCalendar.js');
@@ -103,16 +154,12 @@ function todoTextoVisivel() {
   return saida;
 }
 
-// A ÚNICA ISENÇÃO da varredura, e ela é cirúrgica: o próprio AVISO_ETICO. Ele
-// contém "garantias mágicas" e "controlar vontade alheia" — as duas expressões
-// existem ali justamente para NEGAR a promessa e o controle, e um teste que as
-// proibisse proibiria o aviso que protege. Em vez de isentar campos inteiros
-// (o que abriria buraco), removemos a string literal do aviso do texto antes de
-// varrer o que sobra. Mesma lógica de PREFIXOS_ISENTOS em
-// test/grounding.test.js, só que muito mais estreita.
-function semOAviso(texto) {
-  return texto.split(AVISO_ETICO).join(' ');
-}
+// NÃO EXISTE MAIS ISENÇÃO NENHUMA NESTA VARREDURA. Havia uma, cirúrgica, que
+// removia o AVISO_ETICO do texto antes de varrer — ela era necessária enquanto
+// o aviso continha "não garantias mágicas" e "sem tentar controlar vontade
+// alheia", que tropeçavam em /\bgarant/ e /\bcontrol/. Com o aviso reescrito
+// (31/07/2026), o texto passa limpo e a isenção saiu. Ver o teste "o aviso
+// ético passa na varredura sem isenção nenhuma", mais abaixo.
 
 // ---------------------------------------------------------------------------
 // (b) OS CINCO CAMPOS
@@ -250,9 +297,17 @@ test('a tabela de dias da semana é a MESMA de lib/grounding.js — uma fonte s�
 test('o aviso ético é o texto literal do dono, sem uma vírgula fora do lugar', () => {
   assert.equal(
     AVISO_ETICO,
-    'Rituais são ferramentas de intenção, não garantias mágicas. Use sempre com respeito, sem tentar controlar vontade alheia.',
+    'Estes rituais são gestos de intenção, feitos com a própria mão e sobre a própria vida. Sobre vontade alheia não se mexe.',
     'O aviso ético é texto literal do dono. Não reescreva, não "melhore", não resuma.'
   );
+  // E ele NÃO volta a ser defensivo. A versão anterior dizia "não garantias
+  // mágicas" — negação de eficácia, o padrão que o dono mandou tirar do app em
+  // 31/07/2026 (o mesmo commit limpou "sem qualquer promessa de efeito" do Som
+  // do Céu). O que fica é o limite de conduta, que é ética de terceiros e não
+  // defesa jurídica.
+  for (const re of [/n[ãa]o garant/i, /sem (qualquer )?promessa/i, /n[ãa]o promete/i, /sem garantia/i]) {
+    assert.ok(!re.test(AVISO_ETICO), `o aviso voltou a ser defensivo (${re}): "${AVISO_ETICO}"`);
+  }
 });
 
 test('o aviso ético aparece literal em TODOS os rituais, nos três lugares', () => {
@@ -390,8 +445,8 @@ const MECANISMO = [
 
 function varrer(regras, rotulo) {
   const violacoes = [];
-  for (const [caminho, bruto] of todoTextoVisivel()) {
-    const texto = semOAviso(bruto);
+  // Sem pré-tratamento: o texto vai inteiro pra varredura, aviso incluído.
+  for (const [caminho, texto] of todoTextoVisivel()) {
     for (const re of regras) {
       if (re.test(texto)) violacoes.push(`${caminho} → ${re} (${rotulo})`);
     }
@@ -433,30 +488,28 @@ test('NENHUM texto de ritual inventa mecanismo (energia, vibração, limpeza ene
   );
 });
 
-test('a única isenção da varredura é o próprio aviso ético, e ela é necessária', () => {
-  // Se um dia o aviso mudar e deixar de tropeçar nos padrões, esta isenção vira
-  // buraco aberto sem motivo e tem que ser removida. O teste segura isso.
-  const tropeca = PROMESSA.some((re) => re.test(AVISO_ETICO));
-  assert.ok(
-    tropeca,
-    'O AVISO_ETICO não tropeça mais em nenhum padrão proibido — então a isenção de ' +
-      'semOAviso() virou buraco sem uso. Remova a isenção.'
-  );
-  // E o inverso: nada além do aviso pode estar se escondendo atrás dela. Se
-  // removermos a isenção, as ÚNICAS violações que podem sobrar são as do aviso.
-  const semIsencao = [];
-  for (const [caminho, texto] of todoTextoVisivel()) {
-    for (const re of [...SAUDE, ...PROMESSA, ...MECANISMO]) {
-      if (re.test(texto)) {
-        const soNoAviso = re.test(AVISO_ETICO) && !re.test(semOAviso(texto));
-        if (!soNoAviso) semIsencao.push(`${caminho} → ${re}`);
-      }
-    }
-  }
-  assert.equal(
-    semIsencao.length,
-    0,
-    `Texto proibido escondido atrás da isenção do aviso:\n  ${semIsencao.join('\n  ')}`
+// A ISENÇÃO ACABOU, E ESTE TESTE É O QUE IMPEDE ELA DE VOLTAR.
+//
+// Existia aqui uma função semOAviso() que removia o AVISO_ETICO do texto antes
+// de varrer, porque a versão antiga do aviso ("não garantias mágicas... sem
+// tentar controlar vontade alheia") tropeçava em /\bgarant/ e em /\bcontrol/.
+// O próprio teste antigo dizia, na mensagem de erro: "se o aviso deixar de
+// tropeçar, remova a isenção". Foi o que aconteceu — o aviso foi reescrito em
+// 31/07/2026 pra trocar a negação de eficácia pelo limite concreto de conduta,
+// e a isenção saiu junto.
+//
+// A lição que fica travada aqui: um aviso que precisa de exceção pra passar na
+// própria varredura é um aviso com FORMA DE PROMESSA. Se alguém reescrever o
+// aviso e ele voltar a tropeçar, este teste falha e a resposta certa é mudar o
+// aviso, nunca reabrir a isenção.
+test('o aviso ético passa na varredura sem isenção nenhuma', () => {
+  const tropecos = [...SAUDE, ...PROMESSA, ...MECANISMO].filter((re) => re.test(AVISO_ETICO));
+  assert.deepEqual(
+    tropecos.map(String),
+    [],
+    'O AVISO_ETICO tropeça em padrão proibido. Ele é colado no fim dos 21 rituais e sai no ' +
+      'texto de compartilhar — reescreva o AVISO, não afrouxe a varredura, e NÃO reintroduza ' +
+      'uma isenção como a antiga semOAviso().'
   );
 });
 
@@ -966,4 +1019,138 @@ test('textosVisiveis entrega a peça inteira, e não sobra campo fora da auditor
     for (const m of r.materiais) assert.ok(textos.includes(m), `${r.id}: material fora da auditoria`);
   }
   assert.deepEqual(textosVisiveis('nao-existe'), []);
+});
+
+// ---------------------------------------------------------------------------
+// O USO GRÁTIS — a regra de negócio que decidia o paywall e não tinha teste
+// ---------------------------------------------------------------------------
+// Ela morava em screens/RituaisScreen.js, e a tela não é importável sob
+// node:test (puxa react-native e @expo/vector-icons). Resultado: as ~970 linhas
+// deste arquivo não mencionavam a chave uma vez sequer, e não tinham como. Com
+// o par lerRitualLivre/marcarRitualLivre em lib/rituais.js, o comportamento
+// entra no mesmo estilo de test/jornada.test.js — inclusive o caso de storage
+// que lança, que é o que a tela tratava com um `.catch(() => {})` mudo enquanto
+// já tinha mudado a UI de forma otimista.
+function limparStorage() {
+  memStorage.clear();
+  storageLib._reiniciarStorageParaTestes();
+}
+
+test('marcar e ler o ritual que ficou grátis atravessa a sessão', async () => {
+  limparStorage();
+  assert.equal(await lerRitualLivre(), null, 'sem nada marcado, ninguém tem ritual grátis');
+
+  const id = RITUAIS[0].id;
+  assert.equal(await marcarRitualLivre(id), true, 'devia ter gravado no disco');
+  assert.equal(memStorage.get(CHAVE_RITUAL_LIVRE), id);
+  assert.equal(await lerRitualLivre(), id);
+  limparStorage();
+});
+
+test('id que não existe mais no catálogo não tranca a tela nem vira ponteiro morto', async () => {
+  limparStorage();
+  assert.equal(await marcarRitualLivre('ritual-que-nao-existe'), false, 'nunca marca id inválido');
+  assert.equal(memStorage.size, 0);
+
+  // E se um id morto tiver sobrado de uma versão anterior do app, a leitura
+  // devolve null: melhor devolver o uso grátis do que guardar um ponteiro pra
+  // ritual que sumiu e deixar a pessoa sem nenhum.
+  memStorage.set(CHAVE_RITUAL_LIVRE, 'ritual-de-uma-versao-antiga');
+  assert.equal(await lerRitualLivre(), null);
+  limparStorage();
+});
+
+test('storage que ESTOURA não faz a pessoa ganhar outro ritual grátis na mesma sessão', async () => {
+  limparStorage();
+  storageQuebrado = true;
+  try {
+    const id = RITUAIS[3].id;
+    // Devolve false — não foi ao disco —, e é justamente por isso que a marca
+    // NÃO pode simplesmente evaporar: a tela já mudou de estado de forma
+    // otimista no mesmo toque.
+    assert.equal(await marcarRitualLivre(id), false);
+    assert.equal(memStorage.size, 0, 'nada chegou ao disco, é o cenário sob teste');
+    assert.equal(
+      await lerRitualLivre(),
+      id,
+      'a marca sumiu com o storage quebrado — a pessoa reabriria a tela com outro ritual grátis'
+    );
+  } finally {
+    storageQuebrado = false;
+    limparStorage();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// A TAXONOMIA TRADUZIDA — a primeira parcela do i18n de lib/rituais.js
+// ---------------------------------------------------------------------------
+// A varredura estática de test/i18nKeysExist.test.js já cobra as chaves nos
+// três idiomas (elas são literais, não montadas em runtime). O que ELA não vê é
+// a AMARRAÇÃO: que cada categoria/dia/fase aponta pra uma chave que existe, e
+// que sem `t` o valor devolvido continua sendo exatamente o português de
+// sempre — que é o contrato de onde o motor e todos os testes acima dependem.
+test('toda categoria, dia e fase tem chave de tradução nos três idiomas', () => {
+  const { LANGUAGES, _DICTS_FOR_TESTS } = require('../lib/i18n.js');
+  const chaves = [];
+  for (const c of CATEGORIAS) chaves.push(c.nomeKey, c.descricaoKey);
+  for (const d of DIAS_SEMANA) chaves.push(d.nomeKey, d.planetaKey);
+  for (const f of FASES_LUA) chaves.push(FASE_KEYS[f]);
+  chaves.push('rituais.momento.ou', 'rituais.share.line1', 'rituais.share.line2');
+
+  const faltando = [];
+  for (const chave of chaves) {
+    assert.ok(chave, 'entrada de taxonomia sem chave declarada');
+    for (const lang of LANGUAGES) {
+      const v = _DICTS_FOR_TESTS[lang][chave];
+      if (typeof v !== 'string' || v.trim() === '') faltando.push(`${lang}: ${chave}`);
+    }
+  }
+  assert.deepEqual(faltando, [], `chave(s) de taxonomia sem tradução:\n  ${faltando.join('\n  ')}`);
+
+  // Toda fase do motor tem rótulo — se alguém acrescentar uma nona fase e
+  // esquecer a chave, a tela imprimiria a string canônica em português.
+  for (const f of FASES_LUA) assert.ok(FASE_KEYS[f], `fase sem chave de rótulo: ${f}`);
+});
+
+test('sem t() os helpers devolvem o português literal de sempre', () => {
+  assert.equal(nomeDaCategoria('amor'), 'Amor');
+  assert.equal(descricaoDaCategoria('amor'), CATEGORIAS[0].descricao);
+  assert.equal(nomeDaFase('Lua Cheia'), 'Lua Cheia');
+  assert.equal(nomeDoDia(1), 'segunda-feira');
+  assert.equal(nomeDoPlaneta(1), 'Lua');
+  // E com t() eles resolvem a chave, sem inventar nada quando ela não existe.
+  const t = (k) => `[${k}]`;
+  assert.equal(nomeDaFase('Lua Cheia', t), '[rituais.fase.luaCheia]');
+  assert.equal(nomeDoDia(5, t), '[rituais.dia.5]');
+  assert.equal(nomeDoPlaneta(5, t), '[rituais.planeta.venus]');
+  assert.equal(nomeDaFase(null), '');
+  assert.equal(nomeDoDia(99), '');
+});
+
+test('o texto de compartilhar monta a moldura por chave quando recebe t()', () => {
+  const r = RITUAIS[0];
+  const dicionario = {
+    'rituais.share.line1': '{titulo} — a {categoria} ritual, from Cosmic Guide.',
+    'rituais.share.line2': 'Best moment: {momento}.',
+    'rituais.cat.amor': 'Love',
+    'rituais.momento.ou': 'or',
+  };
+  const t = (k, vars) => {
+    const bruto = dicionario[k] || k;
+    return String(bruto).replace(/\{(\w+)\}/g, (m, nome) => (vars && nome in vars ? vars[nome] : m));
+  };
+
+  const texto = textoCompartilhavel(r, t);
+  assert.ok(texto.includes('a Love ritual'), `a moldura não foi traduzida:\n${texto}`);
+  assert.ok(texto.includes('Best moment:'), `a segunda linha não foi traduzida:\n${texto}`);
+  // O aviso ético e o link continuam literais — os dois são constante, não
+  // texto de tela.
+  assert.ok(texto.includes(AVISO_ETICO));
+  assert.ok(texto.trim().endsWith(LINK_COMPARTILHAR));
+
+  // E sem t() nada muda: é o mesmo texto que os testes acima conferem.
+  assert.equal(
+    textoCompartilhavel(r),
+    `${r.titulo} — ritual de Amor, do Cosmic Guide.\nMomento ideal: ${resumoDoMomento(r)}.\n${AVISO_ETICO}\n${LINK_COMPARTILHAR}`
+  );
 });

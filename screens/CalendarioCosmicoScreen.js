@@ -149,12 +149,19 @@ function horaLocal(d) {
 
 // Corta o parágrafo no marcador do motor. Sem marcador (não deve acontecer —
 // o teste do motor exige), o texto inteiro vira conversa e nada some.
+//
+// AS DUAS FUNÇÕES DE MARCA_RECIBO ESTÃO SEPARADAS AQUI, e essa é a correção:
+// ele era usado ao mesmo tempo como marcador de corte E como texto visível, o
+// que fazia "Quem escreveu isso:" aparecer em português no meio de uma tela em
+// inglês. Ele continua sendo o sentinela (é o que existe dentro das strings do
+// motor), mas é DESCARTADO do texto — o rótulo que a pessoa lê é
+// 'calendario.event.receiptMark', que tem os três idiomas.
 function partesDoParagrafo(paragrafo) {
   const corte = typeof paragrafo === 'string' ? paragrafo.indexOf(MARCA_RECIBO) : -1;
   if (corte < 0) return { conversa: paragrafo || '', recibo: null };
   return {
     conversa: paragrafo.slice(0, corte).trim(),
-    recibo: paragrafo.slice(corte).trim(),
+    recibo: paragrafo.slice(corte + MARCA_RECIBO.length).trim(),
   };
 }
 
@@ -189,7 +196,11 @@ function EventoCard({ evento, selecionado, onLayout }) {
       </View>
 
       <Text style={styles.body}>{conversa}</Text>
-      {recibo ? <Text style={styles.recibo}>{recibo}</Text> : null}
+      {recibo ? (
+        <Text style={styles.recibo}>
+          <Text style={styles.reciboMarca}>{t('calendario.event.receiptMark')}</Text> {recibo}
+        </Text>
+      ) : null}
 
       {/* Precisão declarada onde ela é menor. Mercúrio retrógrado sai do motor
           com precisao 'dia' porque a detecção é por diferença centrada de dois
@@ -587,14 +598,17 @@ export default function CalendarioCosmicoScreen() {
 
         {/* ---- A lista ---- */}
         {!resultado.ceuDisponivel ? (
-          // NUNCA FABRICA. Sem efeméride o motor devolve lista vazia e a
-          // `mensagem` que ele escreveu pra ser lida por gente (o campo técnico
-          // motivoIndisponivel não chega aqui, de propósito). Ela vem em
-          // português nos três idiomas — mesmo gap declarado do resto do motor.
+          // NUNCA FABRICA. Sem efeméride o motor devolve lista vazia e a razão
+          // pra ser lida por gente (o campo técnico motivoIndisponivel não
+          // chega aqui, de propósito). Isto é ERRO DE UI, não conteúdo
+          // histórico — então tem chave nos três idiomas (`mensagemKey`), com a
+          // `mensagem` em português como último fallback.
           <View style={styles.indisponivel} testID="calendario-indisponivel">
             <Ionicons name="cloud-offline-outline" size={20} color={colors.textMuted} />
             <Text style={styles.indisponivelTitulo}>{t('calendario.unavailable.title')}</Text>
-            <Text style={styles.body}>{resultado.mensagem}</Text>
+            <Text style={styles.body}>
+              {resultado.mensagemKey ? t(resultado.mensagemKey) : resultado.mensagem}
+            </Text>
           </View>
         ) : eventos.length === 0 ? (
           <Text style={styles.note} testID="calendario-lista-vazia">
@@ -785,6 +799,9 @@ const styles = StyleSheet.create({
 
   body: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
   recibo: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  // O rótulo do recibo, agora traduzido — negrito só pra ele continuar sendo
+  // lido como rótulo e não como começo da frase.
+  reciboMarca: { color: colors.textMuted, fontWeight: '800' },
   note: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
   noteStrong: { color: colors.gold, fontSize: 12, lineHeight: 18, fontWeight: '700' },
   source: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },

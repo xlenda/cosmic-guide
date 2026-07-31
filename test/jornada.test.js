@@ -28,16 +28,30 @@ const path = require('node:path');
 // --- fake do AsyncStorage, injetado antes do módulo sob teste ---------------
 const mem = new Map();
 
+// O FAKE SABE QUEBRAR, e essa é a metade que faltava.
+//
+// O mock antigo SEMPRE funcionava, então o único cenário de falha coberto era
+// "o require do AsyncStorage estoura" — que na prática NUNCA acontece: o pacote
+// é dependência dura do package.json e resolve até em Node puro. Quem estoura é
+// a CHAMADA: S.getItem() joga "window is not defined" fora do runtime RN, e no
+// navegador localStorage pode jogar SecurityError (storage particionado, dentro
+// de iframe) ou QuotaExceededError. Era exatamente por aí que a Jornada perdia
+// o dia concluído em silêncio, com o teste verde.
+let storageQuebrado = false;
+
 const asyncStorageMock = {
   __esModule: true,
   default: {
     async getItem(k) {
+      if (storageQuebrado) throw new Error('SecurityError: storage access denied');
       return mem.has(k) ? mem.get(k) : null;
     },
     async setItem(k, v) {
+      if (storageQuebrado) throw new Error('QuotaExceededError');
       mem.set(k, String(v));
     },
     async removeItem(k) {
+      if (storageQuebrado) throw new Error('SecurityError: storage access denied');
       mem.delete(k);
     },
   },
@@ -50,6 +64,12 @@ Module._load = function (request, parent, isMain) {
 };
 
 const jornada = require('../lib/jornada.js');
+// A MESMA instância de lib/storage.js que lib/jornada.js acabou de carregar
+// (jornada veio primeiro, então o require aqui devolve o módulo já em cache).
+// Precisa ser a mesma: a flag `_semDisco` é de sessão de propósito, e um teste
+// que exercita o disco quebrado precisa poder baixá-la para os testes
+// seguintes.
+const storageLib = require('../lib/storage.js');
 const {
   TRILHAS,
   DATACOES,
@@ -87,6 +107,12 @@ const DIAS_SEGUIDOS = [DIA_1, DIA_2, DIA_3, DIA_4, DIA_5, DIA_6, DIA_7];
 
 function reset() {
   mem.clear();
+  // O ESPELHO DE MEMÓRIA TAMBÉM. lib/storage.js escreve em memória também no
+  // caminho feliz (pra que a primeira falha de escrita não perca o que a sessão
+  // já tinha), então limpar só o "disco" deixaria estado de um teste visível
+  // pro seguinte no momento em que o disco quebrasse. Zera a flag `_semDisco`
+  // junto.
+  storageLib._reiniciarStorageParaTestes();
 }
 
 // Avança uma trilha até `ate` dias, um por dia local, como o app real faria.
@@ -1090,13 +1116,64 @@ test('medalhas de jornada dependem de trilhas inteiras, não de dias soltos', as
 // 8. SEM AsyncStorage — degrada, não quebra
 // ===========================================================================
 
+// ---------------------------------------------------------------------------
+// O DISCO QUE ESTOURA NA CHAMADA — o caso real, e o que ele custava
+// ---------------------------------------------------------------------------
+// Este é o cenário que existe de verdade em produção, e era o único NÃO coberto:
+// o módulo do AsyncStorage carrega normalmente (é dependência dura, sempre
+// resolve) e é a CHAMADA que joga — "window is not defined" fora do runtime RN,
+// SecurityError num iframe com storage particionado, QuotaExceededError com o
+// disco cheio.
+//
+// O que acontecia antes de lib/storage.js existir: o fallback de memória morava
+// no ramo `if (!S)`, que é inalcançável, e o throw caía num catch vazio. Então
+// `concluirDia` devolvia ok:true, a tela chamava `recarregar()` logo em seguida
+// (JornadaScreen.js) e o estado voltava VAZIO — a medalha sumia na frente da
+// pessoa, sem erro nenhum em lugar nenhum.
+test('storage que ESTOURA na chamada não apaga o dia concluído (o fallback mora no catch)', async () => {
+  reset();
+  storageQuebrado = true;
+  try {
+    const r = await concluirDia('luaSeteDias', 1, DIA_1);
+    assert.equal(r.ok, true, 'concluirDia falhou por causa do storage — não é pra depender dele');
+    assert.deepEqual(r.progresso.diasConcluidos, [1]);
+
+    // A releitura é o ponto do teste: é ela que a tela faz logo depois.
+    const depois = await carregarJornada();
+    assert.deepEqual(
+      depois.trilhas.luaSeteDias.diasConcluidos,
+      [1],
+      'o dia concluído sumiu na releitura — é o bug de "concluí e sumiu", com ok:true e tudo'
+    );
+
+    // E o segundo passo continua barrado pela trava de um-por-dia, ou seja: o
+    // estado guardado em memória é o estado COMPLETO, não meia informação.
+    const doisNoMesmoDia = await concluirDia('luaSeteDias', 2, DIA_1);
+    assert.equal(doisNoMesmoDia.ok, false);
+    assert.equal(doisNoMesmoDia.motivo, 'jaFezHoje');
+
+    assert.equal(mem.size, 0, 'nada chegou ao disco — é exatamente o cenário sob teste');
+  } finally {
+    storageQuebrado = false;
+    storageLib._reiniciarStorageParaTestes();
+  }
+});
+
 test('sem AsyncStorage a Jornada continua funcionando na memória da sessão', async () => {
   // Recarrega o módulo com o require do AsyncStorage estourando, que é o que
   // acontece fora do app (web sem polyfill, script de build). O contrato é
   // degradar pra memória — nunca derrubar a tela.
+  //
+  // lib/storage.js entra no recarregamento JUNTO: é ele que memoriza o módulo
+  // do AsyncStorage na primeira chamada, e sem invalidá-lo a cópia nova de
+  // lib/jornada.js encontraria o mock BOM já resolvido — o teste passaria
+  // testando a coisa errada (mesma armadilha que o comentário abaixo descreve
+  // pro loader).
   reset();
   const chaveModulo = require.resolve('../lib/jornada.js');
+  const chaveStorage = require.resolve('../lib/storage.js');
   delete require.cache[chaveModulo];
+  delete require.cache[chaveStorage];
 
   const loadAnterior = Module._load;
   Module._load = function (request, parent, isMain) {
@@ -1128,7 +1205,10 @@ test('sem AsyncStorage a Jornada continua funcionando na memória da sessão', a
   // E não escreveu em storage nenhum — ficou tudo na memória do módulo.
   assert.equal(mem.size, 0, 'gravou no AsyncStorage mesmo com ele indisponível');
 
-  // Devolve o cache pro módulo original pra não contaminar quem rodar depois.
+  // Devolve o cache pros módulos originais pra não contaminar quem rodar
+  // depois. As referências que este arquivo já capturou no topo continuam
+  // apontando pras instâncias originais — que nunca viram o loader quebrado.
   delete require.cache[chaveModulo];
+  delete require.cache[chaveStorage];
   require('../lib/jornada.js');
 });

@@ -127,6 +127,48 @@ const LoginScreen = lazy(() => import('./screens/LoginScreen'));
 const TarotAlbumScreen = lazy(() => import('./screens/TarotAlbumScreen'));
 const MonthlyWrappedScreen = lazy(() => import('./screens/MonthlyWrappedScreen'));
 
+// ---------------------------------------------------------------------------
+// AS SEIS TELAS DE CASAL, JÁ EMBRULHADAS — no escopo do MÓDULO, nunca no corpo
+// de HomeStack()
+// ---------------------------------------------------------------------------
+// withFeatureGate() devolve uma função de componente NOVA a cada chamada
+// (components/FeatureGate.js — sem memo). Chamada dentro do corpo de
+// HomeStack(), o prop `component` mudava de identidade a cada render, o React
+// via um TIPO de elemento diferente e desmontava/remontava a tela. E HomeStack
+// re-renderiza quando o estado do Tab.Navigator muda — ou seja, trocar de aba
+// e voltar zerava estado interno e posição de scroll de Timeline, Reconectar,
+// Descobrir, Agir, Progresso e Retrospectiva, sem motivo nenhum. É o
+// anti-padrão que a doc do React Navigation nomeia ("don't define components
+// during render").
+//
+// Nada aqui depende de render: os títulos e descrições são strings PT literais,
+// nenhuma passa por t(). Então içar é mudança de zero comportamento — só some
+// o remount.
+const TimelineGated = withFeatureGate(TimelineScreen, {
+  title: 'Linha do Tempo é pra fazer em casal',
+  description: 'Guardem memórias e cápsulas do tempo juntos — chame seu par pra começarem a linha do tempo de vocês.',
+});
+const ReconectarGated = withFeatureGate(ReconectarScreen, {
+  title: 'Reconectar é pra fazer em casal',
+  description: 'Rotas guiadas de reconexão pro casal — chame seu par pra percorrerem juntos.',
+});
+const DescobrirGated = withFeatureGate(DescobrirScreen, {
+  title: 'Descobrir é pra fazer em casal',
+  description: 'Jogos e quizzes pra se conhecerem melhor — chame seu par pra jogarem juntos.',
+});
+const AgirGated = withFeatureGate(AgirScreen, {
+  title: 'Agir é pra fazer em casal',
+  description: 'Ideias de encontro e metas da semana pro casal — chame seu par pra colocarem em prática.',
+});
+const ProgressoGated = withFeatureGate(ProgressoScreen, {
+  title: 'Progresso é pra fazer em casal',
+  description: 'Acompanhem juntos a evolução da relação de vocês — chame seu par pra começarem.',
+});
+const RetrospectivaGated = withFeatureGate(RetrospectivaScreen, {
+  title: 'Retrospectiva é pra fazer em casal',
+  description: 'Revivam os melhores momentos de vocês juntos — chame seu par pra desbloquearem isso.',
+});
+
 function LoadingFallback() {
   return (
     <View style={styles.loader}>
@@ -138,6 +180,15 @@ function LoadingFallback() {
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// Só as rotas com `path` ganham URL própria na web (o app é servido pela Vercel
+// em cosmicguide.cloud/oddpro.pro). Sem path, abrir a tela não muda a URL: não
+// existe link compartilhável, e o Voltar do navegador SAI DO APP em vez de
+// voltar uma tela.
+//
+// As três telas novas entram aqui porque são justamente o tipo de conteúdo que
+// se manda pra alguém — o mês no Calendário Cósmico e um ritual específico. A
+// adição é puramente aditiva: nenhuma rota existente muda de path, e o estado
+// de navegação já salvo continua válido.
 const linking = {
   prefixes: ['https://cosmicguide.cloud/cosmic-guide', 'https://oddpro.pro/cosmic-guide'],
   config: {
@@ -146,6 +197,9 @@ const linking = {
         screens: {
           [ROUTES.HOME_MAIN]: '',
           [ROUTES.QUIZ]: 'quiz',
+          [ROUTES.CALENDARIO_COSMICO]: 'calendario',
+          [ROUTES.RITUAIS]: 'rituais',
+          [ROUTES.JORNADA]: 'jornada',
         },
       },
     },
@@ -263,48 +317,12 @@ function HomeStack() {
             funil web (aplicado na borda da rota). Timeline entrou aqui porque
             já era vendida como benefício da assinatura na PlanosScreen mas
             estava sem gate nenhum (achado real de auditoria, 25/07/2026). */}
-        <Stack.Screen
-          name={ROUTES.TIMELINE}
-          component={withFeatureGate(TimelineScreen, {
-            title: 'Linha do Tempo é pra fazer em casal',
-            description: 'Guardem memórias e cápsulas do tempo juntos — chame seu par pra começarem a linha do tempo de vocês.',
-          })}
-        />
-        <Stack.Screen
-          name={ROUTES.RECONECTAR}
-          component={withFeatureGate(ReconectarScreen, {
-            title: 'Reconectar é pra fazer em casal',
-            description: 'Rotas guiadas de reconexão pro casal — chame seu par pra percorrerem juntos.',
-          })}
-        />
-        <Stack.Screen
-          name={ROUTES.DESCOBRIR}
-          component={withFeatureGate(DescobrirScreen, {
-            title: 'Descobrir é pra fazer em casal',
-            description: 'Jogos e quizzes pra se conhecerem melhor — chame seu par pra jogarem juntos.',
-          })}
-        />
-        <Stack.Screen
-          name={ROUTES.AGIR}
-          component={withFeatureGate(AgirScreen, {
-            title: 'Agir é pra fazer em casal',
-            description: 'Ideias de encontro e metas da semana pro casal — chame seu par pra colocarem em prática.',
-          })}
-        />
-        <Stack.Screen
-          name={ROUTES.PROGRESSO}
-          component={withFeatureGate(ProgressoScreen, {
-            title: 'Progresso é pra fazer em casal',
-            description: 'Acompanhem juntos a evolução da relação de vocês — chame seu par pra começarem.',
-          })}
-        />
-        <Stack.Screen
-          name={ROUTES.RETROSPECTIVA}
-          component={withFeatureGate(RetrospectivaScreen, {
-            title: 'Retrospectiva é pra fazer em casal',
-            description: 'Revivam os melhores momentos de vocês juntos — chame seu par pra desbloquearem isso.',
-          })}
-        />
+        <Stack.Screen name={ROUTES.TIMELINE} component={TimelineGated} />
+        <Stack.Screen name={ROUTES.RECONECTAR} component={ReconectarGated} />
+        <Stack.Screen name={ROUTES.DESCOBRIR} component={DescobrirGated} />
+        <Stack.Screen name={ROUTES.AGIR} component={AgirGated} />
+        <Stack.Screen name={ROUTES.PROGRESSO} component={ProgressoGated} />
+        <Stack.Screen name={ROUTES.RETROSPECTIVA} component={RetrospectivaGated} />
         <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
         <Stack.Screen name={ROUTES.MONTHLY_WRAPPED} component={MonthlyWrappedScreen} />

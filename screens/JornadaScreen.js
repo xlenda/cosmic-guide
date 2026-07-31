@@ -592,8 +592,12 @@ export default function JornadaScreen() {
                     testID="jornada-acao"
                   >
                     <Ionicons name="arrow-forward" size={15} color={colors.teal} />
+                    {/* `rotulo` é CHAVE, não texto (lib/jornada.js seção 2) —
+                        por isso o t() duplo. Sem isso o botão em inglês lia
+                        "Open Diário Cósmico": nome de tela do próprio app
+                        interpolado cru dentro de frase traduzida. */}
                     <Text style={styles.secundarioTexto}>
-                      {t('jornada.acao.abrir', { feature: FEATURES[passo.acao.feature].rotulo })}
+                      {t('jornada.acao.abrir', { feature: t(FEATURES[passo.acao.feature].rotulo) })}
                     </Text>
                   </TouchableOpacity>
                 )}

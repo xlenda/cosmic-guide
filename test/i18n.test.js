@@ -35,6 +35,47 @@ test("nenhum idioma tem chave a mais que não existe no PT (dicionários não di
   }
 });
 
+// PARIDADE DE PLACEHOLDER — o buraco que faltava entre os dois testes acima.
+//
+// Os de cima garantem que a CHAVE existe nos três idiomas e que o valor não é
+// vazio. Nenhum olha DENTRO do valor. Um tradutor que escreva "Day {day} of
+// {total}" onde o PT tem "{dia}" passa nos cinco testes deste arquivo, e a tela
+// renderiza a chaveta literal — "{dia}" — na cara do usuário. É exatamente a
+// classe de falha silenciosa que o cabeçalho deste arquivo diz querer impedir:
+// nada quebra, nada dá erro, só fica ilegível pra quem não fala português.
+//
+// Hoje o dicionário está com ZERO divergências (conferido chave por chave), o
+// que quer dizer que este teste entra verde e sem custo de correção — o valor
+// dele é travar a regressão a partir de agora, mesmo espírito da asserção de
+// valor vazio logo acima.
+function placeholdersDe(valor) {
+  return new Set([...String(valor).matchAll(/\{(\w+)\}/g)].map((m) => m[1]));
+}
+
+test("cada chave usa os MESMOS placeholders nos três idiomas", () => {
+  const divergencias = [];
+  for (const [chave, ptValor] of Object.entries(_DICTS_FOR_TESTS.pt)) {
+    const esperados = placeholdersDe(ptValor);
+    for (const lang of LANGUAGES) {
+      if (lang === DEFAULT_LANGUAGE) continue;
+      const achados = placeholdersDe(_DICTS_FOR_TESTS[lang][chave]);
+      const faltando = [...esperados].filter((p) => !achados.has(p));
+      const sobrando = [...achados].filter((p) => !esperados.has(p));
+      if (faltando.length || sobrando.length) {
+        divergencias.push(
+          `${lang}/${chave}: falta {${faltando.join("}, {")}} · sobra {${sobrando.join("}, {")}}`
+        );
+      }
+    }
+  }
+  assert.deepEqual(
+    divergencias,
+    [],
+    `${divergencias.length} chave(s) com placeholder diferente do PT — a tela imprime a ` +
+      `chaveta crua pro usuário:\n  ` + divergencias.join("\n  ")
+  );
+});
+
 test("interpolação de variáveis funciona em todos os idiomas", () => {
   for (const lang of LANGUAGES) {
     const value = translate(lang, "home.greetingCouple", { voce: "Ana", amor: "Léo" });

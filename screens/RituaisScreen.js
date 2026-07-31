@@ -19,14 +19,31 @@
 // lastro do fim.
 //
 // ---------------------------------------------------------------------------
-// O AVISO ÉTICO — por que ele é PINNED e não um parágrafo no rodapé
+// O AVISO ÉTICO — uma cópia só, e ela NÃO abre a tela
 // ---------------------------------------------------------------------------
-// A ordem do dono é "aparece em todo ritual, literal, e nunca some". Aviso que
-// mora no fim de um ScrollView some no primeiro dedo — então ele vive FORA do
-// ScrollView, colado embaixo do cabeçalho, em TODOS os estados da tela (hoje,
-// categoria, detalhe). Não é possível ver um ritual nesta tela sem ele na tela
-// junto. Além disso ele aparece, byte a byte, dentro de CUIDADOS E ÉTICA de
-// cada ritual e no texto de compartilhar (lib/rituais.js já cola os dois).
+// ISTO MUDOU EM 31/07/2026, e as duas mudanças andam juntas.
+//
+// ANTES: o aviso vivia numa barra PINNED fora do ScrollView, colada embaixo do
+// cabeçalho, visível em todos os estados. Dois problemas concretos:
+//
+//   1. A TELA ABRIA EM RESSALVA. Das três telas novas, Rituais era a única sem
+//      intro — Jornada tem 'jornada.intro' e Calendário tem 'calendario.intro'.
+//      O primeiro texto corrido depois do cabeçalho era "Antes de qualquer
+//      ritual" seguido do disclaimer. Isso é o oposto da regra do app (prende
+//      primeiro, fonte depois): o gancho bom já existia e estava logo abaixo,
+//      empurrado pra segundo lugar — a linha da fase da Lua com o dia da semana
+//      e o que casa com hoje.
+//   2. AVISO EM DOSE DUPLA. Na visão de detalhe a MESMA sentença aparecia duas
+//      vezes ao mesmo tempo: na barra pinned (que nunca some) e dentro da caixa
+//      de CUIDADOS E ÉTICA. O split de dois pedaços descrito abaixo resolvia a
+//      adjacência DENTRO do campo, mas não impedia a segunda cópia vinda de
+//      cima.
+//
+// AGORA: a tela abre na vida real de hoje — 'rituais.intro' e, logo em seguida,
+// a fase + o dia da semana com os rituais que casam. O aviso continua garantido
+// onde ele de fato importa e onde o teste o exige: dentro do campo CUIDADOS E
+// ÉTICA de cada ritual (é ele que fecha `cuidados`, byte a byte) e no texto de
+// compartilhar. Uma cópia por vez, nunca duas.
 //
 // A constante vem de lib/rituais.js e NÃO passa por t(): o cabeçalho de lá diz
 // "não reescreva, não melhore, não traduza sem o dono", e o teste confere a
@@ -68,14 +85,20 @@
 // i18n — o que é traduzido e o que não é
 // ---------------------------------------------------------------------------
 // O chrome desta tela tem chave nos três idiomas (bloco RITUAIS_I18N no fim de
-// lib/i18n.js). O CONTEÚDO dos rituais (título, os cinco campos, categorias,
-// lastro) vem de lib/rituais.js e está em português nos três — é o MESMO gap
-// conhecido e declarado de lib/synastry.js e lib/jornada.js, com o caminho de
-// migração escrito no topo de lib/rituais.js (helpers de chave montada). Não é
-// esquecimento, e a tela não reescreve nada pra disfarçar.
+// lib/i18n.js). A TAXONOMIA (nome/descrição das 7 categorias, nome do dia,
+// planeta do dia, nome da fase) também já tem — ela foi a primeira parcela da
+// migração de lib/rituais.js, e veio primeiro porque essas strings entram
+// INTERPOLADAS dentro de frase traduzida: 'rituais.today.dayOnly' em inglês é
+// "{dia}, day of {planeta}" e saía "segunda-feira, day of Lua". Por isso esta
+// tela nunca lê `.nome` cru — sempre pelos helpers nomeDaCategoria/nomeDoDia/
+// nomeDaFase/nomeDoPlaneta, com o `t` do contexto.
+//
+// O que AINDA está em português nos três idiomas: título e os cinco campos dos
+// 21 rituais, e os três blocos de lastro. É o gap declarado no topo de
+// lib/rituais.js, com o resto do caminho escrito lá. Não é esquecimento, e a
+// tela não reescreve nada pra disfarçar.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
@@ -88,6 +111,13 @@ import {
   AVISO_ETICO,
   CATEGORIAS,
   LASTRO_MOMENTO_IDEAL,
+  descricaoDaCategoria,
+  lerRitualLivre,
+  marcarRitualLivre,
+  nomeDaCategoria,
+  nomeDaFase,
+  nomeDoDia,
+  nomeDoPlaneta,
   recibo,
   resumoDoMomento,
   rituaisDeHoje,
@@ -97,9 +127,11 @@ import {
 } from '../lib/rituais';
 
 const FEATURE_KEY = 'rituais';
-// Qual ritual gastou o uso grátis. Fica ao lado da marca padrão de
-// lib/featureUsage.js, nunca no lugar dela.
-const RITUAL_LIVRE_KEY = 'cosmic-ritual-livre';
+// QUAL ritual gastou o uso grátis mora em lib/rituais.js (lerRitualLivre/
+// marcarRitualLivre), não aqui. Era a única regra de negócio que decide se o
+// paywall desta tela abre, e ela ficava numa tela que o node:test não consegue
+// importar — ou seja, fora de qualquer teste. A marca PADRÃO de uso gasto
+// continua sendo a de lib/featureUsage.js, ao lado, nunca no lugar dela.
 
 function Section({ title, children, defaultOpen = false }) {
   const { t } = useLanguage();
@@ -127,7 +159,7 @@ function Section({ title, children, defaultOpen = false }) {
 // "combina com você" aqui seria promessa.
 function CardRitual({ ritual, onPress, bloqueado }) {
   const { t } = useLanguage();
-  const momento = resumoDoMomento(ritual);
+  const momento = resumoDoMomento(ritual, t);
   return (
     <TouchableOpacity
       style={styles.card}
@@ -180,13 +212,13 @@ export default function RituaisScreen() {
     let vivo = true;
     (async () => {
       const gasto = await hasUsedFeatureOnce(FEATURE_KEY);
-      let livre = null;
-      try {
-        livre = await AsyncStorage.getItem(RITUAL_LIVRE_KEY);
-      } catch {}
+      // lerRitualLivre() nunca lança e já devolve null pra id que não existe
+      // mais no catálogo — o try/catch que morava aqui virou responsabilidade
+      // do motor, onde dá pra testar.
+      const livre = await lerRitualLivre();
       if (!vivo) return;
       setUsoGasto(gasto);
-      setRitualLivreId(livre || null);
+      setRitualLivreId(livre);
       setPronto(true);
     })();
     return () => {
@@ -223,7 +255,11 @@ export default function RituaisScreen() {
       setUsoGasto(true);
       setRitualLivreId(id);
       markFeatureUsedOnce(FEATURE_KEY);
-      AsyncStorage.setItem(RITUAL_LIVRE_KEY, id).catch(() => {});
+      // marcarRitualLivre trata a falha por dentro (lib/storage.js cai pra
+      // memória de sessão em vez de perder a marca): mesmo com o disco fora do
+      // ar, a pessoa não reabre a tela com outro ritual grátis dentro da mesma
+      // sessão.
+      marcarRitualLivre(id);
     }
     setRecado(null);
     setRitualId(id);
@@ -255,7 +291,10 @@ export default function RituaisScreen() {
   // clipboard do navegador — API do próprio navegador, sem dependência nova
   // (expo-clipboard não está no package.json, e no nativo esse caminho não roda).
   async function compartilhar(r) {
-    const texto = textoCompartilhavel(r);
+    // `t` vai junto: este é o único artefato desta tela que sai do app e
+    // circula em público, e sem ele um usuário EN/ES publicava um texto em
+    // português com o nome da marca colado.
+    const texto = textoCompartilhavel(r, t);
     if (!texto) return;
     setRecado(null);
     const temFolhaWeb =
@@ -285,7 +324,11 @@ export default function RituaisScreen() {
     return <OneTimeLock featureTitle={t('rituais.title')} gradient={gradients.purple} />;
   }
 
-  const subtitulo = ritual ? ritual.titulo : categoria ? categoria.nome : t('rituais.subtitle');
+  const subtitulo = ritual
+    ? ritual.titulo
+    : categoria
+    ? nomeDaCategoria(categoria, t)
+    : t('rituais.subtitle');
 
   return (
     <View style={styles.root}>
@@ -295,16 +338,6 @@ export default function RituaisScreen() {
         onBack={voltar}
         gradient={gradients.purple}
       />
-
-      {/* FORA do ScrollView de propósito: em qualquer estado desta tela o aviso
-          está na tela, e o dedo não faz ele sumir. */}
-      <View style={styles.avisoFixo} testID="rituais-aviso">
-        <Ionicons name="hand-left" size={16} color={colors.gold} />
-        <View style={styles.avisoFixoTexto}>
-          <Text style={styles.avisoLabel}>{t('rituais.aviso.label')}</Text>
-          <Text style={styles.avisoTexto}>{AVISO_ETICO}</Text>
-        </View>
-      </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {ritual ? (
@@ -327,18 +360,25 @@ export default function RituaisScreen() {
               // 1. RITUAIS DE HOJE — o motivo de voltar amanhã
               // -------------------------------------------------------------
               <View testID="rituais-hoje">
+                {/* A PRIMEIRA COISA QUE A PESSOA LÊ. Era o disclaimer; agora é
+                    o gancho, no mesmo padrão de 'jornada.intro' e
+                    'calendario.intro'. Prende primeiro, fonte depois. */}
+                <Text style={styles.intro}>{t('rituais.intro')}</Text>
                 <Text style={styles.groupLabel}>{t('rituais.today.title')}</Text>
+                {/* fase, dia e planeta saem pelos helpers de lib/rituais.js: os
+                    três entram DENTRO de uma frase traduzida, e ler `.nome` cru
+                    aqui é o que produzia "segunda-feira, day of Lua". */}
                 <Text style={styles.hojeLinha}>
                   {hoje.ceuDisponivel
                     ? t('rituais.today.sky', {
                         emoji: hoje.emojiLua || '',
-                        fase: hoje.faseLua,
-                        dia: hoje.diaNome,
-                        planeta: hoje.planetaDoDia,
+                        fase: nomeDaFase(hoje.faseLua, t),
+                        dia: nomeDoDia(hoje.diaSemana, t),
+                        planeta: nomeDoPlaneta(hoje.diaSemana, t),
                       })
                     : t('rituais.today.dayOnly', {
-                        dia: hoje.diaNome,
-                        planeta: hoje.planetaDoDia,
+                        dia: nomeDoDia(hoje.diaSemana, t),
+                        planeta: nomeDoPlaneta(hoje.diaSemana, t),
                       })}
                 </Text>
                 {/* NUNCA FABRICA: sem efeméride, lib/rituais.js devolve
@@ -399,7 +439,9 @@ export default function RituaisScreen() {
                     accessibilityState={{ selected: ativa }}
                     testID={`rituais-cat-${c.id}`}
                   >
-                    <Text style={[styles.chipText, ativa && styles.chipTextAtivo]}>{c.nome}</Text>
+                    <Text style={[styles.chipText, ativa && styles.chipTextAtivo]}>
+                      {nomeDaCategoria(c, t)}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -411,7 +453,7 @@ export default function RituaisScreen() {
             --------------------------------------------------------------- */}
             {categoria ? (
               <View testID="rituais-lista">
-                <Text style={styles.body}>{categoria.descricao}</Text>
+                <Text style={styles.body}>{descricaoDaCategoria(categoria, t)}</Text>
                 <Text style={styles.subLabel}>
                   {t('rituais.category.count', { n: rituaisPorCategoria(categoria.id).length })}
                 </Text>
@@ -475,7 +517,7 @@ export default function RituaisScreen() {
 function DetalheRitual({ ritual, recado, onShare, onVoltar }) {
   const { t } = useLanguage();
   const categoria = CATEGORIAS.find((c) => c.id === ritual.categoria);
-  const momento = resumoDoMomento(ritual);
+  const momento = resumoDoMomento(ritual, t);
   const fontes = recibo(ritual.fontes);
 
   // O aviso ético é o FIM literal de `cuidados` (lib/rituais.js cola nos dois
@@ -488,7 +530,9 @@ function DetalheRitual({ ritual, recado, onShare, onVoltar }) {
   return (
     <View testID="rituais-detalhe">
       <View style={styles.detalheTopo}>
-        <Text style={styles.detalheCategoria}>{categoria ? categoria.nome : ritual.categoria}</Text>
+        <Text style={styles.detalheCategoria}>
+          {categoria ? nomeDaCategoria(categoria, t) : ritual.categoria}
+        </Text>
         <Text style={styles.detalheTitulo}>{ritual.titulo}</Text>
         {momento ? <Text style={styles.cardMomento}>{momento}</Text> : null}
       </View>
@@ -589,24 +633,11 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 20, paddingBottom: 48, gap: 12 },
 
-  avisoFixo: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(255,200,92,0.10)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,200,92,0.35)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  avisoFixoTexto: { flex: 1, gap: 2 },
-  avisoLabel: {
-    color: colors.gold,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
+  // A linha de gancho que abre a tela — mesma altitude de 'jornada.intro' e
+  // 'calendario.intro'. (Os estilos avisoFixo/avisoFixoTexto/avisoLabel saíram
+  // junto com a barra pinned: estilo órfão é como um arquivo de tela chega a
+  // quinze formatos de card diferentes.)
+  intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginBottom: 2 },
   avisoTexto: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
   avisoCaixa: {
     backgroundColor: 'rgba(255,200,92,0.10)',
