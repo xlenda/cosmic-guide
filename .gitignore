@@ -34,3 +34,6 @@ nav-debug*.js
 # Sondas temporárias que agentes criam pra medir/depurar (zzprobe, zzbg,
 # zzstress...) — nunca são fonte, e já entraram em commit sem querer.
 test/zz*.js
+
+# Scripts de medição que agentes deixam pra trás
+scratch_*.js
