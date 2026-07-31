@@ -387,8 +387,23 @@ test("todo preset de frequência declara que é tradição, nunca fato", () => {
   for (const hz of [396, 417, 528, 639, 741, 852]) {
     assert.ok(frequencias.some((p) => p.baseHz === hz), `faltou o preset de ${hz} Hz`);
   }
-  assert.match(AVISO_PRESETS, /sem confirmação científica/i);
-  assert.match(AVISO_PRESETS, /sem qualquer promessa de efeito/i);
+  // O QUE ESTE GUARDA EXIGE MUDOU EM 31/07/2026, e a razão importa.
+  //
+  // Antes ele pedia as frases "sem confirmação científica" e "sem qualquer
+  // promessa de efeito". O dono removeu esse tipo de aviso do app inteiro
+  // ("não quero avisando que não dá resultado") — e ele tem razão de produto:
+  // o app pedia desculpa por existir em cima de um player de música.
+  //
+  // Mas o PROPÓSITO do guarda continua valendo, e é aqui que ele mais importa:
+  // Solfeggio é justamente o que o mercado vende como cura. O que impede o
+  // app de virar isso não é negar efeito em voz alta — é DATAR. "Proposta em
+  // 1974, não é notação medieval" já diz ao leitor que a coisa não é
+  // estabelecida, e ainda informa em vez de só negar. É mais forte: quem lê
+  // "sem confirmação científica" ignora; quem lê "1974" entende sozinho.
+  //
+  // Então o guarda passou a exigir a DATAÇÃO, que é o que carrega a honestidade.
+  assert.match(AVISO_PRESETS, /1974|anos 1970/i, 'o aviso precisa DATAR a numeração Solfeggio — é a datação que impede a leitura de "cura milenar"');
+  assert.match(AVISO_PRESETS, /não é notação medieval|nao e notacao medieval/i, 'o aviso precisa negar explicitamente a origem medieval, que é a lenda que o mercado vende');
 });
 
 test("o preset padrão é o céu de hoje, e ele não tem frequência fixa", () => {
@@ -483,15 +498,18 @@ test("na tela, frequência é sempre atribuída à tradição — e a tradição
     // E o aviso que acompanha toda frequência na tela.
     const aviso = dict["sound.disclaimer"];
     assert.ok(aviso, `falta sound.disclaimer em ${lang}`);
+    // Mesma troca explicada no guarda de AVISO_PRESETS: o aviso parou de NEGAR
+    // efeito e passou a DATAR a origem, que é o que de fato impede a leitura de
+    // "escala de cura ancestral". Nos três idiomas.
     assert.match(
       aviso,
-      /sem confirmação científica|sin confirmación científica|no scientific backing/i,
-      `${lang}/sound.disclaimer não nega respaldo científico: "${aviso}"`
+      /1974|19\s?70/,
+      `${lang}/sound.disclaimer sem a data da numeração Solfeggio: "${aviso}"`
     );
     assert.match(
       aviso,
-      /promessa|promesa|promise/i,
-      `${lang}/sound.disclaimer não nega promessa de efeito: "${aviso}"`
+      /medieval/i,
+      `${lang}/sound.disclaimer não nega a origem medieval, que é a lenda vendida por aí: "${aviso}"`
     );
   }
 });
