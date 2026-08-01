@@ -34,6 +34,10 @@ export const ROUTES = {
   COMO_VOCE_TA: 'ComoVoceTa',
   QUIZ_COSMICO: 'QuizCosmico',
   WALLPAPER: 'Wallpaper',
+  // A Idade Real de Cada Coisa — a tabela de 30 datacoes do doc 10 §13. A base
+  // chama de "a peca mais compartilhavel que este app pode ter", e e conteudo
+  // puro: zero efemeride, zero dependencia de hora ou cidade.
+  IDADE_REAL: 'IdadeReal',
   COFFEE: 'Coffee',
   COMPATIBILITY: 'Compatibility',
   QUIZ: 'Quiz',

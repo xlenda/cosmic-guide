@@ -124,6 +124,9 @@ const JornadaScreen = lazy(() => import('./screens/JornadaScreen'));
 // QuizCosmicoScreen as 40 perguntas (lib/quizCosmico.js) — quem nunca abre não
 // paga esse peso no parse inicial do bundle.
 const MitosScreen = lazy(() => import('./screens/MitosScreen'));
+// A Idade Real de Cada Coisa — 30 datacoes navegaveis. Lazy pelo mesmo motivo
+// das outras telas de conteudo: quem nunca abrir nao paga o parse.
+const IdadeRealScreen = lazy(() => import('./screens/IdadeRealScreen'));
 const ComoVoceTaScreen = lazy(() => import('./screens/ComoVoceTaScreen'));
 const QuizCosmicoScreen = lazy(() => import('./screens/QuizCosmicoScreen'));
 const WallpaperScreen = lazy(() => import('./screens/WallpaperScreen'));
@@ -328,6 +331,7 @@ function HomeStack() {
             tela (mesma razão de Rituais/Jornada logo acima). ComoVoceTa navega
             pra telas DESTA stack (e pro Tarô via aba pai, como Jornada faz). */}
         <Stack.Screen name={ROUTES.MITOS} component={MitosScreen} />
+        <Stack.Screen name={ROUTES.IDADE_REAL} component={IdadeRealScreen} />
         <Stack.Screen name={ROUTES.COMO_VOCE_TA} component={ComoVoceTaScreen} />
         <Stack.Screen name={ROUTES.QUIZ_COSMICO} component={QuizCosmicoScreen} />
         <Stack.Screen name={ROUTES.WALLPAPER} component={WallpaperScreen} />

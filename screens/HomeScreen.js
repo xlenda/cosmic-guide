@@ -531,6 +531,11 @@ export default function HomeScreen() {
     { key: 'quizcosmico', title: t('home.card.quizcosmico.title'), subtitle: t('home.card.quizcosmico.subtitle'), icon: 'help-circle', gradient: ['#5CA8FF', '#B57BFF'], onPress: () => navigation.navigate(ROUTES.QUIZ_COSMICO) },
     // Papel de Parede: o PNG do céu de hoje — ícone de imagem.
     { key: 'wallpaper', title: t('home.card.wallpaper.title'), subtitle: t('home.card.wallpaper.subtitle'), icon: 'image', gradient: ['#7B3FB5', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.WALLPAPER) },
+    // A Idade Real de Cada Coisa: as 30 datacoes do doc 10. Fica COLADA em
+    // Mitos de proposito — sao as duas telas que corrigem o que o mercado
+    // repete, e quem gostou de uma quer a outra. Icone de ampulheta porque a
+    // tela inteira e sobre IDADE, nao sobre fonte.
+    { key: 'idadereal', title: t('home.card.idadereal.title'), subtitle: t('home.card.idadereal.subtitle'), icon: 'hourglass', gradient: ['#FF7BD5', '#FFB84D'], onPress: () => navigation.navigate(ROUTES.IDADE_REAL) },
   ];
   // Diário Cósmico saiu do grid — vira uma faixa inteira fixa no topo (ver
   // abaixo, logo depois do HeroSection), sempre visível em vez de ser só

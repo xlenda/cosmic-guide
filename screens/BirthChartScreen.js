@@ -14,6 +14,16 @@ import { offsetHoursFor, formatOffset } from '../lib/timezone';
 import { getBirthData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
+// Seita (mapa diurno x noturno) — doutrina helenistica com fonte dupla
+// verbatim (Ptolomeu I.7 + Valente I.1). Entra AQUI, dentro do Mapa Astral,
+// porque e onde a pessoa ja esta lendo planeta: seita nao e uma leitura a
+// parte, e uma camada que muda como cada planeta se le.
+import { seitaDoMapa } from '../lib/seita';
+// Profeccoes anuais — a tecnica preditiva mais bem documentada da tradicao
+// helenistica, e que praticamente nenhum app popular tem. Precisa APENAS da
+// data de nascimento (fica melhor com hora), entao entrega valor pra quem so
+// preencheu o minimo — ao contrario da Seita, que exige hora e cidade.
+import { profeccaoAnual } from '../lib/profeccoes';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { saveSoloBirthMirror, readSecureItemWithMirror, writeSecureItemWithMirror } from '../lib/birthData';
@@ -59,7 +69,7 @@ function displaySign(name) {
 // existia continua idêntico ao que ele viu ontem. Por que isso importa: o
 // Brasil teve horário de verão até 2019, e varrendo um dia de janeiro em São
 // Paulo, 120 de 240 combinações data×hora MUDAM DE SIGNO entre -3 e -2.
-function buildChart(date, time, city) {
+function buildChart(date, time, city, lang = 'pt') {
   if (!date) return null;
   const sun = displaySign(signoFromDate(date));
   // 3º argumento = a cidade, pelo mesmo motivo do 5º do Ascendente: sem ele,
@@ -73,7 +83,13 @@ function buildChart(date, time, city) {
   const housesList = time && city ? houses(date, time, city.lat, city.lon, city) : null;
   const aspectsList = aspects(date, time, city || undefined);
   const astro = time && city ? astrocartographyCities(date, time, city) : null;
-  return { date, time, city, sun, moon, asc, housesList, aspectsList, astro, zone: describeZone(city, date, time) };
+  // A seita depende de hora + cidade (precisa do Sol em relacao ao horizonte),
+  // e o proprio motor declara o que falta quando nao da — nunca chuta.
+  const seita = seitaDoMapa(date, time, city || undefined, lang);
+  // So a data basta: a profeccao anda um signo por ano de vida a partir do
+  // ascendente (ou do Sol, quando nao ha hora — o motor declara qual usou).
+  const profeccao = profeccaoAnual(date, new Date(), lang);
+  return { date, time, city, sun, moon, asc, housesList, aspectsList, astro, seita, profeccao, zone: describeZone(city, date, time) };
 }
 
 // Qual fuso foi REALMENTE aplicado — pra mostrar na tela. Sem isso, quem
@@ -182,6 +198,36 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
         </View>
       ))}
       {!chart.asc && <FixNatalDataCTA isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />}
+
+      {/* SEITA — logo depois dos planetas e ANTES das casas, de proposito: ela
+          e a chave de leitura de tudo que veio acima (Ptolomeu I.7 e Valente
+          I.1 dizem quais planetas ganham forca de dia e quais de noite), entao
+          precisa aparecer enquanto Sol/Lua/Ascendente ainda estao na memoria
+          de quem le. So renderiza quando o motor tem os dados — sem hora ele
+          declara indisponivel e a FixNatalDataCTA logo acima ja pede o que
+          falta, sem repetir o pedido duas vezes na mesma tela. */}
+      {chart.seita && chart.seita.disponivel && (
+        <View style={styles.seitaCard}>
+          <Text style={styles.seitaTitulo}>{chart.seita.seitaMapa}</Text>
+          <Text style={styles.seitaTexto}>{chart.seita.chamada}</Text>
+          {!!chart.seita.explicacao && <Text style={styles.seitaTexto}>{chart.seita.explicacao}</Text>}
+          {/* A fonte fica DEPOIS e menor — prende primeiro, recibo depois. */}
+          {!!chart.seita.fonte && <Text style={styles.seitaRecibo}>{chart.seita.fonte}</Text>}
+        </View>
+      )}
+
+      {/* PROFECCOES — o ano em que a pessoa esta. Vem depois da seita e ainda
+          antes das casas: e a unica coisa da tela que fala do AGORA, e o resto
+          do Mapa e retrato de nascimento. Renderiza mesmo sem hora, com o
+          motor declarando a precisao que conseguiu. */}
+      {chart.profeccao && chart.profeccao.disponivel && (
+        <View style={styles.seitaCard}>
+          <Text style={styles.seitaTitulo}>{chart.profeccao.titulo}</Text>
+          <Text style={styles.seitaTexto}>{chart.profeccao.texto}</Text>
+          {!!chart.profeccao.detalhe && <Text style={styles.seitaTexto}>{chart.profeccao.detalhe}</Text>}
+          {!!chart.profeccao.fonte && <Text style={styles.seitaRecibo}>{chart.profeccao.fonte}</Text>}
+        </View>
+      )}
 
       <HousesSection housesList={chart.housesList} isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
       <AspectsSection aspectsList={chart.aspectsList} />
@@ -309,7 +355,11 @@ function AstroCartographySection({ astro, isCouple, onFixTime, onFixCity }) {
 
 export default function BirthChartScreen() {
   const navigation = useNavigation();
-  const { t } = useLanguage();
+  // `lang` alimenta buildChart, que passa adiante pra seitaDoMapa e
+  // profeccaoAnual — os dois motores novos desta tela. Sem isso eles cairiam
+  // no default 'pt' e a tela ficaria bilingue, que e exatamente o defeito que
+  // a auditoria achou em sete telas hoje.
+  const { t, lang } = useLanguage();
   const { coupleData, loading: coupleLoading, hasAccess, accessConfirmed } = useCouple();
   const isCouple = !!coupleData;
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
@@ -470,8 +520,8 @@ export default function BirthChartScreen() {
 
   const selectedBirth = person === 'voce' ? birthData?.birthA : birthData?.birthB;
   const selectedCity = person === 'voce' ? cities.voce : cities.amor;
-  const coupleChart = selectedBirth?.date ? buildChart(selectedBirth.date, selectedBirth.time, selectedCity) : null;
-  const soloChart = soloBirth?.date ? buildChart(soloBirth.date, soloBirth.time, soloBirth.city) : null;
+  const coupleChart = selectedBirth?.date ? buildChart(selectedBirth.date, selectedBirth.time, selectedCity, lang) : null;
+  const soloChart = soloBirth?.date ? buildChart(soloBirth.date, soloBirth.time, soloBirth.city, lang) : null;
 
   // Marca o uso assim que QUALQUER UM dos dois mapas (casal ou solo) existe de
   // verdade — cobre tanto o caminho solo (logo depois de generateSolo() gravar
@@ -655,6 +705,20 @@ export default function BirthChartScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Seita — cartao de LEITURA (superficie lisa, sem gradiente), no padrao dos
+  // outros blocos de conteudo do Mapa. Borda dourada discreta porque e a
+  // camada que reenquadra tudo acima dela, nao mais um item da lista.
+  seitaCard: {
+    marginHorizontal: 16, marginTop: 8, marginBottom: 14, padding: 16,
+    backgroundColor: colors.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.gold + '44',
+  },
+  seitaTitulo: {
+    color: colors.gold, fontSize: 12, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
+  },
+  seitaTexto: { color: colors.text, fontSize: 14, lineHeight: 21, marginBottom: 8 },
+  seitaRecibo: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 2 },
   root: { flex: 1, backgroundColor: colors.background },
   formCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: colors.border },
   formTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 14 },

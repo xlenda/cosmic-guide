@@ -101,6 +101,12 @@ import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { useLanguage } from '../context/LanguageContext';
+// Lua Fora de Curso (kenodromia) — a utilidade diaria que o concorrente
+// "Ajuda do Ceu" anuncia como produto principal. Aqui ela entra COM a
+// divergencia das fontes: Antioco de Atenas (sec. II) e Porfirio (sec. III)
+// definem o estado de formas diferentes, e o motor calcula as DUAS. O
+// concorrente da um veredito seco; nos damos o veredito e de onde ele vem.
+import { luaForaDeCurso } from '../lib/luaForaDeCurso';
 import { useCouple } from '../context/CoupleContext';
 import { funnel } from '../lib/funnel';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
@@ -440,6 +446,17 @@ export default function CalendarioCosmicoScreen() {
   const rotuloMes = t('calendario.monthLabel', { mes: t(MES_KEYS[mes - 1]), ano });
   const emojiTemporada = temporada ? (signByName(temporada.signo) || {}).emoji : null;
 
+  // Lua Fora de Curso de AGORA. Depende do dia local e do idioma; o motor
+  // devolve disponivel:false sem efemeride e a tela simplesmente nao renderiza
+  // — nunca chuta um estado que muda de hora em hora.
+  const vocEstado = useMemo(() => {
+    try {
+      return luaForaDeCurso(new Date(), lang);
+    } catch {
+      return null;
+    }
+  }, [lang, hojeISO]);
+
   return (
     <View style={styles.root}>
       <GradientHeader
@@ -622,6 +639,22 @@ export default function CalendarioCosmicoScreen() {
                   })}
             </Text>
             <Text style={styles.body}>{t('calendario.season.note')}</Text>
+          </View>
+        ) : null}
+
+        {/* ---- Lua Fora de Curso: o estado de AGORA ---- */}
+        {vocEstado && vocEstado.disponivel ? (
+          <View style={styles.temporada} testID="calendario-voc">
+            <Text style={styles.kicker}>{vocEstado.termo}</Text>
+            <Text style={styles.body}>{vocEstado.textos.abertura}</Text>
+            {!!vocEstado.textos.estado && <Text style={styles.body}>{vocEstado.textos.estado}</Text>}
+            {/* A divergencia so aparece quando as duas reguas DISCORDAM — e
+                nesse dia ela e a informacao mais interessante da tela, nao
+                uma nota de rodape. */}
+            {vocEstado.divergem && !!vocEstado.textos.divergencia && (
+              <Text style={styles.body}>{vocEstado.textos.divergencia}</Text>
+            )}
+            {!!vocEstado.textos.recibo && <Text style={styles.temporadaQuando}>{vocEstado.textos.recibo}</Text>}
           </View>
         ) : null}
 
