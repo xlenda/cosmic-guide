@@ -1,8 +1,11 @@
-# Estado do Cosmic Guide — 01/08/2026
+# Estado do Cosmic Guide — 01/08/2026 (atualizado)
 
 > Escrito para uma sessão nova continuar sem reler dois dias de conversa.
-> **Tudo commitado, no GitHub e NO AR** (`46dca19`). 1.081 testes, 1.081 passando.
+> **Tudo commitado e NO AR** (`764a19d`). **1.385 testes, 1.385 passando.**
 > **Auditoria: 42 bugs confirmados, 42 consertados.**
+>
+> **Última entrega:** as dez features de tradição que estavam na gaveta agora
+> têm tela. Nenhum módulo de `lib/` continua órfão.
 
 ---
 
@@ -58,14 +61,29 @@ esquecido no chrome de uma tela. Existe `nomeDoSigno(nome, lang)` em
 `lib/synastry.js` e `traduzirQuando/traduzirAutor` em `lib/traducoes/datacao.js`
 — use-os em vez de criar tabela nova.
 
-### 2. Integrar as 4 features do doc 16 — **construídas e sem rota**
-`lib/seita.js`, `lib/idadeReal.js` (+ `screens/IdadeRealScreen.js`),
-`lib/luaForaDeCurso.js`, `lib/profeccoes.js` — todas com packs nos 3 idiomas e
-testes passando. Falta: rota em `routes.js`, `<Stack.Screen>` lazy em `App.js`,
-chaves de chrome em `lib/i18n.js` e entrada no grid da Home.
+### 2. ~~Integrar as features construídas e sem rota~~ — **FEITO, 10 de 10**
 
-**Regra dura:** NÃO criar card novo solto na Home. O dono tirou dois de lá
-("fica perdido no meio"); as features entram no **grid**.
+Nenhum módulo de `lib/` continua órfão. Onde cada uma foi parar:
+
+| Feature | Onde vive |
+|---|---|
+| Profecções (Ptolomeu IV.10) | **tela nova** + card no grid, ao lado de Idade Real |
+| Como este app decide | **tela nova**, no menu do Perfil (é método, não consulta) |
+| Seita (diurno/noturno) | seção dentro do **Mapa Astral** |
+| Lua Fora de Curso | **Calendário Lunar**, com as duas réguas nomeadas |
+| Artemidoro (5 espécies) | **Sonhos**, antes da interpretação |
+| Quatro notas de Waite | **Tarô**, entre escolher o tema e tirar |
+| História do tarô + decanato | dentro do **Álbum das 78** |
+| Melotesia dupla | **Homem Zodiacal** (Manílio + Sefer lado a lado) |
+| Aplicativo × separativo | **Calendário Cósmico** + "Céu de hoje" da Home |
+
+**Regra dura mantida:** NÃO criar card novo solto na Home. O dono tirou dois de
+lá ("fica perdido no meio"); as features entram no **grid**.
+
+**Dívida deliberada (não bloqueia nada):** seis módulos ainda não exportam
+`chromeDaTela(lang)`, então a tela importa os três packs e repete o
+`packDoIdioma` do motor em ~5 linhas comentadas. Cada tela diz no cabeçalho
+exatamente como consolidar quando alguém encostar no motor. Só arrumação.
 
 ### 3. Pendências que são do dono, não do código
 - **Importar as cidades no servidor** — sem isso quem mora fora das capitais não
