@@ -66,7 +66,14 @@ const VARIANTES = {
   },
 };
 
-export default function OneTimeLock({ featureTitle, gradient = gradients.hero, variant = 'freeUsed' }) {
+// `onBack` (OPCIONAL) existe pra um caso só, mas ele importa: quando o muro
+// não é uma TELA, e sim um ESTADO dentro de uma tela que já tem lista. É o da
+// Jornada — a pessoa abre a lista de trilhas, toca numa trancada, e o padrão
+// (navigation.goBack) a tirava da Jornada INTEIRA em vez de devolvê-la à lista,
+// onde a trilha grátis dela continua aberta e esperando. Ela batia no muro e
+// era despejada na Home. Sem o prop nada muda: goBack segue sendo o padrão das
+// outras nove telas, onde o muro É a tela e voltar significa mesmo sair.
+export default function OneTimeLock({ featureTitle, gradient = gradients.hero, variant = 'freeUsed', onBack }) {
   const navigation = useNavigation();
   const route = useRoute();
   const { coupleData } = useCouple();
@@ -105,7 +112,7 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero, v
 
   return (
     <View style={styles.root} testID="onetimelock-container">
-      <GradientHeader title={featureTitle} onBack={() => navigation.goBack()} gradient={gradient} />
+      <GradientHeader title={featureTitle} onBack={onBack || (() => navigation.goBack())} gradient={gradient} />
       <View style={styles.center}>
         <View style={styles.iconWrap}>
           <Ionicons name="lock-closed" size={40} color={colors.accent} />

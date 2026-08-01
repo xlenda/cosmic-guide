@@ -316,7 +316,15 @@ export default function JornadaScreen() {
   // Muro: a trilha grátis já foi escolhida e esta não é ela.
   // -------------------------------------------------------------------------
   if (bloqueio && !hasAccess) {
-    return <OneTimeLock featureTitle={t('jornada.title')} gradient={gradients.purple} />;
+    // onBack devolve à LISTA DE TRILHAS, não à Home: o muro aqui é sobre ESTA
+    // trilha, e a trilha grátis da pessoa continua aberta uma tela atrás.
+    return (
+      <OneTimeLock
+        featureTitle={t('jornada.title')}
+        gradient={gradients.purple}
+        onBack={() => setTrilhaId(null)}
+      />
+    );
   }
 
   if (!estado) {

@@ -243,6 +243,12 @@ export default function RituaisScreen() {
   const hoje = useMemo(() => rituaisDeHoje(new Date(), lang, t), [tique, lang]);
 
   const categoria = categoriaId ? CATEGORIAS.find((c) => c.id === categoriaId) : null;
+  // UMA chamada só (01/08/2026). Antes a tela pedia a lista DUAS vezes: uma sem
+  // `lang` para contar e outra com `lang` para renderizar. A contagem batia por
+  // sorte — localizarRitual devolve o ritual PT intacto quando não acha pack —
+  // mas era o mesmo trabalho feito duas vezes a cada render, e a próxima pessoa
+  // que mexesse no filtro corrigiria uma das duas e não a outra.
+  const daCategoria = categoria ? rituaisPorCategoria(categoria.id, lang) : [];
   const ritual = ritualId ? ritualPorId(ritualId, lang) : null;
   const ritualLivre = ritualLivreId ? ritualPorId(ritualLivreId, lang) : null;
 
@@ -459,9 +465,9 @@ export default function RituaisScreen() {
               <View testID="rituais-lista">
                 <Text style={styles.body}>{descricaoDaCategoria(categoria, t)}</Text>
                 <Text style={styles.subLabel}>
-                  {t('rituais.category.count', { n: rituaisPorCategoria(categoria.id).length })}
+                  {t('rituais.category.count', { n: daCategoria.length })}
                 </Text>
-                {rituaisPorCategoria(categoria.id, lang).map((r) => (
+                {daCategoria.map((r) => (
                   <CardRitual
                     key={r.id}
                     ritual={r}
