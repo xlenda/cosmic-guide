@@ -30,6 +30,7 @@ import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { getWallpaperData, textosDaTela } from '../lib/wallpaper';
 import { useLanguage } from '../context/LanguageContext';
+import { localDayStr } from '../lib/localDay';
 
 // ---------------------------------------------------------------------------
 // DESENHO — funções puras de canvas (só rodam na web)
@@ -192,10 +193,14 @@ export default function WallpaperScreen() {
   const { lang } = useLanguage();
   const T = textosDaTela(lang);
 
-  // Uma vez por idioma: o desenho é determinístico por dia local (garantido
-  // por lib/wallpaper.js), então não há o que "atualizar" durante a sessão —
-  // só quando a pessoa troca de idioma, que é quando as palavras mudam.
-  const dados = useMemo(() => getWallpaperData(new Date(), lang), [lang]);
+  // Por DIA LOCAL e por idioma. O comentário antigo dizia que não havia o que
+  // atualizar durante a sessão — e isso não se sustenta neste app: ele é feito
+  // pra ficar aberto por horas (o Som do Céu existe exatamente pra isso). Com
+  // a dependência só em `lang`, quem passasse da meia-noite com a tela aberta
+  // baixaria o papel de parede do céu de ONTEM, com a data de ontem impressa.
+  // Mesmo padrão de todayISO em HomeScreen.js.
+  const diaLocal = localDayStr();
+  const dados = useMemo(() => getWallpaperData(new Date(), lang), [lang, diaLocal]);
 
   useEffect(() => {
     if (!ehWeb) return;
