@@ -820,3 +820,32 @@ test('o texto declara o que é medição do app e o que é fonte', () => {
     assert.match(r.textos.estado, marca, `${lang}: o estado não se declara leitura do app`);
   }
 });
+
+// ---------------------------------------------------------------------------
+// O IDIOMA NO SLOT DA DEFINICAO (bug real de tela, 01/08/2026)
+// ---------------------------------------------------------------------------
+// CalendarioCosmicoScreen chamava luaForaDeCurso(new Date(), lang) — dois
+// argumentos, com o idioma caindo onde vai a definicao. Nao estourava: 'es' nao
+// esta em DEFINICOES, entao virava 'moderna' calado e `lang` ficava no default
+// 'pt'. O espanhol e o ingles liam "Lua fora de curso".
+//
+// A suite inteira passava porque nenhum teste chamava do jeito que a TELA
+// chamava — todos passavam os tres argumentos certos. Este teste existe para
+// cobrir exatamente essa forma de chamada.
+test('idioma no slot da definicao ainda traduz (rede para chamador errado)', () => {
+  const quando = new Date('2026-07-28T12:00:00Z');
+  for (const lang of ['pt', 'es', 'en']) {
+    const doisArgs = L.luaForaDeCurso(quando, lang);
+    const tresArgs = L.luaForaDeCurso(quando, 'moderna', lang);
+    assert.equal(doisArgs.termo, tresArgs.termo, `termo diverge em ${lang}`);
+    assert.deepEqual(doisArgs.textos, tresArgs.textos, `textos divergem em ${lang}`);
+  }
+  // E os tres termos sao MESMO diferentes entre si — senao o assert acima
+  // passaria com tudo em portugues, que e precisamente o bug.
+  const termos = ['pt', 'es', 'en'].map((l) => L.luaForaDeCurso(quando, l).termo);
+  assert.equal(new Set(termos).size, 3, `os tres termos deveriam diferir: ${termos.join(' / ')}`);
+
+  // A definicao de verdade nao pode ter sido atropelada pela rede.
+  assert.equal(L.luaForaDeCurso(quando, 'porfirio', 'en').definicaoUsada.id, 'porfirio');
+  assert.equal(L.luaForaDeCurso(quando, 'moderna', 'en').definicaoUsada.id, 'moderna');
+});

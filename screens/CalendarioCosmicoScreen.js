@@ -451,7 +451,12 @@ export default function CalendarioCosmicoScreen() {
   // — nunca chuta um estado que muda de hora em hora.
   const vocEstado = useMemo(() => {
     try {
-      return luaForaDeCurso(new Date(), lang);
+      // Os TRÊS argumentos, na ordem: (quando, definicao, lang). Passar
+      // `lang` no 2º slot — que era o que estava aqui — não dava erro nenhum:
+      // 'es' não está em DEFINICOES, então caía em 'moderna' calado, e `lang`
+      // ficava no default 'pt'. O gringo lia "Lua fora de curso" em português.
+      // A suíte não pegava porque os testes chamam com os três certos.
+      return luaForaDeCurso(new Date(), 'moderna', lang);
     } catch {
       return null;
     }
