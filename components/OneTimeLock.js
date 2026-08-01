@@ -16,6 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
 import GradientHeader from './GradientHeader';
 import OfferSummary from './OfferSummary';
@@ -38,34 +39,27 @@ import OfferSummary from './OfferSummary';
 //                         pagar, é criar conta (que é de graça) — mandar essa
 //                         pessoa direto pra Planos seria pedir cartão de quem
 //                         ainda nem experimentou.
+// As variantes agora guardam CHAVES de tradução, não texto. O paywall era o
+// único lugar do app onde a pessoa via português cru no momento de pedir o
+// cartão — e ainda misturado, porque o OfferSummary logo abaixo já era
+// traduzido. Achado da auditoria de 01/08/2026.
 const VARIANTES = {
   freeUsed: {
-    titulo: (f) => `Você já usou sua leitura gratuita de ${f}`,
-    texto: {
-      couple:
-        'Assine o Cosmic Guide e continue usando esse e todos os outros recursos sem limite, você e seu par.',
-      solo: 'Assine o Cosmic Guide e continue usando esse e todos os outros recursos individuais sem limite.',
-    },
-    cta: 'Assinar agora',
+    tituloKey: 'onetimelock.freeUsed.title',
+    textoKey: { couple: 'onetimelock.freeUsed.text.couple', solo: 'onetimelock.freeUsed.text.solo' },
+    ctaKey: 'onetimelock.cta.subscribe',
     mostraOferta: true,
   },
   quota: {
-    titulo: (f) => `Suas leituras gratuitas de ${f} acabaram`,
-    texto: {
-      couple:
-        'A cota gratuita fica na sua conta, não no aparelho. Assine o Cosmic Guide e continue sem limite, você e seu par.',
-      solo: 'A cota gratuita fica na sua conta, não no aparelho. Assine o Cosmic Guide e continue sem limite.',
-    },
-    cta: 'Assinar agora',
+    tituloKey: 'onetimelock.quota.title',
+    textoKey: { couple: 'onetimelock.quota.text.couple', solo: 'onetimelock.quota.text.solo' },
+    ctaKey: 'onetimelock.cta.subscribe',
     mostraOferta: true,
   },
   login: {
-    titulo: (f) => `Entre na sua conta para usar ${f}`,
-    texto: {
-      couple: 'As leituras com foto pedem uma conta — é grátis, leva menos de um minuto e guarda seu histórico.',
-      solo: 'As leituras com foto pedem uma conta — é grátis, leva menos de um minuto e guarda seu histórico.',
-    },
-    cta: 'Criar conta / entrar',
+    tituloKey: 'onetimelock.login.title',
+    textoKey: { couple: 'onetimelock.login.text', solo: 'onetimelock.login.text' },
+    ctaKey: 'onetimelock.cta.login',
     // Sem preço nesta tela: quem ainda não tem conta não deve topar com um
     // valor antes de ter experimentado nada.
     mostraOferta: false,
@@ -77,6 +71,7 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero, v
   const route = useRoute();
   const { coupleData } = useCouple();
   const isCouple = !!coupleData;
+  const { t } = useLanguage();
   const v = VARIANTES[variant] || VARIANTES.freeUsed;
 
   // 7º degrau do funil pelo terceiro caminho: a leitura grátis vitalícia
@@ -115,8 +110,8 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero, v
         <View style={styles.iconWrap}>
           <Ionicons name="lock-closed" size={40} color={colors.accent} />
         </View>
-        <Text style={styles.title} testID="onetimelock-title">{v.titulo(featureTitle)}</Text>
-        <Text style={styles.text}>{isCouple ? v.texto.couple : v.texto.solo}</Text>
+        <Text style={styles.title} testID="onetimelock-title">{t(v.tituloKey, { feature: featureTitle })}</Text>
+        <Text style={styles.text}>{t(isCouple ? v.textoKey.couple : v.textoKey.solo)}</Text>
         {/* A oferta inteira AQUI, sem sair da tela: preço de entrada, 7 dias
             grátis e cancelamento livre. Antes esta tela só dizia "assine" e o
             primeiro número da vida da pessoa aparecia uma navegação depois, em
@@ -135,7 +130,7 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero, v
             })
           }
         >
-          <Text style={styles.btnText}>{v.cta}</Text>
+          <Text style={styles.btnText}>{t(v.ctaKey)}</Text>
         </TouchableOpacity>
         {variant !== 'login' && !isCouple && (
           <TouchableOpacity
@@ -144,7 +139,7 @@ export default function OneTimeLock({ featureTitle, gradient = gradients.hero, v
             testID="onetimelock-invite-cta"
             onPress={() => navigateFromTab(ROUTES.HOME_TAB, { screen: ROUTES.QUIZ })}
           >
-            <Text style={styles.secondaryBtnText}>ou convide seu par pra assinarem juntos →</Text>
+            <Text style={styles.secondaryBtnText}>{t('onetimelock.invite')}</Text>
           </TouchableOpacity>
         )}
       </View>

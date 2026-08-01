@@ -126,7 +126,15 @@ export default function QuizCosmicoScreen() {
   // Trocar de idioma no meio também: a rodada não depende de `lang`, só o texto.
   const perguntas = useMemo(() => rodadaDoDia(dia, lang), [dia, lang]);
 
-  const feita = estado ? rodadaFeita(estado, dia) : null;
+  // `escolhida !== null` segura o placar enquanto a 7ª resposta ainda está na
+  // tela. BUG QUE ISTO CORRIGE (01/08/2026): rodadaFeita() vira verdadeiro no
+  // instante em que responder() grava a 7ª resposta — o motor fecha a rodada
+  // no histórico ali mesmo. Como o render testa `feita` ANTES de `pergunta`, o
+  // placar substituía o card no MESMO re-render do toque: a pessoa respondia a
+  // última e nunca via se acertou, nem a explicação, nem o recibo da fonte.
+  // Justamente a pergunta que mais merece o fecho, porque é a que ela lembra.
+  const rodadaFechada = estado ? rodadaFeita(estado, dia) : null;
+  const feita = rodadaFechada && escolhida === null ? rodadaFechada : null;
   const pergunta = !feita && posicao < TAMANHO_RODADA ? perguntas[posicao] : null;
   const ultimaDaRodada = posicao === TAMANHO_RODADA - 1;
 
