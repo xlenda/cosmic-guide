@@ -142,12 +142,30 @@ function diasNoMes(ano, mes) {
 // Rótulo curto de data, sempre a partir dos campos LOCAIS (ver o cabeçalho de
 // lib/calendarioCosmico.js: instante em UTC para conferir, dia local para
 // mostrar — por isso nunca escrevemos "UTC" ao lado da hora).
-function diaMesLocal(d) {
-  return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`;
+// FORMATO POR IDIOMA (01/08/2026). Antes toda data saia DD/MM e toda hora em
+// 24h, nos tres idiomas — para um leitor em ingles "08/01" nao e 1o de agosto,
+// e 8 de janeiro. Data ambigua e pior que data traduzida pela metade: ela nao
+// parece errada, so esta.
+//
+// Intl faz o trabalho e ja vem no runtime (web e Hermes moderno). Se faltar,
+// cai no formato PT de sempre — nunca inventa nem quebra a tela.
+const LOCALE = { pt: 'pt-BR', es: 'es-419', en: 'en-US' };
+
+function diaMesLocal(d, lang = 'pt') {
+  try {
+    return new Intl.DateTimeFormat(LOCALE[lang] || LOCALE.pt, { day: '2-digit', month: '2-digit' }).format(d);
+  } catch {
+    return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`;
+  }
 }
 
-function horaLocal(d) {
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+function horaLocal(d, lang = 'pt') {
+  try {
+    // hour12 fica a cargo do locale: en-US da "6:45 AM", pt/es dao "06:45".
+    return new Intl.DateTimeFormat(LOCALE[lang] || LOCALE.pt, { hour: '2-digit', minute: '2-digit' }).format(d);
+  } catch {
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
 }
 
 // Corta o parágrafo no marcador do motor. Sem marcador (não deve acontecer —
@@ -177,11 +195,11 @@ function partesDoParagrafo(paragrafo) {
 // fica SEMPRE visível é o que o dono pediu: título curto, data e o parágrafo —
 // conversa em cima, recibo embaixo.
 function EventoCard({ evento, selecionado, onLayout }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [aberto, setAberto] = useState(false);
   const { conversa, recibo } = partesDoParagrafo(evento.paragrafo);
   const ehInstante = evento.precisao === 'instante';
-  const data = diaMesLocal(evento.data);
+  const data = diaMesLocal(evento.data, lang);
   const temFicha = Boolean(evento.tradicao || evento.avisoDeIdade || evento.fonte);
 
   return (
@@ -194,7 +212,7 @@ function EventoCard({ evento, selecionado, onLayout }) {
         <Text style={styles.eventoEmoji}>{evento.emoji}</Text>
         <Text style={styles.eventoTitulo}>{evento.titulo}</Text>
         <Text style={styles.eventoQuando}>
-          {ehInstante ? t('calendario.event.dateTime', { data, hora: horaLocal(evento.data) }) : data}
+          {ehInstante ? t('calendario.event.dateTime', { data, hora: horaLocal(evento.data, lang) }) : data}
         </Text>
       </View>
 
@@ -595,11 +613,11 @@ export default function CalendarioCosmicoScreen() {
             <Text style={styles.temporadaQuando}>
               {temporada.fase === 'comecou'
                 ? t('calendario.season.startedAt', {
-                    data: diaMesLocal(temporada.quando),
+                    data: diaMesLocal(temporada.quando, lang),
                     anterior: temporada.outroDisplay,
                   })
                 : t('calendario.season.endsAt', {
-                    data: diaMesLocal(temporada.quando),
+                    data: diaMesLocal(temporada.quando, lang),
                     proximo: temporada.outroDisplay,
                   })}
             </Text>
