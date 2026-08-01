@@ -454,7 +454,13 @@ export default function DiaryScreen() {
           ListEmptyComponent={
             !loading ? (
               <View style={styles.emptyFilterWrap}>
-                <Text style={styles.emptyFilterText}>Nenhuma leitura desse tipo ainda.</Text>
+                {/* O vazio dos FAVORITOS merece frase propria: 'Nenhuma leitura
+                    desse tipo ainda' e verdade pros chips de tipo, mas pro coracao
+                    a pessoa precisa saber COMO favoritar — senao o chip parece
+                    quebrado. */}
+                <Text style={styles.emptyFilterText}>
+                  {t(filter === 'fav' ? 'diary.empty.fav' : 'diary.empty.filtered')}
+                </Text>
               </View>
             ) : null
           }

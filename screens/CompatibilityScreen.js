@@ -226,7 +226,7 @@ export default function CompatibilityScreen() {
           <TouchableOpacity activeOpacity={0.85} onPress={compute} style={styles.btnWrap}>
             <LinearGradient colors={gradients.pink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
               <Ionicons name="analytics" size={18} color="#fff" />
-              <Text style={styles.btnText}>Calcular Compatibilidade</Text>
+              <Text style={styles.btnText}>{t('compat.calculate')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -340,7 +340,7 @@ export default function CompatibilityScreen() {
                 confere no verbatim; quem só quer entender, entende na linha
                 de cima. */}
             <View style={styles.sourceCard}>
-              <Text style={styles.sourceTitle}>O que a fonte diz</Text>
+              <Text style={styles.sourceTitle}>{t('compat.sourceTitle')}</Text>
               {result.verbatins.map((v) => (
                 <View key={v.locus + v.texto.slice(0, 24)} style={styles.sourceItem}>
                   {!!v.parafrase && (
@@ -354,7 +354,7 @@ export default function CompatibilityScreen() {
                 </View>
               ))}
               <Text style={styles.sourceDegree}>
-                Grau {result.grau} de 4 na escala de Tetrabiblos IV.7 — {result.grauNome}.
+                {t('compat.degree', { grau: result.grau, nome: result.grauNome })}
               </Text>
               {/* NOTA_GRAU vem COLADA no grau, e não lá embaixo com as outras
                   ressalvas. Motivo: "Grau 4 de 4" é um número numa escala, ou
@@ -373,7 +373,7 @@ export default function CompatibilityScreen() {
                 segunda admite que comparar signo solar com signo solar é
                 recorte de jornal de 1930, e não a sinastria da fonte. */}
             <View style={styles.noteCard}>
-              <Text style={styles.noteTitle}>Duas coisas que este resultado não é</Text>
+              <Text style={styles.noteTitle}>{t('compat.notTitle')}</Text>
               <Text style={styles.noteText}>{result.notaEscala}</Text>
               <Text style={styles.noteText}>{result.ressalvaSignoSolar}</Text>
             </View>
