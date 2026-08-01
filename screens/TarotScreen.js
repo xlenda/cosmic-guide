@@ -164,8 +164,12 @@ export default function TarotScreen() {
     // tiragem de três não é três leituras soltas.
     const readings = shuffled
       .map((card, i) => {
-        const orientationTag = newOrientations[i] ? ' (invertida)' : '';
-        return `${POSITIONS[i]} — ${card.name}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i], POSITIONS[i], lang)}`;
+        // O que vai pro Diário também é traduzido: era aqui que a entrada
+        // nascia com 'Passado' e '(invertida)' em português mesmo no app em
+        // inglês, e ficava gravada assim pra sempre.
+        const orientationTag = newOrientations[i] ? t('tarot.reversedTag') : '';
+        const casa = t(`tarot.position.${POSITIONS[i]}`);
+        return `${casa} — ${card.name}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i], POSITIONS[i], lang)}`;
       });
     const dignity = getElementalDignity(shuffled, lang);
     const pattern = getSpreadPattern(shuffled, lang);
@@ -194,7 +198,7 @@ export default function TarotScreen() {
   // pra quem não assina (achado real de auditoria adversarial, 26/07/2026).
   const lockedSemBonus = !hasAccess && locked && bonusReadings === 0;
   if (lockedSemBonus && !drawn) {
-    return <OneTimeLock featureTitle="Tarô por Tema" gradient={gradients.hero} />;
+    return <OneTimeLock featureTitle={t('tarot.title')} gradient={gradients.hero} />;
   }
   // Estado "só com bônus": sem assinatura, leitura grátis já gasta, mas com
   // Leitura Bônus guardada — a área vazia abaixo mostra o botão de usar o
@@ -224,7 +228,7 @@ export default function TarotScreen() {
       <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Tarô por Tema</Text>
+            <Text style={styles.title}>{t('tarot.title')}</Text>
             <Text style={styles.subtitle}>Tarô que não dourá a pílula — Passado · Presente · Futuro</Text>
           </View>
           {/* Álbum das 78 Cartas — cada carta tirada fica colecionada lá. */}
@@ -242,7 +246,7 @@ export default function TarotScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionLabel}>Escolha um tema</Text>
+        <Text style={styles.sectionLabel}>{t('tarot.chooseTheme')}</Text>
         <View style={styles.themeRow}>
           {THEMES.map((t) => (
             <TouchableOpacity
@@ -324,7 +328,7 @@ export default function TarotScreen() {
                 <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards()} style={styles.btnWrap}>
                   <LinearGradient colors={theme.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                     <Ionicons name="hand-left" size={18} color="#fff" />
-                    <Text style={styles.btnText}>Tirar 3 Cartas</Text>
+                    <Text style={styles.btnText}>{t('tarot.draw')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </>
@@ -346,7 +350,7 @@ export default function TarotScreen() {
                       </View>
                       <Text style={styles.tarotName} numberOfLines={2}>
                         {card.name}
-                        {orientations[i] ? ' (invertida)' : ''}
+                        {orientations[i] ? t('tarot.reversedTag') : ''}
                       </Text>
                     </>
                   ) : (
@@ -355,7 +359,7 @@ export default function TarotScreen() {
                       <Text style={styles.tapText}>Toque</Text>
                     </LinearGradient>
                   )}
-                  <Text style={styles.posLabel}>{POSITIONS[i]}</Text>
+                  <Text style={styles.posLabel}>{t(`tarot.position.${POSITIONS[i]}`)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -374,7 +378,7 @@ export default function TarotScreen() {
                     <Ionicons name={card.icon} size={20} color={theme.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.meaningPos}>{POSITIONS[i]} · {card.name}{orientations[i] ? " (invertida)" : ""}</Text>
+                    <Text style={styles.meaningPos}>{t(`tarot.position.${POSITIONS[i]}`)} · {card.name}{orientations[i] ? t('tarot.reversedTag') : ''}</Text>
                     <Text style={styles.meaningText}>
                       {getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i], lang)}
                     </Text>
@@ -410,7 +414,7 @@ export default function TarotScreen() {
               if (!temInvertida && !temCorte && !temMaior) return null;
               return (
                 <View style={styles.spreadCard}>
-                  <Text style={styles.spreadTitle}>Como ler o que saiu</Text>
+                  <Text style={styles.spreadTitle}>{t('tarot.howToRead')}</Text>
                   {temMaior && (
                     <Text style={styles.spreadText}>
                       Saiu Arcano Maior. A tradição lê os 22 como assunto de outra ordem de grandeza:
@@ -460,7 +464,7 @@ export default function TarotScreen() {
               if (!dignity && !pattern) return null;
               return (
                 <View style={styles.spreadCard}>
-                  <Text style={styles.spreadTitle}>As três juntas</Text>
+                  <Text style={styles.spreadTitle}>{t('tarot.threeTogether')}</Text>
                   {dignity && <Text style={styles.spreadText}>{dignity}</Text>}
                   {pattern && <Text style={[styles.spreadText, dignity && { marginTop: 10 }]}>{pattern}</Text>}
                   {/* Toda vez que o app cita astrologia de carta, ele diz de
@@ -555,7 +559,7 @@ export default function TarotScreen() {
               <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards()} style={[styles.btnWrap, { marginTop: 16 }]}>
                 <LinearGradient colors={['#2A1D52', '#3A1F6B']} style={styles.btn}>
                   <Ionicons name="refresh" size={18} color="#fff" />
-                  <Text style={styles.btnText}>Nova Tiragem</Text>
+                  <Text style={styles.btnText}>{t('tarot.drawAgain')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             )}
