@@ -20,7 +20,7 @@ import { compatibility, aspects } from '../lib/signs';
 // não). Ele volta aqui num papel menor e melhor: alimentar o SUBTÍTULO do card
 // do Calendário Cósmico, que é a casa pra onde as temporadas foram.
 import { activeCelestialEvents } from '../lib/celestialSeasons';
-import { CHAVES_DE_TRADUCAO } from '../lib/synastry';
+import { CHAVES_DE_TRADUCAO, nomeDoSigno } from '../lib/synastry';
 import { getTodaysThought } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { personalSkyToday } from '../lib/personalSky';
@@ -421,7 +421,9 @@ export default function HomeScreen() {
 
   const greeting = isCouple
     ? t('home.greetingCouple', { voce: coupleData.voce, amor: coupleData.amor })
-    : t('home.greetingSolo', { sign: sign.pt });
+    // sign.pt e o nome PORTUGUES do signo — em ingles dava "Hi, Gemeos"
+    // dois centimetros acima do pensamento do dia que dizia "Gemini".
+    : t('home.greetingSolo', { sign: nomeDoSigno(sign.pt, lang) });
 
   // Timeline exige memórias reais do casal — não faz sentido pra quem ainda
   // não tem par, fica escondida por completo pra usuário solo. As outras 5
