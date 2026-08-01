@@ -120,6 +120,7 @@ test('WEB: deleteAllCoupleData apaga também o espelho do nascimento', async () 
 // três chaves, escritas por lib/birthData.js e screens/BirthChartScreen.js —
 // e sobrevivia inteiro a "apagar meus dados", inclusive no localStorage da web.
 const birthData = require('../lib/birthData.js');
+const streakDays = require('../lib/streakDays.js');
 
 test('WEB: deleteAllCoupleData apaga também o nascimento SOLO (espelho no AsyncStorage)', async () => {
   reset(true);
@@ -161,4 +162,48 @@ test('falha real do AsyncStorage (perfil não gravou) continua devolvendo false'
   } finally {
     asyncStorageMock.default.setItem = original;
   }
+});
+
+// Regressao de privacidade (01/08/2026): deleteAllCoupleData nao apagava a
+// SEQUENCIA — e a tela promete apagar, com todas as letras, nos tres idiomas:
+// "os nomes, signos, datas e horas de nascimento e a sequencia salva de voces
+// dois" (PrivacyScreen) e "nomes, signos, datas e sequencia do casal" /
+// "la racha de la pareja" / "the couple's streak" (profile.delete.text).
+//
+// Alem de promessa quebrada, vazava: quem apagasse tudo e recomecasse — ou
+// emprestasse o aparelho — herdava a sequencia do par anterior.
+test('WEB: deleteAllCoupleData apaga a SEQUENCIA (a tela promete isso nos 3 idiomas)', async () => {
+  reset(true);
+  await coupleData.saveCoupleProfile(PERFIL);
+  await streakDays.writeDays({ [streakDays.todayStr()]: true, [streakDays.previousDayStr(streakDays.todayStr())]: true });
+  const antes = await streakDays.getStreakSummary();
+  assert.ok(antes.currentStreak >= 2, `precisa haver sequencia para o teste valer (veio ${antes.currentStreak})`);
+
+  await coupleData.deleteAllCoupleData();
+
+  const depois = await streakDays.getStreakSummary();
+  assert.strictEqual(depois.currentStreak, 0, 'a sequencia sobreviveu ao "apagar tudo" — e a tela promete que nao');
+  assert.strictEqual(depois.longest, 0, 'o recorde tambem e dado do par anterior e nao pode vazar');
+});
+
+// O outro lado da mesma moeda: apagar MAIS do que se prometeu e tao ruim
+// quanto apagar menos. O Diario e texto que a pessoa ESCREVEU, e a tela nao
+// promete apaga-lo — entao ele fica.
+//
+// Testado pela CHAVE e nao pelo lib/journal.js de proposito: aquele modulo
+// arrasta react-native junto (o teste dele usa mock de require-cache so pra
+// isso), e o contrato que interessa aqui e exatamente "esta chave sai da lista
+// ou nao", que e o que se le direto no storage.
+test('deleteAllCoupleData NAO apaga o Diario nem a Jornada (nao foram prometidos)', async () => {
+  reset(true);
+  await coupleData.saveCoupleProfile(PERFIL);
+  await asyncStorageMock.default.setItem('cosmic-journal', JSON.stringify([{ id: 'x', body: 'escrito a mao' }]));
+  await asyncStorageMock.default.setItem('cosmic-jornada-v1', JSON.stringify({ trilha: 'lua', dia: 3 }));
+
+  await coupleData.deleteAllCoupleData();
+
+  const diario = await asyncStorageMock.default.getItem('cosmic-journal');
+  assert.ok(diario, 'o Diario foi apagado sem ter sido prometido');
+  assert.match(diario, /escrito a mao/);
+  assert.ok(await asyncStorageMock.default.getItem('cosmic-jornada-v1'), 'a Jornada foi apagada sem ter sido prometida');
 });

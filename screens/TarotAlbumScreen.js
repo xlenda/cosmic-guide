@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { getCollection, COLLECTION_GROUPS, COLLECTION_TOTAL } from '../lib/tarotCollection';
+import { getCardName } from '../lib/tarotThemes';
 import { getTarotImage } from '../lib/tarotImages';
 import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
@@ -27,7 +28,7 @@ function groupIcon(group) {
 
 export default function TarotAlbumScreen() {
   const navigation = useNavigation();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [seenSet, setSeenSet] = useState(new Set());
   const [selected, setSelected] = useState(null);
 
@@ -125,7 +126,7 @@ export default function TarotAlbumScreen() {
                       disabled={!seen}
                       onPress={() => openCard(card)}
                       accessibilityRole="button"
-                      accessibilityLabel={seen ? card.name : 'Carta ainda não revelada'}
+                      accessibilityLabel={seen ? getCardName(card, lang) : t('album.cardHidden')}
                     >
                       {seen ? (
                         <Image source={getTarotImage(card.id)} style={styles.thumbImage} resizeMode="cover" />
@@ -156,8 +157,8 @@ export default function TarotAlbumScreen() {
           {selected && (
             <View style={styles.modalCard}>
               <Image source={getTarotImage(selected.id)} style={styles.modalImage} resizeMode="cover" />
-              <Text style={styles.modalName}>{selected.name}</Text>
-              <Text style={styles.modalHint}>Toque fora da carta pra fechar</Text>
+              <Text style={styles.modalName}>{getCardName(selected, lang)}</Text>
+              <Text style={styles.modalHint}>{t('album.closeHint')}</Text>
             </View>
           )}
         </Pressable>

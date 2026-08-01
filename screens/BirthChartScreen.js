@@ -224,7 +224,37 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
         <View style={styles.seitaCard}>
           <Text style={styles.seitaTitulo}>{chart.profeccao.titulo}</Text>
           <Text style={styles.seitaTexto}>{chart.profeccao.texto}</Text>
-          {!!chart.profeccao.detalhe && <Text style={styles.seitaTexto}>{chart.profeccao.detalhe}</Text>}
+          {/* `detalhe` E UM OBJETO DE OITO CAMPOS, nunca uma string. Antes
+              estava aqui dentro de um <Text> sozinho — objeto dentro de <Text>
+              nao renderiza, quebra a tela, e quebrava o Mapa Astral inteiro
+              para QUALQUER pessoa que tivesse data de nascimento (a profeccao
+              nao precisa de hora nem de cidade, entao ela aparece pra todo
+              mundo). Achado por varredura em 01/08/2026.
+
+              Os nomes dos campos sao a regra do app escrita no motor:
+              prende -> tradicao -> moderno -> fonte. Renderizo nessa ordem, a
+              casa primeiro e o senhor do ano depois, e deixo o `fonte` de baixo
+              como recibo unico — ele ja concatena casaFonte e senhorFonte, e
+              repetir os dois aqui seria mostrar a mesma linha tres vezes. */}
+          {!!chart.profeccao.detalhe && (
+            <>
+              {!!chart.profeccao.detalhe.casaTradicao && (
+                <Text style={styles.seitaTexto}>{chart.profeccao.detalhe.casaTradicao}</Text>
+              )}
+              {!!chart.profeccao.detalhe.casaModerno && (
+                <Text style={styles.seitaNota}>{chart.profeccao.detalhe.casaModerno}</Text>
+              )}
+              {!!chart.profeccao.detalhe.senhorPrende && (
+                <Text style={styles.seitaTexto}>{chart.profeccao.detalhe.senhorPrende}</Text>
+              )}
+              {!!chart.profeccao.detalhe.senhorTradicao && (
+                <Text style={styles.seitaTexto}>{chart.profeccao.detalhe.senhorTradicao}</Text>
+              )}
+              {!!chart.profeccao.detalhe.senhorModerno && (
+                <Text style={styles.seitaNota}>{chart.profeccao.detalhe.senhorModerno}</Text>
+              )}
+            </>
+          )}
           {!!chart.profeccao.fonte && <Text style={styles.seitaRecibo}>{chart.profeccao.fonte}</Text>}
         </View>
       )}
@@ -718,6 +748,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
   },
   seitaTexto: { color: colors.text, fontSize: 14, lineHeight: 21, marginBottom: 8 },
+  // A camada MODERNA fica visivelmente mais apagada que a antiga: o app
+  // distingue o que a fonte diz do que o seculo XX passou a dizer, e a
+  // hierarquia visual tem que contar isso sem precisar de rotulo.
+  seitaNota: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 8, fontStyle: 'italic' },
   seitaRecibo: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 2 },
   root: { flex: 1, backgroundColor: colors.background },
   formCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: colors.border },

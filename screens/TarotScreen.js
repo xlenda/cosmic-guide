@@ -8,7 +8,12 @@ import * as Haptics from 'expo-haptics';
 import { colors, gradients } from '../theme';
 import { TAROT_DECK, getSpreadPattern } from '../lib/tarotDeck';
 import { getTarotImage } from '../lib/tarotImages';
-import { getThemedMeaning, getElementalDignity, getWaiteNote } from '../lib/tarotThemes';
+// getCardName entra aqui em 01/08/2026. O pack de nomes existia e estava
+// traduzido desde o passe de idioma; a tela nunca o chamou — lia card.name, que
+// vem do TAROT_DECK em portugues. Resultado: em ingles o rotulo dizia "A Torre"
+// e o paragrafo logo abaixo, traduzido, dizia "The Tower". O comentario em
+// lib/tarotThemes.js:271 ja descrevia o contrato que a tela nao cumpria.
+import { getThemedMeaning, getElementalDignity, getWaiteNote, getCardName } from '../lib/tarotThemes';
 import { canDrawToday, recordDraw } from '../lib/tarotDailyLimit';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
@@ -169,7 +174,7 @@ export default function TarotScreen() {
         // inglês, e ficava gravada assim pra sempre.
         const orientationTag = newOrientations[i] ? t('tarot.reversedTag') : '';
         const casa = t(`tarot.position.${POSITIONS[i]}`);
-        return `${casa} — ${card.name}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i], POSITIONS[i], lang)}`;
+        return `${casa} — ${getCardName(card, lang)}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i], POSITIONS[i], lang)}`;
       });
     const dignity = getElementalDignity(shuffled, lang);
     const pattern = getSpreadPattern(shuffled, lang);
@@ -349,7 +354,7 @@ export default function TarotScreen() {
                         />
                       </View>
                       <Text style={styles.tarotName} numberOfLines={2}>
-                        {card.name}
+                        {getCardName(card, lang)}
                         {orientations[i] ? t('tarot.reversedTag') : ''}
                       </Text>
                     </>
@@ -378,7 +383,7 @@ export default function TarotScreen() {
                     <Ionicons name={card.icon} size={20} color={theme.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.meaningPos}>{t(`tarot.position.${POSITIONS[i]}`)} · {card.name}{orientations[i] ? t('tarot.reversedTag') : ''}</Text>
+                    <Text style={styles.meaningPos}>{t(`tarot.position.${POSITIONS[i]}`)} · {getCardName(card, lang)}{orientations[i] ? t('tarot.reversedTag') : ''}</Text>
                     <Text style={styles.meaningText}>
                       {getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i], lang)}
                     </Text>
