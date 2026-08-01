@@ -305,9 +305,11 @@ export default function JornadaScreen() {
     return podeConcluir(progresso, passo.dia);
   }, [progresso, passo]);
 
+  // `lang` na lista de dependencias: sem ele o useMemo guardaria as fontes do
+  // idioma anterior e trocar de idioma na tela nao atualizaria a datacao.
   const fontes = useMemo(
-    () => (passo ? fontesDoDia(trilhaId, passo.dia) : []),
-    [passo, trilhaId]
+    () => (passo ? fontesDoDia(trilhaId, passo.dia, lang) : []),
+    [passo, trilhaId, lang]
   );
 
   // -------------------------------------------------------------------------
