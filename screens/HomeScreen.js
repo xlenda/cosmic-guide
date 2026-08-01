@@ -304,8 +304,11 @@ export default function HomeScreen() {
 
         // 1º a trilha — ganha sempre que estiver ativa.
         try {
-          const { TRILHAS, carregarJornada, podeConcluir } = await import('../lib/jornada');
+          const { trilhasParaIdioma, carregarJornada, podeConcluir } = await import('../lib/jornada');
           const estado = await carregarJornada();
+          // trilhasParaIdioma em vez da constante TRILHAS: a constante e o PT
+          // canonico, e era ela que forcava a guarda de idioma la embaixo.
+          const TRILHAS = trilhasParaIdioma(lang);
           // Percorre na ordem de TRILHAS, e não em Object.values(estado.trilhas):
           // quem assina pode ter duas trilhas abertas ao mesmo tempo, e a linha
           // tem que ser a MESMA a cada abertura, não a que o objeto devolveu
@@ -334,7 +337,7 @@ export default function HomeScreen() {
           try {
             const { rituaisDeHoje } = await import('../lib/rituais');
             const agoraMesmo = new Date();
-            const forte = ritualMaisForteDeHoje(rituaisDeHoje(agoraMesmo).rituais, agoraMesmo);
+            const forte = ritualMaisForteDeHoje(rituaisDeHoje(agoraMesmo, lang).rituais, agoraMesmo);
             if (forte) escolha = { tipo: 'ritual', titulo: forte.titulo };
           } catch {}
         }
@@ -344,7 +347,10 @@ export default function HomeScreen() {
       return () => {
         vivo = false;
       };
-    }, [])
+      // `lang` na lista: a linha carrega nome de trilha e titulo de ritual, que
+      // agora vem traduzidos do pack. Com a lista vazia, trocar de idioma
+      // deixaria a linha no idioma anterior ate o proximo foco de tela.
+    }, [lang])
   );
 
   // Iniciais da semana no idioma atual (mesma ordem seg→dom do getWeekActivity).
@@ -656,21 +662,17 @@ export default function HomeScreen() {
   // das duas features ela está falando.
   const ehTrilha = todayLine && todayLine.tipo === 'jornada';
 
-  // A GUARDA DE IDIOMA, e ela é temporária de propósito.
+  // A GUARDA DE IDIOMA CAIU EM 01/08/2026, e o comentário anterior previa
+  // exatamente isso: "a guarda cai sozinha no dia em que `nome` e `titulo`
+  // virarem chave". Viraram — lib/jornada.js e lib/rituais.js ganharam packs
+  // nos três idiomas, e o efeito acima passou a pedir trilhasParaIdioma(lang)
+  // e rituaisDeHoje(agoraMesmo, lang) em vez da constante PT canônica.
   //
-  // A moldura tem chave nos três idiomas, mas o MIOLO ({nome} da trilha, {titulo}
-  // do ritual) vem de lib/jornada.js e lib/rituais.js, que ainda declaram
-  // TODO(i18n) no cabeçalho para esses dois campos. Resultado sem guarda:
-  // "Ritual de hoy: A carta que não se envia", "Trail 7 dias de Lua · day 3 of
-  // 7" — e a frase em volta ("Ritual de hoy:") marca o miolo como nome próprio,
-  // o que deixa o descasamento mais visível, não menos.
-  //
-  // O app já tem esse defeito no pensamento do dia e nas missões, então não é
-  // regressão de classe; o que era novo é a POSIÇÃO — mistura de idioma abrindo
-  // a dobra da primeira tela. Entre uma dobra sem linha e uma dobra bilíngue,
-  // fica sem linha. A guarda cai sozinha no dia em que `nome` e `titulo`
-  // virarem chave (segunda parcela dos dois TODO(i18n)).
-  const mostrarTodayLine = !!todayLine && lang === 'pt';
+  // Por que importa mais do que parece: esta linha é o ÚNICO gancho de
+  // reentrada da Home para as duas features novas (Jornada e Rituais). Em ES e
+  // EN ela estava desligada, então o app tinha duas features que o gringo só
+  // encontrava se caçasse no grid.
+  const mostrarTodayLine = !!todayLine;
   const todayLineText = !todayLine
     ? ''
     : ehTrilha
