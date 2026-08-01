@@ -417,7 +417,7 @@ export default function HomeScreen() {
   // houver os dois signos salvos. O cartão mostrava "{pct}% de compatibilidade";
   // mostra o ASPECTO e a CATEGORIA, que é o que o app calcula de verdade.
   // A porcentagem saiu do app inteiro — ver o cabeçalho de lib/synastry.js.
-  const compat = coupleData?.sa && coupleData?.sb ? compatibility(coupleData.sa, coupleData.sb) : null;
+  const compat = coupleData?.sa && coupleData?.sb ? compatibility(coupleData.sa, coupleData.sb, lang) : null;
 
   const greeting = isCouple
     ? t('home.greetingCouple', { voce: coupleData.voce, amor: coupleData.amor })

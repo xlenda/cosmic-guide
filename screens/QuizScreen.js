@@ -218,7 +218,7 @@ export default function QuizScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { save } = useCouple();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [step, setStep] = useState(1);
   const [voce, setVoce] = useState('');
@@ -347,7 +347,7 @@ export default function QuizScreen() {
     });
   }
 
-  const compat = signoVoce && signoAmor ? compatibility(signoVoce, signoAmor) : null;
+  const compat = signoVoce && signoAmor ? compatibility(signoVoce, signoAmor, lang) : null;
   // 3º argumento = a cidade (mesma razão do 5º do Ascendente logo abaixo): sem
   // ele a hora informada era lida como UTC e a Lua natal saía no instante
   // errado — 5,15% dos nascimentos em São Paulo com o SIGNO lunar trocado.
