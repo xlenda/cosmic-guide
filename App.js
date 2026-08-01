@@ -48,7 +48,7 @@ if (Platform.OS !== 'web') {
     });
   } catch {}
 }
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 // Som do céu — o motor de áudio vive num provider ACIMA do Tab.Navigator (ver
 // o comentário no topo de context/CosmicSoundContext.js): trocar de aba
 // desmonta a tela, e se o áudio morasse dentro de uma tela o som cortaria no
@@ -424,6 +424,12 @@ function useRetomarCheckout(navRef, navPronta) {
 // normal — HomeScreen trata os dois casos.
 function Gate() {
   const { coupleData, soloSign, loading } = useCouple();
+  // Rótulo das abas: sem tabBarLabel o React Navigation usa o `name` da rota,
+  // e o name é o literal de ROUTES ('Início', 'Tarô'...). O rodapé fica na
+  // tela o tempo todo, em qualquer idioma — era o texto mais visto do app e
+  // o único que nunca traduzia. As chaves de ROUTES seguem em português de
+  // propósito: são identificadores de navigate() no app inteiro.
+  const { t } = useLanguage();
   const bootstrapped = useUrlBootstrap();
   const navRef = useNavigationContainerRef();
   const [navPronta, setNavPronta] = useState(false);
@@ -484,7 +490,7 @@ function Gate() {
           },
         })}
       >
-        <Tab.Screen name={ROUTES.HOME_TAB} component={HomeStack} />
+        <Tab.Screen name={ROUTES.HOME_TAB} component={HomeStack} options={{ tabBarLabel: t('tab.home') }} />
         {/* Tarô e Chat são as DUAS leituras alcançáveis sem passar pelo card da
             Home (a barra de abas leva direto). Sem estes dois listeners o funil
             mostraria reading_done > reading_start — degrau impossível, que faz
@@ -493,11 +499,13 @@ function Gate() {
         <Tab.Screen
           name={ROUTES.TAROT_TAB}
           component={TarotStack}
+          options={{ tabBarLabel: t('tab.tarot') }}
           listeners={{ tabPress: () => funnel.readingStart('tarot', 'tab') }}
         />
         <Tab.Screen
           name={ROUTES.CHAT_TAB}
           component={ChatScreen}
+          options={{ tabBarLabel: t('tab.chat') }}
           listeners={{ tabPress: () => funnel.readingStart('chat', 'tab') }}
         />
         {/* A aba Perfil SEMPRE abre no Perfil, nunca onde a pessoa parou.
@@ -515,6 +523,7 @@ function Gate() {
         <Tab.Screen
           name={ROUTES.PROFILE_TAB}
           component={ProfileStack}
+          options={{ tabBarLabel: t('tab.profile') }}
           listeners={({ navigation }) => ({
             tabPress: () => {
               const aba = navigation.getState().routes.find((r) => r.name === ROUTES.PROFILE_TAB);
