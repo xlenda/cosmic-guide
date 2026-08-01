@@ -825,3 +825,114 @@ test('cada entrada de planeta traz classe traduzida, recibo e a etiqueta de Vale
     }
   }
 });
+
+// ===========================================================================
+// 9. O CHROME DA SEÇÃO — os rótulos que screens/BirthChartScreen.js desenha
+// ===========================================================================
+// A seita é uma SEÇÃO dentro do Mapa Astral, e o chrome dela mora no pack de
+// cada idioma (bloco `chrome`), nunca em lib/i18n.js e nunca dentro do
+// componente: a tela só repassa o `lang`. A paridade de forma já é garantida
+// pelo teste de forma lá em cima; o que este bloco cobre é o que aquele não
+// alcança — o TEXTO GERADO por `chrome.compartilhavel`, que é função e por
+// isso escapa da varredura de strings do pack. É o único texto desta feature
+// que sai do app e vai parar num print de WhatsApp: se a linha vermelha vai
+// vazar em algum lugar, vai ser nele.
+
+const CHROME_CHAVES = [
+  'rotulo', 'abrir', 'fechar', 'limitrofeRotulo', 'mercurioTitulo', 'planetasTitulo',
+  'grupoNaSeita', 'grupoForaDaSeita', 'grupoIndeterminado', 'grupoModernos',
+  'reciboRotulo', 'notasTitulo', 'citacoesTitulo', 'fontesTitulo',
+  'indisponivelTitulo', 'comoResolverRotulo', 'compartilhar', 'copiado',
+  'naoCopiou', 'marca', 'compartilhavel',
+];
+
+test('o chrome da seção existe nos três packs, com as mesmas chaves', () => {
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    assert.ok(pack.chrome, `${lang} não tem bloco chrome`);
+    assert.deepEqual(Object.keys(pack.chrome).sort(), [...CHROME_CHAVES].sort(), lang);
+    assert.equal(typeof pack.chrome.compartilhavel, 'function', lang);
+    // O domínio não se traduz — é o mesmo endereço nos três idiomas.
+    assert.equal(pack.chrome.marca, 'cosmicguide.cloud', lang);
+    // E `tela` continua sendo o NOME da tela, que é o que fecha comoResolver.
+    assert.equal(pack.tela, NOME_DA_TELA[lang], lang);
+  }
+});
+
+test('os rótulos do chrome não abrem com jargão — a seção prende antes de citar', () => {
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    for (const chave of ['rotulo', 'abrir', 'indisponivelTitulo', 'grupoNaSeita', 'grupoForaDaSeita']) {
+      for (const re of JARGAO) {
+        assert.ok(!re.test(pack.chrome[chave]), `${lang}/${chave} vazou jargão: ${pack.chrome[chave].match(re)}`);
+      }
+    }
+  }
+});
+
+test('o texto de compartilhar abre pela chamada, carrega o locus e fecha na marca', () => {
+  for (const lang of ['pt', 'es', 'en']) {
+    for (const r of AMOSTRA[lang]) {
+      const texto = LANGS[lang].chrome.compartilhavel(r);
+      assert.ok(texto.startsWith(r.chamada), `${lang}: o compartilhável não abre pela chamada`);
+      assert.match(texto, /Tetrabiblos I\.7/, lang);
+      assert.match(texto, /Anthologiae I\.1/, lang);
+      assert.ok(texto.trim().endsWith('cosmicguide.cloud'), `${lang}: o compartilhável não fecha na marca`);
+      assert.ok(!texto.includes('undefined'), `${lang} vazou undefined`);
+      assert.ok(!texto.includes('NaN'), `${lang} vazou NaN`);
+      assert.ok(!texto.includes('[object Object]'), `${lang} vazou objeto`);
+      assert.ok(!/\$\{|\{\w+\}/.test(texto), `${lang} vazou placeholder`);
+      assert.ok(!texto.includes('%'), `${lang} mostra porcentagem`);
+      // A seita sai no texto, e sai no idioma certo.
+      assert.ok(texto.includes(LANGS[lang].seitaNome[r.seita]), `${lang}: o compartilhável não diz o que deu`);
+    }
+  }
+});
+
+test('quando a chamada é apertada, o compartilhável DIZ que foi apertada', () => {
+  for (const lang of ['pt', 'es', 'en']) {
+    const perto = S.seitaDoMapa('1990-06-01', '06:45', SP, lang);
+    assert.equal(perto.limitrofe, true);
+    const texto = LANGS[lang].chrome.compartilhavel(perto);
+    const graus = LANGS[lang].formatarGraus(perto.grausDoHorizonte);
+    assert.ok(texto.includes(graus), `${lang}: o print não conta a distância do horizonte`);
+    // E o caso folgado não inventa aviso nenhum.
+    const folgado = S.seitaDoMapa('1990-06-15', '14:30', SP, lang);
+    assert.equal(folgado.limitrofe, false);
+    assert.ok(
+      LANGS[lang].chrome.compartilhavel(folgado).length < texto.length,
+      `${lang}: o caso folgado ganhou a ressalva do limítrofe`
+    );
+  }
+});
+
+test('o compartilhável não atravessa a linha vermelha em nenhum idioma', () => {
+  for (const lang of ['pt', 'es', 'en']) {
+    for (const r of AMOSTRA[lang]) {
+      const texto = LANGS[lang].chrome.compartilhavel(r);
+      for (const re of SAUDE[lang]) assert.ok(!re.test(texto), `${lang} — saúde no print: ${texto.match(re)}`);
+      for (const re of PROMESSA[lang]) assert.ok(!re.test(texto), `${lang} — promessa no print: ${texto.match(re)}`);
+    }
+  }
+});
+
+// Palavra que é a MESMA nas duas línguas de verdade — não é pt esquecido no
+// pack. Fica declarada uma a uma, e não como regra geral, justamente para que
+// um rótulo realmente esquecido não se esconda atrás da exceção.
+const HOMOGRAFOS = { es: ['reciboRotulo'], en: [] };
+
+test('o chrome de es e en não é o de pt — a seção inteira fala uma língua só', () => {
+  for (const lang of ['es', 'en']) {
+    for (const chave of CHROME_CHAVES) {
+      if (chave === 'marca' || chave === 'compartilhavel') continue;
+      if (HOMOGRAFOS[lang].includes(chave)) continue;
+      assert.notEqual(LANGS[lang].chrome[chave], PT.chrome[chave], `${lang}/${chave} ficou em português`);
+    }
+    for (const r of AMOSTRA[lang]) {
+      const i = AMOSTRA[lang].indexOf(r);
+      assert.notEqual(
+        LANGS[lang].chrome.compartilhavel(r),
+        PT.chrome.compartilhavel(AMOSTRA.pt[i]),
+        `${lang}: o compartilhável repetiu o pt`
+      );
+    }
+  }
+});

@@ -821,6 +821,109 @@ test('o texto declara o que é medição do app e o que é fonte', () => {
   }
 });
 
+// ===========================================================================
+// 7. O CHROME DA TELA (bloco `tela`) E A VITRINE QUE O CONSOME
+// ===========================================================================
+// O bloco `tela` nasceu em 01/08/2026, quando a feature finalmente ganhou tela
+// (screens/LunarCalendarScreen.js). Ele segue a mesma disciplina do resto do
+// pack e já é varrido pelos testes de forma, de vazio, de saúde e de ordem — o
+// que falta travar aqui é o que é PRÓPRIO da tela:
+//
+//   • o chrome existe nos TRÊS idiomas, com paridade exata de chaves;
+//   • as duas funções do chrome montam texto inteiro (nada de `undefined` no
+//     meio da frase, que é o defeito clássico de template);
+//   • a tela mostra AS DUAS definições — mostrar só uma é exatamente o que a
+//     proposição 2 da tese proíbe, e é o que o mercado faz;
+//   • a tela não redige, não fala com AsyncStorage e não passa por lib/i18n.js.
+
+const CHAVES_DA_TELA = [
+  'locale', 'kicker', 'titulo', 'intro', 'porQueDuas', 'naoDamosVeredito', 'calculando',
+  'rotuloReguas', 'seloVazio', 'seloCheio', 'rotuloDefende', 'rotuloCriterio', 'rotuloQuemUsa',
+  'rotuloJanelaAgora', 'rotuloProximo', 'rotuloRecibo', 'rotuloDivergencia', 'divergemSim',
+  'divergemNao', 'rotuloHoje', 'hojeIntro', 'semJanelaHoje', 'janelasIndisponiveis', 'faixa',
+  'abrir', 'fechar', 'verFontes', 'fecharFontes', 'rotuloNoOriginal', 'rotuloParafrase',
+  'rotuloFontes', 'compartilhar', 'copiado', 'naoCopiou', 'marca', 'indisponivelTitulo',
+  'textoCompartilhavel',
+];
+
+test('o bloco `tela` existe nos três packs, com paridade exata de chaves', () => {
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    assert.ok(pack.tela, `${lang} não tem bloco de chrome`);
+    assert.deepEqual(Object.keys(pack.tela).sort(), [...CHAVES_DA_TELA].sort(), `${lang}: chaves do chrome`);
+    assert.equal(typeof pack.tela.faixa, 'function', lang);
+    assert.equal(typeof pack.tela.textoCompartilhavel, 'function', lang);
+    // O domínio não se traduz, e o locale é dado (a tela não escolhe idioma).
+    assert.equal(pack.tela.marca, 'cosmicguide.cloud', `${lang}: a marca mudou`);
+    assert.match(pack.tela.locale, /^[a-z]{2}(-[A-Z]{2})?$/, `${lang}: locale fora de forma`);
+    // Os três textos longos do topo são o conteúdo do bloco, não rótulo.
+    for (const chave of ['intro', 'porQueDuas', 'naoDamosVeredito', 'hojeIntro', 'janelasIndisponiveis']) {
+      assert.ok(pack.tela[chave].length > 80, `${lang}.tela.${chave} curto demais`);
+    }
+    // A datação anda junto: o chrome cita a régua moderna com a data de Lilly.
+    assert.match(pack.tela.porQueDuas, /1647/, `${lang}: o chrome perdeu a data de Lilly`);
+    assert.match(pack.tela.porQueDuas, /Lilly/, lang);
+    assert.match(pack.tela.porQueDuas, /Porf[íi]rio|Porphyry/, lang);
+  }
+  // Os três chrome são MESMO diferentes entre si — senão o teste passaria com
+  // tudo em português, que é o bug de 01/08/2026 em outra roupa.
+  const titulos = Object.values(LANGS).map((p) => p.tela.titulo);
+  assert.equal(new Set(titulos).size, 3, `os três títulos deveriam diferir: ${titulos.join(' / ')}`);
+});
+
+test('as funções do chrome montam texto inteiro, sem placeholder nem undefined', () => {
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    const faixa = pack.tela.faixa({ inicio: '28/07 06:10', fim: '29/07 01:46' });
+    assert.ok(faixa.includes('28/07 06:10') && faixa.includes('29/07 01:46'), `${lang}: faixa perdeu um extremo`);
+    const r = L.luaForaDeCurso(new Date('2026-07-28T12:00:00Z'), 'moderna', lang);
+    const outra = L.luaForaDeCurso(new Date('2026-07-28T12:00:00Z'), 'porfirio', lang);
+    const texto = pack.tela.textoCompartilhavel({
+      termo: r.termo,
+      quando: '28/07 12:00',
+      primeira: r.textos.estado,
+      segunda: outra.textos.estado,
+      divergencia: r.textos.divergencia,
+    });
+    for (const pedaco of [r.termo, r.textos.estado, outra.textos.estado, r.textos.divergencia]) {
+      assert.ok(texto.includes(pedaco), `${lang}: o compartilhável perdeu um pedaço do motor`);
+    }
+    // As DUAS réguas vão no compartilhável — é a feature inteira em um print.
+    assert.ok(texto.includes(pack.definicoes.moderna.naFrase), `${lang}: falta a régua moderna`);
+    assert.ok(texto.includes(pack.definicoes.porfirio.naFrase), `${lang}: falta a régua de Porfírio`);
+    assert.ok(texto.endsWith('cosmicguide.cloud'), `${lang}: o compartilhável não fecha no endereço`);
+    for (const vazamento of ['undefined', 'null', '[object Object]', 'NaN']) {
+      assert.ok(!texto.includes(vazamento), `${lang}: vazou ${vazamento}`);
+    }
+  }
+});
+
+test('a tela mostra AS DUAS definições, tira o chrome do pack e não fabrica nada', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'screens', 'LunarCalendarScreen.js'), 'utf8');
+  // As duas portas do motor, usadas de verdade.
+  assert.match(src, /luaForaDeCurso\(/, 'a tela não chama o motor');
+  assert.match(src, /janelasForaDeCurso\(/, 'a tela não lista as janelas');
+  // As duas definições vêm da constante do motor — nunca de uma lista escrita
+  // na tela, que é onde uma delas some numa refatoração distraída.
+  assert.match(src, /DEFINICOES/, 'a tela não itera pelas duas definições do motor');
+  assert.doesNotMatch(src, /luaForaDeCurso\([^)]*'moderna'[^)]*\)/, 'a tela cravou uma definição só');
+  // O chrome sai dos três packs, e o idioma é repassado, não escolhido aqui.
+  for (const arquivo of ['luaForaDeCurso.pt.js', 'luaForaDeCurso.es.js', 'luaForaDeCurso.en.js']) {
+    assert.ok(src.includes(arquivo), `a tela não importa ${arquivo}`);
+  }
+  assert.ok(!/from '\.\.\/lib\/i18n'/.test(src), 'o chrome desta feature não pode passar por lib/i18n.js');
+  // Storage só por lib/storage.js — regra da casa. A varredura é do IMPORT e da
+  // CHAMADA, não da palavra: o cabeçalho da tela cita o AsyncStorage justamente
+  // para dizer que não fala com ele, e proibir a palavra proibiria o comentário.
+  assert.ok(!/@react-native-async-storage/.test(src), 'a tela voltou a importar AsyncStorage direto');
+  assert.ok(!/AsyncStorage\s*\./.test(src), 'a tela voltou a chamar AsyncStorage direto');
+  assert.match(src, /from '\.\.\/lib\/storage'/, 'o storage desta tela tem que passar por lib/storage.js');
+  // E o veredito seco que esta feature existe para recusar não pode reaparecer
+  // como texto de tela. A varredura roda no CÓDIGO, sem comentário: o cabeçalho
+  // da tela nomeia o veredito para dizer que o recusa, e proibir o nome ali
+  // proibiria a explicação.
+  const codigo = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+  assert.doesNotMatch(codigo, /Dia Livre|Día Libre|Free Day/i, 'veredito seco de volta na tela');
+});
+
 // ---------------------------------------------------------------------------
 // O IDIOMA NO SLOT DA DEFINICAO (bug real de tela, 01/08/2026)
 // ---------------------------------------------------------------------------

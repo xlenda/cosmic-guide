@@ -676,3 +676,84 @@ test('o app diz por que aqui não tem dicionário de símbolos, e cita o caso qu
   }
   assert.ok(A.NAO_ACHADO.some((x) => x.id === 'demaisCasosDoLivroV'));
 });
+
+// ===========================================================================
+// 8. A TELA — screens/DreamScreen.js é VITRINE
+// ===========================================================================
+// As cinco espécies entraram em screens/DreamScreen.js em 01/08/2026. A tela
+// não pode redigir uma linha nem escolher idioma: o chrome nasce no bloco
+// `chrome` dos três packs e o conteúdo vem do motor. Estas travas existem para
+// que a próxima pessoa que mexer na tela não recomece a escrever conteúdo lá
+// dentro — que foi como o app acumulou texto sem dono antes da tese.
+
+const FONTE_TELA = fs.readFileSync(path.join(__dirname, '..', 'screens', 'DreamScreen.js'), 'utf8');
+
+test('o chrome da tela existe nos TRÊS packs, com as mesmas chaves e nenhum valor vazio', () => {
+  const chaves = Object.keys(PT.chrome).sort();
+  assert.ok(chaves.length >= 20, `só ${chaves.length} rótulos — o bloco de chrome encolheu`);
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    assert.deepEqual(Object.keys(pack.chrome).sort(), chaves, `${lang}: o chrome divergiu do pt`);
+    for (const k of chaves) {
+      assert.equal(typeof pack.chrome[k], 'string', `${lang}/${k} não é texto`);
+      assert.ok(pack.chrome[k].trim().length > 0, `${lang}/${k} está vazio`);
+    }
+    assert.equal(typeof pack.textoCompartilhavel, 'function', `${lang}: sumiu o texto de compartilhar`);
+  }
+});
+
+test('a tela usa TODAS as chaves do chrome — e nenhuma que não exista no pack', () => {
+  const usadas = new Set([...FONTE_TELA.matchAll(/\bUI\.([a-zA-Z0-9_]+)/g)].map((m) => m[1]));
+  const existentes = new Set(Object.keys(PT.chrome));
+  for (const k of usadas) {
+    assert.ok(existentes.has(k), `screens/DreamScreen.js usa UI.${k}, que não existe nos packs`);
+  }
+  for (const k of existentes) {
+    assert.ok(usadas.has(k), `chrome.${k} nasceu no pack e a tela nunca mostra — texto órfão`);
+  }
+});
+
+test('a tela mostra o que o motor exporta e não escreve conteúdo de Artemidoro', () => {
+  assert.match(FONTE_TELA, /classificarSonho/, 'a tela não classifica nada');
+  assert.match(FONTE_TELA, /perguntas as perguntasDeArtemidoro/, 'as perguntas não vêm do motor');
+  assert.match(FONTE_TELA, /especies as especiesDeArtemidoro/, 'as cinco espécies não vêm do motor');
+  assert.match(FONTE_TELA, /soQuando/, 'a pergunta condicional virou regra escrita na tela');
+  assert.ok(
+    !/[Ͱ-Ͽ]/.test(FONTE_TELA),
+    'a tela escreveu grego — grego é dado do motor, nunca string de componente'
+  );
+  // A palavra pode aparecer em comentário (e aparece, dizendo que não se usa);
+  // o que não pode existir é o IMPORT.
+  assert.ok(
+    !/(?:from|require\()\s*['"]@react-native-async-storage/.test(FONTE_TELA),
+    'storage só via lib/storage.js — e este bloco não guarda nada'
+  );
+  assert.ok(!/t\(['"]artemidoro/.test(FONTE_TELA), 'o chrome desta feature não passa por lib/i18n.js');
+});
+
+test('a interpretação por IA continua de pé, e a pergunta que vem ANTES vem antes dela', () => {
+  assert.match(FONTE_TELA, /fetchAiDreamReading/, 'a leitura por IA sumiu — o pedido era somar, não trocar');
+  assert.match(FONTE_TELA, /getMockDreamReading/, 'a leitura enlatada honesta sumiu');
+  const iBloco = FONTE_TELA.lastIndexOf('{renderArtemidoro()}');
+  const iLeitura = FONTE_TELA.indexOf('<View style={styles.resultCard}>');
+  assert.ok(iBloco > 0, 'o bloco das cinco espécies não é renderizado');
+  assert.ok(iLeitura > 0, 'o card da leitura por IA sumiu da tela');
+  assert.ok(iBloco < iLeitura, 'no resultado, a pergunta que vem antes ficou DEPOIS da leitura');
+});
+
+test('o texto de compartilhar sai do pack, com o grego e o recibo dentro — e nunca sem dado', () => {
+  for (const lang of IDIOMAS) {
+    const r = A.classificarSonho(CASOS.outraConhecida, lang);
+    const texto = LANGS[lang].textoCompartilhavel(r);
+    assert.ok(texto.includes(r.camadaRecibo), `${lang}: compartilhou sem o recibo da camada`);
+    assert.ok(texto.includes(r.especieRecibo), `${lang}: compartilhou sem o recibo da espécie`);
+    assert.ok(texto.includes(r.especieGrego), `${lang}: compartilhou sem o grego`);
+    assert.ok(texto.includes('Cosmic Guide'), lang);
+    // Sem espécie continua compartilhável — o que ela diz é que não deu.
+    const semEspecie = LANGS[lang].textoCompartilhavel(A.classificarSonho(CASOS.foraDaLista, lang));
+    assert.ok(semEspecie.length > 100, lang);
+    // Sem resposta não se compartilha classificação nenhuma.
+    assert.equal(LANGS[lang].textoCompartilhavel(A.classificarSonho({}, lang)), null, lang);
+    assert.equal(LANGS[lang].textoCompartilhavel(null), null, lang);
+  }
+  assert.match(FONTE_TELA, /textoCompartilhavel\(/, 'a tela montou o texto de compartilhar por conta própria');
+});

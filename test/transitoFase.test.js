@@ -888,6 +888,118 @@ test('a lista inteira do Céu de Hoje deste nascimento recebe fase, e as duas ap
   assert.ok(vistas.has('separativo'), 'nenhum aspecto separativo no dia — improvável, confira a conta');
 });
 
+// ===========================================================================
+// 8. O CHROME DA TELA E A VITRINE (screens/CalendarioCosmicoScreen.js)
+// ===========================================================================
+// O módulo entrou em tela em 01/08/2026. Duas coisas precisam ficar travadas:
+// que o texto do CHROME continue morando nos três packs (e não dentro do
+// componente), e que a tela continue sendo VITRINE — uma chamada de cada motor,
+// nenhuma conta própria.
+
+const CHROME_CHAVES = [
+  'abrir', 'bloqueado', 'compartilhar', 'copiado', 'divergencia', 'fechar', 'intro', 'kicker',
+  'marca', 'naoCopiou', 'porQue', 'rotuloLista', 'rotuloNotas', 'rotuloRecibo', 'rotuloVerbatim',
+  'selo', 'semAspectos', 'semNascimento', 'subtituloDoCard', 'textoCompartilhavel', 'titulo',
+  'tituloDoCard',
+];
+
+test('o chrome da tela existe nos TRÊS packs, com as mesmas chaves e nada vazio', () => {
+  for (const lang of IDIOMAS) {
+    const c = LANGS[lang].chrome;
+    assert.ok(c, `${lang} não tem bloco chrome`);
+    assert.deepEqual(Object.keys(c).sort(), CHROME_CHAVES, `${lang}: chaves do chrome fora de paridade`);
+    assert.deepEqual(Object.keys(c.selo).sort(), ['aplicativo', 'estacionario', 'separativo'], lang);
+    assert.deepEqual(Object.keys(c.semNascimento).sort(), ['cta', 'texto'], lang);
+    assert.deepEqual(Object.keys(c.bloqueado).sort(), ['cta', 'texto', 'titulo'], lang);
+    varrerStrings(c, `${lang}.chrome`, (caminho, s) => assert.ok(s.trim().length > 0, `${caminho} vazio`));
+    // O cabeçalho é longo de propósito: ele explica o PORQUÊ antes da lista.
+    assert.ok(c.intro.length > 200, `${lang}: intro curta demais`);
+    assert.ok(c.porQue.length > 200, `${lang}: porQue curto demais`);
+    // E a divergência entre as duas fontes do séc. II aparece com os dois loci.
+    assert.match(c.divergencia, /Tetrabiblos I\.24/, lang);
+    assert.match(c.divergencia, /Anthologiae IX\.3/, lang);
+    assert.match(c.divergencia, /is being carried towards the position of the Ascendant/, lang);
+    // Onde informar o nascimento é o nome da tela NAQUELE idioma.
+    assert.ok(
+      c.semNascimento.cta.includes(NOME_DA_TELA[lang]),
+      `${lang}: o convite não diz onde informar — ${c.semNascimento.cta}`
+    );
+  }
+  // Três idiomas, três chromes diferentes — nenhum é cópia do pt.
+  for (const lang of ['es', 'en']) {
+    assert.notEqual(LANGS[lang].chrome.intro, PT.chrome.intro, lang);
+    assert.notEqual(LANGS[lang].chrome.titulo, PT.chrome.titulo, lang);
+  }
+});
+
+test('o chrome monta título, subtítulo e compartilhável a partir da leitura, em cada idioma', () => {
+  for (const lang of IDIOMAS) {
+    const c = LANGS[lang].chrome;
+    const r = ler(CASOS.aplicativo, lang);
+    const titulo = c.tituloDoCard(r);
+    assert.ok(titulo.includes(r.transitoRotulo) && titulo.includes(r.natalRotulo), `${lang}: ${titulo}`);
+    assert.ok(!/undefined|null|\[object/.test(titulo), `${lang}: ${titulo}`);
+    assert.equal(c.subtituloDoCard(r), `${r.aspectoNome} · ${r.angulo}°`, lang);
+
+    const texto = c.textoCompartilhavel(r);
+    assert.ok(texto.includes(titulo), `${lang}: o compartilhável perdeu o título`);
+    assert.ok(texto.includes(r.linhaCurta), `${lang}: o compartilhável perdeu o verbo`);
+    assert.match(texto, /Tetrabiblos I\.24/, `${lang}: o compartilhável saiu sem recibo`);
+    assert.match(texto, /https:\/\/cosmicguide\.cloud/, `${lang}: o compartilhável saiu sem o link`);
+    assert.ok(!/undefined|null|\[object|NaN/.test(texto), `${lang}: ${texto}`);
+  }
+  // Sem leitura não há print: nada de compartilhar meia frase.
+  assert.equal(PT.chrome.textoCompartilhavel(T.faseDoTransito(CASOS.aplicativo, null, 'pt')), '');
+  assert.equal(PT.chrome.textoCompartilhavel(null), '');
+  // E o subtítulo cala quando o aspecto não foi reconhecido.
+  assert.equal(PT.chrome.subtituloDoCard(T.faseDoTransito({}, BIRTH, 'pt', { hoje: HOJE })), '');
+});
+
+test('a vitrine (CalendarioCosmicoScreen) consome os dois motores UMA vez e não faz conta própria', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'screens', 'CalendarioCosmicoScreen.js'), 'utf8');
+
+  assert.match(src, /import \{ fasesDoCeuPessoal \} from '\.\.\/lib\/transitoFase'/);
+  assert.match(src, /import \{ personalSkyToday \} from '\.\.\/lib\/personalSky'/);
+  // Uma chamada de cada: quem duplicar levanta a efeméride duas vezes por
+  // render, que é o custo que fasesDoCeuPessoal existe para evitar.
+  // Os comentários daquele arquivo citam as duas funções pelo nome (é o bloco
+  // que explica a feature), então a contagem roda no CÓDIGO, sem as linhas de
+  // comentário — senão o teste mediria prosa.
+  const codigo = src.replace(/^\s*\/\/.*$/gm, '');
+  assert.equal((codigo.match(/personalSkyToday\(/g) || []).length, 1, 'personalSkyToday chamado mais de uma vez');
+  assert.equal((codigo.match(/fasesDoCeuPessoal\(/g) || []).length, 1, 'fasesDoCeuPessoal chamado mais de uma vez');
+  // A tela não refaz a conta do motor.
+  assert.ok(!/faseDoAspecto|posicoesDoDia|norm180/.test(codigo), 'a tela está refazendo a conta do motor');
+  // Storage só via lib/, como em toda tela da casa.
+  assert.ok(!/AsyncStorage/.test(src), 'a tela não pode falar com AsyncStorage direto');
+  // O chrome vem do pack do módulo, nunca de lib/i18n.js.
+  assert.match(src, /transitoFase\.pt/);
+  assert.match(src, /transitoFase\.es/);
+  assert.match(src, /transitoFase\.en/);
+  assert.ok(!/t\('calendario\.fase/.test(src), 'o chrome da fase não pode virar chave de i18n desta tela');
+  // E os campos da leitura que a tela promete mostrar continuam sendo lidos.
+  for (const campo of ['linhaCurta', 'chamada', 'notaMarcha', 'notaHorizonte', 'comoResolver', 'verbatins']) {
+    assert.ok(src.includes(campo), `a tela parou de mostrar ${campo}`);
+  }
+});
+
+test('o selo do card nomeia os três estados sem ordenar nenhum', () => {
+  const ORDENA = [
+    /melhor|pior|forte|fraco|mais important/i,
+    /mejor|peor|fuerte|d[ée]bil/i,
+    /better|worse|strong|weak/i,
+  ];
+  for (const lang of IDIOMAS) {
+    const selo = LANGS[lang].chrome.selo;
+    const valores = Object.values(selo);
+    assert.equal(new Set(valores).size, 3, `${lang}: os três estados precisam de três selos distintos`);
+    for (const v of valores) {
+      assert.ok(v.length < 30, `${lang}: selo comprido demais para um card fechado — ${v}`);
+      for (const re of ORDENA) assert.ok(!re.test(v), `${lang}: o selo ordenou os estados — ${v}`);
+    }
+  }
+});
+
 test('o mesmo aspecto lido em dias seguidos atravessa o exato e troca de verbo', () => {
   // A prova de que a distinção é temporal e não um rótulo fixo: a Lua fecha o
   // sextil com Netuno natal em poucas horas, então amanhã ele já se desfez.

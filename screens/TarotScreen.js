@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +25,14 @@ import OneTimeLock from '../components/OneTimeLock';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
+// O PREPARO DE WAITE (01/08/2026) — lib/waiteRegras.js existia, com pack nos
+// três idiomas e teste próprio passando, e NUNCA tinha sido ligado a uma tela.
+// O cabeçalho do módulo já dizia onde ele encaixa: "o vão que hoje está vazio —
+// o segundo entre escolher o tema e apertar tirar".
+import { avaliarPergunta, preparoDaTiragem, progressoDoPreparo } from '../lib/waiteRegras';
+import { PACK as PACK_WAITE_PT } from '../lib/traducoes/waiteRegras.pt.js';
+import { PACK as PACK_WAITE_ES } from '../lib/traducoes/waiteRegras.es.js';
+import { PACK as PACK_WAITE_EN } from '../lib/traducoes/waiteRegras.en.js';
 
 const FEATURE_KEY = 'tarot';
 
@@ -53,6 +61,38 @@ const THEMES = [
 // para ela. Por isso o app nunca a chama de "clássica" nem de "tradicional".
 // Ver docs/tradicao/05, §3.6.
 const POSITIONS = ['Passado', 'Presente', 'Futuro'];
+
+// ---------------------------------------------------------------------------
+// O CHROME DO PREPARO — sai do PACK do próprio módulo, nunca de lib/i18n.js
+// ---------------------------------------------------------------------------
+// Esta tela não redige uma linha do preparo: título, aberturas, as quatro
+// regras, os recibos e a datação vêm de preparoDaTiragem(opcoes, lang), e os
+// rótulos de interface vêm do bloco `tela` dos packs de lib/traducoes/
+// waiteRegras.{pt,es,en}.js. Se faltar palavra, ela nasce lá nos três — nunca
+// aqui dentro.
+//
+// PARA O INTEGRADOR: este mapa é o mesmo `packDoIdioma` de lib/waiteRegras.js e
+// o lugar dele é lá, exportado como `chromeDoPreparo(lang)`. Ele mora aqui só
+// porque a passagem que ligou o módulo não podia editar o motor; mover é uma
+// linha de import a menos nesta tela e nenhuma mudança de comportamento.
+const PACKS_DO_PREPARO = { pt: PACK_WAITE_PT, es: PACK_WAITE_ES, en: PACK_WAITE_EN };
+
+function chromeDoPreparo(lang) {
+  const pack = PACKS_DO_PREPARO[lang] || PACKS_DO_PREPARO.pt;
+  // `rotuloCampo` e `ajudaCampo` já existiam no pack (bloco `pergunta`) e não
+  // saem por nenhuma função do motor — são repassados, nunca reescritos.
+  return { ...pack.tela, rotuloCampo: pack.pergunta.rotulo, ajudaCampo: pack.pergunta.ajuda };
+}
+
+// Molde → texto, o mesmo `preencher` de lib/idadeReal.js e lib/mitos.js: chave
+// ausente fica à vista em vez de virar "undefined" no meio da frase. É
+// mecânica, não redação — o único molde do preparo é `{s}`, os segundos que
+// faltam na contagem.
+function preencherMolde(molde, vars = {}) {
+  return String(molde).replace(/\{(\w+)\}/g, (bruto, chave) =>
+    Object.prototype.hasOwnProperty.call(vars, chave) ? String(vars[chave]) : bruto
+  );
+}
 
 export default function TarotScreen() {
   const insets = useSafeAreaInsets();
@@ -85,6 +125,25 @@ export default function TarotScreen() {
   // limite diário do tema UMA vez por bônus guardado. Recarrega no foco (não
   // só no mount) pra refletir uma compra feita na Loja e voltar direto pro Tarô.
   const [bonusReadings, setBonusReadings] = useState(0);
+
+  // ---- O PREPARO DE WAITE, no vão antes de tirar ----
+  // Só DUAS coisas moram aqui em cima; o resto do estado é do próprio painel.
+  // `preparoFeitas` sobe porque o rótulo do botão de tirar depende dele — e é
+  // exatamente para isso que progressoDoPreparo() devolve `completo`: para
+  // TROCAR O RÓTULO, nunca para desabilitar o botão (lib/waiteRegras.js, "O APP
+  // NÃO TRANCA O BOTÃO"). Waite chamou os quatro itens de notas de prática, não
+  // de condições, e gatear a tiragem seria inventar rigor que a fonte não tem.
+  // Nada aqui toca paywall, limite diário ou leitura bônus.
+  const [preparoAberto, setPreparoAberto] = useState(false);
+  const [preparoFeitas, setPreparoFeitas] = useState([]);
+  const marcarRegraDoPreparo = useCallback((id, feita) => {
+    Haptics.selectionAsync();
+    setPreparoFeitas((prev) => {
+      if (feita) return prev.includes(id) ? prev : [...prev, id];
+      return prev.filter((x) => x !== id);
+    });
+  }, []);
+  const progressoDoWaite = useMemo(() => progressoDoPreparo(preparoFeitas, lang), [preparoFeitas, lang]);
 
   // Todo tema libera só 1 tiragem por dia (ver lib/tarotDailyLimit) — recheca
   // sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
@@ -330,10 +389,28 @@ export default function TarotScreen() {
             ) : (
               <>
                 <Text style={styles.emptyTitle}>Concentre-se na sua pergunta sobre {theme.key.toLowerCase()}</Text>
+
+                {/* AS QUATRO NOTAS DE PRÁTICA DE WAITE (1911) — convite, nunca
+                    obstáculo: entra fechado, abre com um toque, fecha com
+                    outro, e o botão de tirar continua logo abaixo o tempo
+                    todo, habilitado, faça a pessoa zero ou quatro. */}
+                <PreparoDeWaite
+                  lang={lang}
+                  aberto={preparoAberto}
+                  onAlternar={() => setPreparoAberto((v) => !v)}
+                  feitas={preparoFeitas}
+                  onMarcar={marcarRegraDoPreparo}
+                  progresso={progressoDoWaite}
+                />
+
                 <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards()} style={styles.btnWrap}>
                   <LinearGradient colors={theme.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                     <Ionicons name="hand-left" size={18} color="#fff" />
-                    <Text style={styles.btnText}>{t('tarot.draw')}</Text>
+                    {/* Feitas as quatro, o rótulo muda — e só o rótulo. Quem
+                        não fez nenhuma lê o de sempre, do dicionário da tela. */}
+                    <Text style={styles.btnText}>
+                      {progressoDoWaite.completo ? progressoDoWaite.botao : t('tarot.draw')}
+                    </Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </>
@@ -575,6 +652,316 @@ export default function TarotScreen() {
   );
 }
 
+// ===========================================================================
+// O PREPARO DE WAITE — as quatro notas de prática, entre escolher o tema e
+// apertar tirar
+// ===========================================================================
+// LEIA lib/waiteRegras.js ANTES DE MEXER EM QUALQUER TEXTO DAQUI. Este painel é
+// VITRINE: ele mostra o que o motor exporta e não redige conteúdo. Todo texto
+// vem de preparoDaTiragem(), avaliarPergunta(), progressoDoPreparo() e do bloco
+// `tela` dos três packs. Se faltar palavra, ela nasce no pack, nos três
+// idiomas — nunca dentro deste componente.
+//
+// TRÊS DECISÕES QUE NÃO SÃO ESTÉTICA:
+//
+// 1. FECHADO POR PADRÃO, E FÁCIL DE FECHAR DE NOVO. Quatro regras abertas em
+//    cima de quem só quer tirar carta viram paredão, e paredão é obstáculo. O
+//    cartão fechado mostra a isca (vida real, sem Waite e sem ano — a fonte
+//    está a um toque, dentro) e a linha de estado. Tem "fechar e tirar direto"
+//    no fim do painel, e o botão de tirar nunca sai da tela.
+// 2. NADA AQUI TRANCA NADA. Não há gate, não há `disabled`, não há tempo
+//    mínimo: paywall, limite diário por tema e leitura bônus continuam sendo os
+//    únicos donos do que pode ou não ser tirado, exatamente como estavam. O
+//    progresso serve para trocar o rótulo do botão e para a linha de estado.
+// 3. A CONTAGEM É UMA OFERTA. Os vinte segundos são medida do app (o pack diz
+//    isso com todas as letras onde aparece) e o botão de contar é opcional:
+//    quem não quiser contar marca a regra como feita na mão, ou não marca.
+//
+// STORAGE: nenhum. O preparo é o gesto de agora, nesta cadeira — não há o que
+// guardar, e por isso esta tela continua sem tocar em AsyncStorage.
+function PreparoDeWaite({ lang, aberto, onAlternar, feitas, onMarcar, progresso }) {
+  const UI = chromeDoPreparo(lang);
+  // 'voce' | 'outra' — a única coisa que muda a saída do motor, e a quarta
+  // regra é a única regra que responde a ela.
+  const [paraQuem, setParaQuem] = useState('voce');
+  const [pergunta, setPergunta] = useState('');
+  const [restam, setRestam] = useState(null);
+  const [fontesAbertas, setFontesAbertas] = useState(false);
+
+  const preparo = useMemo(() => preparoDaTiragem({ paraQuem }, lang), [paraQuem, lang]);
+  const avaliacao = useMemo(() => avaliarPergunta(pergunta, lang), [pergunta, lang]);
+
+  // A contagem regressiva do embaralho. Chegando a zero, marca a segunda regra
+  // como feita — é o único lugar em que o app marca algo sozinho, e é porque o
+  // gesto acabou de acontecer na tela.
+  useEffect(() => {
+    if (restam === null) return undefined;
+    if (restam <= 0) {
+      setRestam(null);
+      onMarcar('embaralhar', true);
+      return undefined;
+    }
+    const id = setTimeout(() => setRestam((s) => (s === null ? null : s - 1)), 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restam]);
+
+  if (!aberto) {
+    return (
+      <TouchableOpacity
+        style={styles.preparoConvite}
+        activeOpacity={0.85}
+        onPress={onAlternar}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: false }}
+        accessibilityLabel={UI.convite}
+        accessibilityHint={UI.abrir}
+        testID="preparo-abrir"
+      >
+        <View style={styles.preparoConviteTexto}>
+          <Text style={styles.preparoConviteTitulo}>{UI.convite}</Text>
+          <Text style={styles.preparoConviteLinha}>{UI.conviteLinha}</Text>
+          <Text style={styles.preparoEstado}>{progresso.texto}</Text>
+        </View>
+        <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={styles.preparoPainel} testID="preparo-painel">
+      <TouchableOpacity
+        style={styles.preparoTopo}
+        activeOpacity={0.85}
+        onPress={onAlternar}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: true }}
+        accessibilityLabel={preparo.titulo}
+        accessibilityHint={UI.fechar}
+        testID="preparo-fechar"
+      >
+        <Text style={styles.preparoTitulo}>{preparo.titulo}</Text>
+        <Ionicons name="chevron-up" size={18} color={colors.textMuted} />
+      </TouchableOpacity>
+
+      {/* A abertura inteira: parágrafo de vida real primeiro, fonte depois. */}
+      {preparo.abertura.split('\n\n').map((paragrafo, i) => (
+        <Text key={i} style={styles.preparoAbertura}>
+          {paragrafo}
+        </Text>
+      ))}
+
+      {/* PARA QUEM É A LEITURA — muda só a quarta regra, que é a única em que a
+          fonte distingue os casos. */}
+      <Text style={styles.preparoRotulo}>{UI.paraQuemRotulo}</Text>
+      <View style={styles.preparoChipRow}>
+        {[
+          ['voce', UI.paraQuemVoce],
+          ['outra', UI.paraQuemOutra],
+        ].map(([id, rotulo]) => {
+          const ativo = paraQuem === id;
+          return (
+            <TouchableOpacity
+              key={id}
+              style={[styles.preparoChip, ativo && styles.preparoChipAtivo]}
+              activeOpacity={0.85}
+              onPress={() => setParaQuem(id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: ativo }}
+              accessibilityLabel={rotulo}
+              testID={`preparo-paraquem-${id}`}
+            >
+              <Text style={[styles.preparoChipTexto, ativo && styles.preparoChipTextoAtivo]}>{rotulo}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* AS QUATRO, NA ORDEM DE WAITE */}
+      {preparo.regras.map((regra) => {
+        const feita = feitas.includes(regra.id);
+        return (
+          <View
+            key={regra.id}
+            style={[styles.preparoRegra, feita && styles.preparoRegraFeita]}
+            testID={`preparo-regra-${regra.id}`}
+          >
+            <View style={styles.preparoRegraTopo}>
+              <View style={styles.preparoOrdem}>
+                <Text style={styles.preparoOrdemTexto}>{regra.ordem}</Text>
+              </View>
+              <Text style={styles.preparoRegraTitulo}>{regra.titulo}</Text>
+            </View>
+
+            {/* Prende primeiro: a vida real. */}
+            <Text style={styles.preparoChamada}>{regra.chamada}</Text>
+
+            <Text style={styles.preparoRotulo}>{UI.rotuloGesto}</Text>
+            <Text style={styles.preparoTexto}>{regra.oQueVoceFaz}</Text>
+
+            {/* A PRIMEIRA REGRA TEM CAMPO — e a avaliação é do TEXTO digitado,
+                nunca da vida de quem digitou. O motor se rotula leitura do app
+                onde o critério é do app; a tela só imprime o que ele devolve. */}
+            {regra.pedeTexto ? (
+              <View style={styles.preparoCampoBox}>
+                <Text style={styles.preparoRotulo}>{UI.rotuloCampo}</Text>
+                <TextInput
+                  style={styles.preparoInput}
+                  value={pergunta}
+                  onChangeText={setPergunta}
+                  placeholder={UI.ajudaCampo}
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  accessibilityLabel={UI.rotuloCampo}
+                  testID="preparo-campo-pergunta"
+                />
+                <Text style={styles.preparoAvaliacao} testID="preparo-avaliacao">
+                  {avaliacao.mensagem}
+                </Text>
+                {avaliacao.definida ? (
+                  <Text style={styles.preparoAvaliacao}>{avaliacao.proximoPasso}</Text>
+                ) : null}
+                <Text style={styles.preparoRotulo}>{UI.rotuloExemplos}</Text>
+                {avaliacao.exemplos.map((exemplo) => (
+                  <TouchableOpacity
+                    key={exemplo}
+                    activeOpacity={0.7}
+                    onPress={() => setPergunta(exemplo)}
+                    accessibilityRole="button"
+                    accessibilityLabel={exemplo}
+                  >
+                    <Text style={styles.preparoExemplo}>· {exemplo}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+
+            {/* A SEGUNDA REGRA TEM CONTAGEM — vinte segundos, que são medida do
+                app e o pack declara isso onde o texto aparece. Opcional: quem
+                não quiser contar marca a regra na mão. */}
+            {regra.segundos ? (
+              <TouchableOpacity
+                style={styles.preparoContador}
+                activeOpacity={0.85}
+                onPress={() => setRestam(regra.segundos)}
+                disabled={restam !== null}
+                accessibilityRole="button"
+                accessibilityLabel={UI.contar}
+                testID="preparo-contador"
+              >
+                <Ionicons name="timer-outline" size={16} color={colors.gold} />
+                <Text style={styles.preparoContadorTexto}>
+                  {restam !== null
+                    ? preencherMolde(UI.contando, { s: restam })
+                    : feita
+                      ? UI.contada
+                      : UI.contar}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+
+            <Text style={styles.preparoRotulo}>{UI.rotuloPorQue}</Text>
+            <Text style={styles.preparoTexto}>{regra.porQue}</Text>
+
+            {/* O RECIBO, por último: obra, autor, ano e parte. */}
+            <View style={styles.preparoRecibo}>
+              <Text style={styles.preparoReciboRotulo}>{UI.rotuloRecibo}</Text>
+              <Text style={styles.preparoReciboTexto} testID={`preparo-recibo-${regra.id}`}>
+                {regra.recibo}
+              </Text>
+            </View>
+
+            {/* A ÚNICA CITAÇÃO ENTRE ASPAS DESTA FEATURE, e ela mora onde
+                decide: é a linha em que a carta invertida entra na prática, no
+                mesmo parágrafo do embaralho. As quatro notas NÃO vão entre
+                aspas — esta base não tem o inglês literal delas. */}
+            {regra.id === 'embaralhar'
+              ? preparo.verbatins.map((v) => (
+                  <View key={v.texto} style={styles.preparoVerbatim}>
+                    <Text style={styles.preparoReciboRotulo}>{UI.rotuloVerbatim}</Text>
+                    <Text style={styles.preparoVerbatimTexto}>“{v.texto}”</Text>
+                    <Text style={styles.preparoTexto}>{v.parafrase}</Text>
+                    <Text style={styles.preparoReciboTexto}>{v.locus}</Text>
+                  </View>
+                ))
+              : null}
+
+            <TouchableOpacity
+              style={[styles.preparoMarcar, feita && styles.preparoMarcarFeita]}
+              activeOpacity={0.85}
+              onPress={() => onMarcar(regra.id, !feita)}
+              accessibilityRole="button"
+              accessibilityState={{ checked: feita }}
+              accessibilityLabel={feita ? UI.marcada : UI.marcar}
+              testID={`preparo-marcar-${regra.id}`}
+            >
+              <Ionicons
+                name={feita ? 'checkmark-circle' : 'ellipse-outline'}
+                size={18}
+                color={feita ? colors.gold : colors.textMuted}
+              />
+              <Text style={[styles.preparoMarcarTexto, feita && styles.preparoMarcarTextoFeita]}>
+                {feita ? UI.marcada : UI.marcar}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        );
+      })}
+
+      <Text style={styles.preparoEstado} testID="preparo-estado">
+        {progresso.texto}
+      </Text>
+
+      {/* As duas ressalvas do motor: por que o app não tranca, e o que é de
+          Waite e o que é do app. */}
+      <Text style={styles.preparoNota}>{preparo.notaSemTranca}</Text>
+      <Text style={styles.preparoNota}>{preparo.notaLeituraDoApp}</Text>
+
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => setFontesAbertas((v) => !v)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: fontesAbertas }}
+        accessibilityLabel={fontesAbertas ? UI.ocultarFontes : UI.verFontes}
+        testID="preparo-fontes"
+      >
+        <Text style={styles.preparoLink}>{fontesAbertas ? UI.ocultarFontes : UI.verFontes}</Text>
+      </TouchableOpacity>
+
+      {fontesAbertas ? (
+        <View style={styles.preparoFontesBox}>
+          <Text style={styles.preparoRotulo}>{UI.rotuloDatacao}</Text>
+          {preparo.datacao.map((d) => (
+            <View key={d.id} style={styles.preparoDatacao}>
+              <Text style={styles.preparoDatacaoLinha}>
+                {d.linha} · {d.grauNome}
+              </Text>
+              <Text style={styles.preparoReciboTexto}>{d.nota}</Text>
+            </View>
+          ))}
+          <Text style={styles.preparoRotulo}>{UI.rotuloFontes}</Text>
+          {preparo.fonte.map((f) => (
+            <Text key={f} style={styles.preparoReciboTexto}>
+              {f}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+
+      {/* A saída, dita com todas as letras: dá para fechar e tirar direto. */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={onAlternar}
+        accessibilityRole="button"
+        accessibilityLabel={UI.pular}
+        testID="preparo-pular"
+      >
+        <Text style={styles.preparoLink}>{UI.pular}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { paddingHorizontal: 20, paddingBottom: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
@@ -632,4 +1019,145 @@ const styles = StyleSheet.create({
   spreadTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 6 },
   spreadText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
   spreadFootnote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 10 },
+
+  // ---- O PREPARO DE WAITE ----
+  // Mobile-first e alinhado à esquerda: o painel vive dentro de `emptyWrap`,
+  // que centraliza, então tudo aqui declara largura cheia e texto à esquerda.
+  preparoConvite: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+    marginBottom: 16,
+  },
+  preparoConviteTexto: { flex: 1, gap: 4 },
+  preparoConviteTitulo: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  preparoConviteLinha: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+
+  preparoPainel: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+    marginBottom: 16,
+    gap: 10,
+  },
+  preparoTopo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  preparoTitulo: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '800' },
+  preparoAbertura: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+
+  preparoRotulo: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    marginTop: 6,
+  },
+  preparoChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  preparoChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  preparoChipAtivo: { borderColor: colors.gold },
+  preparoChipTexto: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  preparoChipTextoAtivo: { color: colors.gold },
+
+  preparoRegra: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    marginTop: 4,
+    gap: 6,
+  },
+  preparoRegraFeita: { borderColor: colors.gold + '66' },
+  preparoRegraTopo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  preparoOrdem: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  preparoOrdemTexto: { color: colors.gold, fontSize: 12, fontWeight: '800' },
+  preparoRegraTitulo: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '800', lineHeight: 20 },
+  preparoChamada: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  preparoTexto: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+
+  preparoCampoBox: { gap: 6, marginTop: 2 },
+  preparoInput: {
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 19,
+    minHeight: 64,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    textAlignVertical: 'top',
+  },
+  preparoAvaliacao: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  preparoExemplo: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+
+  preparoContador: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.gold + '66',
+    paddingVertical: 11,
+    marginTop: 4,
+  },
+  preparoContadorTexto: { color: colors.gold, fontSize: 13, fontWeight: '700' },
+
+  preparoRecibo: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dotted',
+    borderColor: colors.border,
+    padding: 10,
+    gap: 3,
+    marginTop: 4,
+  },
+  preparoReciboRotulo: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  preparoReciboTexto: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  preparoVerbatim: { gap: 5, marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
+  preparoVerbatimTexto: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, fontStyle: 'italic' },
+
+  preparoMarcar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 11,
+    marginTop: 6,
+  },
+  preparoMarcarFeita: { borderColor: colors.gold + '66' },
+  preparoMarcarTexto: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+  preparoMarcarTextoFeita: { color: colors.gold },
+
+  preparoEstado: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  preparoNota: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  preparoLink: { color: colors.gold, fontSize: 13, fontWeight: '700', paddingVertical: 6 },
+  preparoFontesBox: { gap: 6 },
+  preparoDatacao: { gap: 2 },
+  preparoDatacaoLinha: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, fontWeight: '700' },
 });

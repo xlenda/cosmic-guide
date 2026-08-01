@@ -698,6 +698,56 @@ function textosDoOutroModulo() {
   return saida.filter(Boolean);
 }
 
+// ===========================================================================
+// 12. A FEATURE ESTÁ LIGADA — e mora DENTRO do álbum das 78
+// ===========================================================================
+// Um módulo completo que nenhuma tela importa é conteúdo que o usuário não vê.
+// O cabeçalho do motor diz onde esta feature mora: dentro do Álbum. Estes dois
+// testes travam o endereço e o chrome, que são as duas coisas que uma
+// refatoração desatenta quebra em silêncio.
+
+const TELA_DO_ALBUM = path.join(__dirname, '..', 'screens', 'TarotAlbumScreen.js');
+
+test('o Álbum das 78 importa esta feature e usa a porta de entrada de cada bloco', () => {
+  const src = fs.readFileSync(TELA_DO_ALBUM, 'utf8');
+  assert.match(src, /from '\.\.\/lib\/tarotHistoria'/, 'o álbum não importa a história do tarô');
+  for (const fn of [
+    'aberturaDoAlbum',
+    'linhaDoTempo',
+    'marcosDaFase',
+    'historiaDoGrupo',
+    'historiaDaCarta',
+    'oQueNaoSeSustenta',
+    'chromeDaTela',
+    'textoCompartilhavel',
+  ]) {
+    assert.ok(src.includes(fn), `a tela não usa ${fn} — bloco da feature ficou invisível`);
+  }
+  // A ORDEM é o conteúdo: a tela desce a linha por FASE, na ordem do motor.
+  assert.ok(src.includes('FASES'), 'a tela não agrupa a linha do tempo por fase');
+  // Storage aqui é assunto de lib/tarotCollection.js — a tela nunca fala com
+  // AsyncStorage direto, e esta feature não grava nada.
+  assert.ok(!/AsyncStorage/.test(src), 'a tela do álbum passou a importar AsyncStorage');
+});
+
+test('o chrome da tela sai do pack desta feature, com paridade nos três idiomas', () => {
+  const NOVAS = [
+    'abrir', 'fechar', 'fecharLinhaDoTempo', 'rotuloSeculosDeImagem', 'rotuloAnosDeLeitura',
+    'rotuloEstaSecao', 'rotuloEstaCarta', 'seloHistoria', 'compartilhar', 'copiado',
+    'naoCopiou', 'marca',
+  ];
+  const base = Object.keys(PT.tela).sort();
+  for (const lang of IDIOMAS) {
+    assert.deepEqual(Object.keys(PACKS[lang].tela).sort(), base, `${lang}: chrome divergiu`);
+    for (const k of NOVAS) {
+      assert.ok(H.chromeDaTela(lang)[k], `${lang}: o chrome perdeu ${k} — a tela ficaria muda`);
+    }
+  }
+  // E nada disto passa por lib/i18n.js: o chrome é do módulo, não do app.
+  const i18n = fs.readFileSync(path.join(__dirname, '..', 'lib', 'i18n.js'), 'utf8');
+  assert.ok(!i18n.includes(PT.tela.rotuloSeculosDeImagem), 'o chrome vazou para lib/i18n.js');
+});
+
 test('nenhuma sequência de oito palavras em comum com lib/mitos.js ou lib/idadeReal.js', () => {
   const alheio = new Set();
   for (const t of textosDoOutroModulo()) for (const g of ngramas(t)) alheio.add(g);

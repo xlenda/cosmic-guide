@@ -615,6 +615,160 @@ test('o progresso sai nos três idiomas, e a linha parcial nomeia a próxima reg
 // 10. O PT É REFERÊNCIA — âncoras byte a byte no que não pode mudar sem querer
 // ===========================================================================
 
+// ===========================================================================
+// 11. O CHROME DA TELA — nasceu em 01/08/2026, quando o módulo foi ligado
+// ===========================================================================
+// screens/TarotScreen.js é VITRINE: ela mostra o que o motor exporta e não
+// redige uma linha. Os rótulos de interface (abrir, fechar, marcar, contar,
+// pular) moram no bloco `tela` dos três packs — não em lib/i18n.js e não dentro
+// do componente. Estas leis são as mesmas do resto do arquivo, aplicadas ao
+// chrome: paridade exata de chaves, mesmo molde, e a isca do cartão fechado
+// obedecendo ao PRENDE PRIMEIRO como qualquer `chamada`.
+//
+// As varreduras de linha vermelha (saúde, promessa, aviso defensivo, vazamento
+// de português) já pegam este bloco de graça: elas usam varrerStrings sobre o
+// pack inteiro, e `tela` deixou de ser string solta para virar objeto.
+
+const CHAVES_DE_TELA = [
+  'nome',
+  'convite',
+  'conviteLinha',
+  'abrir',
+  'fechar',
+  'pular',
+  'paraQuemRotulo',
+  'paraQuemVoce',
+  'paraQuemOutra',
+  'rotuloGesto',
+  'rotuloPorQue',
+  'rotuloRecibo',
+  'rotuloExemplos',
+  'contar',
+  'contando',
+  'contada',
+  'marcar',
+  'marcada',
+  'rotuloVerbatim',
+  'rotuloDatacao',
+  'rotuloFontes',
+  'verFontes',
+  'ocultarFontes',
+];
+
+test('NENHUMA DATA INVENTADA: todo ano de quatro dígitos desta feature existe na base', () => {
+  // Mesma trava de test/tarotHistoria.test.js, aplicada ao que ESTA feature põe
+  // na tela. Data inventada não entra por má-fé, entra por descuido numa
+  // revisão de texto — e o preparo cita quatro datações.
+  const doc = (nome) => fs.readFileSync(path.join(__dirname, '..', 'docs', 'tradicao', nome), 'utf8');
+  const base = doc('05-taro-historia-e-leitura.md') + '\n' + doc('00-tese.md');
+  const forasteiros = [];
+  for (const lang of IDIOMAS) {
+    for (const p of AMOSTRA[lang]) {
+      const visivel = [corpus(p), ...Object.values(LANGS[lang].tela)].join(' \n ');
+      for (const m of visivel.matchAll(/\b\d{4}\b/g)) {
+        if (!base.includes(m[0])) forasteiros.push(`${lang}: ${m[0]}`);
+      }
+    }
+  }
+  assert.deepEqual(forasteiros, [], `ano que não existe em docs/tradicao:\n  ${forasteiros.join('\n  ')}`);
+});
+
+test('o chrome da tela existe nos três packs, com as MESMAS chaves', () => {
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    assert.equal(typeof pack.tela, 'object', `${lang}: o bloco tela sumiu`);
+    assert.deepEqual(Object.keys(pack.tela).sort(), [...CHAVES_DE_TELA].sort(), `${lang}: chaves de tela ≠ PT`);
+    for (const [chave, valor] of Object.entries(pack.tela)) {
+      assert.equal(typeof valor, 'string', `${lang}/${chave} não é texto`);
+      assert.ok(valor.trim().length > 0, `${lang}/${chave} está vazio`);
+    }
+  }
+});
+
+test('o único molde do chrome é {s}, e ele está nos três', () => {
+  const moldes = (s) => (s.match(/\{\w+\}/g) || []).sort();
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    for (const [chave, valor] of Object.entries(pack.tela)) {
+      assert.deepEqual(moldes(valor), moldes(PT.tela[chave]), `${lang}/${chave}: molde diferente do pt`);
+    }
+    assert.deepEqual(moldes(pack.tela.contando), ['{s}'], `${lang}: a contagem perdeu o molde dos segundos`);
+  }
+});
+
+test('a isca do cartão fechado é vida real — a fonte fica a um toque, dentro', () => {
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    for (const campo of ['convite', 'conviteLinha']) {
+      for (const re of JARGAO) {
+        assert.ok(!re.test(pack.tela[campo]), `${lang}/${campo}: a isca abriu com erudição — ${pack.tela[campo].match(re)}`);
+      }
+    }
+  }
+});
+
+test('o chrome sai nos três idiomas, e são três textos', () => {
+  for (const chave of ['convite', 'conviteLinha', 'marcar', 'contar', 'pular']) {
+    const t = IDIOMAS.map((l) => LANGS[l].tela[chave]);
+    assert.equal(new Set(t).size, 3, `algum idioma repetiu ${chave} de outro`);
+  }
+});
+
+// ===========================================================================
+// 12. A TELA ESTÁ LIGADA — e liga sem trancar nada
+// ===========================================================================
+// Um motor perfeito que nenhuma tela chama não existe para o usuário. Este
+// bloco é o que impede a feature de voltar a ser código morto — e o que impede
+// a próxima edição de transformar o convite em pedágio.
+
+const TELA_TARO = fs.readFileSync(path.join(__dirname, '..', 'screens', 'TarotScreen.js'), 'utf8');
+
+test('screens/TarotScreen.js chama o motor e renderiza o preparo', () => {
+  for (const chamada of ['preparoDaTiragem', 'progressoDoPreparo', 'avaliarPergunta']) {
+    assert.ok(TELA_TARO.includes(chamada), `a tela não chama ${chamada}`);
+  }
+  assert.match(TELA_TARO, /<PreparoDeWaite/, 'o painel do preparo sumiu da tela');
+  assert.match(TELA_TARO, /from '\.\.\/lib\/waiteRegras'/, 'o import do motor sumiu');
+});
+
+test('o preparo entra ANTES do botão de tirar — é o vão entre escolher o tema e apertar', () => {
+  const iPreparo = TELA_TARO.indexOf('<PreparoDeWaite');
+  const iBotao = TELA_TARO.indexOf("t('tarot.draw')");
+  assert.ok(iPreparo > 0 && iBotao > iPreparo, 'o preparo tem que vir antes do botão de tirar');
+});
+
+test('o preparo NÃO tranca a tiragem: nada de disabled amarrado ao progresso', () => {
+  // O botão de contar os vinte segundos pode (e deve) desabilitar enquanto
+  // conta — o que não pode é qualquer `disabled` pendurado no progresso das
+  // quatro, que é o que transformaria nota de prática em condição.
+  assert.doesNotMatch(TELA_TARO, /disabled=\{[^}]*(completo|preparoFeitas|progressoDoWaite)/);
+  // E o rótulo do botão é a única coisa que o `completo` move.
+  assert.match(TELA_TARO, /progressoDoWaite\.completo \? progressoDoWaite\.botao/);
+});
+
+test('o chrome do preparo não passa por lib/i18n.js nem inventa AsyncStorage', () => {
+  assert.match(TELA_TARO, /chromeDoPreparo/, 'o chrome tem que sair do pack do módulo');
+  // A palavra aparece num comentário antigo da tela (o limite diário é
+  // assíncrono porque lê disco) — o que não pode existir é o IMPORT.
+  const linhasDeImport = TELA_TARO.split('\n').filter((l) => /^\s*import\s/.test(l) || /\brequire\s*\(/.test(l));
+  for (const linha of linhasDeImport) {
+    assert.ok(!/AsyncStorage|@react-native-async-storage/.test(linha), `tela nenhuma importa AsyncStorage direto: ${linha.trim()}`);
+  }
+  assert.ok(!/t\('waite|t\("waite|t\('preparo/.test(TELA_TARO), 'o chrome do preparo não é chave de i18n');
+});
+
+test('as travas de acesso da tela continuam de pé — o preparo não encostou nelas', () => {
+  for (const trava of [
+    'hasUsedFeatureOnce',
+    'markFeatureUsedOnce',
+    'canDrawToday',
+    'recordDraw',
+    'consumeBonusTarotReading',
+    'previaVitaliciaGasta',
+    'limiteDiarioReal',
+    'OneTimeLock',
+  ]) {
+    assert.ok(TELA_TARO.includes(trava), `sumiu da tela: ${trava}`);
+  }
+});
+
 test('as âncoras de texto PT continuam de pé', () => {
   const p = W.preparoDaTiragem();
   assert.equal(p.titulo, 'Quatro coisas antes de tirar');

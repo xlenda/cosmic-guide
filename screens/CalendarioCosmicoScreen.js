@@ -93,8 +93,60 @@
 // fato, e podia queimar a prévia de um assinante numa instabilidade de rede").
 // Voltar para o mês corrente nunca gasta nada e nunca é bloqueado: a saída
 // tem que estar sempre aberta.
+//
+// ===========================================================================
+// APLICATIVO × SEPARATIVO — a direção dos encontros de hoje (01/08/2026)
+// ===========================================================================
+// LEIA lib/transitoFase.js ANTES DE MEXER NO BLOCO DE FASE.
+//
+// Por que ele mora AQUI e não em outra tela: este calendário é o relógio do
+// app. Ele já diz o DIA de cada encontro do céu com ele mesmo (lua, ingresso,
+// estação, retrógrado). O que faltava era a outra metade do mesmo assunto — a
+// DIREÇÃO de um encontro que envolve a pessoa: o ângulo entre um planeta de
+// hoje e um ponto do mapa de nascimento dela está fechando ou abrindo?
+//
+// O DEFEITO QUE ISSO CONSERTA. lib/personalSky.js calcula `Math.abs(sep -
+// angle)` e, com o valor absoluto, PERDE O SINAL: um trânsito que ainda vai
+// fechar e um que já fechou saem com o mesmo `orb` e a mesma frase. O card
+// "Céu de hoje" da Home mostra exatamente isso. lib/transitoFase.js devolve o
+// sinal (resíduo assinado + movimento de 24 horas), e o verbo muda de "está se
+// formando" para "está se desfazendo".
+//
+// SEM DUPLICAR CONTA. A tela chama personalSkyToday UMA vez (é ele quem decide
+// quais aspectos estão em orbe e em que ordem) e fasesDoCeuPessoal UMA vez
+// sobre a lista inteira — que levanta as três listas de longitudes (natal,
+// hoje, amanhã) uma única vez e as reaproveita em todos os itens. A tela não
+// recalcula ângulo nenhum: ela mostra o que os dois motores devolveram, um a
+// um, na ordem em que vieram.
+//
+// AS DUAS FONTES DIVERGEM, E ISSO APARECE. Ptolomeu (Tetrabiblos I.24, séc. II)
+// define aplicação e separação por POSIÇÃO — "those which precede... apply to
+// those which follow" —, o que só fecha com o planeta em marcha direta. Vétio
+// Valente (Anthologiae IX.3, mesmo século) registra o caso que sobra: Júpiter
+// retrógrado "is being carried towards the position of the Ascendant". O app
+// segue Valente e mede o movimento, e o texto do pack diz isso na cara — é o
+// bloco `divergencia` do chrome, mais a notaMarcha de cada leitura.
+//
+// i18n: NADA deste bloco passa por t(). O chrome sai do PACK do próprio módulo
+// (lib/traducoes/transitoFase.{pt,es,en}.js, bloco `chrome`) e a leitura sai de
+// fasesDoCeuPessoal(..., lang). A tela só repassa o `lang` do useLanguage() e
+// não redige uma linha. O bloco se chama `chrome` e não `tela` porque `tela` já
+// é o NOME da tela no idioma naquele pack.
+//
+// A ESCOLHA DE PACK ESTÁ AQUI POR RESTRIÇÃO DE FRENTE, NÃO POR DESENHO: o
+// lugar certo dela é lib/transitoFase.js, num `chromeDaTela(lang)` igual ao de
+// lib/idadeReal.js, e o motor é arquivo de outro agente nesta rodada. O
+// integrador tem o trecho pronto nas notas — quando ele entrar, estas três
+// importações viram uma só.
+//
+// PAYWALL: a mesma régua que a Home já aplica a personalSky — o encontro mais
+// exato do dia é aberto, o resto vem com o plano. Nada de cadeado novo: usa o
+// `liberado` que esta tela já calcula, e a parte grátis nunca some.
+//
+// STORAGE: zero. Este bloco não guarda nada; a data de nascimento vem de
+// lib/birthData.js, que já é quem fala com o disco.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, AppState } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, AppState, Share, Platform } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
@@ -113,11 +165,30 @@ import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { localDayStr } from '../lib/localDay';
 import { signByName } from '../lib/signs';
 import { calendarioCosmico, MARCA_RECIBO } from '../lib/calendarioCosmico';
+// A direção dos trânsitos de hoje sobre o mapa da pessoa (ver o bloco grande no
+// topo). personalSky decide QUAIS aspectos estão em orbe; transitoFase decide
+// para que LADO cada um está indo.
+import { getAnyBirthData } from '../lib/birthData';
+import { personalSkyToday } from '../lib/personalSky';
+import { fasesDoCeuPessoal } from '../lib/transitoFase';
+import { PACK as FASE_PACK_PT } from '../lib/traducoes/transitoFase.pt';
+import { PACK as FASE_PACK_ES } from '../lib/traducoes/transitoFase.es';
+import { PACK as FASE_PACK_EN } from '../lib/traducoes/transitoFase.en';
 
 // A marca de "já gastou o passeio grátis por outros meses". Nome próprio, sem
 // colidir com 'lunarCalendar' (que é a outra tela de calendário e tem cadeado
 // próprio, das nove).
 const FEATURE_KEY = 'calendarioCosmicoOutrosMeses';
+
+// Os três packs do módulo da fase. O fallback é o MESMO de lib/transitoFase.js
+// (idioma fora dos três cai no PT), copiado de propósito em uma linha só e
+// destinado a sumir quando o motor ganhar `chromeDaTela(lang)` — ver o bloco
+// grande no topo do arquivo.
+const FASE_PACKS = { pt: FASE_PACK_PT, es: FASE_PACK_ES, en: FASE_PACK_EN };
+
+// O mesmo recorte do card "Céu de hoje" da Home (personalSkyToday usa 3 por
+// padrão): os encontros mais exatos do dia, já ordenados por camada de tempo.
+const MAX_TRANSITOS = 3;
 
 // Chaves em ARRAY LITERAL, não montadas em runtime: assim
 // test/i18nKeysExist.test.js enxerga as 19 e cobra as três línguas de cada
@@ -275,6 +346,102 @@ function EventoCard({ evento, selecionado, onLayout }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// O card de um encontro do céu de hoje com o mapa de nascimento
+// ---------------------------------------------------------------------------
+// Mesma forma do EventoCard acima e da tela da Idade Real: fechado mostra o
+// essencial (quem × quem, o selo da direção e a linha única do motor); aberto
+// mostra a leitura inteira, as ressalvas que andam com ela e o recibo.
+//
+// A tela não escolhe UMA palavra: `UI` é o bloco `chrome` do pack e `leitura` é
+// o que fasesDoCeuPessoal devolveu. Quando a leitura vem indisponível (sem data
+// de nascimento, sem efeméride, ou aspecto à Lua natal sem hora — a recusa
+// medida do módulo), o card mostra o que falta e ONDE resolver, e não desenha
+// selo, verbo nem botão de compartilhar: não há fase para compartilhar.
+function FaseCard({ leitura, UI, aberto, onAlternar, onCompartilhar }) {
+  const disponivel = leitura.disponivel;
+  const titulo = leitura.transitoRotulo && leitura.natalRotulo ? UI.tituloDoCard(leitura) : null;
+  const subtitulo = UI.subtituloDoCard(leitura);
+  const selo = disponivel ? UI.selo[leitura.fase] : null;
+
+  return (
+    <View style={styles.faseCard} testID={`calendario-fase-card-${leitura.transito || 'sem'}-${leitura.natal || 'sem'}`}>
+      <TouchableOpacity
+        style={styles.faseTopo}
+        activeOpacity={0.85}
+        onPress={onAlternar}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: aberto }}
+        accessibilityLabel={titulo || UI.titulo}
+        accessibilityHint={aberto ? UI.fechar : UI.abrir}
+      >
+        <View style={styles.faseTopoTexto}>
+          {titulo ? <Text style={styles.faseTitulo}>{titulo}</Text> : null}
+          {subtitulo ? <Text style={styles.faseSubtitulo}>{subtitulo}</Text> : null}
+        </View>
+        {selo ? (
+          <Text style={styles.faseSelo} testID={`calendario-fase-selo-${leitura.fase}`}>
+            {selo}
+          </Text>
+        ) : null}
+        <Ionicons name={aberto ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
+      </TouchableOpacity>
+
+      {/* A linha única do motor: é o verbo, e é o que a Home não conseguia
+          dizer. Sem leitura disponível, entra no lugar dela o que falta. */}
+      <Text style={disponivel ? styles.faseLinha : styles.body}>
+        {disponivel ? leitura.linhaCurta : leitura.leitura}
+      </Text>
+      {!disponivel && leitura.comoResolver ? (
+        <Text style={styles.faseComoResolver}>{leitura.comoResolver}</Text>
+      ) : null}
+
+      {aberto && disponivel ? (
+        <View style={styles.faseCorpo}>
+          <View style={styles.divisor}>
+            <View style={styles.divisorLinha} />
+            <Text style={styles.divisorEstrela}>✦</Text>
+            <View style={styles.divisorLinha} />
+          </View>
+
+          {/* Prende primeiro: a chamada abre na vida real, sem nome próprio e
+              sem século. O recibo vem depois, dentro da leitura. */}
+          <Text style={styles.body}>{leitura.chamada}</Text>
+          <Text style={styles.body}>{leitura.leitura}</Text>
+
+          {/* A marcha de hoje — é aqui que a divergência entre as duas fontes
+              do séc. II aparece no caso concreto do planeta retrógrado. */}
+          <Text style={styles.note}>{leitura.notaMarcha}</Text>
+          {leitura.notaHorizonte ? <Text style={styles.note}>{leitura.notaHorizonte}</Text> : null}
+
+          <View style={styles.faseRecibo}>
+            <Text style={styles.fichaLabel}>{UI.rotuloRecibo}</Text>
+            {leitura.fonte.map((f, i) => (
+              <Text key={i} style={styles.source}>
+                {f}
+              </Text>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={styles.shareBtn}
+            activeOpacity={0.85}
+            onPress={onCompartilhar}
+            accessibilityRole="button"
+            accessibilityLabel={UI.compartilhar}
+            testID="calendario-fase-share"
+          >
+            <Ionicons name="logo-whatsapp" size={16} color="#fff" />
+            <Text style={styles.shareBtnTexto}>{UI.compartilhar}</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.marca}>{UI.marca}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export default function CalendarioCosmicoScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -290,6 +457,13 @@ export default function CalendarioCosmicoScreen() {
   const [diaSelecionado, setDiaSelecionado] = useState(null);
   const [passeioGasto, setPasseioGasto] = useState(false);
   const [ofertaVisivel, setOfertaVisivel] = useState(false);
+
+  // Bloco da fase (aplicativo × separativo). `undefined` = ainda carregando o
+  // nascimento; `null` = sem data salva (vira convite pro Mapa Astral).
+  const [nascimento, setNascimento] = useState(undefined);
+  const [faseAberta, setFaseAberta] = useState(null);
+  const [faseReciboAberto, setFaseReciboAberto] = useState(false);
+  const [faseRecado, setFaseRecado] = useState(null);
 
   const scrollRef = useRef(null);
   const posicoesRef = useRef({});
@@ -461,6 +635,95 @@ export default function CalendarioCosmicoScreen() {
       return null;
     }
   }, [lang, hojeISO]);
+
+  // ---------------------------------------------------------------------------
+  // A DIREÇÃO DOS ENCONTROS DE HOJE — ver o bloco grande no topo do arquivo
+  // ---------------------------------------------------------------------------
+  // Recarrega no foco, como a Home: a pessoa pode ter acabado de preencher o
+  // nascimento no Mapa Astral e voltado pra cá.
+  useFocusEffect(
+    useCallback(() => {
+      let vivo = true;
+      getAnyBirthData().then((b) => {
+        if (vivo) setNascimento(b || null);
+      });
+      return () => {
+        vivo = false;
+      };
+    }, [])
+  );
+
+  const FASE_UI = (FASE_PACKS[lang] || FASE_PACKS.pt).chrome;
+
+  // UMA chamada de personalSkyToday (quais aspectos estão em orbe) e UMA de
+  // fasesDoCeuPessoal (para que lado cada um vai) — esta segunda levanta as
+  // três listas de longitudes uma vez só e as reaproveita item a item. O
+  // `hojeISO` entra nas dependências para a lista virar sozinha na virada do
+  // dia, junto com o resto da tela.
+  const fases = useMemo(() => {
+    if (nascimento === undefined) return undefined; // ainda lendo o disco
+    if (!nascimento || !nascimento.date) return null; // sem data: vira convite
+    try {
+      const aspectos = personalSkyToday(nascimento, MAX_TRANSITOS);
+      // `null` aqui é motor de efeméride indisponível, não dia sem encontro —
+      // e as duas coisas não podem sair com o mesmo texto. Nesse caso o bloco
+      // inteiro não desenha: o card de indisponibilidade da lista abaixo já
+      // explica que o céu não pôde ser calculado, e dizer "hoje não há
+      // encontro" seria afirmar uma coisa que ninguém mediu.
+      if (!Array.isArray(aspectos)) return undefined;
+      if (aspectos.length === 0) return [];
+      const leituras = fasesDoCeuPessoal(aspectos, nascimento, lang);
+      return Array.isArray(leituras) ? leituras : undefined;
+    } catch {
+      return undefined;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nascimento, lang, hojeISO]);
+
+  // A régua da Home aplicada aqui: o encontro mais exato é aberto, o resto vem
+  // com o plano. Assinante e dono veem a lista inteira.
+  const fasesVisiveis = useMemo(() => {
+    if (!Array.isArray(fases)) return [];
+    return liberado ? fases : fases.slice(0, 1);
+  }, [fases, liberado]);
+
+  const fasesTrancadas = useMemo(() => {
+    if (!Array.isArray(fases) || liberado) return [];
+    return fases.slice(1).filter((r) => r.transitoRotulo && r.natalRotulo);
+  }, [fases, liberado]);
+
+  // O recibo da seção sai da PRIMEIRA leitura: as ressalvas, os verbatins e a
+  // bibliografia são os mesmos em todas elas (vêm do pack, não do aspecto), e
+  // repeti-los card a card seria paredão.
+  const faseBase = Array.isArray(fases) && fases.length > 0 ? fases[0] : null;
+
+  const compartilharFase = useCallback(
+    async (leitura) => {
+      const texto = FASE_UI.textoCompartilhavel(leitura);
+      if (!texto) return;
+      setFaseRecado(null);
+      const temFolhaWeb =
+        Platform.OS === 'web' && typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+      if (Platform.OS !== 'web' || temFolhaWeb) {
+        try {
+          await Share.share({ message: texto });
+        } catch {
+          // Cancelou ou a folha falhou: silêncio, como nas outras telas que
+          // compartilham (MitosScreen, RituaisScreen, IdadeRealScreen).
+        }
+        return;
+      }
+      let copiou = false;
+      try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(texto);
+          copiou = true;
+        }
+      } catch {}
+      setFaseRecado(copiou ? FASE_UI.copiado : FASE_UI.naoCopiou);
+    },
+    [FASE_UI]
+  );
 
   return (
     <View style={styles.root}>
@@ -663,6 +926,133 @@ export default function CalendarioCosmicoScreen() {
           </View>
         ) : null}
 
+        {/* ---- APLICATIVO × SEPARATIVO: a direção dos encontros de hoje ---- */}
+        {fases === undefined ? null : (
+          <View style={styles.faseBloco} testID="calendario-fase">
+            <Text style={styles.kicker}>{FASE_UI.kicker}</Text>
+            <Text style={styles.faseBlocoTitulo}>{FASE_UI.titulo}</Text>
+            {/* Prende primeiro: dois parágrafos de vida real e só depois o
+                recibo com a divergência das duas fontes. */}
+            <Text style={styles.body}>{FASE_UI.intro}</Text>
+            <Text style={styles.body}>{FASE_UI.porQue}</Text>
+            <Text style={styles.source}>{FASE_UI.divergencia}</Text>
+
+            {fases === null ? (
+              // NUNCA FABRICA MAPA: sem data de nascimento não há o que
+              // comparar, e o app diz onde informá-la.
+              <View testID="calendario-fase-convite">
+                <Text style={styles.body}>{FASE_UI.semNascimento.texto}</Text>
+                <TouchableOpacity
+                  style={styles.faseCta}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate(ROUTES.BIRTH_CHART)}
+                  accessibilityRole="button"
+                  testID="calendario-fase-cta-nascimento"
+                >
+                  <Ionicons name="telescope" size={14} color={colors.teal} />
+                  <Text style={styles.faseCtaTexto}>{FASE_UI.semNascimento.cta}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : fases.length === 0 ? (
+              <Text style={styles.note} testID="calendario-fase-vazio">
+                {FASE_UI.semAspectos}
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.fichaLabel}>{FASE_UI.rotuloLista}</Text>
+
+                {fasesVisiveis.map((leitura, i) => {
+                  const chave = `${leitura.transito || 'x'}-${leitura.natal || 'x'}-${leitura.aspecto || i}`;
+                  return (
+                    <FaseCard
+                      key={chave}
+                      leitura={leitura}
+                      UI={FASE_UI}
+                      aberto={faseAberta === chave}
+                      onAlternar={() => {
+                        setFaseRecado(null);
+                        setFaseAberta((atual) => (atual === chave ? null : chave));
+                      }}
+                      onCompartilhar={() => compartilharFase(leitura)}
+                    />
+                  );
+                })}
+
+                {faseRecado ? <Text style={styles.note}>{faseRecado}</Text> : null}
+
+                {/* O resto do céu de hoje: mostra QUEM está lá, guarda a
+                    direção e a leitura para a assinatura. */}
+                {fasesTrancadas.length > 0 ? (
+                  <View style={styles.oferta} testID="calendario-fase-oferta">
+                    <View style={styles.ofertaTopo}>
+                      <Ionicons name="lock-closed" size={18} color={colors.gold} />
+                      <Text style={styles.ofertaTitulo}>{FASE_UI.bloqueado.titulo}</Text>
+                    </View>
+                    <Text style={styles.body}>{FASE_UI.bloqueado.texto}</Text>
+                    {fasesTrancadas.map((leitura, i) => (
+                      <Text key={i} style={styles.source}>
+                        {FASE_UI.tituloDoCard(leitura)}
+                      </Text>
+                    ))}
+                    <TouchableOpacity
+                      style={styles.ofertaBtn}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        funnel.paywallView('calendario_fase_transito', route?.name);
+                        navigation.navigate(ROUTES.PLANOS);
+                      }}
+                      accessibilityRole="button"
+                      testID="calendario-fase-oferta-cta"
+                    >
+                      <Text style={styles.ofertaBtnText}>{FASE_UI.bloqueado.cta}</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+
+                {/* O recibo da seção: o que é conta e o que é leitura, o orbe
+                    de quem é, o que o prazo não é — e as fontes palavra por
+                    palavra, com a divergência entre as duas do séc. II. */}
+                {faseBase ? (
+                  <>
+                    <TouchableOpacity
+                      style={styles.toggleRow}
+                      activeOpacity={0.7}
+                      onPress={() => setFaseReciboAberto((v) => !v)}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: faseReciboAberto }}
+                      accessibilityLabel={FASE_UI.rotuloVerbatim}
+                      testID="calendario-fase-recibo-toggle"
+                    >
+                      <Text style={styles.toggleText}>{FASE_UI.rotuloVerbatim}</Text>
+                      <Ionicons
+                        name={faseReciboAberto ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color={colors.textMuted}
+                      />
+                    </TouchableOpacity>
+
+                    {faseReciboAberto ? (
+                      <View style={styles.ficha} testID="calendario-fase-recibo">
+                        {faseBase.verbatins.map((v, i) => (
+                          <View key={i} style={styles.verbatim}>
+                            <Text style={styles.verbatimTexto}>“{v.texto}”</Text>
+                            <Text style={styles.note}>{v.parafrase}</Text>
+                            <Text style={styles.source}>{v.locus}</Text>
+                          </View>
+                        ))}
+                        <Text style={styles.fichaLabel}>{FASE_UI.rotuloNotas}</Text>
+                        <Text style={styles.note}>{faseBase.notaLeituraDoApp}</Text>
+                        <Text style={styles.note}>{faseBase.notaOrbe}</Text>
+                        <Text style={styles.note}>{faseBase.notaDataDeEvento}</Text>
+                      </View>
+                    ) : null}
+                  </>
+                ) : null}
+              </>
+            )}
+          </View>
+        )}
+
         {/* ---- A lista ---- */}
         {!resultado.ceuDisponivel ? (
           // NUNCA FABRICA. Sem efeméride o motor devolve lista vazia e a razão
@@ -863,6 +1253,76 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   indisponivelTitulo: { color: colors.text, fontSize: 15, fontWeight: '800' },
+
+  // ---- Aplicativo × separativo ----
+  faseBloco: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    gap: 10,
+  },
+  faseBlocoTitulo: { color: colors.gold, fontSize: 18, fontWeight: '800' },
+  faseCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    gap: 8,
+  },
+  faseTopo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  faseTopoTexto: { flex: 1, gap: 2 },
+  faseTitulo: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  faseSubtitulo: { color: colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+  faseSelo: {
+    color: colors.teal,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  faseLinha: { color: colors.text, fontSize: 14, lineHeight: 21, fontWeight: '600' },
+  faseComoResolver: { color: colors.teal, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  faseCorpo: { gap: 10, marginTop: 2 },
+  faseCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingVertical: 8,
+  },
+  faseCtaTexto: { color: colors.teal, fontSize: 13, fontWeight: '800' },
+  faseRecibo: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dotted',
+    borderColor: colors.border,
+    padding: 12,
+    gap: 4,
+  },
+  divisor: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  divisorLinha: { flex: 1, height: 1, backgroundColor: colors.border },
+  divisorEstrela: { color: colors.purple, fontSize: 12 },
+  verbatim: { gap: 4, marginBottom: 6 },
+  verbatimTexto: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
+  shareBtn: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: '#25D366',
+    borderRadius: 14,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareBtnTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  marca: { color: colors.textMuted, fontSize: 10, textAlign: 'center' },
 
   body: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
   recibo: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },

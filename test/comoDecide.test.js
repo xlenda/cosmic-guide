@@ -663,3 +663,65 @@ test('as três declarações que o roadmap pediu estão lá, mais as que o app p
   }
   assert.deepEqual(C.IDS_DE_CONVENCAO, ['zodiaco', 'efemeride', 'regencias', 'casas', 'semNota', 'ia']);
 });
+
+// ===========================================================================
+// 10. A VITRINE — screens/ComoDecideScreen.js
+// ===========================================================================
+// O motor já estava pronto e a tela não existia: ninguém via nada disso. Estas
+// três travas seguram a ligação entre os dois — que o chrome da tela nasça no
+// PACK (nunca em lib/i18n.js, nunca dentro do componente), que a tela não
+// escolha idioma por conta própria, e que o texto que viaja no WhatsApp de
+// quem recebe passe pela MESMA linha vermelha do resto do card.
+
+const TELA = path.join(__dirname, '..', 'screens', 'ComoDecideScreen.js');
+
+test('a vitrine existe e não fala com i18n.js, com AsyncStorage, nem escolhe idioma sozinha', () => {
+  assert.ok(fs.existsSync(TELA), 'screens/ComoDecideScreen.js não existe — o motor voltou a ser invisível');
+  const codigo = fs
+    .readFileSync(TELA, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(!/AsyncStorage/.test(codigo), 'a tela importou AsyncStorage — storage só pelas portas do app');
+  assert.ok(!/lib\/i18n/.test(codigo), 'o chrome tem que sair do pack do módulo, nunca de lib/i18n.js');
+  assert.ok(!/\bt\('/.test(codigo), 'a tela chamou t() — o chrome é do pack');
+  // Ela lê o idioma que o MOTOR resolveu, e não inventa fallback próprio.
+  assert.match(codigo, /card\.idioma/);
+  assert.ok(!/lang\s*===\s*['"](pt|es|en)['"]/.test(codigo), 'a tela criou fallback de idioma próprio');
+  // E consome o motor pelas funções públicas, não pelas constantes internas.
+  assert.match(codigo, /cardComoDecide/);
+});
+
+test('o chrome da vitrine tem a MESMA forma nos três packs, e es/en não repetem o pt', () => {
+  const chaves = Object.keys(PT.chrome).sort();
+  assert.ok(chaves.length >= 10, `chrome magro demais (${chaves.length} chaves)`);
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    assert.deepEqual(Object.keys(pack.chrome).sort(), chaves, `${lang}: o chrome divergiu da forma do pt`);
+    assert.equal(typeof pack.chrome.textoCompartilhavel, 'function', lang);
+    assert.equal(pack.chrome.marca, 'cosmicguide.cloud', lang);
+  }
+  for (const lang of ['es', 'en']) {
+    for (const k of ['subtitulo', 'abrir', 'bibliografiaNota', 'rodape', 'pendencia']) {
+      assert.notEqual(LANGS[lang].chrome[k], PT.chrome[k], `${lang}/${k} ficou igual ao pt`);
+    }
+  }
+});
+
+test('o texto de compartilhar sai do PACK, leva as quatro camadas e fecha no link', () => {
+  for (const lang of IDIOMAS) {
+    const pack = LANGS[lang];
+    for (const d of CARD[lang].decisoes) {
+      const texto = pack.chrome.textoCompartilhavel(d);
+      assert.ok(texto.startsWith(pack.abertura.titulo), `${lang}/${d.id}: não abre pelo título do card`);
+      assert.ok(texto.includes(d.nome), `${lang}/${d.id}: perdeu o nome da feature`);
+      for (const bloco of ['calculado', 'tradicao', 'leituraDoApp', 'naoFaz']) {
+        assert.ok(texto.includes(pack.rotulos[bloco]), `${lang}/${d.id}: perdeu a camada ${bloco}`);
+      }
+      assert.ok(texto.trim().endsWith('cosmicguide.cloud'), `${lang}/${d.id}: não fecha no link`);
+      assert.ok(!texto.includes('undefined'), `${lang}/${d.id} vazou "undefined"`);
+      assert.ok(!texto.includes('%'), `${lang}/${d.id} mostra porcentagem`);
+      for (const re of [...SAUDE[lang], ...PROMESSA[lang]]) {
+        assert.ok(!re.test(texto), `${lang}/${d.id} — linha vermelha no compartilhável: ${texto.match(re)}`);
+      }
+    }
+  }
+});

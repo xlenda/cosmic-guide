@@ -23,6 +23,7 @@ import { useLanguage } from '../context/LanguageContext';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabaseClient';
 import { getTokenBalance } from '../lib/tokens';
+import { cardComoDecide } from '../lib/comoDecide';
 import { hasSeloCosmico, hasGoldTheme } from '../lib/cosmeticRewards';
 import { isGoldThemeActive, setGoldThemeActive } from '../theme';
 import { shareInvite } from '../lib/coupleInvite';
@@ -581,6 +582,11 @@ export default function ProfileScreen() {
           <MenuRow icon="help-circle" label={t('help.header.title')} onPress={() => navigation.navigate(ROUTES.HELP_SUPPORT)} />
           <MenuRow icon="shield-checkmark" label={t('privacy.header.title')} onPress={() => navigation.navigate(ROUTES.PRIVACY)} />
           <MenuRow icon="document-text" label={t('terms.header.title')} onPress={() => navigation.navigate(ROUTES.TERMS)} />
+          {/* O rótulo sai do pack do próprio módulo (não de lib/i18n.js) pelo
+              mesmo motivo já anotado acima pros outros: rótulo do menu e
+              cabeçalho da tela são o MESMO texto, e duas chaves separadas
+              divergiriam na tradução. */}
+          <MenuRow icon="eye" label={cardComoDecide(lang).titulo} onPress={() => navigation.navigate(ROUTES.COMO_DECIDE)} />
           <InfoRow icon="information-circle" label={t('profile.row.appVersion')} value={APP_VERSION} last />
         </View>
 

@@ -803,6 +803,46 @@ test('o que a pesquisa não achou continua não achado, e está escrito', () => 
   assert.match(D.NAO_ACHADO.find((x) => x.id === 'origemEgipciaDosDecanatos').texto, /não fixou um texto datado/);
 });
 
+// ===========================================================================
+// 7. A FEATURE ESTÁ LIGADA — dentro do modal da carta, no Álbum das 78
+// ===========================================================================
+// A regra só vale se alguém a mostrar. A tela é o Álbum: ela abre a carta e,
+// nas 36 numeradas, mostra o encaixe; nas outras 42 a seção não existe.
+
+const TELA_DO_ALBUM = path.join(__dirname, '..', 'screens', 'TarotAlbumScreen.js');
+
+test('o Álbum das 78 importa esta feature e gateia pelas 36 antes de explicar', () => {
+  const src = fs.readFileSync(TELA_DO_ALBUM, 'utf8');
+  assert.match(src, /from '\.\.\/lib\/decanatoPorque'/, 'o álbum não importa o decanato');
+  assert.ok(src.includes('decanatoDaCarta'), 'a tela não filtra as 36 antes de explicar');
+  assert.ok(src.includes('porqueEsteDecanato'), 'a tela não pede a leitura ao motor');
+  // O portão: sem decanato, a seção some. Nunca um encaixe inventado em tela.
+  assert.match(src, /porque && porque\.disponivel/, 'a tela renderiza sem checar disponivel');
+});
+
+test('o chrome do decanato mora no pack, com as mesmas chaves nos três idiomas', () => {
+  const NOVAS = [
+    'titulo', 'subtitulo', 'abrir', 'fechar', 'rotuloTituloGD', 'rotuloRegra',
+    'rotuloConta', 'rotuloConferencia', 'rotuloCamadas', 'rotuloCitacoes',
+    'rotuloRessalvas', 'rotuloFontes',
+  ];
+  const base = Object.keys(PT.chrome).sort();
+  assert.deepEqual(base, [...NOVAS].sort(), 'o chrome mudou de forma sem o teste saber');
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    assert.deepEqual(Object.keys(pack.chrome).sort(), base, `${lang}: chrome divergiu`);
+    for (const k of NOVAS) assert.ok(pack.chrome[k].trim().length > 0, `${lang}: chrome vazio em ${k}`);
+  }
+  // Nenhum rótulo do chrome diz o que a carta SIGNIFICA — eles só nomeiam as
+  // caixas em que a regra aparece. Esta é a linha que separa esta feature de
+  // todas as outras telas do app.
+  const PROIBIDO_NO_CHROME = /significa|significado|significa[dt]o|meaning|means\b/i;
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    for (const [k, v] of Object.entries(pack.chrome)) {
+      assert.ok(!PROIBIDO_NO_CHROME.test(v), `${lang}/${k}: o chrome saiu da regra e foi para o significado`);
+    }
+  }
+});
+
 test('a bibliografia tem oito entradas, todas com obra e data, nos três idiomas', () => {
   for (const [lang, pack] of Object.entries(LANGS)) {
     assert.equal(pack.fontes.length, 8, lang);

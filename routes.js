@@ -38,6 +38,8 @@ export const ROUTES = {
   // chama de "a peca mais compartilhavel que este app pode ter", e e conteudo
   // puro: zero efemeride, zero dependencia de hora ou cidade.
   IDADE_REAL: 'IdadeReal',
+  PROFECCOES: 'Profeccoes',
+  COMO_DECIDE: 'ComoDecide',
   COFFEE: 'Coffee',
   COMPATIBILITY: 'Compatibility',
   QUIZ: 'Quiz',

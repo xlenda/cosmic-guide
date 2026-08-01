@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Share, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,11 +14,48 @@ import { offsetHoursFor, formatOffset } from '../lib/timezone';
 import { getBirthData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
-// Seita (mapa diurno x noturno) — doutrina helenistica com fonte dupla
-// verbatim (Ptolomeu I.7 + Valente I.1). Entra AQUI, dentro do Mapa Astral,
-// porque e onde a pessoa ja esta lendo planeta: seita nao e uma leitura a
-// parte, e uma camada que muda como cada planeta se le.
-import { seitaDoMapa } from '../lib/seita';
+// ===========================================================================
+// SEITA (hairesis) — LEIA lib/seita.js ANTES DE MEXER EM QUALQUER TEXTO DAQUI
+// ===========================================================================
+// O que e: o Sol estava ACIMA ou ABAIXO do horizonte no instante do
+// nascimento. E um booleano, e e — em Ptolomeu (Tetrabiblos I.7) e em Valente
+// (Anthologiae I.1), os dois do sec. II — o principal modulador de tudo o
+// mais: um Saturno de mapa diurno e um Saturno de mapa noturno nao se leem
+// igual.
+//
+// POR QUE E SECAO E NAO TELA. A seita nao e uma leitura a parte: e uma
+// PROPRIEDADE do mapa que esta tela ja calcula, e uma chave de leitura dos
+// planetas que a tela ja mostra logo acima. Tela propria a transformaria em
+// mais um item de menu, desligado do Sol e da Lua que ela reenquadra. Por isso
+// ela entra depois dos planetas e antes das Casas — enquanto Sol, Lua e
+// Ascendente ainda estao na memoria de quem le — e por isso a linha de cada
+// planeta (linhaDeSeita) fica pendurada NA PROPRIA linha do Sol e da Lua.
+//
+// SEM HORA OU SEM CIDADE, DECLARA INDISPONIVEL. O motor nunca chuta: meio-dia
+// e meia-noite do mesmo dia dao seitas OPOSTAS, entao aqui nao existe o
+// "chuta meio-dia" que a Lua se permite. A secao mostra o que falta e onde
+// resolver, com o texto do proprio pack.
+//
+// O CASO LIMITROFE APARECE, NAO SOME. Dentro de LIMIAR_LIMITROFE_GRAUS (3
+// graus do horizonte, escolha declarada deste app e nao regra antiga) alguns
+// minutos de relogio trocam o resultado inteiro. Nessa faixa o aviso fica no
+// card FECHADO, junto do resultado — esconder a duvida dentro do acordeao
+// seria mostrar so a parte bonita da conta.
+//
+// CARD FECHADO x ABERTO: a leitura inteira sao ~10 blocos (explicacao, os sete
+// planeta a planeta, Mercurio, duas ressalvas, cinco citacoes verbatim e seis
+// fontes). Aberto de cara, vira um paredao no meio do Mapa Astral. Fechado,
+// mostra o essencial de um print — o que deu, e a duvida quando ha duvida.
+//
+// i18n: NADA DAQUI PASSA POR t(). O chrome sai do bloco `chrome` dos packs
+// (lib/traducoes/seita.{pt,es,en}.js) e o conteudo sai de seitaDoMapa(...,
+// lang) e linhaDeSeita(..., lang). Esta secao so repassa o `lang` do
+// useLanguage() e nao redige uma linha: se faltar texto, ele nasce no pack,
+// nos tres idiomas, nunca dentro deste componente.
+import { seitaDoMapa, linhaDeSeita } from '../lib/seita';
+import { PACK as SEITA_PACK_PT } from '../lib/traducoes/seita.pt.js';
+import { PACK as SEITA_PACK_ES } from '../lib/traducoes/seita.es.js';
+import { PACK as SEITA_PACK_EN } from '../lib/traducoes/seita.en.js';
 // Profeccoes anuais — a tecnica preditiva mais bem documentada da tradicao
 // helenistica, e que praticamente nenhum app popular tem. Precisa APENAS da
 // data de nascimento (fica melhor com hora), entao entrega valor pra quem so
@@ -86,9 +123,16 @@ function buildChart(date, time, city, lang = 'pt') {
   // A seita depende de hora + cidade (precisa do Sol em relacao ao horizonte),
   // e o proprio motor declara o que falta quando nao da — nunca chuta.
   const seita = seitaDoMapa(date, time, city || undefined, lang);
-  // So a data basta: a profeccao anda um signo por ano de vida a partir do
-  // ascendente (ou do Sol, quando nao ha hora — o motor declara qual usou).
-  const profeccao = profeccaoAnual(date, new Date(), lang);
+  // A profecção anda um signo por ano de vida a partir do Ascendente — e cai
+  // pro Sol só quando não há hora, declarando qual usou.
+  //
+  // PASSAR O NASCIMENTO INTEIRO IMPORTA (corrigido em 01/08/2026): antes ia só
+  // `date`, então normalizarNascimento zerava hora e cidade e o motor caía no
+  // Sol SEMPRE, mesmo pra quem já tinha preenchido tudo. Com a tela nova de
+  // Profecções lendo o mesmo dado por getAnyBirthData (com hora e cidade), as
+  // duas telas mostravam signo do ano DIFERENTE pra mesma pessoa — o app se
+  // contradizia em duas telas vizinhas.
+  const profeccao = profeccaoAnual({ date, time, city }, new Date(), lang);
   return { date, time, city, sun, moon, asc, housesList, aspectsList, astro, seita, profeccao, zone: describeZone(city, date, time) };
 }
 
@@ -156,8 +200,228 @@ function FixNatalDataCTA({ isCouple, onFixTime, onFixCity }) {
   );
 }
 
+// O chrome da secao, no idioma pedido. Espelha packDoIdioma() de lib/seita.js
+// (idioma fora dos tres cai no PT, mesmo fallback de lib/i18n.js e do proprio
+// motor) — a tela nao redige nem escolhe texto, so entrega o `lang`.
+//
+// ISTO DEVERIA MORAR EM lib/seita.js, como `chromeDaSeita(lang)`, do mesmo
+// jeito que lib/idadeReal.js exporta `chromeDaTela(lang)`. Esta frente nao
+// pode tocar lib/seita.js (o motor esta congelado por golden), entao a funcao
+// nasce aqui e a mudanca de casa esta descrita para o integrador.
+const SEITA_CHROME = {
+  pt: SEITA_PACK_PT.chrome,
+  es: SEITA_PACK_ES.chrome,
+  en: SEITA_PACK_EN.chrome,
+};
+
+function chromeDaSeita(lang) {
+  return SEITA_CHROME[lang] || SEITA_CHROME.pt;
+}
+
+// Um bloco de planetas — "jogando em casa", "fora do proprio time", os
+// indeterminados e os tres modernos. Cada linha traz a classe de Tetrabiblos
+// I.5 como etiqueta (benefico/malefico/comum: e vocabulario de fisica antiga,
+// nao juizo moral, e a linha do planeta diz isso em palavras), o texto do
+// motor e o recibo miudo embaixo.
+function SeitaGrupo({ titulo, planetas, reciboRotulo }) {
+  if (!planetas || planetas.length === 0) return null;
+  return (
+    <View style={styles.seitaGrupo}>
+      <Text style={styles.seitaGrupoTitulo}>{titulo}</Text>
+      {planetas.map((p) => (
+        <View key={p.planeta} style={styles.seitaPlaneta} testID={`seita-planeta-${p.planeta}`}>
+          <View style={styles.seitaPlanetaTopo}>
+            <Text style={styles.seitaPlanetaNome}>{p.nome}</Text>
+            {!!p.classeNome && <Text style={styles.seitaClasse}>{p.classeNome}</Text>}
+          </View>
+          <Text style={styles.seitaTexto}>{p.linha}</Text>
+          <Text style={styles.seitaReciboRotulo}>{reciboRotulo}</Text>
+          <Text style={styles.seitaRecibo}>{p.recibo}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// A citacao verbatim. O ingles de Robbins e de Riley e o MESMO nos tres packs
+// — traduzir citacao e falsifica-la —, entao a parafrase (assinada pelo app,
+// fora das aspas) e o locus e que falam a lingua de quem le.
+function SeitaCitacao({ v }) {
+  return (
+    <View style={styles.seitaCitacao}>
+      <Text style={styles.seitaVerbatim}>“{v.texto}”</Text>
+      <Text style={styles.seitaNota}>{v.parafrase}</Text>
+      <Text style={styles.seitaRecibo}>{v.locus}</Text>
+    </View>
+  );
+}
+
+// A SECAO DA SEITA. Vitrine: mostra o que seitaDoMapa() exporta, nada mais.
+function SeitaSection({ seita, lang }) {
+  const UI = chromeDaSeita(lang);
+  const [aberto, setAberto] = useState(false);
+  const [recado, setRecado] = useState(null);
+
+  // Mesma cadeia de IdadeRealScreen.js e MitosScreen.js: Share do react-native
+  // primeiro (no nativo e a folha do SO; na web, react-native-web delega para
+  // navigator.share quando existe) e clipboard como ultimo recurso no desktop
+  // sem folha. O texto vem do pack — nunca montado aqui.
+  async function compartilhar() {
+    const texto = UI.compartilhavel(seita);
+    if (!texto) return;
+    setRecado(null);
+    const temFolhaWeb =
+      Platform.OS === 'web' && typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    if (Platform.OS !== 'web' || temFolhaWeb) {
+      try {
+        await Share.share({ message: texto });
+      } catch {
+        // Cancelou ou a folha falhou: silencio, igual as outras telas.
+      }
+      return;
+    }
+    let copiou = false;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(texto);
+        copiou = true;
+      }
+    } catch {}
+    setRecado(copiou ? UI.copiado : UI.naoCopiou);
+  }
+
+  if (!seita) return null;
+
+  // ---- INDISPONIVEL: falta hora, cidade, data ou efemeride ----------------
+  // Nunca chuta. Diz o que falta (texto do pack) e onde se informa. O par de
+  // botoes de "adicione hora e cidade" ja vive logo acima (FixNatalDataCTA),
+  // entao aqui o pedido nao se repete em botao — so em palavra.
+  if (!seita.disponivel) {
+    return (
+      <View style={styles.seitaCard} testID="seita-indisponivel">
+        <Text style={styles.seitaTitulo}>{UI.rotulo}</Text>
+        {/* Sem textTransform: aqui o destaque é uma FRASE, e "Ainda Não Dá
+            Para Dizer" com maiúscula em toda palavra vira letreiro. */}
+        <Text style={[styles.seitaDestaque, styles.seitaDestaqueFrase]}>{UI.indisponivelTitulo}</Text>
+        <Text style={styles.seitaTexto}>{seita.explicacao}</Text>
+        {!!seita.comoResolver && (
+          <View style={styles.seitaCaixa}>
+            <Text style={styles.seitaReciboRotulo}>{UI.comoResolverRotulo}</Text>
+            <Text style={styles.seitaRecibo}>{seita.comoResolver}</Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  const modernos = seita.planetas.filter((p) => p.moderno);
+
+  return (
+    <View style={styles.seitaCard} testID="seita-secao">
+      <Text style={styles.seitaTitulo}>{UI.rotulo}</Text>
+      {/* O resultado, grande: "mapa diurno" / "mapa noturno". */}
+      <Text style={styles.seitaDestaque} testID="seita-resultado">{seita.seitaMapa}</Text>
+      {/* A chamada abre na vida real, sem nome proprio e sem capitulo. */}
+      <Text style={styles.seitaTexto}>{seita.chamada}</Text>
+
+      {/* CASO LIMITROFE — fica FORA do acordeao de proposito: quando a hora
+          informada decide o resultado, a duvida vale tanto quanto o resultado. */}
+      {seita.limitrofe && !!seita.notaLimitrofe && (
+        <View style={styles.seitaAviso} testID="seita-limitrofe">
+          <View style={styles.seitaAvisoTopo}>
+            <Ionicons name="alert-circle" size={14} color={colors.gold} />
+            <Text style={styles.seitaAvisoRotulo}>{UI.limitrofeRotulo}</Text>
+          </View>
+          <Text style={styles.seitaTexto}>{seita.notaLimitrofe}</Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={styles.seitaToggle}
+        activeOpacity={0.85}
+        onPress={() => setAberto((v) => !v)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: aberto }}
+        accessibilityLabel={aberto ? UI.fechar : UI.abrir}
+        testID="seita-toggle"
+      >
+        <Text style={styles.seitaToggleTexto}>{aberto ? UI.fechar : UI.abrir}</Text>
+        <Ionicons name={aberto ? 'chevron-up' : 'chevron-down'} size={16} color={colors.gold} />
+      </TouchableOpacity>
+
+      {aberto && (
+        <View style={styles.seitaCorpo}>
+          {/* A explicacao ja vem em paragrafos separados por \n\n: abre
+              concreto e fecha no recibo, nessa ordem. */}
+          <Text style={styles.seitaTexto}>{seita.explicacao}</Text>
+
+          {!!seita.mercurio && !!seita.mercurio.texto && (
+            <>
+              <Text style={styles.seitaSubtitulo}>{UI.mercurioTitulo}</Text>
+              <Text style={styles.seitaTexto}>{seita.mercurio.texto}</Text>
+            </>
+          )}
+
+          <Text style={styles.seitaSubtitulo}>{UI.planetasTitulo}</Text>
+          <SeitaGrupo titulo={UI.grupoNaSeita} planetas={seita.planetasDaSeita} reciboRotulo={UI.reciboRotulo} />
+          <SeitaGrupo titulo={UI.grupoForaDaSeita} planetas={seita.planetasForaDaSeita} reciboRotulo={UI.reciboRotulo} />
+          <SeitaGrupo
+            titulo={UI.grupoIndeterminado}
+            planetas={seita.planetasIndeterminados}
+            reciboRotulo={UI.reciboRotulo}
+          />
+          {/* Os tres modernos respondem sempre, e a resposta deles e a
+              declaracao de que seita nao se aplica — com o ano da descoberta,
+              que e o argumento inteiro. Deixar a linha em branco seria pior. */}
+          <SeitaGrupo titulo={UI.grupoModernos} planetas={modernos} reciboRotulo={UI.reciboRotulo} />
+
+          {/* As duas ressalvas que andam junto com TODA leitura: a condicao
+              dupla de Valente (o app calcula metade da regra) e a separacao
+              entre o que e conta e o que e leitura do app. */}
+          <Text style={styles.seitaSubtitulo}>{UI.notasTitulo}</Text>
+          <Text style={styles.seitaNota}>{seita.notaCondicao}</Text>
+          <Text style={styles.seitaNota}>{seita.notaLeituraDoApp}</Text>
+
+          <Text style={styles.seitaSubtitulo}>{UI.citacoesTitulo}</Text>
+          {[...seita.verbatins, ...seita.verbatinsDasClasses].map((v, i) => (
+            <SeitaCitacao key={`${v.locus}-${i}`} v={v} />
+          ))}
+
+          {/* `fonte` E UMA LISTA de seis strings, nunca uma string: dentro de
+              um <Text> sozinho ela sairia emendada numa linha so, sem
+              separador. Uma bibliografia por linha. */}
+          <Text style={styles.seitaSubtitulo}>{UI.fontesTitulo}</Text>
+          <View style={styles.seitaCaixa}>
+            {seita.fonte.map((f, i) => (
+              <Text key={i} style={styles.seitaRecibo}>
+                · {f}
+              </Text>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={styles.seitaShareBtn}
+            activeOpacity={0.85}
+            onPress={compartilhar}
+            accessibilityRole="button"
+            accessibilityLabel={UI.compartilhar}
+            testID="seita-share"
+          >
+            <Ionicons name="logo-whatsapp" size={16} color="#fff" />
+            <Text style={styles.seitaShareTexto}>{UI.compartilhar}</Text>
+          </TouchableOpacity>
+          {!!recado && <Text style={styles.seitaRecado}>{recado}</Text>}
+          <Text style={styles.seitaMarca}>{UI.marca}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
-  const { t } = useLanguage();
+  // `lang` alimenta linhaDeSeita nas linhas do Sol e da Lua — sem ele a seita
+  // falaria portugues no meio de uma tela em espanhol.
+  const { t, lang } = useLanguage();
   const rows = [
     { ...ROWS_META[0], sign: chart.sun },
     { ...ROWS_META[1], sign: chart.moon },
@@ -185,36 +449,45 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
       </View>
 
       <Text style={styles.sub}>{t('birthchart.positions')}</Text>
-      {rows.map((r) => (
-        <View key={r.key} style={styles.planetRow}>
-          <View style={[styles.planetIcon, { backgroundColor: r.color + '22' }]}>
-            <Ionicons name={r.icon} size={20} color={r.color} />
+      {rows.map((r) => {
+        // A LINHA EXTRA DA SEITA, pendurada no proprio planeta — e para isso
+        // que linhaDeSeita() existe. So o Sol e a Lua a recebem aqui: o
+        // Ascendente e um ponto do horizonte, nao um planeta, e nao tem seita.
+        // Sem mapa calculado (falta hora ou cidade) nao aparece nada: o motor
+        // ja declara o que falta dentro da secao da seita, logo abaixo, e
+        // repetir o aviso em cada linha seria pedir a mesma coisa tres vezes.
+        const seitaDoPlaneta =
+          (r.key === 'Sol' || r.key === 'Lua') && chart.seita && chart.seita.disponivel
+            ? linhaDeSeita(r.key, chart.seita, lang)
+            : null;
+        return (
+          <View key={r.key} style={styles.planetRow}>
+            <View style={[styles.planetIcon, { backgroundColor: r.color + '22' }]}>
+              <Ionicons name={r.icon} size={20} color={r.color} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.planetLabel}>{r.sign ? t('birthchart.positionIn', { label: t(r.labelKey), sign: r.sign.name }) : t(r.labelKey)}</Text>
+              <Text style={styles.planetDesc}>{r.sign ? t(r.descKey) : t(r.missingKey)}</Text>
+              {!!seitaDoPlaneta && seitaDoPlaneta.disponivel && (
+                <Text style={styles.planetSeita} testID={`birthchart-seita-${r.key}`}>
+                  {seitaDoPlaneta.linha}
+                </Text>
+              )}
+            </View>
+            {r.sign && <Text style={[styles.planetGlyph, { color: r.sign.color }]}>{r.sign.glyph}</Text>}
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.planetLabel}>{r.sign ? t('birthchart.positionIn', { label: t(r.labelKey), sign: r.sign.name }) : t(r.labelKey)}</Text>
-            <Text style={styles.planetDesc}>{r.sign ? t(r.descKey) : t(r.missingKey)}</Text>
-          </View>
-          {r.sign && <Text style={[styles.planetGlyph, { color: r.sign.color }]}>{r.sign.glyph}</Text>}
-        </View>
-      ))}
+        );
+      })}
       {!chart.asc && <FixNatalDataCTA isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />}
 
       {/* SEITA — logo depois dos planetas e ANTES das casas, de proposito: ela
           e a chave de leitura de tudo que veio acima (Ptolomeu I.7 e Valente
-          I.1 dizem quais planetas ganham forca de dia e quais de noite), entao
-          precisa aparecer enquanto Sol/Lua/Ascendente ainda estao na memoria
-          de quem le. So renderiza quando o motor tem os dados — sem hora ele
-          declara indisponivel e a FixNatalDataCTA logo acima ja pede o que
-          falta, sem repetir o pedido duas vezes na mesma tela. */}
-      {chart.seita && chart.seita.disponivel && (
-        <View style={styles.seitaCard}>
-          <Text style={styles.seitaTitulo}>{chart.seita.seitaMapa}</Text>
-          <Text style={styles.seitaTexto}>{chart.seita.chamada}</Text>
-          {!!chart.seita.explicacao && <Text style={styles.seitaTexto}>{chart.seita.explicacao}</Text>}
-          {/* A fonte fica DEPOIS e menor — prende primeiro, recibo depois. */}
-          {!!chart.seita.fonte && <Text style={styles.seitaRecibo}>{chart.seita.fonte}</Text>}
-        </View>
-      )}
+          I.1 dizem quem joga em casa de dia e quem joga em casa de noite),
+          entao precisa aparecer enquanto Sol, Lua e Ascendente ainda estao na
+          memoria de quem le. Renderiza SEMPRE: com os dados, a leitura; sem
+          hora ou sem cidade, a declaracao do que falta e de onde se informa —
+          nunca um palpite, e nunca silencio. */}
+      <SeitaSection seita={chart.seita} lang={lang} />
 
       {/* PROFECCOES — o ano em que a pessoa esta. Vem depois da seita e ainda
           antes das casas: e a unica coisa da tela que fala do AGORA, e o resto
@@ -738,8 +1011,12 @@ const styles = StyleSheet.create({
   // Seita — cartao de LEITURA (superficie lisa, sem gradiente), no padrao dos
   // outros blocos de conteudo do Mapa. Borda dourada discreta porque e a
   // camada que reenquadra tudo acima dela, nao mais um item da lista.
+  // marginHorizontal era 16 dentro de um ScrollView que ja tem padding 16: o
+  // card ficava 32px encolhido em relacao a TODO o resto da tela (planetRow,
+  // houseCell, aspectRow nao tem margem lateral nenhuma). Zerado — o
+  // alinhamento e o que faz a secao parecer parte do Mapa, e nao um encarte.
   seitaCard: {
-    marginHorizontal: 16, marginTop: 8, marginBottom: 14, padding: 16,
+    marginTop: 8, marginBottom: 14, padding: 16,
     backgroundColor: colors.surface, borderRadius: 16,
     borderWidth: 1, borderColor: colors.gold + '44',
   },
@@ -747,7 +1024,72 @@ const styles = StyleSheet.create({
     color: colors.gold, fontSize: 12, fontWeight: '800',
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
   },
+  // O resultado, grande: e o que a pessoa fotografa.
+  seitaDestaque: {
+    color: colors.text, fontSize: 20, fontWeight: '800',
+    textTransform: 'capitalize', marginBottom: 10,
+  },
+  seitaDestaqueFrase: { textTransform: 'none', fontSize: 18 },
+  seitaSubtitulo: {
+    color: colors.gold, fontSize: 11, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 1, marginTop: 14, marginBottom: 8,
+  },
   seitaTexto: { color: colors.text, fontSize: 14, lineHeight: 21, marginBottom: 8 },
+  seitaCorpo: { marginTop: 4 },
+
+  // O aviso de chamada apertada: dourado, no corpo do card, fora do acordeao.
+  seitaAviso: {
+    borderRadius: 12, borderWidth: 1, borderColor: colors.gold + '55',
+    backgroundColor: colors.gold + '12', padding: 12, marginBottom: 8,
+  },
+  seitaAvisoTopo: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  seitaAvisoRotulo: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+
+  seitaToggle: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.gold + '55',
+    paddingVertical: 11, marginTop: 4,
+  },
+  seitaToggleTexto: { color: colors.gold, fontSize: 13, fontWeight: '800' },
+
+  seitaGrupo: { marginBottom: 10 },
+  seitaGrupoTitulo: { color: colors.textSecondary, fontSize: 12, fontWeight: '800', marginBottom: 8 },
+  seitaPlaneta: {
+    backgroundColor: colors.surfaceElevated, borderRadius: 12,
+    borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 8,
+  },
+  seitaPlanetaTopo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  seitaPlanetaNome: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  // A classe de Tetrabiblos I.5 como etiqueta — vocabulario de fisica antiga,
+  // e a linha do planeta explica isso em palavras logo abaixo.
+  seitaClasse: {
+    color: colors.textMuted, fontSize: 10, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 1,
+    borderWidth: 1, borderColor: colors.border, borderRadius: 999,
+    paddingHorizontal: 8, paddingVertical: 2,
+  },
+
+  // A citacao verbatim: aspas e italico. O ingles de Robbins e de Riley e o
+  // mesmo nos tres packs — quem traduz uma citacao a falsifica.
+  seitaCitacao: { marginBottom: 10 },
+  seitaVerbatim: {
+    color: colors.textSecondary, fontSize: 13, lineHeight: 20,
+    fontStyle: 'italic', marginBottom: 4,
+  },
+
+  seitaCaixa: {
+    borderRadius: 12, borderWidth: 1, borderStyle: 'dotted',
+    borderColor: colors.border, padding: 12, gap: 4,
+  },
+  seitaReciboRotulo: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1, marginTop: 4 },
+
+  seitaShareBtn: {
+    flexDirection: 'row', gap: 8, backgroundColor: '#25D366', borderRadius: 14,
+    paddingVertical: 11, alignItems: 'center', justifyContent: 'center', marginTop: 16,
+  },
+  seitaShareTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  seitaRecado: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 8 },
+  seitaMarca: { color: colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 8 },
   // A camada MODERNA fica visivelmente mais apagada que a antiga: o app
   // distingue o que a fonte diz do que o seculo XX passou a dizer, e a
   // hierarquia visual tem que contar isso sem precisar de rotulo.
@@ -787,6 +1129,13 @@ const styles = StyleSheet.create({
   planetIcon: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   planetLabel: { color: colors.text, fontSize: 15, fontWeight: '700' },
   planetDesc: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  // A linha de seita pendurada no Sol e na Lua. Fica em cima de um filete
+  // dourado para separar o que e camada da tradicao (Ptolomeu I.7) do que e
+  // a descricao geral do planeta que vem do dicionario da tela.
+  planetSeita: {
+    color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 8,
+    paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.gold + '33',
+  },
   planetGlyph: { fontSize: 24 },
   housesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
   houseCell: { width: '31%', backgroundColor: colors.surface, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },

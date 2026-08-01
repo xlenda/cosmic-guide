@@ -16,8 +16,42 @@
 // relógio que os almanaques dobráveis dos sécs. XIV-XV usavam — só que aqui a
 // posição vem de astronomia real (astronomy-engine, via moonSign de
 // lib/signs.js), nunca de tabela inventada.
+//
+// ===========================================================================
+// O BLOCO DAS DUAS LISTAS (lib/melotesiaDupla.js) — proposição 2 da tese
+// ===========================================================================
+// Até 01/08/2026 esta tela mostrava UMA lista de signo↔parte do corpo: a de
+// Manílio (Astronomica II.453-465, séc. I), que vive em lib/zodiacBody.js. Só
+// que ela nunca foi a única. O Sefer Yetzirah (séc. II–VI, recensão Gra/Ari,
+// cap. 5) reparte o corpo por um caminho completamente diferente — e as duas
+// não coincidem em nenhuma das doze linhas.
+//
+// docs/tradicao/00-tese.md, proposição 2: "quando duas fontes discordam,
+// mostrar as duas com o nome de cada uma. Nunca escolher em silêncio." O bloco
+// abaixo é essa regra virada tela: duas colunas rotuladas, nunca somadas, com o
+// zero de coincidências impresso grande — porque o zero é o conteúdo.
+//
+// O QUE ESTE ARQUIVO NÃO FAZ:
+//   · não redige conteúdo. Toda prosa vem do motor (lib/melotesiaDupla.js) e
+//     dos packs (lib/traducoes/melotesiaDupla.{pt,es,en}.js). Se faltar texto,
+//     o texto nasce no pack, nos três idiomas — nunca aqui dentro.
+//   · não funde as duas listas. Não existe neste arquivo nenhuma linha que
+//     diga "a parte do corpo do signo é X": existe a coluna de Manílio e a
+//     coluna do Sefer Yetzirah, cada uma com o nome da obra grudado.
+//   · não fabrica céu. O signo solar de quem lê sai de parDoNascimento (que
+//     usa a longitude real do Sol, via lib/signs.js). Sem data de nascimento,
+//     o motor devolve indisponível e a tela mostra o que falta e onde resolver.
+//
+// i18n DO BLOCO NOVO: nada dele passa por t(). O chrome sai do bloco `chrome`
+// do pack do próprio módulo, e a tela só repassa o `lang` do useLanguage() —
+// não escolhe idioma, não redige e não tem dicionário próprio. Os packs são
+// importados aqui porque lib/melotesiaDupla.js ainda não exporta um
+// chromeDaTela(lang) como lib/idadeReal.js faz; o mapa PACKS_MELOTESIA abaixo é
+// o MESMO packDoIdioma do motor, e some no dia em que esse export existir.
+// (O resto da tela — a parte antiga, de Manílio — continua em t() e em
+// lib/i18n.js, intocado.)
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, AppState } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, AppState, Share, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -49,6 +83,23 @@ import {
   modernKey,
   notVerifiedKey,
 } from '../lib/zodiacBody';
+import {
+  RELACOES,
+  cobreOsDoze,
+  fontes as fontesDaMelotesia,
+  linhaDoSigno,
+  melotesiaDupla,
+  parDeSigno,
+  parDoNascimento,
+} from '../lib/melotesiaDupla';
+import { PACK as MELOTESIA_PT } from '../lib/traducoes/melotesiaDupla.pt.js';
+import { PACK as MELOTESIA_ES } from '../lib/traducoes/melotesiaDupla.es.js';
+import { PACK as MELOTESIA_EN } from '../lib/traducoes/melotesiaDupla.en.js';
+import { getAnyBirthData } from '../lib/birthData';
+
+// Mesma regra de packDoIdioma em lib/melotesiaDupla.js — idioma fora dos três
+// cai no PT. A tela não escolhe idioma: ela repassa o `lang` do useLanguage().
+const PACKS_MELOTESIA = { pt: MELOTESIA_PT, es: MELOTESIA_ES, en: MELOTESIA_EN };
 
 // Visitar a tela conta como dia ativo — uma vez por dia local, mesmo padrão
 // do "pensamento do dia" da Home (screens/HomeScreen.js): chamada direta a
@@ -70,6 +121,29 @@ function Section({ title, children, defaultOpen = false }) {
         accessibilityLabel={`${title} — ${open ? t('zodiacBody.collapse') : t('zodiacBody.expand')}`}
       >
         <Text style={styles.sectionTitle}>{title}</Text>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
+      </TouchableOpacity>
+      {open ? <View style={styles.sectionBody}>{children}</View> : null}
+    </View>
+  );
+}
+
+// A mesma sanfona da Section acima, só que com os rótulos vindo do pack da
+// melotesia em vez de t() — o bloco das duas listas não fala com lib/i18n.js.
+function SecaoDupla({ titulo, rotuloAbrir, rotuloFechar, aberta = false, testID, children }) {
+  const [open, setOpen] = useState(aberta);
+  return (
+    <View style={styles.section}>
+      <TouchableOpacity
+        style={styles.sectionHeader}
+        onPress={() => setOpen((v) => !v)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`${titulo} — ${open ? rotuloFechar : rotuloAbrir}`}
+        testID={testID}
+      >
+        <Text style={styles.sectionTitle}>{titulo}</Text>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
       </TouchableOpacity>
       {open ? <View style={styles.sectionBody}>{children}</View> : null}
@@ -154,6 +228,118 @@ export default function ZodiacBodyScreen() {
   }, [transit, dateLocale]);
 
   const signName = (id) => t(signKey(id, 'name'));
+
+  // =========================================================================
+  // AS DUAS LISTAS — dados do bloco novo
+  // =========================================================================
+  const MELO = PACKS_MELOTESIA[lang] || PACKS_MELOTESIA.pt;
+  const UI = MELO.chrome;
+
+  // cobreOsDoze() é a sanidade do motor: se alguém acrescentar um signo em
+  // lib/zodiacBody.js e esquecer da segunda lista, isto vira false e a tela
+  // declara indisponível em vez de mostrar meia linha.
+  const integro = useMemo(() => cobreOsDoze(), []);
+  const dupla = useMemo(() => (integro ? melotesiaDupla(lang) : null), [integro, lang]);
+  const bibliografia = useMemo(() => fontesDaMelotesia(lang), [lang]);
+
+  // Qual linha da tabela está aberta. Por padrão ela SEGUE a figura: tocar num
+  // signo do boneco abre a linha dupla correspondente. Depois que a pessoa toca
+  // na própria tabela, a escolha dela manda ('' = nenhuma aberta).
+  const [duplaEscolhida, setDuplaEscolhida] = useState(null);
+  const linhaDaFigura = active ? linhaDoSigno(active.id) : null;
+  const duplaAberta =
+    duplaEscolhida !== null ? duplaEscolhida : linhaDaFigura ? linhaDaFigura.id : null;
+  const [recadoDupla, setRecadoDupla] = useState(null);
+
+  // O signo solar de quem lê, pela efeméride. getAnyBirthData (lib/birthData.js)
+  // devolve { date, time, city } ou null — a tela não toca em AsyncStorage.
+  const [nascimento, setNascimento] = useState(undefined);
+  useEffect(() => {
+    let vivo = true;
+    getAnyBirthData()
+      .then((d) => {
+        if (vivo) setNascimento(d || null);
+      })
+      .catch(() => {
+        if (vivo) setNascimento(null);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  const meuPar = useMemo(() => {
+    if (nascimento === undefined) return null; // ainda lendo o storage
+    const d = nascimento || {};
+    return parDoNascimento(d.date || null, d.time || null, d.city || null, lang);
+  }, [nascimento, lang]);
+
+  // Sem data de nascimento, ainda resta o signo declarado no perfil (casal ou
+  // solo). Ele NÃO é apresentado como equivalente: a nota do pack diz que a
+  // data destrava a leitura pela posição real do Sol.
+  const parDeclarado = useMemo(() => {
+    // Enquanto o storage não respondeu, nada aparece: mostrar o signo declarado
+    // e trocá-lo pelo calculado meio segundo depois seria piscar dois signos
+    // diferentes na cara de quem nasceu na virada.
+    if (nascimento === undefined) return null;
+    if (!sunSignName || (meuPar && meuPar.disponivel)) return null;
+    const linha = linhaDoSigno(sunSignName);
+    return linha ? parDeSigno(linha.id, lang) : null;
+  }, [sunSignName, meuPar, nascimento, lang]);
+
+  async function compartilharPar(par) {
+    // O texto é feito só de peças que o motor e o pack já escreveram — a tela
+    // junta com quebra de linha e não redige uma palavra.
+    const texto = [
+      `${par.emoji} ${par.signoNome}`,
+      `${par.manilio.tradicao}: ${par.manilio.parte}`,
+      `${par.sefer.tradicao}: ${par.sefer.orgao}`,
+      par.relacaoNome,
+      par.recibo,
+      UI.marca,
+    ].join('\n');
+    setRecadoDupla(null);
+    const temFolhaWeb =
+      Platform.OS === 'web' &&
+      typeof navigator !== 'undefined' &&
+      typeof navigator.share === 'function';
+    if (Platform.OS !== 'web' || temFolhaWeb) {
+      try {
+        await Share.share({ message: texto });
+      } catch {
+        // Cancelou ou a folha falhou: silêncio, igual às outras telas.
+      }
+      return;
+    }
+    let copiou = false;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(texto);
+        copiou = true;
+      }
+    } catch {}
+    setRecadoDupla(copiou ? UI.copiado : UI.naoCopiou);
+  }
+
+  // As duas colunas, rotuladas e nunca somadas. É o único desenho em que este
+  // arquivo mostra parte do corpo — e sempre com o nome da obra em cima.
+  const duasColunas = (par) => (
+    <View style={styles.dColunas}>
+      <View style={styles.dColuna}>
+        <Text style={styles.dTradicao}>{par.manilio.tradicao}</Text>
+        <Text style={styles.dParte}>{par.manilio.parte}</Text>
+        <Text style={styles.dTipo}>{par.manilio.tipoNome}</Text>
+        <Text style={styles.dConfianca}>{UI.confianca[par.manilio.confianca]}</Text>
+      </View>
+      <Text style={styles.dVersus}>×</Text>
+      <View style={styles.dColuna}>
+        <Text style={styles.dTradicao}>{par.sefer.tradicao}</Text>
+        <Text style={styles.dParte}>{par.sefer.orgao}</Text>
+        <Text style={styles.dTipo}>{par.sefer.tipoNome}</Text>
+        <Text style={styles.dConfianca}>{UI.confianca[par.sefer.confianca]}</Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.root}>
@@ -309,6 +495,247 @@ export default function ZodiacBodyScreen() {
               lia o corpo pelo signo de nascimento. */}
           <Text style={styles.note}>{t('zodiacBody.sun.caveat')}</Text>
         </View>
+
+        {/* ================================================================
+            AS DUAS LISTAS — Manílio × Sefer Yetzirah
+            Tudo daqui para baixo sai de lib/melotesiaDupla.js e do bloco
+            `chrome` dos packs. Nenhuma string é escrita neste arquivo.
+        ================================================================ */}
+        <View style={styles.dSelo} testID="melotesia-selo">
+          <Ionicons name="git-compare-outline" size={16} color={colors.gold} />
+          <Text style={styles.dSeloTexto}>{UI.selo}</Text>
+        </View>
+
+        {!dupla ? (
+          <Text style={styles.note} testID="melotesia-indisponivel">
+            {UI.indisponivel}
+          </Text>
+        ) : (
+          <>
+            {/* A chamada: vida real primeiro, fonte depois. */}
+            <Text style={styles.dChamada} testID="melotesia-chamada">
+              {dupla.chamada}
+            </Text>
+
+            {/* O placar. O zero de coincidências é o conteúdo desta feature —
+                por isso ele é o número grande, e não uma linha de rodapé. */}
+            <View style={styles.dPlacarRow}>
+              {RELACOES.map((k) => (
+                <View key={k} style={styles.dPlacar} testID={`melotesia-placar-${k}`}>
+                  <Text style={styles.dPlacarNumero}>{dupla.contagem[k]}</Text>
+                  <Text style={styles.dPlacarRotulo}>{MELO.relacoes[k]}</Text>
+                </View>
+              ))}
+            </View>
+            {/* A etiqueta que separa fonte de leitura do app. Fica ANTES da
+                comparação, não depois: quem lê só o placar tem que ter visto. */}
+            <Text style={styles.dEtiquetaApp}>{UI.etiquetaApp}</Text>
+
+            {/* ---- A linha do signo solar de quem está lendo ----
+                O cartão inteiro só existe depois que o storage responde: um
+                cartão com rótulo e sem conteúdo parece tela quebrada. */}
+            {meuPar || parDeclarado ? (
+            <View style={styles.card} testID="melotesia-meu-signo">
+              <Text style={styles.cardLabel}>{UI.rotuloSeuSigno}</Text>
+              {meuPar && meuPar.disponivel ? (
+                <>
+                  <Text style={styles.entryTitle}>
+                    {meuPar.par.emoji} {meuPar.par.signoNome}
+                  </Text>
+                  {duasColunas(meuPar.par)}
+                  <Text style={styles.dRelacao}>{meuPar.par.relacaoNome}</Text>
+                  {meuPar.notaPrecisao ? (
+                    <Text style={styles.note} testID="melotesia-precisao">
+                      {meuPar.notaPrecisao}
+                    </Text>
+                  ) : null}
+                  <TouchableOpacity
+                    style={styles.dShareBtn}
+                    activeOpacity={0.85}
+                    onPress={() => compartilharPar(meuPar.par)}
+                    accessibilityRole="button"
+                    accessibilityLabel={UI.compartilhar}
+                    testID="melotesia-share-meu-signo"
+                  >
+                    <Ionicons name="share-social" size={15} color="#fff" />
+                    <Text style={styles.dShareTexto}>{UI.compartilhar}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : parDeclarado ? (
+                <>
+                  <Text style={styles.entryTitle}>
+                    {parDeclarado.emoji} {parDeclarado.signoNome}
+                  </Text>
+                  {duasColunas(parDeclarado)}
+                  <Text style={styles.dRelacao}>{parDeclarado.relacaoNome}</Text>
+                  <Text style={styles.note}>{UI.signoDeclarado}</Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate(ROUTES.BIRTH_CHART)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    style={styles.cta}
+                  >
+                    <Text style={styles.ctaText}>{UI.irParaMapa}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : meuPar ? (
+                <>
+                  {/* Sem data não se chuta signo: o motor declara o que falta
+                      e onde resolver, e a tela só imprime. */}
+                  <Text style={styles.gloss} testID="melotesia-sem-data">
+                    {meuPar.explicacao}
+                  </Text>
+                  <Text style={styles.note}>{meuPar.comoResolver}</Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate(ROUTES.BIRTH_CHART)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    style={styles.cta}
+                  >
+                    <Text style={styles.ctaText}>{UI.irParaMapa}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : null}
+            </View>
+            ) : null}
+
+            {/* ---- As doze linhas ---- */}
+            <Text style={styles.dTituloTabela}>{UI.rotuloTabela}</Text>
+            <Text style={styles.figureHint}>{UI.ajudaTabela}</Text>
+
+            {dupla.pares.map((par) => {
+              const estaAberto = duplaAberta === par.id;
+              return (
+                <View key={par.id} style={styles.dLinha} testID={`melotesia-linha-${par.id}`}>
+                  <TouchableOpacity
+                    style={styles.dLinhaTopo}
+                    activeOpacity={0.85}
+                    onPress={() => setDuplaEscolhida(estaAberto ? '' : par.id)}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: estaAberto }}
+                    accessibilityLabel={par.signoNome}
+                    accessibilityHint={estaAberto ? UI.fechar : UI.abrir}
+                    testID={`melotesia-abrir-${par.id}`}
+                  >
+                    <Text style={styles.dSigno}>
+                      {par.emoji} {par.signoNome}
+                    </Text>
+                    <Ionicons
+                      name={estaAberto ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+
+                  {duasColunas(par)}
+                  <Text style={styles.dRelacao}>{par.relacaoNome}</Text>
+
+                  {estaAberto ? (
+                    <View style={styles.dCorpo}>
+                      {/* Prende primeiro: a cena de vida real. */}
+                      <Text style={styles.dAbertura}>{par.abertura}</Text>
+                      {/* Fonte depois: a leitura com as duas obras nomeadas. */}
+                      <Text style={styles.gloss}>{par.leitura}</Text>
+
+                      {par.manilio.camadaTardia ? (
+                        <View style={styles.flag}>
+                          <Text style={styles.flagText}>{par.manilio.camadaTardia}</Text>
+                        </View>
+                      ) : null}
+
+                      {par.sefer.notaDaPalavra ? (
+                        <Text style={styles.note} testID={`melotesia-korkeban-${par.id}`}>
+                          {par.sefer.notaDaPalavra}
+                        </Text>
+                      ) : null}
+
+                      <View style={styles.dRecibo}>
+                        <Text style={styles.dReciboRotulo}>{UI.rotuloRecibo}</Text>
+                        <Text style={styles.dReciboTexto} testID={`melotesia-recibo-${par.id}`}>
+                          {par.recibo}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.dShareBtn}
+                        activeOpacity={0.85}
+                        onPress={() => compartilharPar(par)}
+                        accessibilityRole="button"
+                        accessibilityLabel={UI.compartilhar}
+                        testID={`melotesia-share-${par.id}`}
+                      >
+                        <Ionicons name="share-social" size={15} color="#fff" />
+                        <Text style={styles.dShareTexto}>{UI.compartilhar}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+
+            {recadoDupla ? <Text style={styles.dRecado}>{recadoDupla}</Text> : null}
+
+            {/* ---- A conta, aberta para quem quiser conferir ---- */}
+            <SecaoDupla
+              titulo={UI.rotuloConta}
+              rotuloAbrir={UI.abrir}
+              rotuloFechar={UI.fechar}
+              aberta
+              testID="melotesia-secao-conta"
+            >
+              <Text style={styles.paragraph}>{dupla.estrutura}</Text>
+            </SecaoDupla>
+
+            {/* ---- De onde saíram as duas listas ---- */}
+            <SecaoDupla
+              titulo={UI.rotuloComoSurgiram}
+              rotuloAbrir={UI.abrir}
+              rotuloFechar={UI.fechar}
+              testID="melotesia-secao-explicacao"
+            >
+              <Text style={styles.paragraph}>{dupla.explicacao}</Text>
+            </SecaoDupla>
+
+            {/* ---- As ressalvas que andam com toda leitura ---- */}
+            <SecaoDupla
+              titulo={UI.rotuloRessalvas}
+              rotuloAbrir={UI.abrir}
+              rotuloFechar={UI.fechar}
+              testID="melotesia-secao-ressalvas"
+            >
+              <Text style={styles.paragraph}>{dupla.notaNaoFundir}</Text>
+              <Text style={styles.paragraph}>{dupla.notaDaClassificacao}</Text>
+              <Text style={styles.paragraph}>{dupla.notaLeituraDoApp}</Text>
+              <Text style={styles.paragraph}>{dupla.notaKorkeban}</Text>
+            </SecaoDupla>
+
+            {/* ---- O bloqueio declarado, não escondido ---- */}
+            {dupla.bloqueio ? (
+              <SecaoDupla
+                titulo={UI.rotuloBloqueio}
+                rotuloAbrir={UI.abrir}
+                rotuloFechar={UI.fechar}
+                testID="melotesia-secao-bloqueio"
+              >
+                <Text style={styles.noteStrong}>{dupla.bloqueio}</Text>
+              </SecaoDupla>
+            ) : null}
+
+            {/* ---- A bibliografia das duas listas ---- */}
+            <SecaoDupla
+              titulo={UI.rotuloFontes}
+              rotuloAbrir={UI.abrir}
+              rotuloFechar={UI.fechar}
+              testID="melotesia-secao-fontes"
+            >
+              {bibliografia.map((f) => (
+                <Text key={f} style={styles.source}>
+                  · {f}
+                </Text>
+              ))}
+            </SecaoDupla>
+          </>
+        )}
 
         {/* ---- Regência planetária (Ptolomeu) ---- */}
         <Section title={t('zodiacBody.section.planets')}>
@@ -532,6 +959,104 @@ const styles = StyleSheet.create({
 
   herbRow: { gap: 3 },
   herbName: { color: colors.text, fontSize: 12, fontWeight: '800' },
+
+  // ---- As duas listas (lib/melotesiaDupla.js) ----
+  dSelo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,200,92,0.10)',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,200,92,0.45)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginTop: 6,
+  },
+  dSeloTexto: { color: colors.gold, fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
+  dChamada: { color: colors.text, fontSize: 15, lineHeight: 23 },
+
+  dPlacarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  dPlacar: {
+    flexGrow: 1,
+    flexBasis: 96,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    gap: 4,
+    alignItems: 'center',
+  },
+  dPlacarNumero: { color: colors.gold, fontSize: 28, fontWeight: '800', lineHeight: 32 },
+  dPlacarRotulo: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  dEtiquetaApp: { color: colors.textMuted, fontSize: 11, lineHeight: 17, fontStyle: 'italic' },
+
+  dTituloTabela: {
+    color: colors.gold,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+  },
+
+  dLinha: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+    gap: 8,
+  },
+  dLinhaTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  dSigno: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
+
+  dColunas: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  dColuna: { flex: 1, gap: 2 },
+  dTradicao: {
+    color: colors.purple,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  dParte: { color: colors.text, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  dTipo: { color: colors.textSecondary, fontSize: 11, lineHeight: 16 },
+  dConfianca: { color: colors.textMuted, fontSize: 10, lineHeight: 15 },
+  dVersus: { color: colors.textMuted, fontSize: 14, fontWeight: '800', paddingTop: 14 },
+  dRelacao: { color: colors.teal, fontSize: 12, lineHeight: 18, fontWeight: '700' },
+
+  dCorpo: { gap: 10, marginTop: 2 },
+  dAbertura: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  dRecibo: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dotted',
+    borderColor: colors.border,
+    padding: 12,
+    gap: 3,
+  },
+  dReciboRotulo: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  dReciboTexto: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  dShareBtn: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dShareTexto: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  dRecado: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center' },
 
   bulletRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   bulletMark: { color: colors.red, fontSize: 12, fontWeight: '800', width: 14, lineHeight: 19 },

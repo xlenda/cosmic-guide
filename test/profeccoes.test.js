@@ -973,3 +973,123 @@ test('o Senhor do Ano nunca é um planeta moderno — Urano, Netuno e Plutão fi
     );
   }
 });
+
+// ---------------------------------------------------------------------------
+// (8) A TELA — varredura do fonte de screens/ProfeccoesScreen.js
+// ---------------------------------------------------------------------------
+// Mesma varredura que test/idadeReal.test.js faz em IdadeRealScreen.js. Ela
+// existe porque o pack pode estar perfeito e a tela ainda assim quebrar as
+// regras da casa: redigindo conteúdo dentro do componente, escolhendo idioma
+// por conta própria, ou falando com o AsyncStorage direto. Nada disso aparece
+// num teste de motor — o pack está certo, o motor está certo, e a tela erra.
+const FONTE_TELA = fs.readFileSync(path.join(RAIZ, 'screens', 'ProfeccoesScreen.js'), 'utf8');
+
+test('a tela existe e é uma vitrine do motor, com o idioma vindo do useLanguage()', () => {
+  assert.ok(/useLanguage/.test(FONTE_TELA), 'a tela não pega o idioma do useLanguage()');
+  assert.match(
+    FONTE_TELA,
+    /profeccaoAnual\(\s*nascimento,\s*agora,\s*lang\s*\)/,
+    'a profecção anual não sai de profeccaoAnual(nascimento, agora, lang)'
+  );
+  assert.match(
+    FONTE_TELA,
+    /profeccaoMensal\(\s*nascimento,\s*agora,\s*lang\s*\)/,
+    'a profecção mensal não sai de profeccaoMensal(nascimento, agora, lang)'
+  );
+  // O chrome sai do bloco `tela` do pack, nunca de lib/i18n.js. (A regra é de
+  // IMPORT e de CHAMADA: o cabeçalho da tela cita lib/i18n.js para dizer que
+  // ele segue intocado, e citar não é usar.)
+  assert.ok(
+    !/from\s+'[^']*lib\/i18n'/.test(FONTE_TELA) && !/\Wt\(\s*['"`]/.test(FONTE_TELA),
+    'a tela puxou texto de lib/i18n.js — o chrome desta feature mora no bloco `tela` dos packs'
+  );
+});
+
+test('a tela nunca fabrica nascimento: a data vem de getAnyBirthData e há saída pro Mapa', () => {
+  assert.match(
+    FONTE_TELA,
+    /getAnyBirthData/,
+    'a data de nascimento não vem de lib/birthData.js — nenhuma outra fonte é aceitável'
+  );
+  assert.match(
+    FONTE_TELA,
+    /ROUTES\.BIRTH_CHART/,
+    'sem data salva a tela precisa mandar a pessoa pro Mapa Astral, não inventar um mapa'
+  );
+  assert.ok(
+    !/async-storage/.test(FONTE_TELA),
+    'a tela importou AsyncStorage direto — storage só via lib/birthData.js'
+  );
+});
+
+test('nenhuma chave do chrome está morta — toda uma é lida pela tela', () => {
+  const orfas = Object.keys(PACKS.pt.tela).filter(
+    (chave) => !new RegExp(`UI\\.${chave}\\b`).test(FONTE_TELA)
+  );
+  assert.deepEqual(
+    orfas,
+    [],
+    `chave de chrome traduzida três vezes e consumida zero: ${orfas.join(', ')}. ` +
+      'Ou a tela passa a usar, ou ela sai dos três packs.'
+  );
+});
+
+test('o bloco `tela` tem as MESMAS chaves nos três idiomas e nenhuma vem vazia', () => {
+  const chaves = Object.keys(PACKS.pt.tela).sort();
+  assert.ok(chaves.length >= 15, 'o chrome da tela ficou pequeno demais pra ser o chrome da tela');
+  for (const lang of IDIOMAS) {
+    assert.deepEqual(Object.keys(PACKS[lang].tela).sort(), chaves, `${lang}: chaves do chrome`);
+    for (const [chave, valor] of Object.entries(PACKS[lang].tela)) {
+      assert.equal(typeof valor, 'string', `${lang}/tela.${chave} não é texto`);
+      assert.ok(valor.trim().length > 0, `${lang}/tela.${chave} está vazio`);
+    }
+  }
+  // `locale` não é prosa: é a etiqueta que o Intl usa pra escrever a data da
+  // virada do ano. Se ela virar texto livre, a data sai errada em silêncio.
+  for (const lang of IDIOMAS) {
+    assert.match(PACKS[lang].tela.locale, /^[a-z]{2}-[A-Z]{2}$/, `${lang}: locale fora do formato`);
+  }
+});
+
+test('LINHA VERMELHA — o chrome da tela passa pela mesma varredura dos três idiomas', () => {
+  for (const lang of IDIOMAS) {
+    for (const [chave, texto] of Object.entries(PACKS[lang].tela)) {
+      for (const re of PROIBIDO[lang]) {
+        assert.ok(!re.test(texto), `${lang}/tela.${chave} bate em ${re}:\n${texto}`);
+      }
+    }
+  }
+});
+
+test('a tela não redige conteúdo — nem prosa própria, nem cópia do pack', () => {
+  // Nenhum pedaço de casa ou de senhor pode estar escrito dentro do componente.
+  const vazando = [];
+  for (const lang of IDIOMAS) {
+    for (const n of Object.keys(PACKS[lang].casas)) {
+      const c = PACKS[lang].casas[n];
+      if (FONTE_TELA.includes(c.prende.slice(0, 40))) vazando.push(`${lang}:casa ${n}`);
+      if (FONTE_TELA.includes(c.mes.slice(0, 40))) vazando.push(`${lang}:casa ${n} (mês)`);
+    }
+    for (const id of Object.keys(PACKS[lang].senhores)) {
+      const s = PACKS[lang].senhores[id];
+      if (FONTE_TELA.includes(s.prende.slice(0, 40))) vazando.push(`${lang}:senhor ${id}`);
+    }
+    for (const chave of ['comoFunciona', 'deOndeVem', 'aPalavra', 'camadaMensal', 'quandoViraOAno']) {
+      if (FONTE_TELA.includes(PACKS[lang][chave].slice(0, 40))) vazando.push(`${lang}:${chave}`);
+    }
+  }
+  assert.deepEqual(vazando, [], `conteúdo escrito dentro da tela em vez do pack: ${vazando.join(', ')}`);
+
+  // E nenhuma frase nova nascida no componente: os literais da tela são
+  // caminhos de import, testID e valor de estilo — nunca prosa. Sessenta
+  // caracteres é curto pra endereço e longo demais pra frase escapar.
+  const LIMITE = 60;
+  const longos = [...FONTE_TELA.matchAll(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"/g)]
+    .map((m) => m[0])
+    .filter((s) => s.length - 2 > LIMITE);
+  assert.deepEqual(
+    longos,
+    [],
+    `texto longo escrito dentro da tela — ele nasce no pack, nos três idiomas:\n${longos.join('\n')}`
+  );
+});

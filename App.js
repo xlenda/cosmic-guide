@@ -127,6 +127,8 @@ const MitosScreen = lazy(() => import('./screens/MitosScreen'));
 // A Idade Real de Cada Coisa — 30 datacoes navegaveis. Lazy pelo mesmo motivo
 // das outras telas de conteudo: quem nunca abrir nao paga o parse.
 const IdadeRealScreen = lazy(() => import('./screens/IdadeRealScreen'));
+const ProfeccoesScreen = lazy(() => import('./screens/ProfeccoesScreen'));
+const ComoDecideScreen = lazy(() => import('./screens/ComoDecideScreen'));
 const ComoVoceTaScreen = lazy(() => import('./screens/ComoVoceTaScreen'));
 const QuizCosmicoScreen = lazy(() => import('./screens/QuizCosmicoScreen'));
 const WallpaperScreen = lazy(() => import('./screens/WallpaperScreen'));
@@ -332,6 +334,9 @@ function HomeStack() {
             pra telas DESTA stack (e pro Tarô via aba pai, como Jornada faz). */}
         <Stack.Screen name={ROUTES.MITOS} component={MitosScreen} />
         <Stack.Screen name={ROUTES.IDADE_REAL} component={IdadeRealScreen} />
+        {/* Profecções: técnica preditiva helenística (Ptolomeu IV.10) — vive
+            no grid porque é conteúdo de consulta, como Mapa Astral. */}
+        <Stack.Screen name={ROUTES.PROFECCOES} component={ProfeccoesScreen} />
         <Stack.Screen name={ROUTES.COMO_VOCE_TA} component={ComoVoceTaScreen} />
         <Stack.Screen name={ROUTES.QUIZ_COSMICO} component={QuizCosmicoScreen} />
         <Stack.Screen name={ROUTES.WALLPAPER} component={WallpaperScreen} />
@@ -383,6 +388,10 @@ function ProfileStack() {
         <Stack.Screen name={ROUTES.LOJA} component={LojaScreen} />
         <Stack.Screen name={ROUTES.HELP_SUPPORT} component={HelpSupportScreen} />
         <Stack.Screen name={ROUTES.TERMS} component={TermsScreen} />
+        {/* "Como este app decide" mora no Perfil, não no grid: é transparência
+            sobre o método (o que é calculado, o que é lido na tradição, o que
+            é leitura do app), não conteúdo de consulta diária. */}
+        <Stack.Screen name={ROUTES.COMO_DECIDE} component={ComoDecideScreen} />
       </Stack.Navigator>
     </Suspense>
   );

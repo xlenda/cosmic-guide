@@ -677,6 +677,61 @@ test('a tela das duas listas NÃO depende de dado de nascimento — responde sem
   }
 });
 
+// ===========================================================================
+// 9. O CHROME DA TELA E A FIAÇÃO — acrescentado em 01/08/2026, quando o módulo
+//    finalmente virou tela (screens/ZodiacBodyScreen.js)
+// ===========================================================================
+// O módulo existia inteiro e ninguém via nada: nenhuma tela o importava. Estes
+// dois testes seguram as duas pontas da ligação — o chrome mora nos packs (e
+// não em lib/i18n.js), e a vitrine mostra as DUAS colunas rotuladas.
+
+test('o bloco `chrome` existe nos três packs, com paridade exata de chaves', () => {
+  const chaves = Object.keys(PT.chrome).sort();
+  assert.ok(chaves.length > 15, 'o chrome da tela encolheu — a vitrine ficaria sem rótulo');
+  for (const [lang, pack] of Object.entries(LANGS)) {
+    assert.deepEqual(Object.keys(pack.chrome).sort(), chaves, `${lang}: o chrome divergiu do pt`);
+    assert.deepEqual(Object.keys(pack.chrome.confianca).sort(), ['alta', 'media'], lang);
+    for (const [k, v] of Object.entries(pack.chrome)) {
+      if (typeof v !== 'string') continue;
+      assert.ok(v.trim().length > 1, `${lang}/chrome.${k} vazio`);
+      assert.ok(!/\$\{|\{\w+\}/.test(v), `${lang}/chrome.${k} vazou placeholder`);
+    }
+  }
+  // Chrome traduzido de verdade, não copiado do pt.
+  for (const lang of ['es', 'en']) {
+    for (const k of ['selo', 'rotuloTabela', 'rotuloFontes', 'compartilhar', 'irParaMapa']) {
+      assert.notEqual(LANGS[lang].chrome[k], PT.chrome[k], `${lang}/chrome.${k} continua em português`);
+    }
+    // O nome da tela do nascimento tem que bater com o do próprio pack — é
+    // para lá que o botão manda quem ainda não informou a data.
+    assert.ok(
+      LANGS[lang].chrome.irParaMapa.includes(TELA_NASCIMENTO[lang]),
+      `${lang}: o botão não cita a tela do nascimento`
+    );
+  }
+  assert.ok(PT.chrome.irParaMapa.includes(TELA_NASCIMENTO.pt));
+});
+
+test('a tela do Homem Zodiacal mostra as DUAS colunas, e o chrome dela não vem de lib/i18n.js', () => {
+  const tela = fs.readFileSync(path.join(__dirname, '..', 'screens', 'ZodiacBodyScreen.js'), 'utf8');
+  // A fiação existe.
+  assert.match(tela, /from '\.\.\/lib\/melotesiaDupla'/, 'a tela não importa o módulo — ninguém vê a segunda lista');
+  for (const fn of ['melotesiaDupla(', 'parDoNascimento(', 'parDeSigno(', 'linhaDoSigno(', 'cobreOsDoze(']) {
+    assert.ok(tela.includes(fn), `a tela não usa ${fn}`);
+  }
+  // As duas colunas, cada uma com o rótulo da própria tradição.
+  assert.ok(tela.includes('manilio.tradicao'), 'a coluna latina perdeu o rótulo da tradição');
+  assert.ok(tela.includes('sefer.tradicao'), 'a coluna hebraica perdeu o rótulo da tradição');
+  assert.ok(tela.includes('.recibo'), 'a tela deixou de imprimir o recibo');
+  assert.ok(tela.includes('bloqueio'), 'a ressalva de Hayman não chegou à tela');
+  // O chrome sai do pack do módulo, nunca do dicionário compartilhado.
+  assert.ok(
+    /melotesiaDupla\.(pt|es|en)\.js'/.test(tela),
+    'a tela não lê o chrome dos packs do módulo'
+  );
+  assert.ok(!/t\('melotesia/i.test(tela), 'o chrome da melotesia vazou para lib/i18n.js');
+});
+
 test('lib/melotesiaDupla.js não fala com AsyncStorage — nem direto, nem por require', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'lib', 'melotesiaDupla.js'), 'utf8');
   assert.ok(!/AsyncStorage/.test(src), 'storage aqui só via lib/storage.js — e esta feature não precisa de storage nenhum');

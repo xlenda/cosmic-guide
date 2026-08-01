@@ -24,6 +24,7 @@ import { CHAVES_DE_TRADUCAO, nomeDoSigno } from '../lib/synastry';
 import { getTodaysThought } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { personalSkyToday } from '../lib/personalSky';
+import { fasesDoCeuPessoal } from '../lib/transitoFase';
 import { getAnyBirthData } from '../lib/birthData';
 import { computeMonthlyWrapped, getWrappedMonth, isWrappedAvailable } from '../lib/monthlyWrapped';
 import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration, recordActiveDay } from '../lib/streak';
@@ -272,11 +273,17 @@ export default function HomeScreen() {
   // Recarrega no foco: a pessoa pode ter acabado de preencher o nascimento
   // no Mapa Astral e voltado pra cá.
   const [personalSky, setPersonalSky] = useState(undefined);
+  // O nascimento fica guardado junto porque a DIREÇÃO de cada trânsito
+  // (lib/transitoFase.js) precisa dele: personalSky calcula Math.abs(sep -
+  // angle) e, com o valor absoluto, perde o sinal — o aspecto que ainda vai
+  // fechar e o que já se desfez saíam com a MESMA frase.
+  const [personalSkyBirth, setPersonalSkyBirth] = useState(null);
   useFocusEffect(
     useCallback(() => {
       let active = true;
       getAnyBirthData().then((birth) => {
         if (!active) return;
+        setPersonalSkyBirth(birth || null);
         setPersonalSky(birth ? personalSkyToday(birth) : null);
       });
       return () => {
@@ -284,6 +291,19 @@ export default function HomeScreen() {
       };
     }, [])
   );
+
+  // UMA chamada para a lista inteira: fasesDoCeuPessoal levanta as longitudes
+  // de natal, de hoje e de amanhã uma vez só e as reaproveita item a item,
+  // devolvendo um array do MESMO tamanho e na MESMA ordem — dá para casar pelo
+  // índice. Falhou, fica null e a tela mostra o texto de sempre, sem a fase.
+  const personalSkyFases = useMemo(() => {
+    if (!Array.isArray(personalSky) || !personalSkyBirth) return null;
+    try {
+      return fasesDoCeuPessoal(personalSky, personalSkyBirth, lang);
+    } catch {
+      return null;
+    }
+  }, [personalSky, personalSkyBirth, lang]);
 
   // A linha de hoje (ver o bloco grande no topo do arquivo pro porquê de ser
   // UMA linha, de a trilha ganhar do ritual, e de os motores virem por import()
@@ -542,6 +562,11 @@ export default function HomeScreen() {
     // repete, e quem gostou de uma quer a outra. Icone de ampulheta porque a
     // tela inteira e sobre IDADE, nao sobre fonte.
     { key: 'idadereal', title: t('home.card.idadereal.title'), subtitle: t('home.card.idadereal.subtitle'), icon: 'hourglass', gradient: ['#FF7BD5', '#FFB84D'], onPress: () => navigation.navigate(ROUTES.IDADE_REAL) },
+    // Profecções (Ptolomeu, Tetrabiblos IV.10) — vizinha de idadereal de
+    // propósito: são as duas telas que mostram a fonte na cara. Diferente das
+    // outras, esta lê a data de nascimento da pessoa, então tem estado de
+    // "ainda não sei sua data" que manda pro Mapa Astral em vez de inventar.
+    { key: 'profeccoes', title: t('home.card.profeccoes.title'), subtitle: t('home.card.profeccoes.subtitle'), icon: 'refresh-circle', gradient: ['#B57BFF', '#FFC85C'], onPress: () => navigation.navigate(ROUTES.PROFECCOES) },
   ];
   // Diário Cósmico saiu do grid — vira uma faixa inteira fixa no topo (ver
   // abaixo, logo depois do HeroSection), sempre visível em vez de ser só
@@ -970,11 +995,18 @@ export default function HomeScreen() {
               <Ionicons name="telescope" size={16} color={colors.teal} />
               <Text style={[styles.peekLabel, { color: colors.teal }]}>{t('home.sky.label')}</Text>
             </View>
-            {(hasAccess || isOwnerAccount ? personalSky : personalSky.slice(0, 1)).map((a, i) => (
-              <Text key={i} style={[styles.peekText, i > 0 && { marginTop: 8 }]}>
-                {a.text}
-              </Text>
-            ))}
+            {(hasAccess || isOwnerAccount ? personalSky : personalSky.slice(0, 1)).map((a, i) => {
+              // A fase vem do MESMO índice (fasesDoCeuPessoal preserva ordem e
+              // tamanho). Sem ela — sem efeméride, ou trânsito parado demais
+              // pra ter direção — some a linha, nunca se inventa um verbo.
+              const fase = personalSkyFases && personalSkyFases[i];
+              return (
+                <View key={i} style={i > 0 ? { marginTop: 8 } : null}>
+                  <Text style={styles.peekText}>{a.text}</Text>
+                  {fase && fase.texto ? <Text style={styles.skyFaseText}>{fase.texto}</Text> : null}
+                </View>
+              );
+            })}
             {!hasAccess && !isOwnerAccount && personalSky.length > 1 && (
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -1230,6 +1262,9 @@ const styles = StyleSheet.create({
   peekHead: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
   peekLabel: { color: colors.purple, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   peekText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  // A direção do trânsito (chegando/indo embora) vem menor e em teal: é
+  // qualificação da linha de cima, não uma segunda leitura.
+  skyFaseText: { color: colors.teal, fontSize: 12, lineHeight: 17, marginTop: 2 },
   peekBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   peekBtnText: { color: colors.purple, fontSize: 13, fontWeight: '800' },
   skyInviteLink: { color: colors.teal, fontSize: 13, fontWeight: '800', marginTop: 10 },
