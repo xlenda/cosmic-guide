@@ -58,7 +58,13 @@ export default function TarotScreen() {
   // vários temas, repetidas vezes, sem nunca pedir assinatura). Corrigido na
   // origem (contexto), não precisa mais recombinar isCouple aqui.
   const { hasAccess, accessConfirmed } = useCouple();
-  const { t } = useLanguage();
+  // `lang` é tão obrigatório aqui quanto `t`: os packs de tradução do tarô
+  // (lib/traducoes/tarot.{es,en}.js, 118 KB escritos em 31/07/2026) só entram
+  // se a tela PEDIR o idioma. Sem isso os motores caem no default 'pt' e o
+  // usuário em espanhol/inglês lê a tiragem inteira em português com a
+  // tradução publicada ao lado, sem ser chamada. Foi exatamente o que
+  // aconteceu — a auditoria pegou, e é o bug mais caro do lote.
+  const { t, lang } = useLanguage();
   // Tarô vive no TarotStack (dentro de TAROT_TAB) e Planos/Loja vivem em
   // outras abas — mesmo helper do OneTimeLock.js: getParent() sobe pro
   // Tab.Navigator, e o fallback cobre o caso de a tela ser a própria raiz.
@@ -159,10 +165,10 @@ export default function TarotScreen() {
     const readings = shuffled
       .map((card, i) => {
         const orientationTag = newOrientations[i] ? ' (invertida)' : '';
-        return `${POSITIONS[i]} — ${card.name}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i], POSITIONS[i])}`;
+        return `${POSITIONS[i]} — ${card.name}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i], POSITIONS[i], lang)}`;
       });
-    const dignity = getElementalDignity(shuffled);
-    const pattern = getSpreadPattern(shuffled);
+    const dignity = getElementalDignity(shuffled, lang);
+    const pattern = getSpreadPattern(shuffled, lang);
     const body = [...readings, dignity, pattern].filter(Boolean).join('\n\n');
     const { entryId } = await recordReadingCompletion({
       type: 'tarot',
@@ -361,7 +367,7 @@ export default function TarotScreen() {
               // rotulada: é história do baralho, não é o app dizendo isso
               // sobre a vida de quem consultou. Nas outras 67 cartas não
               // aparece nada, porque não citar é melhor que citar de ouvido.
-              const waite = getWaiteNote(card);
+              const waite = getWaiteNote(card, lang);
               return (
                 <View key={i} style={styles.meaningCard}>
                   <View style={[styles.meaningIcon, { backgroundColor: theme.color + '22' }]}>
@@ -370,7 +376,7 @@ export default function TarotScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.meaningPos}>{POSITIONS[i]} · {card.name}{orientations[i] ? " (invertida)" : ""}</Text>
                     <Text style={styles.meaningText}>
-                      {getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i])}
+                      {getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i], lang)}
                     </Text>
                     {waite && (
                       <View style={styles.sourceBox}>
@@ -449,8 +455,8 @@ export default function TarotScreen() {
                 três cartas viradas: antes disso seria entregar o desfecho de
                 uma carta que a pessoa ainda não abriu. */}
             {revealed.every(Boolean) && (() => {
-              const dignity = getElementalDignity(drawn);
-              const pattern = getSpreadPattern(drawn);
+              const dignity = getElementalDignity(drawn, lang);
+              const pattern = getSpreadPattern(drawn, lang);
               if (!dignity && !pattern) return null;
               return (
                 <View style={styles.spreadCard}>
