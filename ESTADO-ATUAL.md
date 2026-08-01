@@ -85,10 +85,24 @@ lá ("fica perdido no meio"); as features entram no **grid**.
 `packDoIdioma` do motor em ~5 linhas comentadas. Cada tela diz no cabeçalho
 exatamente como consolidar quando alguém encostar no motor. Só arrumação.
 
-### 3. Pendências que são do dono, não do código
-- **Importar as cidades no servidor** — sem isso quem mora fora das capitais não
-  acha a cidade no Mapa Astral
-- **Fixar a chave de IA no `.env`** (ver `server-patches/FIXAR-CHAVE-IA.md`)
+### 3. ~~Cidades e chave de IA~~ — **as duas resolvidas** (conferido em produção)
+- Cidades: `GET /api/cities/search` acha cidade pequena do interior (testado com
+  Itatira/CE e Ubajara/CE, não só capital).
+- Chave de IA: está no `.env` do servidor, e `/api/chat` responde com texto real
+  (não com o fallback enlatado).
+
+### 4. Pendências que continuam abertas — todas dependem de conta/decisão do dono
+
+| O quê | O que falta da sua parte | Sem isso |
+|---|---|---|
+| **Lojas (Play/App Store)** | Conta Google Play (US$25 única) e Apple (US$99/ano); depois eu configuro os produtos de assinatura no RevenueCat | O app só existe na web. Nas lojas, Apple/Google **exigem** pagamento pelo sistema delas — o link do Hotmart não passa na revisão |
+| **E-mail de carrinho abandonado** | Conta grátis em resend.com + a chave da API | O backend está pronto e **inerte**: sem `RESEND_API_KEY` ele não manda nada |
+| **Tracking de conversão** | Criar GA4 e/ou Meta Pixel e me passar os IDs | Não dá pra saber quantos assinam solo vs. casal, nem medir campanha |
+| **Painel admin** | Definir um `ADMIN_TOKEN` no `.env` do servidor | As rotas `/api/admin` respondem 503 (desligadas). É seguro assim — só não dá pra usar o painel |
+
+**Dívida técnica interna (não bloqueia nada, é arrumação):** seis módulos ainda
+não exportam `chromeDaTela(lang)`; cada tela explica no cabeçalho como
+consolidar.
 
 ---
 
