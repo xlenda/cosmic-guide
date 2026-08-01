@@ -250,7 +250,7 @@ export default function DiaryScreen() {
       }
       // Nunca mostra erro cru — cai no fallback honesto (só lista o que
       // realmente aconteceu, sem inventar síntese).
-      result = getFallbackWeeklyInsight(recent);
+      result = getFallbackWeeklyInsight(recent, t);
     }
     setWeeklyInsight(result);
     await saveWeeklyInsight(result);
