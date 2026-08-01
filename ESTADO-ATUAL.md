@@ -1,7 +1,8 @@
 # Estado do Cosmic Guide — 01/08/2026
 
 > Escrito para uma sessão nova continuar sem reler dois dias de conversa.
-> **Tudo commitado e no GitHub** (`1904a7b`). 1.081 testes, 1.081 passando.
+> **Tudo commitado, no GitHub e NO AR** (`46dca19`). 1.081 testes, 1.081 passando.
+> **Auditoria: 42 bugs confirmados, 42 consertados.**
 
 ---
 
@@ -35,24 +36,27 @@ de 20 features rankeadas por riqueza de fonte × esforço.
 
 ## 🔧 O QUE FALTA (em ordem)
 
-### 1. Os 16 bugs restantes da auditoria
-Lista completa e verificada em
-`C:/Users/XuXa/AppData/Local/Temp/claude/C--Users-XuXa/857ce44c-.../tasks/wdo0nz0wj.output`
-(JSON, campo `bugs` — 42 confirmados, **26 já consertados**).
+### 1. ~~Os bugs da auditoria~~ — **ZERADOS**
 
-Todos são **médio ou baixo**. Nenhum perde dado nem quebra fluxo. O padrão que
-resta é quase sempre o mesmo: um literal em português esquecido no chrome de
-alguma tela. Os principais:
+Os 42 confirmados estão consertados, com teste ou medição para cada um. Os
+últimos dois blocos:
 
-- `screens/CalendarioCosmicoScreen.js` — data sempre DD/MM e hora 24h nos três idiomas
-- `lib/journal.js:149` — fallback do Insight da Semana cravado em português
-- `screens/WallpaperScreen.js:198` — `useMemo` só depende de `lang`, não relê o dia
-- `screens/ComoVoceTaScreen.js` — 4 dos 9 destinos ainda entregam tela em PT
-- `lib/celestialSeasons.js:111` — "Temporada de {signo}" com nome PT
+- **Bloco 13** — a linha de hoje da Home voltou a existir em ES/EN (era o único
+  gancho de reentrada para Jornada e Rituais, e estava desligada por guarda
+  `lang === 'pt'`); e três guardas de dado ruim: `localDayStr` devolvia a string
+  `'NaN-NaN-NaN'` que virava chave de streak e campo de data do Diário,
+  `getActivePin` tratava data ilegível como pin eterno, e `rulerOfDay` devolvia
+  `undefined` e derrubava o Som do Céu junto com a Home.
+- **Bloco 14** — a reserva do `signoFromDate` (tabela de datas fixas) errava
+  **248 de 22.280 datas, 1,11%**, sempre na cúspide e sempre um signo à frente.
+  Trocada pela fórmula do Astronomical Almanac (USNO): **4 de 36.890, 0,011%**.
+  Mais o `onBack` do OneTimeLock, que parou de despejar da Jornada quem tocou
+  numa trilha trancada.
 
-**Como consertar:** quase todos são uma linha. Existe `nomeDoSigno(nome, lang)`
-em `lib/synastry.js` e `traduzirQuando/traduzirAutor` em
-`lib/traducoes/datacao.js` — use-os em vez de criar tabela nova.
+**Se aparecer bug novo:** o padrão que mais apareceu foi literal em português
+esquecido no chrome de uma tela. Existe `nomeDoSigno(nome, lang)` em
+`lib/synastry.js` e `traduzirQuando/traduzirAutor` em `lib/traducoes/datacao.js`
+— use-os em vez de criar tabela nova.
 
 ### 2. Integrar as 4 features do doc 16 — **construídas e sem rota**
 `lib/seita.js`, `lib/idadeReal.js` (+ `screens/IdadeRealScreen.js`),
