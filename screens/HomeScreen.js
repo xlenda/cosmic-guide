@@ -369,14 +369,15 @@ export default function HomeScreen() {
   // sumiço — "Temporada de Leão · Mercúrio retrógrado" em vez de uma frase que
   // é a mesma o ano inteiro.
   //
-  // SÓ EM PT, pela mesma razão da linha de hoje: activeCelestialEvents()
-  // devolve título em português (lib/celestialSeasons.js). Em ES/EN o card cai
-  // no subtítulo estático, que tem os três idiomas — melhor a frase genérica do
-  // que a frase híbrida.
+  // RELIGADO PARA OS TRÊS IDIOMAS em 01/08/2026. A guarda `lang !== 'pt'`
+  // existia porque activeCelestialEvents() devolvia título em português, e o
+  // comentário antigo dizia "melhor a frase genérica do que a frase híbrida" —
+  // certo como paliativo, errado como destino: o gringo PERDIA a informação em
+  // vez de recebê-la. Agora o motor tem pack nos três (lib/traducoes/
+  // celestial.js) e o subtítulo volta a mostrar o que está acontecendo no céu.
   const calendarioSubtitle = useMemo(() => {
-    if (lang !== 'pt') return null;
     try {
-      const ativos = activeCelestialEvents(new Date(`${todayISO}T12:00:00`));
+      const ativos = activeCelestialEvents(new Date(`${todayISO}T12:00:00`), lang);
       if (!ativos || ativos.length === 0) return null;
       return ativos.slice(0, 2).map((e) => e.title).join(' · ');
     } catch {
