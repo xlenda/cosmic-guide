@@ -48,8 +48,8 @@
 //   lib/aiClient.js só valida title/body (ou reply/enhanced) como string não
 //   vazia; PalmScreen/CoffeeScreen/DreamScreen leem reading.title, reading.body
 //   e reading.isGeneric. Campos NOVOS no JSON (legivel, observacoes, elementos,
-//   praticamenteIgual) são simplesmente ignorados pelo app de hoje — nada
-//   quebra. Quando a tela quiser, é só ler reading.observacoes e mostrar o
+//   praticamenteIgual e agora `fonte`) são simplesmente ignorados pelo app de
+//   hoje — nada quebra. Quando a tela quiser, é só ler reading.observacoes e mostrar o
 //   bloquinho "o que eu vi na sua foto" (é o antídoto mais forte contra a
 //   sensação de texto enlatado: prova visível de que a IA olhou).
 // ============================================================================
@@ -319,8 +319,199 @@ const FECHO = `
 FECHO: termine com UMA pergunta que só faria sentido pra esta leitura específica — nunca uma pergunta de prateleira ("o que dessa leitura mais fez sentido pra você?" é exatamente o tipo de pergunta proibida aqui).
 `.trim();
 
+// ============================================================================
+// DISCIPLINA DE FONTE
+// ============================================================================
+// POR QUÊ. Antes desta frente, o arquivo inteiro tinha 2 menções a Waite, 1 a
+// Ptolomeu e 1 a Artemidoro. Ou seja: os prompts ensinavam a tradição com
+// profundidade, mas nada obrigava a IA a carregar obra/autor/século quando ela
+// falava DA TRADIÇÃO — e nada a impedia de escrever "milenar" ou de inventar
+// uma data. O app inteiro exige recibo (lib/synastry.js entrega o grau de
+// Ptolomeu IV.7 sempre junto da citação, com um comentário no código dizendo
+// que é "exatamente pra ninguém poder mostrar o grau sem mostrar de onde ele
+// saiu"); só a camada de IA não exigia.
+//
+// O RECIBO É CONDICIONAL, E ISSO NÃO É AFROUXAMENTO — é o que a tese diz, e é
+// decisão declarada do dono do produto. docs/tradicao/00-tese.md exige que
+// toda AFIRMAÇÃO HISTÓRICA carregue obra, autor e século. Ela NÃO exige que
+// toda RESPOSTA carregue fonte — são regras diferentes, e a segunda não
+// existe. Ler uma mão e dizer "sua linha do coração é longa, e isso fala do
+// jeito que você se entrega" é LEITURA: não há o que receitar. Dizer "esse
+// jeito de ler linhas é o arcabouço que a quiromancia ocidental usa desde
+// 1859" é AFIRMAÇÃO HISTÓRICA, e aí Desbarrolles vem junto, obrigatoriamente.
+// Rodapé de fonte em toda resposta afogaria a leitura (que é o produto) e
+// custaria token em toda chamada. E, para uma alegação falsa — "milenar" —, o
+// conserto nunca foi pôr fonte: é NÃO DIZER.
+// ============================================================================
+
+// O vocabulário proibido, e o único lugar onde ele pode aparecer.
+// Estas palavras não podem sair na resposta e, por consequência, também não
+// podem ficar SOLTAS nos prompts: um prompt que escreve "tradição milenar"
+// ensina o modelo a escrever "tradição milenar". Mas a proibição precisa
+// NOMEAR a palavra pra ser eficaz — senão é uma regra que não diz o que proíbe.
+// A saída é declarar os dois: a lista, e os trechos em que a lista é
+// legitimamente citada. `proibir()` registra cada um desses trechos;
+// test/aiPrompts.test.js remove todos eles de cada prompt e SÓ ENTÃO varre —
+// então qualquer ocorrência nova, fora de uma proibição declarada, quebra o
+// build. Escrever uma dessas palavras num prompt novo por acidente é impossível.
+const VOCABULARIO_PROIBIDO = [
+  "milenar",
+  "milenares",
+  "milênio",
+  "milênios",
+  "milhares de anos",
+  "ancestral",
+  "imemorial",
+  "Egito antigo",
+  "antigo Egito",
+  "Livro de Thoth",
+  "5.000 anos",
+  "cigana",
+  "cigano",
+];
+
+const TRECHOS_DE_PROIBICAO = [];
+
+function proibir(texto) {
+  TRECHOS_DE_PROIBICAO.push(texto);
+  return texto;
+}
+
+const DISCIPLINA_DE_FONTE = [
+  "DISCIPLINA DE FONTE (vale para tudo que você disser sobre a HISTÓRIA da prática):",
+  proibir(
+    "- PALAVRAS PROIBIDAS, sem exceção: 'milenar', 'milenares', 'milênio', 'milênios', 'milhares de anos', 'ancestral', 'imemorial', e qualquer outro sinônimo vago de antiguidade. Se você precisa falar de idade, use um dos FATOS DATADOS deste prompt, com o número que está lá."
+  ),
+  "- Nunca cite data, século, obra ou autor que não esteja nos FATOS DATADOS deste prompt. Se você não tem o fato, a saída certa é não fazer a afirmação histórica; e se ela for mesmo necessária ali, diga que a pesquisa do app não localizou fonte datada. Dizer 'não achei fonte' é sempre melhor que inventar — e é uma resposta forte, não fraca.",
+  "- RECIBO, E ELE É CONDICIONAL: se — e SOMENTE se — a sua leitura afirmar alguma coisa sobre a história ou a tradição da prática (de quando ela é, quem escreveu, desde quando se lê assim), então essa afirmação carrega OBRIGATORIAMENTE obra, autor e século/ano, copiados dos FATOS DATADOS acima. Sem exceção, sem 'aproximadamente' e sem reescrever a data de cabeça.",
+  "- Se a sua resposta NÃO fez nenhuma afirmação histórica — que é o caso mais comum, e ele é bom —, não force recibo nenhum: entregue só a leitura, e (quando a resposta tiver o campo 'fonte') devolva esse campo como string vazia. Rodapé de fonte em toda resposta afoga a leitura e não é o que a pessoa veio buscar.",
+  "- O que é leitura do Cosmic Guide vem rotulado como leitura do Cosmic Guide, e nunca é atribuído a um autor antigo.",
+  proibir(
+    "- Nunca escreva 'cigana' nem 'cigano', e nunca atribua nenhuma destas práticas a um povo: a pesquisa do app registra isso como estereótipo sem nenhum documento por trás."
+  ),
+].join("\n");
+
+// ----------------------------------------------------------------------------
+// OS FATOS DATADOS — cada linha foi conferida em docs/tradicao antes de entrar.
+// NÃO escreva fato de memória e não acrescente nada aqui sem abrir a pesquisa:
+// o teste varre todo ano de 4 dígitos dos prompts contra estas listas, mas ele
+// não tem como saber se um fato inventado é falso. A conferência é humana.
+//
+// Onde cada lista foi conferida está no comentário de cada uma. Quando a
+// pesquisa NÃO data uma prática (é o caso do nome "podomancia" e do nome
+// "moleosofia"), o fato registra isso — e o prompt manda a IA dizer que não há
+// fonte, nunca inventar antiguidade.
+// ----------------------------------------------------------------------------
+
+// docs/tradicao/01-astrologia-fundamentos.md (tabela de obras, l.70; Naylor
+// l.547; Goodman l.550) e 10-historia-da-astrologia.md l.1121 (a formulação
+// honesta de antiguidade), com 00-LEIA-PRIMEIRO.md l.176 e l.405.
+const FATOS_ASTROLOGIA = [
+  "Cláudio Ptolomeu, Tetrabiblos, c. 150 d.C. (séc. II) — o tratado que organiza signos, planetas, elementos e aspectos; tradução de referência: F. E. Robbins, Loeb, 1940.",
+  "A antiguidade honesta da astrologia é: cerca de 2.000 a 2.500 anos de tradição textual contínua, com raízes numa divinação celeste mesopotâmica mais antiga e diferente (presságios de Estado, não mapa individual).",
+  "O horóscopo de jornal, por signo solar, nasce em 24 de agosto de 1930, no Sunday Express, com R. H. Naylor.",
+  "Os retratos de personalidade por signo, como se usam hoje, vêm de Linda Goodman, Sun Signs, 1968 — são caracterologia contemporânea, não Ptolomeu.",
+];
+
+// docs/tradicao/05-taro-historia-e-leitura.md (l.48 trionfi/1440; l.93-98
+// Etteilla 1770/1783/1789; l.85-90 Court de Gébelin; l.119-124 RWS 1909/1911;
+// l.215 a citação de Waite) e 00-LEIA-PRIMEIRO.md l.178, l.212, l.319, l.323.
+const FATOS_TARO = [
+  "O tarô nasce como JOGO de cartas na Itália do séc. XV: a menção documentada mais antiga a carte da trionfi é de 1440, em Florença.",
+  "A leitura adivinhatória é documentada muito depois: Etteilla (Jean-Baptiste Alliette) publica a partir de 1770 e lança em 1789 o Grand Etteilla, primeiro baralho desenhado para adivinhação.",
+  "A origem egípcia do tarô é um erro com autor e ano: Antoine Court de Gébelin, Le Monde primitif, vol. VIII, Paris, 1781 — e ele não apresentou um único documento.",
+  "O próprio A. E. Waite desmente essa origem em The Pictorial Key to the Tarot, Londres, 1911: 'there is no particle of evidence for the Egyptian origin of Tarot cards'.",
+  "O baralho mais usado hoje é o Rider-Waite-Smith, publicado em dezembro de 1909, com as 78 imagens desenhadas por Pamela Colman Smith — diga sempre Rider-Waite-Smith, nunca só Rider-Waite.",
+  "Frase de antiguidade honesta, quando ela for necessária: cerca de seis séculos de imagem e cerca de dois séculos e meio de leitura.",
+];
+
+// docs/tradicao/06-oniromancia-e-artes-corporais.md §2 (cronologia l.256-266;
+// os nomes latinos das linhas, l.280).
+const FATOS_QUIROMANCIA = [
+  "Aristóteles, Historia Animalium I.15, séc. IV a.C. — a menção ocidental mais antiga às linhas da palma, e ela liga comprimento de linha a longevidade.",
+  "Varāhamihira, Bṛhat Saṃhitā, cap. 68, séc. VI d.C. — leitura das linhas da palma na tradição sânscrita.",
+  "Johannes ab Indagine, Introductiones apotelesmaticae, Estrasburgo, 1522, e Richard Saunders, Physiognomie and Chiromancie, Londres, 1653 — os manuais impressos que fixam a prática no Ocidente moderno.",
+  "A leitura de linhas que se usa hoje é do séc. XIX: Adrien Desbarrolles, Les Mystères de la main, 1859; a tipologia de formatos de mão é de C. S. d'Arpentigny, La Chirognomonie, 1843.",
+  "Os quatro tipos de mão por elemento (Terra, Ar, Fogo, Água) são de Fred Gettings, The Book of the Hand, 1965 — recentes, não antigos.",
+  "Os nomes latinos das três linhas maiores vêm dos manuscritos latinos de quiromancia, séc. XIII em diante: linea vitae (vida), linea naturalis ou cephalica (cabeça) e linea mensalis, a 'linha da mesa' — 'linha do coração' é tradução vernácula posterior.",
+];
+
+// docs/tradicao/06-oniromancia-e-artes-corporais.md §6 (l.56, l.673-682) e
+// 00-LEIA-PRIMEIRO.md l.180-181.
+const FATOS_TASSEOGRAFIA = [
+  "Leitura de borra de café precisa de café: os primeiros cafés de Istambul são de cerca de 1555, e o café só chega à Europa no séc. XVII. Por isso a tasseografia não pode ter mais de uns 470 anos — é cronologia, não opinião.",
+  "O manual impresso mais antigo verificado é anônimo: Die Wahrsagerin aus dem Coffee-Schälgen ('A adivinha da xicrinha de café'), editor Langenheim, 1742.",
+  "O léxico de símbolos que esta leitura usa (pássaro, âncora, anel, chave...) é britânico e datável: Tea-Cup Reading and Fortune-Telling by Tea Leaves, de 'A Highland Seer', 1881, consolidado por Cicely Kent em 1922.",
+  "A geografia da xícara (alça = a pessoa, borda = os dias próximos, fundo = o profundo) é convenção de salão britânico de 1880-1930, SEM codificador identificado — se você usar, diga que é convenção moderna e que não se sabe quem a fixou.",
+];
+
+// docs/tradicao/06-oniromancia-e-artes-corporais.md §3 (l.344-349 cronologia
+// ocidental; l.363-375 a linhagem chinesa e a crítica do Xunzi; l.391 Vagabonds
+// Act; l.424 Lombroso).
+const FATOS_FISIOGNOMONIA = [
+  "Pseudo-Aristóteles, Physiognomonica, séc. III a.C. — o texto fundador da leitura de rosto no Ocidente.",
+  "A crítica é tão antiga quanto a arte: Xunzi, cap. 5 'Feixiang' ('Contra a fisiognomonia'), séc. III a.C., já argumentava que traço físico não determina destino.",
+  "Giambattista della Porta, De humana physiognomonia, 1586, e Johann Caspar Lavater, Physiognomische Fragmente, 1775-1778 — o estrato moderno, e é dele que vem o pior.",
+  "A história feia é datável: a prática foi enquadrada como vadiagem pelo Vagabonds Act inglês de 1597, e virou racismo científico com Cesare Lombroso, L'uomo delinquente, Turim, 1876.",
+  "Na tradição chinesa de mian xiang, o manual mais difundido é o Shenxiang quanbian, atribuído na edição Ming a Chen Tuan (séc. X) — atribuição que a pesquisa do app registra como disputada. Os sistemas técnicos dele são o san ting (as três divisões horizontais do rosto) e o wu guan (os cinco 'oficiais': sobrancelhas, olhos, orelhas, nariz e boca).",
+];
+
+// docs/tradicao/06-oniromancia-e-artes-corporais.md §5 (l.557-581 pseudo-Melampo
+// e a edição de Franz; l.596-605 Cardano e Cocles; l.612-640 a tabela sem
+// fonte) e 00-LEIA-PRIMEIRO.md l.388-389.
+const FATOS_MOLEOSOFIA = [
+  "A prática é antiga, mas o NOME não: 'moleosofia' é cunhagem do séc. XX. Nunca a apresente como o nome de uma arte antiga.",
+  "O único texto antigo é o pseudo-Melampo, Sobre as pintas do corpo (cerca de 450 palavras, transmitido em grego sob o nome do vidente Melampo), editado por J. G. F. Franz em Scriptores Physiognomoniae Veteres, Altenburg, 1780. O método dele é puramente POSICIONAL: a posição no corpo é o que significa.",
+  "A leitura de marcas do rosto pelo zodíaco, descendo de Áries no alto da testa a Peixes no queixo, é de Cocles, Metoposcopia, edição de 1658.",
+  "A leitura das linhas da testa pelos sete planetas é de Girolamo Cardano, Metoposcopia, escrita em 1558 e publicada em Paris, 1658 — e nela a testa INTEIRA carrega os sete planetas em faixas, não um planeta por região do corpo.",
+  "NÃO existe fonte antiga para o mapa que dá um planeta a cada zona do corpo (testa = Júpiter, bochecha = Marte etc.): a pesquisa do app não o localizou em nenhuma fonte primária e o classifica como esquema popular moderno. Ele é usado aqui como convenção de leitura do próprio Cosmic Guide — nunca o atribua a 'almanaques', a uma tradição ocidental antiga nem a autor nenhum.",
+  "A leitura por LADO (direito/esquerdo) existe de verdade na tradição indiana — a Bṛhat Saṃhitā, séc. VI d.C., distingue lateralidade —, mas as tabelas de 'lado direito significa X' que circulam não têm fonte. Diga 'há tradições que leem o lado', nunca 'o lado direito significa'.",
+];
+
+// docs/tradicao/06-oniromancia-e-artes-corporais.md §4 (l.483-533) e
+// 00-LEIA-PRIMEIRO.md l.189.
+const FATOS_PES = [
+  "Ponto de partida honesto, e você deve dizê-lo: não existe uma arte antiga chamada 'podomancia'. A palavra é cunhagem moderna. O que existe é leitura dos pés DENTRO de sistemas maiores.",
+  "Varāhamihira, Bṛhat Saṃhitā, cap. 68, séc. VI d.C. — lê o corpo inteiro e começa pelos pés, subindo; e só prediz depois de observar corpo, tez, voz, articulações, cor, altura, porte e andar juntos.",
+  "O corpus sânscrito é o samudrika śāstra: o Samudrika-tilaka foi iniciado por Durlabharāja por volta de 1160 e concluído pelo filho Jagaddeva por volta de 1175. Diga 'a tradição samudrika', nunca 'o livro'.",
+  "A classificação 'pé grego / pé egípcio / pé romano' NÃO tem nenhuma fonte antiga: é morfologia de podiatria e de modelagem de calçado reciclada na internet. Está proibida.",
+];
+
+// docs/tradicao/06-oniromancia-e-artes-corporais.md §1 (l.81-95 estrutura dos
+// cinco livros e a datação c. 170-200; l.125 enhypnion; l.159 e l.235 as cinco
+// espécies) e 00-LEIA-PRIMEIRO.md l.384-385.
+const FATOS_SONHOS = [
+  "Artemidoro de Daldis, Oneirocritica, séc. II d.C. (escrita provavelmente entre c. 170 e 200 d.C.) — cinco livros; o livro IV é o método e o livro V traz 95 sonhos com o desfecho registrado.",
+  "A regra central de Artemidoro (Oneirocritica 1.9, séc. II d.C.) é o oposto de dicionário de símbolos: interpreta-se O SONHADOR — quem é, o que faz da vida, de onde vem, que idade tem —, não o símbolo isolado.",
+  "Artemidoro separa (Oneirocritica 1.2, séc. II d.C.) o enhypnion, que espelha o estado presente do corpo e da mente e NÃO prevê nada, do oneiros, que seria significativo — e a maioria dos sonhos é enhypnion.",
+  "Ele também divide o sonho alegórico em cinco espécies (Oneirocritica 1.2, séc. II d.C.): idioi (só de quem sonhou), allotrioi (de outra pessoa), koina (dos dois juntos), demosia (da cidade) e kosmika (do céu e do coletivo). Perguntar 'de quem é este sonho?' muda a leitura inteira.",
+  "A camada de compensação, amplificação e figuras do sonho como partes de quem sonha é de C. G. Jung, séc. XX — e o próprio Jung desaconselhava dicionários de símbolos fixos.",
+];
+
+// Índice usado pelo teste (test/aiPrompts.test.js) e por quem for auditar.
+const FATOS_DATADOS = {
+  astrologia: FATOS_ASTROLOGIA,
+  taro: FATOS_TARO,
+  quiromancia: FATOS_QUIROMANCIA,
+  tasseografia: FATOS_TASSEOGRAFIA,
+  fisiognomonia: FATOS_FISIOGNOMONIA,
+  moleosofia: FATOS_MOLEOSOFIA,
+  pes: FATOS_PES,
+  sonhos: FATOS_SONHOS,
+};
+
 function montarPrompt(partes) {
   return partes.filter(Boolean).join("\n\n");
+}
+
+// Renderiza uma lista de fatos como parte de prompt. O rótulo é fechado de
+// propósito ("e SOMENTE estes"): é ele que transforma a lista de fatos numa
+// fronteira, e não numa sugestão de leitura complementar.
+function blocoFatos(fatos) {
+  return [
+    "FATOS DATADOS QUE VOCÊ PODE CITAR — e SOMENTE estes. Cada linha veio da pesquisa do próprio app (docs/tradicao), conferida uma a uma:",
+    ...fatos.map((f) => `— ${f}`),
+  ].join("\n");
 }
 
 // ============================================================================
@@ -332,6 +523,27 @@ function montarPrompt(partes) {
 // title e body continuam obrigatórios e strings — é o que lib/aiClient.js
 // valida hoje, então o app antigo continua funcionando sem alteração.
 // ============================================================================
+
+// O CAMPO 'fonte' — o recibo, e por que ele é obrigatório MESMO sendo condicional.
+// Confirmado em lib/aiClient.js (app): `exigirTituloECorpo` só checa que
+// data.title e data.body são strings não vazias e devolve o OBJETO INTEIRO; as
+// telas leem reading.title/reading.body. Um campo a mais no JSON é ignorado —
+// é o mesmo caminho por onde 'legivel', 'observacoes' e 'elementos' já passam
+// hoje sem quebrar nada.
+//
+// 'fonte' fica na lista de `required` de propósito, mesmo agora que o recibo é
+// condicional: o campo tem que EXISTIR sempre para o modelo ser obrigado a
+// decidir conscientemente se fez ou não uma afirmação histórica (e, se fez, ela
+// não tem pra onde fugir). O que muda é o VALOR — string vazia quando a leitura
+// não datou nada, que é o caso mais comum. Campo opcional seria pior: o modelo
+// simplesmente o omitiria sempre, e a decisão nunca aconteceria.
+//
+// Vai DEPOIS de title/body de propósito. A ordem do schema é a ordem de
+// geração, e o compromisso que interessa forçar primeiro continua sendo o da
+// observação; o recibo é consequência do que foi escrito, então ele vem no fim.
+const RECIBO_CAMPO =
+  "Preencha SÓ se a leitura afirmou alguma coisa sobre a história ou a tradição da prática. Nesse caso: obra, autor e século/ano em UMA linha, copiados exatamente dos FATOS DATADOS do prompt. Se a leitura não fez nenhuma afirmação histórica — o caso mais comum —, devolva string vazia. Nunca invente obra, autor, século nem ano, e nunca preencha este campo só para não deixá-lo vazio.";
+
 function schemaVisao({ oQueVer, exemploTitulo, guiaObservacoes, guiaBody }) {
   return {
     type: "object",
@@ -349,8 +561,9 @@ function schemaVisao({ oQueVer, exemploTitulo, guiaObservacoes, guiaBody }) {
         type: "string",
         description: guiaBody,
       },
+      fonte: { type: "string", description: RECIBO_CAMPO },
     },
-    required: ["legivel", "observacoes", "title", "body"],
+    required: ["legivel", "observacoes", "title", "body", "fonte"],
     additionalProperties: false,
   };
 }
@@ -379,8 +592,19 @@ const PALM_SYSTEM_PROMPT = montarPrompt([
 
   `ESCOLHA: percorra 1 → 2 → 3 sempre. De 4 e 5, escolha NO MÁXIMO um item de cada, e só se estiver realmente visível na foto.`,
 
-  `PROIBIÇÃO ESPECÍFICA DESTA TRADIÇÃO: a linha da vida NÃO indica quanto tempo a pessoa vai viver — isso é mito popular, não quiromancia, e a tradição séria rejeita. Nunca fale de duração de vida, doença, gravidez ou acidente. Se a pessoa perguntar, corrija com naturalidade e explique que a linha da vida fala de vitalidade e de como a pessoa se enraíza. Esta leitura é simbólica, nunca exame médico.`,
+  // PROIBIÇÃO MANTIDA, JUSTIFICATIVA CORRIGIDA. Antes esta linha dizia que
+  // ligar a linha da vida a longevidade "é mito popular, não quiromancia".
+  // docs/tradicao/06 §7.5 mostra que isso é falso ao contrário: a ligação
+  // linha↔longevidade é a afirmação MAIS ANTIGA documentada da tradição
+  // (Aristóteles, Historia Animalium I.15). Do jeito antigo, bastava um
+  // usuário informado citar Aristóteles pro app ficar na posição de ter
+  // inventado história pra se justificar — exatamente o que esta frente
+  // existe pra evitar. A recusa continua absoluta; o que muda é que agora ela
+  // é honesta sobre o que a tradição diz.
+  `PROIBIÇÃO ESPECÍFICA DESTA TRADIÇÃO: nunca fale de duração de vida, doença, gravidez ou acidente a partir de nenhuma linha. Seja honesto sobre o motivo, porque ele não é histórico: a tradição antiga LIGAVA sim o comprimento da linha da vida à longevidade — é a afirmação mais antiga documentada da quiromancia —, e nós não usamos isso porque não há base nenhuma para a previsão e porque assustar alguém com prazo de vida é irresponsável. Se a pessoa perguntar, diga exatamente isso e explique que aqui a linha da vida fala de vitalidade e de como a pessoa se enraíza. Esta leitura é simbólica, nunca exame médico.`,
 
+  blocoFatos(FATOS_QUIROMANCIA),
+  DISCIPLINA_DE_FONTE,
   REGRA_OBSERVACAO,
   ANTI_BARNUM,
   HONESTIDADE,
@@ -416,6 +640,8 @@ Letras costumam ser lidas como inicial de alguém; números, como contagem de di
 
   `MÉTODO DE LEITURA: escolha NO MÁXIMO três formas. Para cada uma, diga onde está (zona e lado em relação à alça), a que a forma lembra, e o que a tradição associa a essa forma naquela zona. Não percorra as três zonas por obrigação: se só a borda tem desenho legível, leia só a borda e diga isso.`,
 
+  blocoFatos(FATOS_TASSEOGRAFIA),
+  DISCIPLINA_DE_FONTE,
   REGRA_OBSERVACAO,
   ANTI_BARNUM,
   HONESTIDADE,
@@ -461,8 +687,10 @@ const FACE_SYSTEM_PROMPT = montarPrompt([
 
   `ESCOLHA: elemento → três divisões → UM palácio. Nessa ordem, sempre ancorado em 'observacoes'.`,
 
-  `PROIBIÇÃO ESPECÍFICA: nunca comente aparência como beleza, feiura, idade aparente, peso, etnia ou saúde. Diga uma vez, com naturalidade, que um rosto não determina caráter — aqui a fisiognomonia é espelho simbólico, não sentença.`,
+  `PROIBIÇÃO ESPECÍFICA: nunca comente aparência como beleza, feiura, idade aparente, peso, etnia ou saúde, e nunca infira criminalidade, honestidade, inteligência ou orientação. Diga uma vez, com naturalidade, que um rosto não determina caráter — aqui a fisiognomonia é espelho simbólico, não sentença. Se perguntarem se isso é ciência, a resposta é não, e a boa resposta é histórica: 1597 e 1876 estão nos fatos abaixo.`,
 
+  blocoFatos(FATOS_FISIOGNOMONIA),
+  DISCIPLINA_DE_FONTE,
   REGRA_OBSERVACAO,
   ANTI_BARNUM,
   HONESTIDADE,
@@ -501,12 +729,18 @@ O eixo simbólico comum às duas é: o pé é BASE E DIREÇÃO — como a pessoa
 - Marcas e linhas na sola, quando visíveis: no samudrika shastra são lidas como sinais de caminho e de sorte, sempre por posição.
 - Postura do pé na foto (apoiado, suspenso, tensionado, relaxado) é dado legítimo e frequentemente o mais revelador.`,
 
-  `PROIBIÇÕES ESPECÍFICAS DESTA ROTA:
+  // A proibição do "pé grego/egípcio/romano" precisa NOMEAR a palavra que ela
+  // proíbe pra ser eficaz — por isso este trecho passa por proibir(), que o
+  // registra como citação legítima. Sem isso o teste de vocabulário acusaria a
+  // própria proibição como violação. Ver TRECHOS_DE_PROIBICAO acima.
+  proibir(`PROIBIÇÕES ESPECÍFICAS DESTA ROTA:
 - NÃO use a tipologia "pé grego / pé egípcio / pé romano" como leitura de personalidade. Isso é classificação morfológica moderna reciclada na internet, não tradição simbólica milenar, e usá-la como se fosse derruba a credibilidade da leitura inteira.
 - NÃO faça reflexologia nem qualquer leitura de saúde: isso é assunto de profissional, e este app não fala de saúde.
 - Se você não sabe o que a tradição associa a um detalhe, não invente uma correspondência: leia o que sabe, ou diga que aquele detalhe não é legível.
-- Esta é a mais leve das leituras do app, e não há problema nenhum nisso — tom mais solto é bem-vindo, invenção não.`,
+- Esta é a mais leve das leituras do app, e não há problema nenhum nisso — tom mais solto é bem-vindo, invenção não.`),
 
+  blocoFatos(FATOS_PES),
+  DISCIPLINA_DE_FONTE,
   REGRA_OBSERVACAO,
   ANTI_BARNUM,
   HONESTIDADE,
@@ -528,7 +762,19 @@ const FOOT_OUTPUT_SCHEMA = schemaVisao({
 const MOLES_SYSTEM_PROMPT = montarPrompt([
   `Você faz leitura de pintas e sinais de nascença pela moleosofia dentro do app Cosmic Guide, em português do Brasil, em primeira pessoa.`,
 
-  `A MOLEOSOFIA É INTEIRAMENTE POSICIONAL — sem a posição não existe leitura. A tradição ocidental dos almanaques atribui uma REGÊNCIA PLANETÁRIA a cada zona do corpo, e é dela que sai o significado:
+  // ATRIBUIÇÃO FALSA REMOVIDA (docs/tradicao/06 §5.2, que cita este arquivo
+  // pelo nome como "erro crítico ativo no app"). A frase anterior dizia que a
+  // tabela zona→planeta abaixo era "a tradição ocidental dos almanaques". Ela
+  // não é: a pesquisa não localizou esse mapa em NENHUMA fonte primária, e as
+  // três fontes que existem divergem dele (em Cardano os sete planetas ficam
+  // na testa inteira em faixas; em Cocles as marcas do rosto são lidas pelo
+  // zodíaco; no pseudo-Melampo não há planeta nenhum). O mapa em si FICA — ele
+  // é a linguagem simbólica que o produto usa e funciona bem —, mas agora vem
+  // rotulado como o que é: convenção de leitura do próprio app. É a saída (C)
+  // do §5.2. A saída (A), preferida pela pesquisa, é migrar para a melotesia
+  // zodiacal do Homem Zodiacal que o app já auditou — isso muda o conteúdo das
+  // leituras e é decisão de produto, não de disciplina de fonte; fica anotada.
+  `A MOLEOSOFIA É INTEIRAMENTE POSICIONAL — sem a posição não existe leitura. O mapa de zonas abaixo é a CONVENÇÃO DE LEITURA DO PRÓPRIO COSMIC GUIDE: um esquema popular moderno, que você pode usar à vontade como linguagem simbólica, mas que NUNCA pode ser atribuído a uma tradição antiga, a "almanaques" ou a qualquer autor — a pesquisa do app não o localizou em fonte primária nenhuma. O que é antigo, e é o que sustenta a prática, é o MÉTODO: posição significa.
 - Testa = JÚPITER: visão ampla, ambição, sorte reconhecida pelos outros.
 - Têmpora = MERCÚRIO: movimento, viagem, negócio.
 - Entre as sobrancelhas = SOL: propósito, exposição, o lugar de onde a pessoa é vista.
@@ -540,12 +786,14 @@ const MOLES_SYSTEM_PROMPT = montarPrompt([
 - Peito = LUA: afeto, casa, memória.
 - Costas = SATURNO: o que fica atrás, o não dito.
 
-Segunda camada: o samudrika shastra indiano também lê pintas por posição E POR LADO — direito e esquerdo têm leituras distintas. Use o lado como camada extra quando ele estiver claro na foto.`,
+Segunda camada: há tradições que leem o LADO da marca — a Bṛhat Saṃhitā indiana distingue lateralidade. Você pode mencionar o lado como camada extra quando ele estiver claro na foto, mas nunca diga "o lado direito significa X": as tabelas de lado que circulam não têm fonte, e essa é uma afirmação que você não pode sustentar.`,
 
   `MÉTODO: escolha NO MÁXIMO duas marcas e leia cada uma pela regência da zona onde está. Se só uma marca é claramente visível, leia só ela e diga isso. Se a zona do corpo não é identificável na foto, não chute a zona — sem zona não há leitura.`,
 
-  `PROIBIÇÃO ESPECÍFICA E ABSOLUTA: nunca comente cor, formato, borda, tamanho, textura, assimetria ou mudança de uma pinta, e nunca sugira nem descarte qualquer questão de pele. Isso é assunto de dermatologista, e você diz isso com naturalidade se a pessoa perguntar. Sua leitura é simbólica e folclórica, e trata só de POSIÇÃO.`,
+  `PROIBIÇÃO ESPECÍFICA E ABSOLUTA: nunca comente cor, formato, borda, tamanho, textura, assimetria ou mudança de uma pinta, e nunca sugira nem descarte qualquer questão de pele. Isso é assunto de dermatologista, e você diz isso com naturalidade se a pessoa perguntar. Sua leitura é simbólica e folclórica, e trata só de POSIÇÃO. E, mesmo citando o pseudo-Melampo como origem do método, nunca reproduza o conteúdo dele: aquele texto lê mulheres em termos de casamento e de gerar filhos homens. Use o método, nunca os significados.`,
 
+  blocoFatos(FATOS_MOLEOSOFIA),
+  DISCIPLINA_DE_FONTE,
   REGRA_OBSERVACAO,
   ANTI_BARNUM,
   HONESTIDADE,
@@ -589,8 +837,12 @@ const DREAM_SYSTEM_PROMPT = montarPrompt([
 
 SE O RELATO NÃO SUSTENTAR LEITURA (menos de duas frases, ou só "sonhei com meu ex"): diga isso com franqueza e peça UM detalhe concreto — que lugar era, o que você sentiu ao acordar, o que estava acontecendo pouco antes de dormir. Melhor pedir um detalhe do que inventar um sonho.
 
-Não é diagnóstico psicológico nem previsão. Nunca afirme o que outra pessoa que apareceu no sonho sente, pensa ou vai fazer — essa figura é material do sonho dela, não a pessoa real.`,
+Não é diagnóstico psicológico nem previsão. Nunca afirme o que outra pessoa que apareceu no sonho sente, pensa ou vai fazer — essa figura é material do sonho dela, não a pessoa real.
 
+PROIBIÇÃO ESPECÍFICA: nada de dicionário de sonhos. "Água = emoção", "cair = perder o controle", "voar = liberdade", "ser perseguido = fuga" são invenção moderna de revista, não estão em Artemidoro nem em Jung, e estão proibidos. Também não afirme que todo sonho prevê alguma coisa — pela própria fonte, a maioria não prevê nada.`,
+
+  blocoFatos(FATOS_SONHOS),
+  DISCIPLINA_DE_FONTE,
   CUIDADO_CRISE,
   ANTI_BARNUM,
   HONESTIDADE,
@@ -614,8 +866,9 @@ const DREAM_OUTPUT_SCHEMA = {
       description:
         "A interpretação já formatada, em parágrafos separados por quebras de linha duplas, seguindo o método (resíduo x alegórico, 2 a 3 elementos ampliados e ancorados em 'quando você diz X', a tensão do sonho, motivo recorrente se houver) e terminando com a pergunta final.",
     },
+    fonte: { type: "string", description: RECIBO_CAMPO },
   },
-  required: ["elementos", "title", "body"],
+  required: ["elementos", "title", "body", "fonte"],
   additionalProperties: false,
 };
 
@@ -651,6 +904,8 @@ const TAROT_SYSTEM_PROMPT = montarPrompt([
 
   `FORMA: três a quatro parágrafos. Um por carta, na ordem das posições, e um final que amarra as três numa frase só — o que a tiragem inteira está dizendo. Se houver grau repetido, naipe dominante ou concentração de Maiores, isso entra no parágrafo final e é o ponto alto da leitura.`,
 
+  blocoFatos(FATOS_TARO),
+  DISCIPLINA_DE_FONTE,
   ANTI_BARNUM,
   HONESTIDADE,
   FECHO,
@@ -674,8 +929,9 @@ const TAROT_OUTPUT_SCHEMA = {
       description:
         "A leitura já formatada, em parágrafos separados por quebras de linha duplas: um por carta na ordem das posições e um final amarrando as três, terminando com a pergunta.",
     },
+    fonte: { type: "string", description: RECIBO_CAMPO },
   },
-  required: ["padrao", "title", "body"],
+  required: ["padrao", "title", "body", "fonte"],
   additionalProperties: false,
 };
 
@@ -717,6 +973,14 @@ Use esse vocabulário quando ele acrescenta. Não empilhe termo pra parecer téc
 2. Não trate aspecto entre Urano, Netuno e Plutão como notícia do dia. Esses são aspectos GERACIONAIS: descrevem o pano de fundo de coortes inteiras nascidas ao longo de anos e não dizem nada sobre o dia de ninguém. Leitura diária se faz com luminares e planetas pessoais.
 3. Não atribua porcentagem a compatibilidade nem a nada mais. Número de dois dígitos é a forma mais forte de afirmar precisão que existe, e a tradição não sustenta essa promessa. Sinastria séria compara mapas — Sol com Sol, Lua com Lua, Vênus com Marte, Ascendente com Ascendente — e a linguagem é qualitativa por princípio.`,
 
+    blocoFatos(FATOS_ASTROLOGIA),
+    // Nomeia as três falsidades mais repetidas sobre astrologia. Precisa
+    // nomeá-las pra proibi-las, então o trecho vai registrado em proibir().
+    proibir(
+      `PROIBIÇÃO HISTÓRICA ESPECÍFICA: nunca diga que a astrologia tem 5.000 anos, que os babilônios liam mapas natais, nem atribua a Ptolomeu retrato de personalidade por signo solar — a pesquisa do app registra os três como falsos. O que os mesopotâmicos faziam era presságio de Estado, que é outra prática; o retrato por signo solar é caracterologia do séc. XX.`
+    ),
+    DISCIPLINA_DE_FONTE,
+
     BASE_PERSONA,
   ]),
 
@@ -733,6 +997,14 @@ Use esse vocabulário quando ele acrescenta. Não empilhe termo pra parecer téc
 - Símbolos que a leitura popular apaga: Os Enamorados é a carta da ESCOLHA e do alinhamento de valores, não de romance; A Morte é fim de forma e transformação, não morte literal; Quatro de Paus é a celebração de algo que JÁ foi construído e ninguém parou pra reconhecer — quem quer dizer "estrutura antes de crescimento" está falando do Quatro de Ouros ou do Imperador.`,
 
     `VOCÊ NÃO TEM BARALHO. Nunca diga que puxou, tirou ou virou uma carta. Você pode INVOCAR o arquétipo de uma carta como espelho — "o que O Enforcado desenha é exatamente isso: a pausa que você não escolheu" — sempre nomeando que é evocação, nunca tiragem. Tiragem de verdade acontece na tela do Tarô do app, e lá é a pessoa que puxa. Se o bloco <contexto> trouxer a tiragem que ela puxou, aí sim fale dessas cartas — e só dessas.`,
+
+    blocoFatos(FATOS_TARO),
+    // A origem egípcia é a lenda mais repetida do tarô e a mais fácil de
+    // derrubar — ela tem autor e ano. Precisa ser nomeada pra ser proibida.
+    proibir(
+      `PROIBIÇÃO HISTÓRICA ESPECÍFICA E INEGOCIÁVEL: o tarô NÃO vem do Egito antigo, NÃO é o Livro de Thoth, NÃO tem 5.000 anos e NÃO foi trazido por nenhum povo. Nunca escreva nada disso, nem como possibilidade, nem como lenda simpática, nem pra depois desmentir. Quem inventou essa origem foi Court de Gébelin em 1781, e o próprio Waite a desmentiu em 1911 — os dois estão nos fatos acima.`
+    ),
+    DISCIPLINA_DE_FONTE,
 
     BASE_PERSONA,
   ]),
@@ -759,6 +1031,14 @@ function weeklyPrompt(escopo) {
 
     `PROIBIDO RESUMO DE RESUMO: não repita o que as leituras já disseram nem parafraseie os títulos. Se a única coisa que você consegue fazer é reescrever os títulos com outras palavras, diga com franqueza que a semana foi pouco conclusiva e aponte a única coisa que de fato se repetiu — isso é mais útil e mais honesto que uma síntese inflada.`,
 
+    // AS SÍNTESES NÃO RECEBEM LISTA DE FATOS, E ISSO É DE PROPÓSITO. Elas não
+    // leem uma tradição: leem o histórico da própria pessoa dentro do app. Como
+    // a DISCIPLINA DE FONTE proíbe citar data/obra/autor fora dos FATOS DATADOS
+    // do prompt, e aqui não existe nenhum, o efeito é o certo por construção —
+    // afirmação histórica nenhuma cabe aqui, e nada de antiguidade tem o que
+    // fazer numa leitura do próprio app.
+    `ESTA SÍNTESE É LEITURA DO PRÓPRIO COSMIC GUIDE sobre o histórico dela, e não é atribuída a nenhuma obra, autor ou tradição. Você não tem nenhum fato datado disponível neste prompt, então não faça NENHUMA afirmação sobre a história das práticas: nada de dizer de quando uma delas é, quem escreveu, nem há quanto tempo se lê assim. E nunca junte as práticas como se fossem um saber único e antigo — elas vêm de séculos e lugares diferentes.`,
+    DISCIPLINA_DE_FONTE,
     ANTI_BARNUM,
     HONESTIDADE,
 
@@ -787,8 +1067,16 @@ const WEEKLY_OUTPUT_SCHEMA = {
       description:
         "A síntese já formatada, em parágrafos separados por quebras de linha duplas: fio condutor, contraste com o que ela mesma disse, uma coisa concreta pra semana que vem, e a pergunta final.",
     },
+    // Aqui o campo existe pela mesma razão das leituras (o modelo tem que
+    // decidir conscientemente), mas o valor correto é SEMPRE vazio: a síntese
+    // semanal não tem lista de fatos e não é atribuída a obra nem autor.
+    fonte: {
+      type: "string",
+      description:
+        "Sempre string vazia nesta rota. A síntese da semana é leitura do próprio Cosmic Guide sobre o histórico dela, não é atribuída a nenhuma obra, autor ou tradição, e não tem fatos datados disponíveis para citar.",
+    },
   },
-  required: ["title", "body"],
+  required: ["title", "body", "fonte"],
   additionalProperties: false,
 };
 
@@ -813,6 +1101,15 @@ const ENHANCE_INSIGHT_SYSTEM_PROMPT = montarPrompt([
 - Mantenha a primeira pessoa e o sentido original, sempre.`,
 
   `SE A TRANSCRIÇÃO JÁ ESTIVER CLARA: devolva praticamente igual e marque praticamenteIgual=true. Não mexer é uma resposta válida e frequentemente a melhor.`,
+
+  // ESTA ROTA NÃO RECEBE A DISCIPLINA DE FONTE, E NÃO É ESQUECIMENTO. Ela não
+  // autora nada: só limpa gaguejo do que A PESSOA falou. Aplicar o vocabulário
+  // proibido aqui criaria uma ordem contraditória — se ela disser "milenar" no
+  // áudio dela, a regra mandaria trocar a palavra, e a regra logo acima (a mais
+  // importante desta rota) manda NÃO trocar as palavras dela. Entre censurar o
+  // vocabulário de quem gravou e deixar passar, deixar passar é o certo: o
+  // insight é dela, não é o app falando. test/aiPrompts.test.js isenta esta
+  // rota das duas varreduras justamente por isso.
 ]);
 
 const ENHANCE_INSIGHT_OUTPUT_SCHEMA = {
@@ -1184,7 +1481,76 @@ class AnthropicChatProvider {
   }
 }
 
-module.exports = { AnthropicChatProvider };
+// ============================================================================
+// SUPERFÍCIE DE TESTE
+// ============================================================================
+// server.js faz `const { AnthropicChatProvider } = require(...)`, então
+// acrescentar chaves aqui não muda nada em produção — nada é desestruturado por
+// posição nem por Object.keys. Estes exports existem para que
+// test/aiPrompts.test.js possa varrer o que REALMENTE vai pro modelo, em vez de
+// reler o arquivo como texto (um teste que lê o próprio código-fonte passaria a
+// aprovar um prompt montado dinamicamente e nunca enviado).
+//
+// PROMPTS é o mapa dos prompts que carregam tradição — é sobre eles que valem
+// as regras de fonte. `enhance-insight` fica DE FORA de propósito (ver o
+// comentário no ENHANCE_INSIGHT_SYSTEM_PROMPT), e o chat entra pelas personas.
+const PROMPTS = {
+  palm: PALM_SYSTEM_PROMPT,
+  coffee: COFFEE_SYSTEM_PROMPT,
+  face: FACE_SYSTEM_PROMPT,
+  foot: FOOT_SYSTEM_PROMPT,
+  moles: MOLES_SYSTEM_PROMPT,
+  dream: DREAM_SYSTEM_PROMPT,
+  tarot: TAROT_SYSTEM_PROMPT,
+  "persona-luna": PERSONA_PROMPTS.luna,
+  "persona-arcano": PERSONA_PROMPTS.arcano,
+  "weekly-insight": WEEKLY_INSIGHT_SYSTEM_PROMPT,
+  "coffee-weekly-summary": WEEKLY_SUMMARY_SYSTEM_PROMPT,
+};
+
+// Quais prompts carregam qual lista de fatos. O teste usa isto para exigir que
+// cada prompt de tradição realmente CONTENHA as linhas da sua lista — porque
+// declarar a lista sem ligá-la a nada é o jeito silencioso de esta frente
+// morrer numa refatoração futura.
+const FATOS_POR_PROMPT = {
+  palm: FATOS_QUIROMANCIA,
+  coffee: FATOS_TASSEOGRAFIA,
+  face: FATOS_FISIOGNOMONIA,
+  foot: FATOS_PES,
+  moles: FATOS_MOLEOSOFIA,
+  dream: FATOS_SONHOS,
+  tarot: FATOS_TARO,
+  "persona-luna": FATOS_ASTROLOGIA,
+  "persona-arcano": FATOS_TARO,
+};
+
+// As sínteses são leitura do próprio app: não recebem fatos e não podem fazer
+// afirmação histórica nenhuma. Estão aqui nomeadas para o teste distinguir
+// "prompt sem lista de fatos por decisão" de "prompt que esqueceram de ligar".
+const PROMPTS_SEM_FATOS = ["weekly-insight", "coffee-weekly-summary"];
+
+const SCHEMAS = {
+  palm: PALM_OUTPUT_SCHEMA,
+  coffee: COFFEE_OUTPUT_SCHEMA,
+  face: FACE_OUTPUT_SCHEMA,
+  foot: FOOT_OUTPUT_SCHEMA,
+  moles: MOLES_OUTPUT_SCHEMA,
+  dream: DREAM_OUTPUT_SCHEMA,
+  tarot: TAROT_OUTPUT_SCHEMA,
+  weekly: WEEKLY_OUTPUT_SCHEMA,
+  "enhance-insight": ENHANCE_INSIGHT_OUTPUT_SCHEMA,
+};
+
+module.exports = {
+  AnthropicChatProvider,
+  PROMPTS,
+  PROMPTS_SEM_FATOS,
+  SCHEMAS,
+  FATOS_DATADOS,
+  FATOS_POR_PROMPT,
+  VOCABULARIO_PROIBIDO,
+  TRECHOS_DE_PROIBICAO,
+};
 
 // ============================================================================
 // COMO LIGAR O CONTEXTO (mudanças que NÃO estão neste arquivo)
