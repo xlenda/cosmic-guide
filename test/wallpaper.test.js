@@ -36,6 +36,9 @@ const {
   FRASES_SEM_CEU,
   FRASES_GENERICAS,
   MARCA,
+  DIRECAO_POR_FASE,
+  HEMISFERIO_CONVENCIONADO,
+  formaDaLua,
 } = require('../lib/wallpaper.js');
 const { SIGNS } = require('../lib/signs.js');
 
@@ -129,6 +132,105 @@ test('as 8 fases têm gradiente e pool de frases, sem sobra nem falta', () => {
   for (const f of fases) {
     assert.ok(FRASES_POR_FASE[f].length >= 2, `fase "${f}" com pool pequeno demais pra variar entre dias`);
   }
+});
+
+// ===========================================================================
+// (e) A FORMA DA LUA — a fase desenhada de verdade, sem hemisfério inventado
+// ===========================================================================
+// Até 01/08/2026 o desenho era uma bolinha cinza com alfa = iluminação, e o
+// comentário do canvas dizia que a fase de verdade "exigiria terminadores e
+// lado certo por hemisfério". A largura do terminador sai da iluminação
+// medida e o lado sai do NOME canônico da fase — as duas coisas já estavam no
+// módulo. O que continua NÃO sabido é o hemisfério de quem olha (lib/
+// wallpaper.js §2.b lista o que foi investigado): daí a convenção declarada,
+// e daí estes testes, que travam as duas metades — a geometria é medida, o
+// lado é convenção explícita, e onde a fase não informa lado ninguém chuta.
+
+test('DIRECAO_POR_FASE cobre exatamente as 8 fases — nem sobra nem falta', () => {
+  assert.deepEqual(Object.keys(DIRECAO_POR_FASE).sort(), Object.keys(GRADIENTE_POR_FASE).sort());
+  // O nome canônico É a fonte da direção: quem tem "Crescente" no nome cresce.
+  for (const [fase, direcao] of Object.entries(DIRECAO_POR_FASE)) {
+    if (/Crescente/.test(fase)) assert.equal(direcao, 'crescente', `${fase} tinha que crescer`);
+    else if (/Minguante/.test(fase)) assert.equal(direcao, 'minguante', `${fase} tinha que minguar`);
+    else assert.ok(['nova', 'cheia'].includes(direcao), `${fase}: direção inesperada "${direcao}"`);
+  }
+});
+
+test('a largura do terminador é geometria de esfera: |2k−1| do raio', () => {
+  // Quarto = terminador de largura ZERO (a reta que corta a Lua ao meio).
+  assert.ok(Math.abs(formaDaLua('Quarto Crescente', 50).larguraTerminador) < 1e-9);
+  assert.ok(Math.abs(formaDaLua('Quarto Minguante', 50).larguraTerminador) < 1e-9);
+  // Cheia = largura R (o terminador vira o próprio limbo e o disco fecha).
+  assert.ok(Math.abs(formaDaLua('Lua Cheia', 100).larguraTerminador - 1) < 1e-9);
+  // Nova = largura R do outro lado (nada aceso).
+  assert.ok(Math.abs(formaDaLua('Lua Nova', 0).larguraTerminador - 1) < 1e-9);
+  // Gibosa a 92% (o caso real que ficou feio na tela): terminador estreito.
+  assert.ok(Math.abs(formaDaLua('Lua Gibosa Minguante', 92).larguraTerminador - 0.84) < 1e-9);
+  // E a luz é sempre 0..1, mesmo com número fora da faixa vindo de fora.
+  for (const i of [-30, 0, 37, 100, 180]) {
+    const f = formaDaLua('Lua Crescente', i);
+    assert.ok(f.luz >= 0 && f.luz <= 1, `iluminação ${i} escapou da faixa 0..1`);
+  }
+});
+
+test('crescente e minguante caem em lados OPOSTOS, e o sul espelha o norte', () => {
+  // A convenção da casa é o hemisfério norte — o mesmo lado dos emojis
+  // 🌒🌘 que lib/lunarCalendar.js já imprime no app inteiro.
+  assert.equal(HEMISFERIO_CONVENCIONADO, 'norte');
+  assert.equal(formaDaLua('Lua Crescente', 20).ladoIluminado, 'direita');
+  assert.equal(formaDaLua('Lua Gibosa Crescente', 80).ladoIluminado, 'direita');
+  assert.equal(formaDaLua('Lua Minguante', 20).ladoIluminado, 'esquerda');
+  assert.equal(formaDaLua('Lua Gibosa Minguante', 92).ladoIluminado, 'esquerda');
+  // O parâmetro existe pro dia em que o app souber de onde a pessoa olha: é a
+  // ÚNICA junta que precisaria mudar, e ela espelha os dois lados de uma vez.
+  for (const fase of Object.keys(DIRECAO_POR_FASE)) {
+    const norte = formaDaLua(fase, 60, 'norte');
+    const sul = formaDaLua(fase, 60, 'sul');
+    assert.equal(norte.larguraTerminador, sul.larguraTerminador, `${fase}: a forma não muda com o hemisfério`);
+    if (norte.ladoIluminado === null) assert.equal(sul.ladoIluminado, null, `${fase}: sem lado no norte, sem lado no sul`);
+    else assert.notEqual(norte.ladoIluminado, sul.ladoIluminado, `${fase}: o sul tem que espelhar o norte`);
+  }
+});
+
+test('Nova e Cheia não afirmam lado nenhum — o nome da fase não diz onde está a luz', () => {
+  // A fatia da Lua Nova vai de 337,5° a 22,5° (lib/lunarCalendar.js): ela
+  // atravessa o zero, ou seja vai de um fiapo minguante a um fiapo crescente.
+  // Dizer de que lado está aquele fiapo seria inventar. Mesmo espelhado na
+  // Cheia. O desenho resolve sem lado (disco apagado / disco cheio).
+  assert.equal(formaDaLua('Lua Nova', 2).ladoIluminado, null);
+  assert.equal(formaDaLua('Lua Cheia', 99).ladoIluminado, null);
+  assert.equal(formaDaLua('Lua Nova', 2).direcao, 'nova');
+  assert.equal(formaDaLua('Lua Cheia', 99).direcao, 'cheia');
+});
+
+test('sem dado não há forma: iluminação ausente ou fase desconhecida devolvem null', () => {
+  for (const ruim of [null, undefined, NaN, '80', Infinity]) {
+    assert.equal(formaDaLua('Lua Cheia', ruim), null, `iluminação ${String(ruim)} tinha que dar null`);
+  }
+  // Fase renomeada no futuro: a iluminação é real, mas sem o nome canônico não
+  // dá pra saber se cresce ou mingua — e chutar o lado seria fabricar. Quem
+  // desenha cai no medidor honesto (contorno + alfa), que é o desenho antigo.
+  assert.equal(formaDaLua('Lua Renomeada', 80), null);
+  assert.equal(formaDaLua(null, 80), null);
+});
+
+test('45 dias de céu real: toda fase do céu vira uma forma desenhável', () => {
+  for (const d of amostraDeDias()) {
+    const w = getWallpaperData(d);
+    assert.ok(w.lua, `${w.dia}: céu disponível e fase conhecida tinham que dar forma`);
+    assert.deepEqual(w.lua, formaDaLua(w.fase, w.iluminacao), `${w.dia}: a forma no desenho ≠ formaDaLua(fase, iluminação)`);
+    // A luz desenhada é a MEDIDA, não uma aproximação da fatia: o rótulo diz
+    // "92% iluminada" e o traço tem que ser o de 92%.
+    assert.ok(Math.abs(w.lua.luz * 100 - w.iluminacao) < 1e-9, `${w.dia}: a forma não bate com a iluminação do rótulo`);
+    if (w.lua.direcao === 'crescente' || w.lua.direcao === 'minguante') {
+      assert.ok(['direita', 'esquerda'].includes(w.lua.ladoIluminado), `${w.dia}: fase com direção e sem lado`);
+    }
+  }
+});
+
+test('sem céu não existe forma pra desenhar — desenhar uma Lua ali seria inventar', () => {
+  const w = montarWallpaper({ dia: '2026-07-31', ceuDisponivel: false, regente: 'Vênus' });
+  assert.equal(w.lua, null);
 });
 
 // ===========================================================================

@@ -14,8 +14,18 @@
 //
 // ESTÉTICA (regra desta feature): fundo escuro, dourado/roxo da casa e MUITO
 // espaço vazio — papel de parede bom é quase vazio, porque em cima dele vivem
-// relógio, ícones e notificações. Por isso o desenho é: gradiente, um glifo,
-// uma linha de fase, uma frase, a data e a marca pequena. Nada mais.
+// relógio, ícones e notificações. Por isso o desenho é: gradiente, a Lua, um
+// glifo, uma linha de fase, uma frase, a data e a marca pequena. Nada mais.
+//
+// O REDESENHO DE 01/08/2026 (o dono viu e disse "o papel de parede está
+// horrível", e tinha razão): a Lua virou a HEROÍNA da imagem e passou a ser
+// desenhada de verdade — terminador a partir da iluminação medida e lado a
+// partir do nome da fase — no lugar da bolinha cinza chapada de raio 34 que
+// aparecia sob um rótulo dizendo "92% iluminada". Nada de texto novo entrou:
+// a mudança é toda de traço e de composição (mais respiro, hierarquia Lua →
+// glifo → frase, tipografia maior, gradiente com profundidade e estrelas mais
+// presentes mas fora da faixa de leitura). A regra do "quase vazio" continua
+// valendo e é por isso que NADA foi acrescentado ao conteúdo.
 //
 // OS TEXTOS SAÍRAM DAQUI em 31/07/2026 (era o TODO que este cabeçalho
 // prometia). Foram pra lib/wallpaper.js — TELA_PT e textosDaTela(lang), com
@@ -83,53 +93,248 @@ function espacar(texto) {
   return String(texto).toUpperCase().split('').join(' ');
 }
 
-// `T` entra por argumento (e não mais como constante de módulo) porque os
-// rótulos agora dependem do idioma. O DESENHO em si não depende: gradiente,
-// glifo, estrelas e disco de iluminação saem iguais nos três.
-function desenhar(canvas, d, T) {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+// ---------------------------------------------------------------------------
+// A LUA — a fase desenhada de verdade (01/08/2026)
+// ---------------------------------------------------------------------------
+// O que existia aqui era um MEDIDOR: bolinha cinza de raio 34 com alfa =
+// iluminação, e um comentário assumindo que desenhar a fase "exigiria
+// terminadores e lado certo por hemisfério". Exige mesmo — e as duas coisas
+// estavam ao alcance o tempo todo: a largura do terminador sai da iluminação
+// MEDIDA e o lado sai do NOME canônico da fase (crescente/minguante). A
+// decisão inteira mora em formaDaLua(), lib/wallpaper.js §2.b, junto com o
+// parágrafo do hemisfério (convenção NORTE declarada — a mesma dos emojis
+// 🌑🌒🌓 que o app já imprime no Calendário Lunar — e nenhum texto da imagem
+// afirma lado nenhum). Aqui embaixo é só o traço.
+//
+// A GEOMETRIA: disco escuro sempre por baixo (o resto da Lua continua lá, só
+// não está aceso) e, por cima, a região iluminada recortada por
+//   · limbo      = meia circunferência do lado aceso;
+//   · terminador = meia ELIPSE de semi-largura R·|2k−1|, k = fração iluminada.
+// k=0,5 dá largura zero (a reta do quarto), k=1 dá largura R (o terminador
+// vira o próprio limbo e o disco fecha). A elipse abaúla pro lado ESCURO
+// quando k>0,5 (gibosa) e pro lado ACESO quando k<0,5 (crescente fino) — é o
+// mesmo caminho, só muda o sentido do arco.
+const LIMBO_TOPO = -Math.PI / 2;
+const LIMBO_BASE = Math.PI / 2;
 
-  // --- fundo: o gradiente da fase, vertical ---
-  const grad = ctx.createLinearGradient(0, 0, 0, ALTURA);
-  const n = d.gradiente.length;
-  d.gradiente.forEach((cor, i) => grad.addColorStop(n > 1 ? i / (n - 1) : 0, cor));
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, LARGURA, ALTURA);
+function desenharLua(ctx, cx, cy, R, forma, iluminacao) {
+  const luz = forma ? forma.luz : Math.max(0, Math.min(1, (iluminacao || 0) / 100));
 
-  // --- estrelas: poucas e fracas, determinísticas pelo dia ---
-  // 42 pontos com alfa 0.04–0.22: textura, não protagonismo. A faixa central
-  // (onde ficam glifo e frase) recebe menos, pra não sujar a leitura.
-  const rnd = prngDoDia(d.dia);
-  for (let i = 0; i < 42; i++) {
+  // Auréola: o brilho que a Lua joga no céu ao redor, proporcional à luz real
+  // — Nova quase não tem, Cheia acende o entorno. É o que dá profundidade ao
+  // gradiente sem encher a imagem de coisa nova.
+  const halo = ctx.createRadialGradient(cx, cy, R * 0.7, cx, cy, R * 3.1);
+  halo.addColorStop(0, `rgba(255, 246, 226, ${(0.04 + 0.15 * luz).toFixed(3)})`);
+  halo.addColorStop(0.4, `rgba(196, 172, 255, ${(0.02 + 0.07 * luz).toFixed(3)})`);
+  halo.addColorStop(1, 'rgba(196, 172, 255, 0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 3.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Lado escuro: disco só um pouco mais claro que o fundo. Sem ele a Lua Nova
+  // sumiria e o crescente pareceria uma foice solta no céu.
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(150, 138, 200, 0.12)';
+  ctx.fill();
+
+  // Aro: quase some quando a Lua está cheia (não há o que contornar) e é o
+  // desenho inteiro quando ela está nova.
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = `rgba(236, 229, 255, ${(0.1 + 0.16 * (1 - luz)).toFixed(3)})`;
+  ctx.stroke();
+
+  // SEM FORMA: fase com nome desconhecido (alguém renomeou em
+  // lib/lunarCalendar.js). Não dá pra saber o lado sem chutar, então volta o
+  // medidor de antes — feio, mas não mente. Ver formaDaLua() no lib.
+  if (!forma) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(243, 238, 255, ${(0.8 * luz).toFixed(3)})`;
+    ctx.fill();
+    return;
+  }
+
+  // Lua Nova: disco apagado com o aro tênue que já foi desenhado acima, e
+  // ponto. Traçar o fiapo de luz exigiria escolher um lado que o nome da fase
+  // não dá (a fatia vai de um fiapo minguante a um fiapo crescente) — e são
+  // ≤4% de iluminação, que nesta escala é meio pixel.
+  if (forma.direcao === 'nova') return;
+
+  ctx.save();
+  // Espelhar em torno do próprio centro evita escrever o caminho duas vezes:
+  // desenha-se sempre a Lua acesa à DIREITA e vira-se quando o lado é o
+  // esquerdo. x → 2·cx − x.
+  if (forma.ladoIluminado === 'esquerda') {
+    ctx.translate(2 * cx, 0);
+    ctx.scale(-1, 1);
+  }
+
+  ctx.beginPath();
+  if (forma.direcao === 'cheia') {
+    // ≥96% de iluminação: o disco fecha. O fio escuro que sobraria também
+    // dependeria de um lado que o nome da fase não informa.
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  } else {
+    const semiLargura = R * forma.larguraTerminador;
+    ctx.arc(cx, cy, R, LIMBO_TOPO, LIMBO_BASE, false);
+    ctx.ellipse(cx, cy, semiLargura, R, 0, LIMBO_BASE, LIMBO_TOPO, forma.luz < 0.5);
+    ctx.closePath();
+  }
+  ctx.clip();
+
+  // A superfície acesa: gradiente radial puxado pro limbo iluminado, que é o
+  // que faz o disco parecer esfera e não moeda recortada.
+  const superficie = ctx.createRadialGradient(cx + R * 0.32, cy - R * 0.3, R * 0.08, cx, cy, R * 1.2);
+  superficie.addColorStop(0, '#FFFDF6');
+  superficie.addColorStop(0.55, '#F2ECFF');
+  superficie.addColorStop(1, '#C6B8E6');
+  ctx.fillStyle = superficie;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Estrelas do fundo: mais presentes que antes (150 contra 42) e ainda
+// discretas. Duas regras dão céu sem virar confete:
+//   · alfa e raio saem de rnd() elevado a potência — muitas fraquinhas, poucas
+//     fortes, que é como o céu se distribui;
+//   · a FAIXA DE LEITURA (a coluna central onde vivem frase e data) recebe um
+//     terço do brilho. O comentário antigo prometia exatamente isso e o código
+//     não fazia nada a respeito.
+function desenharEstrelas(ctx, rnd, faixa) {
+  for (let i = 0; i < 150; i++) {
     const x = rnd() * LARGURA;
     const y = rnd() * ALTURA;
-    const raio = 0.8 + rnd() * 1.6;
-    const alfa = 0.04 + rnd() * 0.18;
+    const semente = rnd();
+    const raio = 0.7 + Math.pow(rnd(), 2.6) * 2.1;
+    const naFaixa = y > faixa.topo && y < faixa.base && Math.abs(x - LARGURA / 2) < 440;
+    const alfa = (0.06 + Math.pow(semente, 2.2) * 0.5) * (naFaixa ? 0.34 : 1);
+
     ctx.beginPath();
     ctx.arc(x, y, raio, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(243, 238, 255, ${alfa.toFixed(3)})`;
     ctx.fill();
+
+    // Um punhado das mais fortes ganha o riscado de quatro pontas — só fora da
+    // faixa de leitura, e fino o bastante pra ninguém reparar de propósito.
+    if (semente > 0.93 && !naFaixa) {
+      const braco = raio * 5.5;
+      ctx.strokeStyle = `rgba(243, 238, 255, ${(alfa * 0.5).toFixed(3)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - braco, y);
+      ctx.lineTo(x + braco, y);
+      ctx.moveTo(x, y - braco);
+      ctx.lineTo(x, y + braco);
+      ctx.stroke();
+    }
   }
+}
+
+// LAYOUT — duas variantes, porque o herói muda com o que o céu deu. Com céu, a
+// Lua é o herói e o glifo do signo é o segundo. Sem céu não existe Lua pra
+// desenhar (desenhar uma seria inventar), então o glifo neutro sobe e ocupa o
+// lugar dela em vez de deixar um buraco no meio da imagem.
+//
+// A área de cima (até ~460) e a de baixo (a partir de ~1700) ficam VAZIAS de
+// propósito: é onde o sistema põe relógio, notificações e os atalhos da tela
+// de bloqueio. Papel de parede bom é quase vazio.
+const LAYOUT_COM_LUA = {
+  luaY: 660,
+  luaR: 168,
+  faseY: 946,
+  glifoY: 1190,
+  glifoPx: 170,
+  capsY: 1268,
+  fraseCentroY: 1480,
+  faixaTexto: { topo: 900, base: 1700 },
+};
+
+const LAYOUT_SEM_LUA = {
+  luaY: null,
+  luaR: 0,
+  faseY: null,
+  glifoY: 800,
+  glifoPx: 250,
+  capsY: 930,
+  fraseCentroY: 1320,
+  faixaTexto: { topo: 860, base: 1700 },
+};
+
+// `T` entra por argumento (e não mais como constante de módulo) porque os
+// rótulos agora dependem do idioma. O DESENHO em si não depende: gradiente,
+// glifo, estrelas e a forma da Lua saem iguais nos três.
+function desenhar(canvas, d, T) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const temLua = d.ceuDisponivel && Number.isFinite(d.iluminacao);
+  const L = temLua ? LAYOUT_COM_LUA : LAYOUT_SEM_LUA;
+  const meio = LARGURA / 2;
+
+  // --- fundo: o gradiente da fase, vertical ---
+  // As paradas não são mais equidistantes: a escura segura mais tempo no topo
+  // (posição elevada a 1.35) e a clara só abre embaixo. É o que dá
+  // PROFUNDIDADE — com paradas lineares o fundo lê como faixa chapada.
+  const grad = ctx.createLinearGradient(0, 0, 0, ALTURA);
+  const n = d.gradiente.length;
+  d.gradiente.forEach((cor, i) => grad.addColorStop(n > 1 ? Math.pow(i / (n - 1), 1.35) : 0, cor));
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, LARGURA, ALTURA);
+
+  // --- estrelas, determinísticas pelo dia ---
+  const rnd = prngDoDia(d.dia);
+  desenharEstrelas(ctx, rnd, L.faixaTexto);
+
+  // Vinhetas: escurecem topo e base. A de cima devolve contraste pro relógio
+  // do sistema, a de baixo assenta a composição e segura data e marca.
+  const vinhetaTopo = ctx.createLinearGradient(0, 0, 0, 460);
+  vinhetaTopo.addColorStop(0, 'rgba(0, 0, 0, 0.32)');
+  vinhetaTopo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = vinhetaTopo;
+  ctx.fillRect(0, 0, LARGURA, 460);
+
+  const vinhetaBase = ctx.createLinearGradient(0, ALTURA - 620, 0, ALTURA);
+  vinhetaBase.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  vinhetaBase.addColorStop(1, 'rgba(0, 0, 0, 0.36)');
+  ctx.fillStyle = vinhetaBase;
+  ctx.fillRect(0, ALTURA - 620, LARGURA, 620);
+
+  // --- A LUA, herói da imagem ---
+  if (temLua) desenharLua(ctx, meio, L.luaY, L.luaR, d.lua, d.iluminacao);
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  // --- glifo grande, dourado ---
+  // --- o rótulo da fase, logo abaixo da Lua: é ela que ele descreve ---
+  // Fase e iluminação são as MESMAS no mundo inteiro; nada neste rótulo
+  // depende de hemisfério (ver lib/wallpaper.js §2.b).
+  if (temLua) {
+    ctx.fillStyle = 'rgba(214, 203, 244, 0.92)';
+    ctx.font = '400 36px system-ui, -apple-system, sans-serif';
+    ctx.fillText(`${d.faseTexto} · ${d.iluminacao}% ${T.iluminada}`, meio, L.faseY);
+  }
+
+  // --- glifo dourado: o segundo herói ---
   // \uFE0E (variation selector-15) força apresentação de TEXTO: sem ele,
   // Android/Chrome renderizam ♈–♓ como emoji colorido e ignoram o fillStyle
   // dourado. O glifo neutro (✦) não tem forma emoji, mas o seletor não o
   // atrapalha. Escape explícito, nunca o caractere invisível colado na string:
   // invisível em editor é convite pra alguém apagar sem saber.
   ctx.fillStyle = colors.gold;
-  ctx.font = '300 300px Georgia, "Times New Roman", serif';
-  ctx.fillText(d.glifo + '\uFE0E', LARGURA / 2, 740);
+  ctx.font = `300 ${L.glifoPx}px Georgia, "Times New Roman", serif`;
+  ctx.fillText(d.glifo + '\uFE0E', meio, L.glifoY);
 
   // --- linha pequena: signo lunar (céu real) ou regente do dia (fallback) ---
   // O regente é aritmética de semana e continua verdadeiro sem efeméride —
   // é o mesmo dado honesto que getSkyTuning mantém no ramo sem céu.
-  ctx.fillStyle = 'rgba(196, 184, 230, 0.9)';
-  ctx.font = '600 34px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = 'rgba(196, 184, 230, 0.85)';
+  ctx.font = '600 30px system-ui, -apple-system, sans-serif';
   // *Texto e não os canônicos: `signoLua`/`regente` continuam em português em
   // qualquer idioma de propósito (são chave de cálculo em lib/wallpaper.js).
   const linhaPequena = d.signoLuaTexto
@@ -137,52 +342,28 @@ function desenhar(canvas, d, T) {
     : d.regenteTexto
     ? `${T.diaDe} ${d.regenteTexto}`
     : '';
-  if (linhaPequena) ctx.fillText(espacar(linhaPequena), LARGURA / 2, 850);
+  if (linhaPequena) ctx.fillText(espacar(linhaPequena), meio, L.capsY);
 
-  // --- disco da Lua: preenchimento proporcional à iluminação REAL ---
-  // Não é um desenho de fase geométrico (isso exigiria terminadores e lado
-  // certo por hemisfério); é um medidor honesto: contorno sempre, miolo com
-  // alfa = iluminação. Lua Nova = anel vazio, Cheia = disco aceso.
-  if (d.ceuDisponivel && Number.isFinite(d.iluminacao)) {
-    const cx = LARGURA / 2;
-    const cy = 990;
-    const raio = 34;
-    ctx.beginPath();
-    ctx.arc(cx, cy, raio, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(243, 238, 255, ${(0.85 * d.iluminacao) / 100})`;
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx, cy, raio, 0, Math.PI * 2);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(255, 200, 92, 0.8)';
-    ctx.stroke();
-
-    ctx.fillStyle = 'rgba(196, 184, 230, 0.85)';
-    ctx.font = '400 30px system-ui, -apple-system, sans-serif';
-    const rotuloFase = `${d.faseTexto} · ${d.iluminacao}% ${T.iluminada}`;
-    ctx.fillText(rotuloFase, LARGURA / 2, 1080);
-  }
-
-  // --- a frase do dia ---
-  ctx.fillStyle = 'rgba(243, 238, 255, 0.95)';
-  ctx.font = '400 42px Georgia, "Times New Roman", serif';
-  const linhas = quebrarLinhas(ctx, d.frase, 800);
-  const alturaLinha = 62;
-  let y = 1330 - ((linhas.length - 1) * alturaLinha) / 2;
+  // --- a frase do dia: maior e mais legível que antes (42 → 48) ---
+  ctx.fillStyle = 'rgba(246, 242, 255, 0.95)';
+  ctx.font = '400 48px Georgia, "Times New Roman", serif';
+  const linhas = quebrarLinhas(ctx, d.frase, 810);
+  const alturaLinha = 72;
+  let y = L.fraseCentroY - ((linhas.length - 1) * alturaLinha) / 2;
   for (const linha of linhas) {
-    ctx.fillText(linha, LARGURA / 2, y);
+    ctx.fillText(linha, meio, y);
     y += alturaLinha;
   }
 
   // --- data ---
-  ctx.fillStyle = 'rgba(196, 184, 230, 0.7)';
-  ctx.font = '400 32px system-ui, -apple-system, sans-serif';
-  ctx.fillText(d.dataFormatada, LARGURA / 2, y + 70);
+  ctx.fillStyle = 'rgba(196, 184, 230, 0.72)';
+  ctx.font = '400 34px system-ui, -apple-system, sans-serif';
+  ctx.fillText(d.dataFormatada, meio, y + 96);
 
   // --- marca: pequena e apagada, no rodapé, e só ---
-  ctx.fillStyle = 'rgba(196, 184, 230, 0.45)';
-  ctx.font = '400 28px system-ui, -apple-system, sans-serif';
-  ctx.fillText(d.marca, LARGURA / 2, ALTURA - 90);
+  ctx.fillStyle = 'rgba(196, 184, 230, 0.42)';
+  ctx.font = '400 26px system-ui, -apple-system, sans-serif';
+  ctx.fillText(d.marca, meio, ALTURA - 86);
 }
 
 export default function WallpaperScreen() {
