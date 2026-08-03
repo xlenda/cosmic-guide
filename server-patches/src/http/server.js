@@ -658,6 +658,61 @@ app.post("/api/invite/accept", pushLimiter, async (req, res) => {
   }
 });
 
+// Chama do Casal (tabela flame_checkins, migração 012) — a chama do dia só
+// acende quando >= 2 aparelhos DISTINTOS do mesmo casal abrem o app no mesmo
+// dia. Privacidade primeiro: coupleKey é SHA-256 calculado no client (o
+// servidor nunca vê nomes) e deviceId é um UUID aleatório do aparelho. O
+// `day` do body é IGNORADO — o servidor decide o dia (senão um client
+// alterado fabricaria streak retroativo). Bloco coberto por test/flame.test.js.
+//
+// HISTÓRICO: este bloco viveu por um dia só no repo obsoleto
+// (C:\tmp\gilfforever\backend) e SUMIU de produção quando o deploy.sh
+// restaurou src/ a partir daqui — o server-patches não o tinha. As tabelas
+// sobreviveram no banco (migração roda uma vez); as rotas não. Restaurado em
+// 02/08/2026, agora no repo que é fonte da verdade.
+const { FlameRepository, todayUtc: flameTodayUtc } = require("../infrastructure/FlameRepository");
+const flameRepository = new FlameRepository();
+const FLAME_COUPLE_KEY_RE = /^[a-f0-9]{64}$/;
+const FLAME_DEVICE_ID_RE = /^[a-f0-9-]{8,64}$/i;
+
+const flameLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Muitas requisições — tente novamente em alguns minutos." },
+});
+
+app.post("/api/flame/checkin", flameLimiter, (req, res) => {
+  try {
+    const { coupleKey, deviceId } = req.body || {};
+    if (typeof coupleKey !== "string" || !FLAME_COUPLE_KEY_RE.test(coupleKey)) {
+      return res.status(400).json({ error: "coupleKey deve ser um SHA-256 em hex minúsculo (64 caracteres)" });
+    }
+    if (typeof deviceId !== "string" || !FLAME_DEVICE_ID_RE.test(deviceId)) {
+      return res.status(400).json({ error: "deviceId inválido" });
+    }
+    flameRepository.checkin({ coupleKey, day: flameTodayUtc(), deviceId });
+    res.json(flameRepository.status(coupleKey));
+  } catch (err) {
+    console.error("[api/flame/checkin] erro:", err.message);
+    res.status(500).json({ error: "falha ao registrar presença" });
+  }
+});
+
+app.get("/api/flame/:coupleKey", flameLimiter, (req, res) => {
+  try {
+    const { coupleKey } = req.params;
+    if (!FLAME_COUPLE_KEY_RE.test(coupleKey)) {
+      return res.status(400).json({ error: "coupleKey deve ser um SHA-256 em hex minúsculo (64 caracteres)" });
+    }
+    res.json(flameRepository.status(coupleKey));
+  } catch (err) {
+    console.error("[api/flame/status] erro:", err.message);
+    res.status(500).json({ error: "falha ao consultar a chama" });
+  }
+});
+
 app.post("/api/push/unsubscribe", pushLimiter, (req, res) => {
   try {
     const { endpoint, auth } = req.body || {};
