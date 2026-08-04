@@ -228,6 +228,18 @@ function buildPainelRouter({ adminToken }) {
 
   router.get("/painel", (_req, res) => {
     res.set("Cache-Control", "no-store");
+    // O helmet() global manda script-src 'self' + script-src-attr 'none' — o
+    // que MATAVA esta página: o <script> inline nunca rodava e o botão
+    // "Entrar" ficava morto (bug relatado pelo dono em 04/08/2026, "coloco
+    // entrar não vai"). Esta página é um arquivo único de propósito, então o
+    // CSP dela precisa permitir inline — e em troca fecha todo o resto mais
+    // duro que o global: nenhuma origem externa, nenhum frame, nenhum form.
+    res.set(
+      "Content-Security-Policy",
+      "default-src 'none'; script-src 'unsafe-inline'; script-src-attr 'unsafe-inline'; " +
+        "style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; " +
+        "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    );
     res.type("html").send(HTML);
   });
 
