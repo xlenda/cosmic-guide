@@ -30,6 +30,7 @@ import { Alert } from '../lib/webAlert';
 import { localDayStr } from '../lib/localDay';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { useLanguage } from '../context/LanguageContext';
+import { HUMORES, diaISO, lerCheckins, registrarCheckin, resumoDaSemana, termometroDaLunacao } from '../lib/checkin';
 import {
   getTodaysMissions,
   getMissionProgress,
@@ -66,11 +67,20 @@ export default function DailyMissionsCard() {
   const [progress, setProgress] = useState(null);
   const [justAwarded, setJustAwarded] = useState(0);
   const [claiming, setClaiming] = useState(false);
+  // O check-in de um toque (04/08/2026): null = carregando; depois o mapa
+  // inteiro de respostas — os resumos derivam dele em memória, sem 2ª leitura.
+  const [checkins, setCheckins] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       (async () => {
+        // 0) Check-in de um toque: o mapa de respostas carrega junto com as
+        //    missões — mesmo foco, mesma passada, sem leitura extra depois.
+        try {
+          const dados = await lerCheckins();
+          if (active) setCheckins(dados);
+        } catch {}
         // 1) Ponte do Pensamento: chave da Home de hoje vira marcador de ação.
         try {
           const last = await AsyncStorage.getItem(THOUGHT_READ_KEY);
@@ -211,6 +221,70 @@ export default function DailyMissionsCard() {
 
         {/* Link auxiliar SUTIL de propósito (linha cinza dotted) — o destaque
             visual fica com as missões, não com a Loja. */}
+        {/* CHECK-IN DE UM TOQUE + TERMÔMETRO DA LUNAÇÃO (04/08/2026).
+            Mora DENTRO deste card por regra do dono: nada de card novo solto
+            na Home ("fica perdido no meio"). Todo número aqui é contagem de
+            coisa real — placar das respostas da pessoa e avanço astronômico
+            da Lua — nunca previsão nem porcentagem de vida (a doutrina
+            sem-promessas vale pra retenção também). */}
+        {checkins !== null && (
+          <View style={s.checkinBloco}>
+            {!checkins[diaISO()] ? (
+              <>
+                <Text style={s.checkinPergunta}>{t('checkin.pergunta')}</Text>
+                <View style={s.checkinLinha}>
+                  {HUMORES.map((h) => (
+                    <TouchableOpacity
+                      key={h.id}
+                      style={s.checkinBotao}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t(`checkin.${h.id}`)}
+                      onPress={async () => {
+                        const dados = await registrarCheckin(h.id);
+                        if (dados) setCheckins(dados);
+                      }}
+                    >
+                      <Text style={s.checkinEmoji}>{h.emoji}</Text>
+                      <Text style={s.checkinRotulo}>{t(`checkin.${h.id}`)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            ) : (
+              (() => {
+                const humorHoje = checkins[diaISO()];
+                const emoji = (HUMORES.find((h) => h.id === humorHoje) || {}).emoji || '';
+                const resumo = resumoDaSemana(checkins);
+                const termo = termometroDaLunacao(checkins);
+                return (
+                  <>
+                    <Text style={s.checkinHoje}>
+                      {t('checkin.hoje', { emoji, humor: t(`checkin.${humorHoje}`) })}
+                    </Text>
+                    {resumo.atual.total >= 2 && (
+                      <Text style={s.checkinResumo}>
+                        {t('checkin.semana', { n: resumo.atual.leve, total: resumo.atual.total })}
+                        {resumo.anterior.total > 0
+                          ? ` · ${t('checkin.semana.comparacao', { prev: resumo.anterior.leve })}`
+                          : ''}
+                      </Text>
+                    )}
+                    {/* Sem efeméride o termômetro some — nunca inventa Lua. */}
+                    {termo && (
+                      <Text style={s.checkinResumo}>
+                        {termo.diasPresentes === 1
+                          ? t('checkin.lunacao.um', { pct: termo.pct })
+                          : t('checkin.lunacao', { pct: termo.pct, dias: termo.diasPresentes })}
+                      </Text>
+                    )}
+                  </>
+                );
+              })()
+            )}
+          </View>
+        )}
+
         <TouchableOpacity onPress={goLoja}>
           <Text style={s.lojaLink}>{t('missions.storeLink')}</Text>
         </TouchableOpacity>
@@ -264,6 +338,19 @@ const s = StyleSheet.create({
   bonusDoneText: { color: colors.green, fontSize: 13, fontWeight: '700', textAlign: 'center', marginTop: 6 },
   bonusHint: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 6 },
 
+  checkinBloco: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.14)',
+  },
+  checkinPergunta: { color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 10, textAlign: 'center' },
+  checkinLinha: { flexDirection: 'row', justifyContent: 'space-evenly' },
+  checkinBotao: { alignItems: 'center', paddingVertical: 6, paddingHorizontal: 14, borderRadius: 12 },
+  checkinEmoji: { fontSize: 26 },
+  checkinRotulo: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
+  checkinHoje: { color: colors.text, fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  checkinResumo: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 5 },
   lojaLink: {
     color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 10,
     textDecorationLine: 'underline', textDecorationStyle: 'dotted',
