@@ -20,7 +20,7 @@
 // chave como evidência e convertemos em recordMissionAction() aqui, sem tocar
 // na HomeScreen (outro time está nela agora).
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Share } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Share, Switch } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -30,7 +30,24 @@ import { Alert } from '../lib/webAlert';
 import { localDayStr } from '../lib/localDay';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { useLanguage } from '../context/LanguageContext';
-import { HUMORES, diaISO, lerCheckins, registrarCheckin, resumoDaSemana, termometroDaLunacao, comparacaoMensal } from '../lib/checkin';
+import {
+  HUMORES,
+  diaISO,
+  lerCheckins,
+  registrarCheckin,
+  resumoDaSemana,
+  termometroDaLunacao,
+  comparacaoMensal,
+  jaFezAlgumCheckin,
+  lerLembreteCheckin,
+  salvarLembreteCheckin,
+} from '../lib/checkin';
+import {
+  isWebPushSupported,
+  ensureWebPushSubscription,
+  setCheckinReminderOnServer,
+  webPushFailureMessage,
+} from '../lib/webPush';
 import {
   getTodaysMissions,
   getMissionProgress,
@@ -70,6 +87,10 @@ export default function DailyMissionsCard() {
   // O check-in de um toque (04/08/2026): null = carregando; depois o mapa
   // inteiro de respostas — os resumos derivam dele em memória, sem 2ª leitura.
   const [checkins, setCheckins] = useState(null);
+  // Lembrete diário: a preferência guardada NESTE aparelho. Começa desligado —
+  // nunca ligamos notificação por omissão.
+  const [lembrete, setLembrete] = useState(false);
+  const [lembreteOcupado, setLembreteOcupado] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,8 +99,11 @@ export default function DailyMissionsCard() {
         // 0) Check-in de um toque: o mapa de respostas carrega junto com as
         //    missões — mesmo foco, mesma passada, sem leitura extra depois.
         try {
-          const dados = await lerCheckins();
-          if (active) setCheckins(dados);
+          const [dados, lembreteSalvo] = await Promise.all([lerCheckins(), lerLembreteCheckin()]);
+          if (active) {
+            setCheckins(dados);
+            setLembrete(lembreteSalvo);
+          }
         } catch {}
         // 1) Ponte do Pensamento: chave da Home de hoje vira marcador de ação.
         try {
@@ -126,6 +150,53 @@ export default function DailyMissionsCard() {
       }
     } finally {
       setClaiming(false);
+    }
+  }
+
+  // LIGAR/DESLIGAR O LEMBRETE DIÁRIO DO CHECK-IN.
+  //
+  // Ligar tem DUAS etapas, e a ordem importa: primeiro a inscrição de push
+  // (ensureWebPushSubscription — o mesmo fluxo do card da Home e do toggle do
+  // Perfil pra quem ainda não tem inscrição, e NADA pra quem já tem; ver o
+  // comentário longo em lib/webPush.js sobre o signo que seria apagado),
+  // depois a marcação no servidor, que é por endpoint e só existe se a
+  // inscrição existir. Se qualquer uma falhar, o toggle NÃO acende — um
+  // interruptor que
+  // fica verde sem nada por trás é o mesmo bug de confiança do card que sumia
+  // em silêncio (achado real, Brave, 26/07/2026). A mensagem por motivo vem de
+  // webPushFailureMessage, já compartilhada pelas outras duas superfícies.
+  //
+  // Desligar é LOCAL PRIMEIRO e a chamada ao servidor é best-effort — mesma
+  // decisão já escrita em unsubscribeFromWebPush (lib/webPush.js). Motivo: se
+  // a rede estiver fora, travar alguém do lado de dentro de uma notificação
+  // que ela acabou de recusar é pior do que o custo máximo do outro caminho
+  // (um push a mais). E a marcação órfã não fica: o cron limpa no primeiro
+  // 404/410 e em removeOrphans().
+  async function alternarLembrete(proximo) {
+    if (lembreteOcupado) return;
+    setLembreteOcupado(true);
+    try {
+      if (!proximo) {
+        await salvarLembreteCheckin(false);
+        setLembrete(false);
+        await setCheckinReminderOnServer(false, lang);
+        return;
+      }
+
+      const { ok, reason } = await ensureWebPushSubscription();
+      if (!ok) {
+        Alert.alert(t('home.notifPrompt.errorTitle'), webPushFailureMessage(reason));
+        return;
+      }
+      const marcado = await setCheckinReminderOnServer(true, lang);
+      if (!marcado) {
+        Alert.alert(t('home.notifPrompt.errorTitle'), webPushFailureMessage('server-error'));
+        return;
+      }
+      await salvarLembreteCheckin(true);
+      setLembrete(true);
+    } finally {
+      setLembreteOcupado(false);
     }
   }
 
@@ -293,6 +364,45 @@ export default function DailyMissionsCard() {
                 );
               })()
             )}
+
+            {/* LEMBRETE DIÁRIO — o toggle discreto (04/08/2026).
+                Só aparece DEPOIS do primeiro check-in (jaFezAlgumCheckin):
+                oferecer notificação diária de uma coisa que a pessoa nunca
+                experimentou é pedir permissão antes de dar motivo, e é assim
+                que opt-in vira spam. E só onde Web Push funciona de verdade —
+                isWebPushSupported() já exige web + serviceWorker + PushManager,
+                então no app nativo e no iPhone fora da Tela de Início a linha
+                simplesmente não existe, em vez de prometer um aviso que nunca
+                chegaria.
+                A linha INTEIRA é o alvo do toque e o Switch fica dentro de um
+                pointerEvents="none" (vira indicador visual) — sem isso, na web
+                o clique no checkbox nativo e o onPress da linha disparam
+                juntos e o toggle vira e desvira na mesma renderização (mesma
+                lição já escrita no ToggleRow de screens/ProfileScreen.js). */}
+            {jaFezAlgumCheckin(checkins) && isWebPushSupported() && (
+              <TouchableOpacity
+                style={s.lembreteLinha}
+                activeOpacity={0.7}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: lembrete, disabled: lembreteOcupado }}
+                accessibilityLabel={t('checkin.lembrete.rotulo')}
+                disabled={lembreteOcupado}
+                onPress={() => alternarLembrete(!lembrete)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={s.lembreteRotulo}>{t('checkin.lembrete.rotulo')}</Text>
+                  <Text style={s.lembreteAjuda}>{t('checkin.lembrete.ajuda')}</Text>
+                </View>
+                <View pointerEvents="none">
+                  <Switch
+                    value={lembrete}
+                    onValueChange={alternarLembrete}
+                    trackColor={{ false: colors.border, true: colors.accent }}
+                    thumbColor="#fff"
+                  />
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -362,6 +472,21 @@ const s = StyleSheet.create({
   checkinRotulo: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
   checkinHoje: { color: colors.text, fontSize: 13, fontWeight: '600', textAlign: 'center' },
   checkinResumo: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 5 },
+
+  // Discreto de propósito: sem card, sem borda, sem cor de destaque. O peso
+  // visual do bloco continua sendo o check-in em si — isto é um ajuste, não
+  // uma oferta.
+  lembreteLinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.10)',
+  },
+  lembreteRotulo: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  lembreteAjuda: { color: colors.textMuted, fontSize: 11, marginTop: 2, lineHeight: 15 },
   lojaLink: {
     color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 10,
     textDecorationLine: 'underline', textDecorationStyle: 'dotted',

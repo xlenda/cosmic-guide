@@ -634,6 +634,41 @@ app.post("/api/push/sync-diary", pushLimiter, (req, res) => {
   }
 });
 
+// Lembrete diário do check-in (tabela push_daily_reminder, migração 014) — o
+// toggle discreto que aparece dentro do bloco de check-in da Home DEPOIS do
+// primeiro check-in (components/DailyMissionsCard.js no app). Quem envia é
+// scripts/enviar-lembrete-checkin.js, no cron.
+//
+// Mesma trava de posse do sync-streak/sync-diary (verifyPushOwnership): sem
+// ela, quem descobrisse o endpoint de outra pessoa podia inscrevê-la num push
+// diário que ela nunca pediu — ou calar o dela. A marcação é por INSCRIÇÃO,
+// não por conta, porque o check-in em si nunca sai do aparelho.
+//
+// `lang` é aceito só pra escolher a língua do texto do push (normalizado em
+// checkinReminderContent.normalizarIdioma; qualquer coisa fora de pt/es/en
+// vira pt). Nada do que a pessoa RESPONDEU no check-in trafega aqui.
+const { DailyReminderRepository } = require("../infrastructure/DailyReminderRepository");
+const dailyReminderRepository = new DailyReminderRepository();
+
+app.post("/api/push/daily-reminder", pushLimiter, (req, res) => {
+  try {
+    const { endpoint, auth, enabled, lang } = req.body || {};
+    if (!endpoint) return res.status(400).json({ error: "endpoint é obrigatório" });
+    if (typeof enabled !== "boolean") return res.status(400).json({ error: "enabled deve ser true ou false" });
+    const ownership = verifyPushOwnership(endpoint, auth);
+    if (!ownership.ok) return res.status(ownership.status).json({ error: ownership.error });
+
+    if (enabled) dailyReminderRepository.enable({ endpoint, lang });
+    else dailyReminderRepository.disable(endpoint);
+
+    console.log(`[api/push/daily-reminder] lembrete ${enabled ? "ligado" : "desligado"}`);
+    res.json({ ok: true, enabled });
+  } catch (err) {
+    console.error("[api/push/daily-reminder] erro:", err.message);
+    res.status(500).json({ error: "falha ao salvar o lembrete diário" });
+  }
+});
+
 // Convite de casal com notificação — quem convida gera um código atrelado à
 // PROPRIA inscrição de push (prova de posse via verifyPushOwnership, mesma
 // trava do sync-streak); quando o par abre o link e o app chama /accept, o

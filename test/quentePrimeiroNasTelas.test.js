@@ -189,6 +189,34 @@ test('Calendário Cósmico · card de evento — o parágrafo abre, nome e data 
   quenteAbre(bloco, '{conversa}', ['{evento.titulo}', 'styles.eventoQuando'], 'CalendarioCosmicoScreen/evento');
 });
 
+test('Compatibilidade · a saída dos pares difíceis aparece no bloco que ABRE', () => {
+  // Uma variação do padrão desta suíte, e vale a pena nomeá-la: aqui não era a
+  // FICHA que abria a tela — o bloco quente já abria certo. Era a SAÍDA que
+  // estava presa no bloco recolhido. O caminho prático dos 84 pares difíceis
+  // morava colado na Atenção, dentro de "De onde vem isso", que nasce fechado:
+  // quem não tocasse na bibliografia lia o diagnóstico inteiro e ia embora sem
+  // uma linha sobre o que fazer. Motor conforme, tela escondendo — a mesma
+  // família de defeito, no eixo do alcance em vez do eixo da ordem.
+  const src = fonteDaTela('CompatibilityScreen.js');
+  const bloco1 = trecho(src, 'styles.realCard', 'styles.sourceToggle', 'CompatibilityScreen/bloco 1');
+  assert.ok(
+    bloco1.includes('ecoDoCaminho(result.caminho'),
+    'CompatibilityScreen: o eco do caminho sumiu do bloco 1 — o par difícil voltou a sair sem saída visível'
+  );
+  assert.ok(
+    bloco1.includes('rotuloDoCaminho(lang)'),
+    'CompatibilityScreen: o rótulo do eco saiu do pack do idioma'
+  );
+  // O eco abre; o caminho inteiro, a atenção e a fonte continuam embaixo — o
+  // eco é porta, e descer não é apagar.
+  quenteAbre(
+    src,
+    'ecoDoCaminho(result.caminho',
+    ['{result.cuidado}', 'styles.traitPath', "t('compat.sourceTitle')"],
+    'CompatibilityScreen/caminho'
+  );
+});
+
 test('Idade Real · a história abre, quem inventou e quando descem pro recibo', () => {
   const src = fonteDaTela('IdadeRealScreen.js');
   const bloco = trecho(src, 'styles.corpo', 'styles.recibo', 'IdadeRealScreen/card aberto');

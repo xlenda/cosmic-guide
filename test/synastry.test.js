@@ -1486,19 +1486,104 @@ test('as duas aversões têm caminhos DIFERENTES — 30° e 150° não colapsam 
 test('a tela põe o caminho COLADO na atenção, e só onde ele existe', () => {
   const src = semComentarios(fonteDaTela());
   const cuidado = src.indexOf('result.cuidado');
-  const caminho = src.indexOf('result.caminho');
-  assert.ok(caminho > 0, 'a tela não mostra o caminho');
-  assert.ok(caminho > cuidado, 'o caminho subiu para antes da atenção — o diagnóstico abre, a saída fecha');
+  // A PARTIR da atenção, e não do começo do arquivo: desde o eco (04/08/2026,
+  // tarde) `result.caminho` aparece DUAS vezes na tela — a primeira no bloco 1,
+  // que é a correção nova, e a segunda aqui embaixo. Medir a primeira faria este
+  // teste acusar o eco de ter "subido o caminho pra antes da atenção", que é
+  // exatamente o contrário do que aconteceu: o caminho não saiu do lugar.
+  const caminho = src.indexOf('result.caminho', cuidado);
+  assert.ok(caminho > 0, 'a tela não mostra o caminho no bloco 2');
+  assert.ok(caminho > cuidado, 'o caminho saiu de dentro do card da atenção');
   // Entre um e outro não pode entrar outro card: a saída tem que ler como
   // continuação da atenção, não como bloco solto lá embaixo.
   const entre = src.slice(cuidado, caminho);
   assert.ok(!entre.includes('styles.traitCard'), 'o caminho caiu num card separado da atenção');
   assert.ok(!entre.includes('styles.noteCard'), 'o caminho ficou depois das ressalvas');
   // E é condicional: trígono e co-presença não têm caminho, e a tela não pode
-  // renderizar um <Text> vazio no lugar.
-  assert.match(src, /\{!!result\.caminho &&/, 'a tela renderiza o caminho sem checar se ele existe');
+  // renderizar um <Text> vazio no lugar. Vale pras DUAS aparições.
+  const guardas = (src.match(/\{!!result\.caminho &&/g) || []).length;
+  assert.equal(guardas, 2, 'alguma aparição do caminho na tela ficou sem checar se ele existe');
   // O texto vem do motor, não da tela — senão sai em português pro mundo todo.
   assert.ok(!/caminho[A-Za-z]*\s*=\s*['"]/.test(src), 'a tela escreveu caminho à mão');
+});
+
+// ---------------------------------------------------------------------------
+// O ECO — a saída também aparece no bloco que ABRE
+// ---------------------------------------------------------------------------
+// O defeito que este bloco trava é de ALCANCE, não de conteúdo: o caminho estava
+// escrito, testado nos três idiomas e renderizado — dentro do bloco 2, que nasce
+// recolhido. Quem não toca em "De onde vem isso" lia o diagnóstico inteiro e
+// nunca via a saída. É o mesmo padrão que test/quentePrimeiroNasTelas.test.js
+// existe pra pegar: o motor conforme, a tela escondendo.
+
+test('o ECO do caminho abre no bloco 1, e só nos pares que têm caminho', () => {
+  const src = semComentarios(fonteDaTela());
+  const dimensoes = src.indexOf('DIMENSOES_VIDA_REAL.map');
+  const eco = src.indexOf('ecoDoCaminho(result.caminho');
+  const toggle = src.indexOf('styles.sourceToggle');
+  const cuidado = src.indexOf('result.cuidado');
+  assert.ok(eco > 0, 'o eco do caminho sumiu do bloco 1 — o par difícil voltou a sair sem saída visível');
+  assert.ok(eco > dimensoes, 'o eco vem antes das cinco dimensões — conselho antes do diagnóstico');
+  assert.ok(eco < toggle, 'o eco caiu para fora do bloco 1, depois do ponteiro pro bloco 2');
+  assert.ok(eco < cuidado, 'o eco não está no bloco quente: ele nasceu justamente pra não depender do toque');
+  // Condicional pelo MOTOR: par harmônico não recebe mini-card de conselho.
+  // A âncora é a guarda imediatamente antes do eco no código.
+  const antesDoEco = src.slice(dimensoes, eco);
+  assert.match(antesDoEco, /\{!!result\.caminho &&/, 'o eco é renderizado sem checar se o par tem caminho');
+  // Rótulo e recorte vêm do motor. Escrever qualquer um dos dois na tela é
+  // reabrir o defeito que a extração de 31/07 fechou: português pro mundo todo.
+  assert.match(src, /rotuloDoCaminho\(lang\)/, 'o rótulo do eco não vem do pack do idioma');
+  assert.match(src, /ecoDoCaminho\(result\.caminho, lang\)/, 'o eco não é recortado pelo motor, no idioma da leitura');
+  assert.match(
+    src,
+    /import \{[^}]*ecoDoCaminho[^}]*rotuloDoCaminho[^}]*\} from '\.\.\/lib\/synastry\.js'/,
+    'a tela não importa o eco do motor'
+  );
+});
+
+test('o eco é PORTA, não resumo — o toque abre o bloco 2 e vai até o caminho inteiro', () => {
+  // Um eco que só mostra a primeira frase e não leva a lugar nenhum troca um
+  // problema por outro: a pessoa passa a saber que existe mais e não acha.
+  const src = semComentarios(fonteDaTela());
+  assert.match(src, /onPress=\{abrirOCaminho\}/, 'o eco não é tocável');
+  const handler = src.slice(src.indexOf('const abrirOCaminho'), src.indexOf('if (!hasAccess && locked && !result)'));
+  assert.ok(handler.length > 100, 'o parser do handler do eco quebrou');
+  assert.match(handler, /setShowSource\(true\)/, 'o toque no eco não abre o bloco 2');
+  assert.match(handler, /rolarAteOCaminho\(\)/, 'o toque no eco abre o bloco 2 mas larga a pessoa longe do caminho');
+  // E a rolagem mira o card da ATENÇÃO, que é onde o caminho mora — medido no
+  // onLayout dele, porque a altura muda com o par, o idioma e a tela.
+  assert.match(src, /onLayout=\{\(e\) => \{/, 'a tela não mede onde o caminho está');
+  assert.match(src, /caminhoY\.current = e\.nativeEvent\.layout\.y/, 'a medida do caminho sumiu');
+  assert.match(src, /scrollRef\.current\.scrollTo\(/, 'a tela não rola até o caminho');
+  assert.match(src, /<ScrollView ref=\{scrollRef\}/, 'o rolo da tela não tem referência — o scrollTo nunca acontece');
+});
+
+test('o motor entrega o eco só onde há caminho, e ele é recorte do caminho — nunca texto novo', () => {
+  // A regra do eco é a mesma do caminho, e ela mora no motor: 84 dos 144 pares.
+  // O que o eco NÃO pode ser é um texto próprio — nesse dia o app passaria a ter
+  // duas versões do mesmo conselho, e a segunda sem nenhum dos testes da seção.
+  const comEco = PARES.filter((p) => S.ecoDoCaminho(p.leitura.caminho) !== null);
+  assert.equal(comEco.length, 84, 'a contagem de pares com eco divergiu da de pares com caminho');
+  for (const p of comEco) {
+    const eco = S.ecoDoCaminho(p.leitura.caminho);
+    assert.ok(p.leitura.caminho.includes(eco), `${p.a}+${p.b}: o eco não é um trecho do caminho`);
+    assert.equal(frases(eco), 1, `${p.a}+${p.b}: o eco tem ${frases(eco)} frases — é a PRIMEIRA, não o caminho inteiro`);
+    assert.ok(eco.length >= 100, `${p.a}+${p.b}: o eco com ${eco.length} caracteres virou etiqueta`);
+    assert.ok(eco.length < p.leitura.caminho.length, `${p.a}+${p.b}: o eco engoliu o caminho inteiro`);
+    // A abertura sai do corpo porque ela É o rótulo do card — dizer duas vezes
+    // na mesma dobra é o que o recorte existe pra impedir.
+    assert.ok(!eco.startsWith(S.rotuloDoCaminho()), `${p.a}+${p.b}: o eco repete o rótulo do card`);
+    assert.ok(!eco.includes('Por onde começar'), `${p.a}+${p.b}: a abertura ficou no corpo do eco`);
+    // E o eco carrega a ressalva: sem ela, a frase que abre o bloco quente vira
+    // receita — que é o modo como conselho honesto apodrece.
+    assert.match(eco, /\bcostum(a|am)\b|\braramente\b|\bquase nunca\b/i, `${p.a}+${p.b}: o eco perdeu a ressalva do caminho`);
+  }
+  // Par sem atrito não recebe eco, pelo mesmo motivo que não recebe caminho.
+  for (const p of PARES.filter((x) => !S.CATEGORIAS_COM_CAMINHO.includes(x.leitura.categoriaId))) {
+    assert.equal(S.ecoDoCaminho(p.leitura.caminho), null, `${p.a}+${p.b} (${p.leitura.categoriaId}) ganhou eco sem ter atrito`);
+  }
+  assert.equal(S.ecoDoCaminho(null), null);
+  assert.equal(S.ecoDoCaminho(''), null);
 });
 
 test('o Diário Cósmico passa a guardar o BLOCO 1, que é o que a pessoa leu', () => {

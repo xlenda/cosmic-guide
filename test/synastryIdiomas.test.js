@@ -669,3 +669,147 @@ test('a tela renderiza o caminho no idioma da leitura — o campo novo chega na 
   assert.ok(!src.includes('Por onde começar'), 'o caminho foi escrito à mão na tela, em português');
   assert.ok(!src.includes('Where to start, in practice'), 'o caminho foi escrito à mão na tela');
 });
+
+// ===========================================================================
+// 7. O ECO DO CAMINHO — a saída no bloco que ABRE, nas três línguas
+// ===========================================================================
+// A seção 6 provou que todo par tenso sai com caminho nos três idiomas. O que
+// ela não podia ver é ONDE ele aparecia: dentro do bloco 2, que a tela abre
+// RECOLHIDO. Um caminho que só existe atrás de um toque na bibliografia é, para
+// a maioria, um caminho que não existe — o mesmo tipo de defeito que a extração
+// dos packs corrigiu no eixo do idioma, agora no eixo da atenção.
+//
+// O eco é o primeiro trecho da leitura tensa que aparece SEM toque nenhum. Por
+// isso ele passa aqui pelas mesmas listas do caminho inteiro, mais duas que só
+// fazem sentido pra ele: não pode repetir o rótulo do card, e não pode vazar
+// jargão — porque agora ele é bloco 1, e o bloco 1 não explica capítulo.
+
+test('o rótulo do eco existe nos três packs, e nenhum idioma copia o outro', () => {
+  const rotulos = ['pt', 'es', 'en'].map((l) => S.rotuloDoCaminho(l));
+  for (const [i, lang] of ['pt', 'es', 'en'].entries()) {
+    assert.equal(typeof rotulos[i], 'string', `${lang}: rotuloCaminho não é string`);
+    assert.ok(rotulos[i].trim().length >= 8, `${lang}: rótulo curto demais pra dizer o que é — "${rotulos[i]}"`);
+    assert.equal(rotulos[i], LANGS[lang].rotuloCaminho, `${lang}: o motor e o pack discordam do rótulo`);
+    // Rótulo é chamada, não ficha: nada de porcentagem, promessa ou veredito.
+    assert.ok(!rotulos[i].includes('%'), `${lang}: porcentagem no rótulo do eco`);
+    for (const re of FATALISMO[lang]) assert.ok(!re.test(rotulos[i]), `${lang}: veredito no rótulo do eco`);
+    for (const re of SAUDE[lang]) assert.ok(!re.test(rotulos[i]), `${lang}: linguagem de saúde no rótulo do eco`);
+  }
+  assert.equal(new Set(rotulos).size, 3, 'dois idiomas ficaram com o MESMO rótulo — algum não foi traduzido');
+  // Idioma desconhecido cai no PT, como o resto do motor.
+  assert.equal(S.rotuloDoCaminho('fr'), S.rotuloDoCaminho('pt'));
+  assert.equal(S.rotuloDoCaminho(), S.rotuloDoCaminho('pt'));
+});
+
+test('TODO par tenso sai com eco nos três idiomas — e nenhum par fácil recebe eco', () => {
+  for (const lang of ['pt', 'es', 'en']) {
+    const rotulo = S.rotuloDoCaminho(lang);
+    const tensos = PARES[lang].filter((p) => S.CATEGORIAS_COM_CAMINHO.includes(p.leitura.categoriaId));
+    assert.equal(tensos.length, 84, `${lang}: a contagem de pares tensos mudou`);
+    for (const p of tensos) {
+      const eco = S.ecoDoCaminho(p.leitura.caminho, lang);
+      assert.equal(typeof eco, 'string', `${lang} ${p.a}+${p.b} (${p.leitura.id}) sem eco`);
+      // É RECORTE do caminho, nunca texto novo: no dia em que for texto novo, o
+      // app passa a ter duas versões do mesmo conselho e só uma com testes.
+      assert.ok(p.leitura.caminho.includes(eco), `${lang} ${p.a}+${p.b}: o eco não é um trecho do caminho`);
+      assert.equal(frases(eco), 1, `${lang} ${p.a}+${p.b}: o eco tem ${frases(eco)} frases, não a primeira`);
+      assert.ok(eco.length >= 100, `${lang} ${p.a}+${p.b}: eco de ${eco.length} caracteres — virou etiqueta`);
+      assert.ok(eco.length < p.leitura.caminho.length, `${lang} ${p.a}+${p.b}: o eco engoliu o caminho`);
+      // A abertura do caminho É o rótulo do card: ela sai do corpo, senão a tela
+      // diz a mesma coisa duas vezes na mesma dobra.
+      assert.ok(!eco.startsWith(rotulo), `${lang} ${p.a}+${p.b}: o eco repete o rótulo "${rotulo}"`);
+      // E a ressalva sobe junto com o gesto — sem ela o eco vira receita.
+      assert.ok(HEDGE[lang].test(eco), `${lang} ${p.a}+${p.b}: o eco perdeu a ressalva do caminho`);
+      assert.ok(!eco.includes('%'), `${lang} ${p.a}+${p.b}: porcentagem no eco`);
+      assert.ok(!eco.includes('undefined') && !eco.includes('[object Object]'), `${lang} ${p.a}+${p.b}`);
+      for (const [re, motivo] of PROMESSA[lang]) assert.ok(!re.test(eco), `${lang} ${p.a}+${p.b} — ${motivo} no eco`);
+      for (const re of SAUDE[lang]) assert.ok(!re.test(eco), `${lang} ${p.a}+${p.b} — saúde no eco: ${eco.match(re)}`);
+      for (const re of FATALISMO[lang]) assert.ok(!re.test(eco), `${lang} ${p.a}+${p.b} — veredito no eco: ${eco.match(re)}`);
+    }
+    for (const p of PARES[lang].filter((x) => !S.CATEGORIAS_COM_CAMINHO.includes(x.leitura.categoriaId))) {
+      assert.equal(S.ecoDoCaminho(p.leitura.caminho, lang), null, `${lang} ${p.a}+${p.b} (${p.leitura.categoriaId}) ganhou eco sem ter atrito`);
+    }
+  }
+});
+
+test('o eco é BLOCO 1 agora — e o bloco 1 de es/en não explica capítulo', () => {
+  // A mesma varredura de jargão que protege a chamada e as cinco dimensões passa
+  // a valer pro eco, porque ele passou a abrir a tela junto com elas. O caminho
+  // INTEIRO pode citar Lilly e Tetrabiblos à vontade — ele continua no bloco 2.
+  const JARGAO = {
+    es: [
+      /tr[íi]gono|sextil|cuadratura|oposici[óo]n|aversi[óo]n|copresencia|conjunci[óo]n/i,
+      /Ptolomeo|Tetrabiblos|Robbins|Arist[óo]teles|Lilly|Manilio|Naylor|Goodman/i,
+      /\b[IVX]+\.\d+\b/, /arm[óo]nic|disarm[óo]nic|disjunt/i, /modalidad|kathuperter|verbatim|par[áa]frasis/i,
+    ],
+    en: [
+      /\btrine\b|\bsextile\b|\bquartile\b|\bopposition\b|\baversion\b|co-presence|\bconjunction\b/i,
+      /Ptolemy|Tetrabiblos|Robbins|Aristotle|Lilly|Manilius|Naylor|Goodman/i,
+      /\b[IVX]+\.\d+\b/, /harmonious|disharmonious|disjunct/i, /modality|kathuperter|verbatim|paraphrase/i,
+    ],
+  };
+  for (const [lang, regexes] of Object.entries(JARGAO)) {
+    for (const p of PARES[lang].filter((x) => x.leitura.caminho)) {
+      const eco = S.ecoDoCaminho(p.leitura.caminho, lang);
+      for (const re of regexes) {
+        assert.ok(!re.test(eco), `${lang} ${p.a}+${p.b} vazou jargão no eco: ${eco.match(re)}`);
+      }
+    }
+  }
+  // Contrapartida: a fonte NÃO sumiu, ela ficou onde sempre esteve. Se o caminho
+  // inteiro parar de citar, o problema é outro — e é a seção 6 que acusa.
+  for (const lang of ['es', 'en']) {
+    const quadratura = PARES[lang].find((p) => p.leitura.id === 'quadratura');
+    assert.match(quadratura.leitura.caminho, /Lilly/, `${lang}: o caminho inteiro perdeu a fonte`);
+  }
+});
+
+test('o eco não colapsa entre relações nem entre idiomas', () => {
+  for (const lang of ['pt', 'es', 'en']) {
+    const porId = {};
+    for (const p of PARES[lang].filter((x) => x.leitura.caminho)) {
+      const eco = S.ecoDoCaminho(p.leitura.caminho, lang);
+      (porId[p.leitura.id] = porId[p.leitura.id] || new Set()).add(eco);
+    }
+    assert.deepEqual(Object.keys(porId).sort(), ['aversao150', 'aversao30', 'oposicao', 'quadratura'], lang);
+    const ids = Object.keys(porId);
+    for (const a of ids) {
+      for (const b of ids) {
+        if (a >= b) continue;
+        for (const texto of porId[a]) {
+          assert.ok(!porId[b].has(texto), `${lang}: ${a} e ${b} mostram o MESMO eco`);
+        }
+      }
+    }
+  }
+  for (const id of ['quadratura', 'oposicao', 'aversao30', 'aversao150']) {
+    const [pt, es, en] = ['pt', 'es', 'en'].map((l) => {
+      const p = PARES[l].find((x) => x.leitura.id === id);
+      return S.ecoDoCaminho(p.leitura.caminho, l);
+    });
+    assert.notEqual(es, pt, `es/${id}: o eco ficou igual ao pt`);
+    assert.notEqual(en, pt, `en/${id}: o eco ficou igual ao pt`);
+    assert.notEqual(en, es, `en/${id}: o eco ficou igual ao es`);
+  }
+});
+
+test('o recorte do eco é conferido, não confiante — abertura estranha sai inteira', () => {
+  // A regra do corte é "o trecho antes dos dois-pontos começa pelo rótulo".
+  // Quem mudar a abertura dos caminhos sem mudar o rótulo (ou o contrário) não
+  // ganha um eco quebrado: ganha a frase inteira, e este teste dizendo por quê.
+  assert.equal(
+    S.ecoDoCaminho('Uma frase sem abertura nenhuma, e ela costuma sair inteira. E outra depois.', 'pt'),
+    'Uma frase sem abertura nenhuma, e ela costuma sair inteira.'
+  );
+  assert.equal(
+    S.ecoDoCaminho('Outro rótulo qualquer: o corpo fica junto porque a abertura não é a do pack. Segunda frase.', 'pt'),
+    'Outro rótulo qualquer: o corpo fica junto porque a abertura não é a do pack.'
+  );
+  // E o corte de fato acontece quando a abertura é a do pack, em cada idioma.
+  assert.equal(S.ecoDoCaminho('Por onde começar, na prática: o gesto. Depois a fonte.', 'pt'), 'o gesto.');
+  assert.equal(S.ecoDoCaminho('Por dónde empezar, en la práctica: el gesto. Después la fuente.', 'es'), 'el gesto.');
+  assert.equal(S.ecoDoCaminho('Where to start, in practice: the move. Then the source.', 'en'), 'the move.');
+  // O rótulo de um idioma não corta o caminho de outro — é assim que se descobre
+  // que a tela passou o lang errado pro motor.
+  assert.match(S.ecoDoCaminho('Where to start, in practice: the move. Then the source.', 'pt'), /^Where to start/);
+});

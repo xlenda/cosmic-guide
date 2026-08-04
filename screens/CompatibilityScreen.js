@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { compatibility } from '../lib/signs.js';
-import { DIMENSOES_VIDA_REAL } from '../lib/synastry.js';
+import { DIMENSOES_VIDA_REAL, ecoDoCaminho, rotuloDoCaminho } from '../lib/synastry.js';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
@@ -56,6 +56,29 @@ const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
 // test/synastry.test.js varre esta tela e falha o build se qualquer peça do
 // bloco 2 sumir, se o bloco 2 subir para antes do bloco 1, ou se alguma string
 // daqui decretar desfecho.
+//
+// ===========================================================================
+// O ECO DO CAMINHO — o que o recolhimento do bloco 2 tinha custado (04/08/2026)
+// ===========================================================================
+// O campo `caminho` (lib/synastry.js, seção 5.1) nasceu colado na Atenção, e a
+// Atenção mora no bloco 2. Só que o bloco 2 nasce RECOLHIDO: quem não toca em
+// "De onde vem isso" — que é a maioria, porque o toque é justamente o que o
+// desenho desta tela desincentiva — lê o diagnóstico inteiro nos pares difíceis
+// e nunca vê a saída. O pedido do dono estava atendido pela metade.
+//
+// A correção é um ECO no bloco 1, e eco não move nada: o caminho continua
+// inteiro lá embaixo, com a citação de Lilly, o locus e a página. O que sobe é a
+// PRIMEIRA frase — onde mora o gesto — num mini-card com o rótulo do pack, logo
+// depois das cinco dimensões e antes do ponteiro pro bloco 2. Tocar nele abre o
+// bloco 2 E rola até o caminho completo, então o eco é porta, não resumo.
+//
+// Só nos pares que TÊM caminho: `result.caminho` é null em trígono, sextil e
+// co-presença (60 dos 144 pares), e o `&&` reproduz a regra do motor em vez de
+// a tela inventar a dela. Par harmônico não ganha mini-card de conselho.
+//
+// O texto e o rótulo vêm do motor (ecoDoCaminho / rotuloDoCaminho): a tela não
+// escreve nem recorta conteúdo, senão o eco sai em português pra quem lê em
+// inglês — o defeito que a extração de 31/07/2026 corrigiu no resto da leitura.
 
 // A MANCHETE DE CADA CATEGORIA — o que substituiu a roda de porcentagem.
 //
@@ -123,6 +146,18 @@ export default function CompatibilityScreen() {
   // toque, e o toque fica visível o tempo todo — a linha do botão mostra o nome
   // do aspecto e a categoria mesmo com o bloco recolhido.
   const [showSource, setShowSource] = useState(false);
+  // O ECO precisa de três referências pra cumprir o que promete — abrir o bloco
+  // 2 JÁ no caminho completo, e não duas telas acima dele:
+  //   scrollRef ....... o rolo da tela, pra poder rolar de fato;
+  //   caminhoY ........ onde o card da Atenção começa (medido no onLayout dele,
+  //                     que é filho direto do contentContainer, então o y já
+  //                     está na coordenada que o scrollTo espera);
+  //   pedidoDeEco ..... o bloco 2 só existe DEPOIS do setShowSource, então o
+  //                     toque não tem como rolar na hora: ele deixa o pedido
+  //                     marcado e o onLayout do card cumpre quando montar.
+  const scrollRef = useRef(null);
+  const caminhoY = useRef(null);
+  const pedidoDeEco = useRef(false);
   // Motor de Oferta (pico emocional): compatibilidade alta é O momento de
   // empolgação — uma única oferta contextual, UMA vez na vida (AsyncStorage),
   // nunca insistindo. Tom honesto: sem contador falso, sem urgência inventada.
@@ -145,6 +180,10 @@ export default function CompatibilityScreen() {
     if (!compat) { setResult(null); return; }
     setResult(compat);
     setShowSource(false);
+    // Leitura nova, medida velha: o card da Atenção do par anterior estava em
+    // outra altura. Sem zerar, o primeiro toque no eco rolaria pro lugar errado.
+    pedidoDeEco.current = false;
+    caminhoY.current = null;
     // Oferta de pico emocional: reancorada no que o cálculo novo produz.
     // Era `pct >= 80`, que com a tabela antiga pegava 6 dos 10 baldes de
     // elemento; agora dispara nos aspectos que a FONTE chama de harmônicos
@@ -187,6 +226,26 @@ export default function CompatibilityScreen() {
     setPicking(null);
     setResult(null);
     setShowSource(false);
+    pedidoDeEco.current = false;
+    caminhoY.current = null;
+  };
+
+  // O toque do eco. Com o bloco 2 já aberto, rola direto; fechado, abre e deixa
+  // o pedido pro onLayout do card da Atenção — que é quem sabe a altura real.
+  const rolarAteOCaminho = () => {
+    if (scrollRef.current && typeof caminhoY.current === 'number') {
+      scrollRef.current.scrollTo({ y: Math.max(caminhoY.current - 12, 0), animated: true });
+    }
+  };
+
+  const abrirOCaminho = () => {
+    Haptics.selectionAsync();
+    if (showSource) {
+      rolarAteOCaminho();
+      return;
+    }
+    pedidoDeEco.current = true;
+    setShowSource(true);
   };
 
   // `!result` importa aqui: marcamos `locked=true` no instante em que a
@@ -205,7 +264,7 @@ export default function CompatibilityScreen() {
           de lib/synastry.js vale pro header também, e test/synastry.test.js
           varre esta string junto com as MANCHETE. */}
       <GradientHeader title="Compatibilidade" subtitle="Como é na vida real — e de onde isso vem" onBack={() => navigation.goBack()} gradient={['#B5286B', '#7B3FB5']} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={styles.pairRow}>
           <SignSlot sign={signA} onPress={() => setPicking(picking === 'A' ? null : 'A')} active={picking === 'A'} />
           <View style={styles.plusWrap}>
@@ -278,6 +337,31 @@ export default function CompatibilityScreen() {
                   <Text style={styles.dimText}>{result.vidaReal[d.id]}</Text>
                 </View>
               ))}
+              {/* O ECO DO CAMINHO — a saída aparece no bloco que ABRE.
+                  Depois das cinco dimensões de propósito: o eco é a resposta ao
+                  que elas acabaram de descrever, e chegar antes delas seria dar
+                  conselho antes de a pessoa saber do que se trata.
+                  Só existe onde o MOTOR diz que existe (null em trígono, sextil
+                  e co-presença) — a tela não decide o que é par difícil. */}
+              {!!result.caminho && (
+                <TouchableOpacity
+                  testID="compat-eco-caminho"
+                  style={styles.ecoCard}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  onPress={abrirOCaminho}
+                >
+                  <View style={styles.ecoHead}>
+                    <View style={styles.ecoIcon}>
+                      <Ionicons name="footsteps" size={14} color={colors.accent} />
+                    </View>
+                    <Text style={styles.ecoTitle}>{rotuloDoCaminho(lang)}</Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+                  </View>
+                  <Text style={styles.ecoText}>{ecoDoCaminho(result.caminho, lang)}</Text>
+                </TouchableOpacity>
+              )}
+
               {/* O ponteiro pro bloco 2 fica DENTRO do bloco quente, na última
                   linha: quem chegou até aqui é exatamente quem pode querer a
                   fonte. Sutil, uma linha, sem competir com o conteúdo. */}
@@ -341,7 +425,21 @@ export default function CompatibilityScreen() {
               </View>
             </View>
 
-            <View style={styles.traitCard}>
+            {/* O card que o eco do bloco 1 mira. O onLayout é o único jeito de
+                saber a altura real dele: o conteúdo acima muda de tamanho com o
+                par, com o idioma e com a largura da tela, então número fixo
+                erraria em quase todo caso. Filho direto do contentContainer, o
+                `y` daqui já é a coordenada que o scrollTo espera. */}
+            <View
+              style={styles.traitCard}
+              onLayout={(e) => {
+                caminhoY.current = e.nativeEvent.layout.y;
+                if (pedidoDeEco.current) {
+                  pedidoDeEco.current = false;
+                  rolarAteOCaminho();
+                }
+              }}
+            >
               <View style={[styles.traitIcon, { backgroundColor: colors.accent + '22' }]}>
                 <Ionicons name="alert-circle" size={20} color={colors.accent} />
               </View>
@@ -508,6 +606,19 @@ const styles = StyleSheet.create({
   dimTitle: { color: colors.text, fontSize: 14, fontWeight: '800', letterSpacing: 0.2 },
   dimText: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, marginTop: 7 },
   realFootnote: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 18, fontStyle: 'italic' },
+  // O ECO. Card DENTRO do bloco 1, com o tom do accent (não do rosa das
+  // dimensões): ele não é mais uma dimensão, é a virada de "como é" pra "o que
+  // dá pra fazer". Corpo no mesmo tamanho de leitura das dimensões — o eco é
+  // texto pra ler, não etiqueta —, e o chevron faz o trabalho do "toque aqui"
+  // sem custar um rótulo novo em três idiomas.
+  ecoCard: {
+    marginTop: 18, padding: 14, borderRadius: 14,
+    backgroundColor: colors.accent + '12', borderWidth: 1, borderColor: colors.accent + '44',
+  },
+  ecoHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ecoIcon: { width: 24, height: 24, borderRadius: 8, backgroundColor: colors.accent + '22', justifyContent: 'center', alignItems: 'center' },
+  ecoTitle: { color: colors.text, fontSize: 14, fontWeight: '800', flex: 1 },
+  ecoText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginTop: 8 },
   sourceToggle: {
     flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12,
     backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14,
