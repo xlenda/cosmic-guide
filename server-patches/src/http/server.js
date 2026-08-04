@@ -520,6 +520,10 @@ app.use("/api/daily-cards", require("./dailyCardsRoutes").dailyCardsRouter);
 // por ADMIN_TOKEN (header X-Admin-Token), nunca abertas sem essa var setada.
 app.use("/api/admin", buildAdminRouter({ repository, adminToken: ADMIN_TOKEN }));
 
+// O Painel do Dono (04/08/2026): GET /painel e a casca publica sem dado; os
+// numeros moram em GET /api/admin/metrics, atras do MESMO ADMIN_TOKEN.
+app.use(require("./painelRoutes").buildPainelRouter({ adminToken: ADMIN_TOKEN }));
+
 // Web Push — o app Cosmic Guide roda só como web (sem publicação em loja),
 // então notificação de celular só existe através disso (ver lib/webPush.js no
 // app): a chave pública é a mesma pra todo mundo (por definição, é pública),
