@@ -195,7 +195,10 @@ async function newSoloPage(browser, extraStorage = {}) {
     await page.waitForTimeout(1300);
     let body = await page.evaluate(() => document.body.innerText);
     check('limite atingido mostra bloqueio', body.includes('Você já usou sua leitura gratuita de Chat Espiritual'));
-    await page.getByText('Assinar agora', { exact: false }).first().click();
+    // Copy do copy-chief (04/08): o CTA do bloqueio virou 'Ver meus 7 dias
+    // grátis →' (onetimelock.cta.subscribe). O regex aceita o antigo tambem
+    // pra o portao nao quebrar de novo se a copy for revertida.
+    await page.getByText(/Ver meus 7 dias grátis|Assinar agora/).first().click();
     await page.waitForTimeout(1500);
     body = await page.evaluate(() => document.body.innerText);
     check('botão Assinar do Chat NAVEGA de verdade (bug do getParent)', body.includes('Assinatura') || body.includes('Faça login para assinar'));
