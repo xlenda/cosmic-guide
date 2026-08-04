@@ -31,10 +31,17 @@ test("datas diferentes tendem a gerar textos diferentes (fase/signo mudam de ver
   assert.notEqual(d1, d2);
 });
 
-test("signo pessoal (opcional) aparece no início do texto quando informado", () => {
+test("signo pessoal (opcional) fecha o texto no recibo, e não abre mais o vocativo", () => {
+  // 04/08/2026: o vocativo "♉ Touro," ERA a primeira coisa do texto, junto com
+  // o rótulo da fase e a coordenada da Lua. O dono leu isso e não entendeu —
+  // ficha técnica não prende. Agora a reflexão abre e a procedência fecha; o
+  // signo da pessoa não sumiu, virou a última linha (ver o bloco de comentário
+  // no topo de lib/dailyThought.js).
   const date = new Date("2024-01-25T17:54:00Z");
   const thought = getThoughtForDate(date, { name: "Touro", icon: "♉" });
-  assert.ok(thought.startsWith("♉ Touro,"), thought);
+  assert.ok(!thought.startsWith("♉ Touro,"), thought);
+  assert.ok(thought.endsWith("Leitura de hoje para ♉ Touro."), thought);
+  assert.ok(thought.includes("De onde vem o que você acabou de ler: 🌕 Lua Cheia."), thought);
   assert.ok(thought.includes("Lua Cheia"), thought);
 });
 

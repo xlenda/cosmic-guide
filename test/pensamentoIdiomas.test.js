@@ -51,7 +51,7 @@ const path = require('node:path');
 
 const DT = require('../lib/dailyThought.js');
 const W = require('../lib/wallpaper.js');
-const { SIGNS, aspects } = require('../lib/signs.js');
+const { SIGNS, aspects, moonSign } = require('../lib/signs.js');
 const { getMoonPhase, faseDoDia } = require('../lib/lunarCalendar.js');
 const { translate } = require('../lib/i18n.js');
 const GOLDEN = require('./golden/pensamento.pt.golden.json');
@@ -290,6 +290,88 @@ test('a abertura por período é a mesma faixa de hora nos três idiomas', () =>
   }
 });
 
+// ===========================================================================
+// (2b) A REFLEXÃO ABRE, A FICHA TÉCNICA FECHA — pedido do dono, 04/08/2026
+// ===========================================================================
+// "♊ Gêmeos, 🌖 Quarto Minguante. A Lua está em Áries ♈..." — ele leu o
+// próprio card e não entendeu. Vocativo, rótulo e coordenada nas três
+// primeiras linhas é ficha técnica, e ficha técnica não segura ninguém. A
+// ordem virou (mesmo movimento de screens/CompatibilityScreen.js, 31/07/2026):
+// a linha pessoal e a reflexão abrem, a procedência fecha.
+//
+// Estes dois testes valem nos TRÊS idiomas porque a inversão é de ESTRUTURA,
+// não de língua — um pack que traduzisse voltando a ficha pro começo estaria
+// entregando outro produto.
+
+// A frase de coordenada como ela sai de verdade naquele dia e naquele idioma:
+// "A Lua está em Leão ♌. " / "La Luna está en Leo ♌. " / "The Moon is in Leo ♌. "
+function coordenadaDaLua(P, iso) {
+  const lua = moonSign(iso);
+  assert.ok(lua && lua.name, `${iso}: sem signo da Lua não dá pra conferir o recibo`);
+  return P.luaEm.replace('{signo}', P.signos[lua.name]).replace('{emoji}', lua.emoji || '');
+}
+
+test('a ficha técnica NÃO abre o pensamento — nem fase, nem coordenada, nem vocativo', () => {
+  for (const iso of DATAS_DE_PROVA) {
+    for (const lang of IDIOMAS) {
+      const P = PACOTES_PENSAMENTO[lang];
+      const fase = faseDoDia(iso, lang);
+      // A COORDENADA EXATA DO DIA, não o pedaço literal do molde. Testar por
+      // "La Luna está en " dava falso positivo: a reflexão espanhola da Lua
+      // Cheia começa com exatamente essas palavras ("La Luna está en el pico de
+      // luz del ciclo"), e abrir por reflexão é justamente o que se quer.
+      const coordenada = coordenadaDaLua(P, iso);
+      for (const [rotulo, signo] of [['com signo', TOURO], ['sem signo', null]]) {
+        const texto = DT.getThoughtForDate(noon(iso), signo, lang);
+        const onde = `${iso}/${lang}/${rotulo}`;
+        assert.ok(!texto.startsWith(fase.emoji), `${onde}: ainda abre com o emoji da fase`);
+        assert.ok(!texto.startsWith(fase.name), `${onde}: ainda abre com o nome da fase`);
+        assert.ok(!texto.startsWith(coordenada), `${onde}: ainda abre com a coordenada da Lua`);
+        assert.ok(!texto.startsWith(P.recibo), `${onde}: o recibo subiu pro começo`);
+        if (signo) assert.ok(!texto.startsWith(signo.icon), `${onde}: ainda abre com o vocativo do signo`);
+        // E o que abre é reflexão de verdade: ou a relação com o signo da
+        // pessoa, ou a reflexão da fase — nunca outra coisa.
+        const aberturaValida =
+          P.relacaoSigno.some((f) => texto.startsWith(f)) || texto.startsWith(fase.reflexao.slice(0, 40));
+        assert.ok(aberturaValida, `${onde}: o texto não abre por reflexão nenhuma — abriu com "${texto.slice(0, 60)}"`);
+      }
+    }
+  }
+});
+
+test('o recibo FECHA o pensamento e leva a ficha técnica inteira — nada se perdeu', () => {
+  for (const iso of DATAS_DE_PROVA) {
+    for (const lang of IDIOMAS) {
+      const P = PACOTES_PENSAMENTO[lang];
+      const fase = faseDoDia(iso, lang);
+      const coordenada = coordenadaDaLua(P, iso);
+      const texto = DT.getThoughtForDate(noon(iso), TOURO, lang);
+      const onde = `${iso}/${lang}`;
+
+      const i = texto.indexOf(P.recibo);
+      assert.notEqual(i, -1, `${onde}: o recibo sumiu do texto`);
+      const fecho = texto.slice(i);
+      // As TRÊS peças da ficha antiga continuam no texto — dentro do fecho.
+      assert.ok(fecho.includes(fase.emoji), `${onde}: o emoji da fase não está no recibo`);
+      assert.ok(fecho.includes(fase.name), `${onde}: o nome da fase não está no recibo`);
+      assert.ok(fecho.includes(coordenada), `${onde}: o signo da Lua não está no recibo`);
+
+      const assinatura = P.assinatura
+        .replace('{icone}', `${TOURO.icon} `)
+        .replace('{signo}', P.signos[TOURO.name]);
+      assert.ok(texto.endsWith(assinatura), `${onde}: o texto não termina endereçado à pessoa — "${texto.slice(-60)}"`);
+      // Sem signo pessoal não há a quem endereçar: o texto fecha na coordenada
+      // da Lua, e mesmo assim sem espaço solto no fim (o card vai pro share).
+      const semSigno = DT.getThoughtForDate(noon(iso), null, lang);
+      assert.ok(!semSigno.includes(P.assinatura.split('{')[0]), `${onde}: endereçou alguém que o app não conhece`);
+      for (const t of [texto, semSigno]) {
+        assert.equal(t, t.trim(), `${onde}: espaço solto na ponta do card`);
+        assert.ok(!/ {2}/.test(t), `${onde}: espaço duplo no meio do texto — um bloco vazio deixou buraco`);
+      }
+    }
+  }
+});
+
 test('o papel de parede escolhe a MESMA frase do pool nos três idiomas', () => {
   // 45 dias corridos > 1 ciclo sinódico: passa pelas 8 fases.
   for (let i = 0; i < 45; i++) {
@@ -386,22 +468,27 @@ test('PARIDADE: os três pacotes do pensamento têm a mesma forma, sem valor vaz
     const P = PACOTES_PENSAMENTO[lang];
     assert.deepEqual(Object.keys(P).sort(), Object.keys(pt).sort(), `${lang}: chaves do pacote ≠ PT`);
 
-    for (const chave of ['carregando', 'saudacao', 'luaEm', 'regenteFrase', 'aspectoFrase', 'retrogrado']) {
+    for (const chave of ['carregando', 'recibo', 'luaEm', 'assinatura', 'regenteFrase', 'aspectoFrase', 'retrogrado']) {
       assert.ok(typeof P[chave] === 'string' && P[chave].trim(), `${lang}.${chave} vazio`);
     }
     // Os moldes: mesmos placeholders, nem um a mais nem um a menos.
-    for (const molde of ['saudacao', 'luaEm', 'regenteFrase', 'aspectoFrase']) {
+    for (const molde of ['assinatura', 'luaEm', 'regenteFrase', 'aspectoFrase']) {
       assert.deepEqual(
         placeholders(P[molde]),
         placeholders(pt[molde]),
         `${lang}.${molde}: placeholders divergem do PT`
       );
     }
-    // O espaço final de `saudacao` e `luaEm` é parte do contrato: sem ele o
-    // texto cola ("♉ TauroLa Luna está...").
-    for (const molde of ['saudacao', 'luaEm']) {
+    // O espaço final de `recibo` e `luaEm` é parte do contrato: as duas entram
+    // coladas na peça seguinte dentro do recibo, sem separador nenhum no meio
+    // ("...acabou de ler: 🌕 Lua Cheia. A Lua está em Leão ♌. Leitura de hoje
+    // para ♉ Touro."). Sem o espaço, o texto gruda.
+    for (const molde of ['recibo', 'luaEm']) {
       assert.ok(P[molde].endsWith(' '), `${lang}.${molde}: perdeu o espaço final e o texto vai colar`);
     }
+    // `assinatura` FECHA o texto: espaço no fim dela viraria lixo no fim do
+    // card — e vaza pro share, que manda o pensamento como mensagem.
+    assert.equal(P.assinatura, P.assinatura.trimEnd(), `${lang}.assinatura: espaço sobrando no fim do card`);
 
     assert.deepEqual(Object.keys(P.aberturas).sort(), ['manha', 'noite', 'tarde']);
     for (const [periodo, frase] of Object.entries(P.aberturas)) {
@@ -542,7 +629,9 @@ function textosVisiveis(lang) {
   for (const [periodo, f] of Object.entries(P.aberturas)) saida.push([`${lang}.pensamento.abertura.${periodo}`, f]);
   saida.push([`${lang}.pensamento.carregando`, P.carregando]);
   saida.push([`${lang}.pensamento.retrogrado`, P.retrogrado]);
+  saida.push([`${lang}.pensamento.recibo`, P.recibo]);
   saida.push([`${lang}.pensamento.luaEm`, P.luaEm]);
+  saida.push([`${lang}.pensamento.assinatura`, P.assinatura]);
   saida.push([`${lang}.pensamento.regenteFrase`, P.regenteFrase]);
   saida.push([`${lang}.pensamento.aspectoFrase`, P.aspectoFrase]);
   P.relacaoSigno.forEach((f, i) => saida.push([`${lang}.pensamento.relacaoSigno[${i}]`, f]));
@@ -787,8 +876,12 @@ test('nenhuma tradução vaza português — o card não pode sair bilíngue', (
   // es/en significa que algum pedaço ficou sem pack e a Home vira mistura.
   const MARCAS_PT = [
     'Hoje é dia de', 'A Lua está em', 'Amanhã', 'deixa espaço pra',
-    'O dia está', 'Metade do dia', 'estão em', 'neste período',
+    'O dia está', 'Metade do seu dia', 'estão em', 'neste período',
     'Mercúrio retrógrado',
+    // As três peças do recibo em português (04/08/2026) — se alguma vazar, o
+    // card sai bilíngue exatamente no fecho, que é onde a pessoa confere.
+    'De onde vem o que você acabou de ler', 'Leitura de hoje para',
+    'Ninguém escreveu nada', 'fechando a porta',
   ];
   for (const lang of IDIOMAS_PACK) {
     for (let i = 0; i < 31; i++) {

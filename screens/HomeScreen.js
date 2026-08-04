@@ -313,6 +313,35 @@ export default function HomeScreen() {
     }
   }, [personalSky, personalSkyBirth, lang]);
 
+  // QUENTE PRIMEIRO, FICHA DEPOIS — lei do dono, aplicada aqui em 04/08/2026.
+  // O motor de lib/transitoFase.js já devolvia `chamada`: a frase de vida real
+  // da fase ("tem briga que terminou na segunda e continua ocupando a quinta"),
+  // sem nome de planeta, sem grau e sem século. A tela mostrava só a FICHA — o
+  // texto do trânsito e a linha técnica da fase — e a chamada morria no objeto.
+  // Agora ela abre o card e a ficha desce, menor.
+  //
+  // A chamada é a MESMA para todos os aspectos de uma mesma fase: ela descreve
+  // o estado do ângulo, não o planeta. Repetir o mesmo parágrafo três vezes num
+  // card de Home vira ruído, então cada fase diz a sua UMA vez, no primeiro
+  // aspecto em que aparece. Isso é seguro para quem não assina porque a lista
+  // fechada é sempre um PREFIXO da aberta (slice(0, 1)): o primeiro aspecto é
+  // sempre a estreia da fase dele, então quem vê um só vê a chamada dele.
+  //
+  // `temChamada` existe separado de `chamada` para a FICHA não oscilar de
+  // tamanho dentro do mesmo card: o segundo aspecto da mesma fase não repete a
+  // abertura, mas continua sendo recibo de uma leitura que já foi dada.
+  const personalSkyBlocos = useMemo(() => {
+    if (!Array.isArray(personalSky)) return [];
+    const jaDita = new Set();
+    return personalSky.map((aspecto, i) => {
+      const fase = (personalSkyFases && personalSkyFases[i]) || null;
+      const temChamada = !!(fase && fase.chamada);
+      const estreia = temChamada && !jaDita.has(fase.fase);
+      if (estreia) jaDita.add(fase.fase);
+      return { aspecto, fase, temChamada, chamada: estreia ? fase.chamada : null };
+    });
+  }, [personalSky, personalSkyFases]);
+
   // A linha de hoje (ver o bloco grande no topo do arquivo pro porquê de ser
   // UMA linha, de a trilha ganhar do ritual, e de os motores virem por import()
   // dinâmico). `null` = não há motivo de voltar hoje, e aí não se desenha nada.
@@ -1069,14 +1098,20 @@ export default function HomeScreen() {
               <Ionicons name="telescope" size={16} color={colors.teal} />
               <Text style={[styles.peekLabel, { color: colors.teal }]}>{t('home.sky.label')}</Text>
             </View>
-            {(hasAccess || isOwnerAccount ? personalSky : personalSky.slice(0, 1)).map((a, i) => {
+            {(hasAccess || isOwnerAccount ? personalSkyBlocos : personalSkyBlocos.slice(0, 1)).map((b, i) => {
               // A fase vem do MESMO índice (fasesDoCeuPessoal preserva ordem e
-              // tamanho). Sem ela — sem efeméride, ou trânsito parado demais
-              // pra ter direção — some a linha, nunca se inventa um verbo.
-              const fase = personalSkyFases && personalSkyFases[i];
+              // tamanho) e já veio casada em `personalSkyBlocos`. Sem ela — sem
+              // efeméride, ou trânsito parado demais pra ter direção — some a
+              // linha, nunca se inventa um verbo.
+              const { aspecto, fase } = b;
               return (
-                <View key={i} style={i > 0 ? { marginTop: 8 } : null}>
-                  <Text style={styles.peekText}>{a.text}</Text>
+                <View key={i} style={i > 0 ? { marginTop: 12 } : null}>
+                  {/* A ABERTURA: vida real, primeiro. Ver personalSkyBlocos. */}
+                  {b.chamada ? <Text style={styles.skyChamada}>{b.chamada}</Text> : null}
+                  {/* A FICHA: qual planeta, sobre qual ponto do mapa. Só encolhe
+                      quando existe abertura em cima — sem chamada, esta linha É
+                      a leitura e continua no corpo de sempre. */}
+                  <Text style={b.temChamada ? styles.skyFicha : styles.peekText}>{aspecto.text}</Text>
                   {/* `linhaCurta` é o nome do campo em lib/transitoFase.js —
                       escrevi `fase.texto` aqui em 01/08 e, como undefined é
                       falsy, a linha sumia calada em vez de quebrar. */}
@@ -1347,6 +1382,14 @@ const styles = StyleSheet.create({
   peekHead: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
   peekLabel: { color: colors.purple, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   peekText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  // A ABERTURA do céu de hoje: a chamada da fase, em corpo de leitura e na cor
+  // do texto. É a primeira coisa que a pessoa lê no card — a lei do dono é
+  // quente primeiro, ficha depois, e a hierarquia visual tem que contar isso
+  // sem precisar de rótulo.
+  skyChamada: { color: colors.text, fontSize: 15, lineHeight: 22, marginBottom: 6 },
+  // A FICHA: qual planeta, sobre qual ponto do mapa. Recibo da abertura, então
+  // menor e mais apagada que ela.
+  skyFicha: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
   // A direção do trânsito (chegando/indo embora) vem menor e em teal: é
   // qualificação da linha de cima, não uma segunda leitura.
   skyFaseText: { color: colors.teal, fontSize: 12, lineHeight: 17, marginTop: 2 },

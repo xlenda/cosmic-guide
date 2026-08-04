@@ -44,8 +44,20 @@ function registrar(onde, antes, agora) {
   return true;
 }
 
+// ---- as duas tabelas de constantes ------------------------------------------
+// ELAS FALTAVAM AQUI ATÉ 04/08/2026. O golden guarda quatro blocos e este
+// script só sabia regravar dois: quem reescrevesse as aberturas por período (ou
+// a tabela de regentes) recapturava tudo, via "0 campos mudaram" nos textos e
+// ainda assim o teste morria no `deepEqual` da constante — sem nenhum diff pra
+// ler. Agora o script cobre os quatro blocos, que é o que "recaptura do golden"
+// sempre quis dizer.
+const novasAberturas = { ...DT.ABERTURA_POR_PERIODO };
+const novosRegentes = JSON.parse(JSON.stringify(DT.RULER_BY_WEEKDAY));
+
 // ---- pensamento do dia -----------------------------------------------------
 const novoThought = {};
+registrar('ABERTURA_POR_PERIODO', GOLDEN.dailyThought.ABERTURA_POR_PERIODO, novasAberturas);
+registrar('RULER_BY_WEEKDAY', GOLDEN.dailyThought.RULER_BY_WEEKDAY, novosRegentes);
 for (const iso of Object.keys(GOLDEN.dailyThought.getThoughtForDate)) {
   novoThought[iso] = {
     semSigno: DT.getThoughtForDate(noon(iso), null),
@@ -89,6 +101,8 @@ if (!process.argv.includes('--confirmar')) {
   process.exit(0);
 }
 
+GOLDEN.dailyThought.ABERTURA_POR_PERIODO = novasAberturas;
+GOLDEN.dailyThought.RULER_BY_WEEKDAY = novosRegentes;
 GOLDEN.dailyThought.getThoughtForDate = novoThought;
 GOLDEN.dailyThought.getTodaysThought = novoHoje;
 GOLDEN.wallpaper.getWallpaperData = novoWall;

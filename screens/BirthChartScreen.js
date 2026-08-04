@@ -319,10 +319,15 @@ function SeitaSection({ seita, lang }) {
   return (
     <View style={styles.seitaCard} testID="seita-secao">
       <Text style={styles.seitaTitulo}>{UI.rotulo}</Text>
-      {/* O resultado, grande: "mapa diurno" / "mapa noturno". */}
-      <Text style={styles.seitaDestaque} testID="seita-resultado">{seita.seitaMapa}</Text>
-      {/* A chamada abre na vida real, sem nome proprio e sem capitulo. */}
-      <Text style={styles.seitaTexto}>{seita.chamada}</Text>
+      {/* QUENTE PRIMEIRO, FICHA DEPOIS — lei do dono, aplicada em 04/08/2026.
+          A chamada ja existia e ja abria na vida real, sem nome proprio e sem
+          capitulo; era a TELA que punha "mapa diurno" grande em cima dela. Um
+          rotulo tecnico nao segura ninguem antes de a pessoa ter motivo pra se
+          importar com ele — entao a leitura abre e o resultado desce, em linha
+          de ficha. O dado nao sumiu: continua no card, com o mesmo testID, e o
+          acordeao logo abaixo explica de onde ele vem. */}
+      <Text style={[styles.seitaTexto, styles.seitaAbertura]}>{seita.chamada}</Text>
+      <Text style={styles.seitaFicha} testID="seita-resultado">{seita.seitaMapa}</Text>
 
       {/* CASO LIMITROFE — fica FORA do acordeao de proposito: quando a hora
           informada decide o resultado, a duvida vale tanto quanto o resultado. */}
@@ -495,18 +500,28 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
           motor declarando a precisao que conseguiu. */}
       {chart.profeccao && chart.profeccao.disponivel && (
         <View style={styles.seitaCard}>
-          <Text style={styles.seitaTitulo}>{chart.profeccao.titulo}</Text>
+          {/* QUENTE PRIMEIRO, FICHA DEPOIS — lei do dono, aplicada em
+              04/08/2026. O card abria com "Ano 34 · casa 11 · Aquário" e com o
+              rótulo da origem, ou seja: duas linhas de ficha antes de qualquer
+              motivo pra ler o resto. O olho de cima agora é só o NOME da seção
+              (vem do mesmo pack, `rotulos.titulo`), o texto do ano abre, e a
+              ficha desce inteira logo abaixo dele. */}
+          {!!(chart.profeccao.rotulos && chart.profeccao.rotulos.titulo) && (
+            <Text style={styles.seitaTitulo}>{chart.profeccao.rotulos.titulo}</Text>
+          )}
+          <Text style={[styles.seitaTexto, styles.seitaAbertura]}>{chart.profeccao.texto}</Text>
+          <Text style={styles.seitaFicha}>{chart.profeccao.titulo}</Text>
           {/* DE ONDE A CONTAGEM SAIU, dito na cara (03/08/2026).
               Este card mora logo abaixo do Ascendente, e sem hora de
               nascimento o motor conta a partir do SOL — legítimo, Ptolomeu
               nomeia cinco lugares prorrogativos. Só que o card não dizia qual
               tinha usado: quem não informou a hora lia o ano inteiro achando
               que veio do Ascendente logo acima. A tela de Profecções já era
-              honesta nisso; esta não era. */}
+              honesta nisso; esta não era. Continua dito — como recibo, embaixo
+              da leitura, e não como porteiro dela. */}
           {!!chart.profeccao.origemRotulo && (
             <Text style={styles.seitaNota}>{chart.profeccao.origemRotulo}</Text>
           )}
-          <Text style={styles.seitaTexto}>{chart.profeccao.texto}</Text>
           {/* `detalhe` E UM OBJETO DE OITO CAMPOS, nunca uma string. Antes
               estava aqui dentro de um <Text> sozinho — objeto dentro de <Text>
               nao renderiza, quebra a tela, e quebrava o Mapa Astral inteiro
@@ -1057,6 +1072,16 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize', marginBottom: 10,
   },
   seitaDestaqueFrase: { textTransform: 'none', fontSize: 18 },
+  // A ABERTURA de um card que segue a lei "quente primeiro": a leitura de vida
+  // real vem em corpo maior que o resto do card, porque é ela que segura.
+  seitaAbertura: { fontSize: 15, lineHeight: 23 },
+  // A FICHA depois da abertura: o resultado técnico ("mapa diurno", "Ano 34 ·
+  // casa 11 · Aquário") em tamanho de etiqueta. O dado continua na tela — ele
+  // só deixou de ser porteiro da leitura.
+  seitaFicha: {
+    color: colors.textSecondary, fontSize: 12, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10,
+  },
   seitaSubtitulo: {
     color: colors.gold, fontSize: 11, fontWeight: '800',
     textTransform: 'uppercase', letterSpacing: 1, marginTop: 14, marginBottom: 8,

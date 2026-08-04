@@ -282,7 +282,19 @@ export default function ProfeccoesScreen() {
         {disponivel ? (
           <View style={styles.cardDestaque} testID="profeccoes-ano">
             <Text style={styles.olho}>{rotulos.titulo}</Text>
-            <Text style={styles.tituloGrande} testID="profeccoes-ano-titulo">
+
+            {/* QUENTE PRIMEIRO, FICHA DEPOIS — a lei já estava escrita neste
+                arquivo ("prende primeiro: a vida real abre, o recibo desce") e
+                o card a desobedecia: "Ano 34 · casa 11 · Aquário" em 22px e
+                três rótulos técnicos vinham ANTES do texto que ela abre. O
+                texto do motor já é conforme; era a ordem da tela que estava
+                invertida. Corrigido em 04/08/2026 — nada aqui foi reescrito,
+                só desceu. */}
+            <Text style={[styles.texto, styles.textoAbertura]} testID="profeccoes-texto-ano">
+              {anual.texto}
+            </Text>
+
+            <Text style={styles.tituloFicha} testID="profeccoes-ano-titulo">
               {anual.titulo}
             </Text>
 
@@ -304,11 +316,6 @@ export default function ProfeccoesScreen() {
                 </Text>
               </View>
             </View>
-
-            {/* Prende primeiro: a vida real abre, o recibo desce. */}
-            <Text style={styles.texto} testID="profeccoes-texto-ano">
-              {anual.texto}
-            </Text>
 
             <View style={styles.par}>
               <Text style={styles.parRotulo}>{rotulos.nomeAntigo}</Text>
@@ -706,6 +713,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   tituloGrande: { color: colors.text, fontSize: 22, fontWeight: '800', lineHeight: 28 },
+  // A ficha do ano DEPOIS da leitura (lei "quente primeiro"): o mesmo dado que
+  // era o título de 22px, agora em tamanho de etiqueta. Ele não sumiu — deixou
+  // de ser a primeira coisa que a pessoa lê.
+  tituloFicha: {
+    color: colors.textSecondary, fontSize: 12, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 0.8,
+  },
   tituloMedio: { color: colors.text, fontSize: 17, fontWeight: '800', lineHeight: 23 },
 
   paresRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
@@ -715,6 +729,9 @@ const styles = StyleSheet.create({
   parDestaque: { color: colors.gold, fontWeight: '800' },
 
   texto: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  // A abertura do card do ano: mesma prosa, corpo maior e cor de texto cheio.
+  // É o primeiro bloco que a pessoa lê, então ele lidera a hierarquia.
+  textoAbertura: { color: colors.text, fontSize: 15, lineHeight: 23 },
   glosa: { color: colors.textMuted, fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
 
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

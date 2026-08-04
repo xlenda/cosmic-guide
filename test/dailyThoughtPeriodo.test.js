@@ -60,11 +60,18 @@ test("é determinístico: mesma data e hora sempre devolvem o mesmo texto", () =
   assert.equal(getTodaysThought(null, diaAs(9)), getTodaysThought(null, diaAs(9)));
 });
 
-test("abertura vem primeiro e a saudação do signo continua logo depois", () => {
+test("abertura vem primeiro e o signo da pessoa fecha o texto, no recibo", () => {
+  // A abertura por período continua sendo a primeira linha do card — o que
+  // mudou em 04/08/2026 é o que vem DEPOIS dela: reflexão, não ficha técnica.
+  // O endereçamento ao signo desceu pro fecho.
   const out = getTodaysThought({ name: "Touro", icon: "♉" }, diaAs(8));
   assert.ok(out.startsWith(ABERTURA_POR_PERIODO.manha), out);
-  assert.ok(out.includes("♉ Touro,"), out);
+  assert.ok(out.endsWith("Leitura de hoje para ♉ Touro."), out);
   assert.ok(out.includes("Lua Cheia"), out);
+  // Logo depois da abertura vem reflexão, nunca o rótulo da fase.
+  const depoisDaAbertura = out.slice(ABERTURA_POR_PERIODO.manha.length + 1);
+  assert.ok(!depoisDaAbertura.startsWith("🌕"), depoisDaAbertura);
+  assert.ok(!depoisDaAbertura.startsWith("♉"), depoisDaAbertura);
 });
 
 test("assinatura antiga continua funcionando: sem data, recebe o período de agora", () => {
@@ -78,7 +85,7 @@ test("assinatura antiga continua funcionando: sem data, recebe o período de ago
 
 test("assinatura antiga com signo pessoal continua endereçando a pessoa", () => {
   const out = getTodaysThought({ name: "Touro", icon: "♉" });
-  assert.ok(out.includes("♉ Touro,"), out);
+  assert.ok(out.includes("Leitura de hoje para ♉ Touro."), out);
 });
 
 test("nenhuma palavra proibida nas aberturas nem no texto completo dos três períodos", () => {
