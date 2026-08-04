@@ -1186,17 +1186,32 @@ function cortarNaUltimaFraseCompleta(texto) {
 // e um nome de obra traduzido na marra deixa a citação impossível de conferir.
 const DIRETRIZES_DE_IDIOMA = Object.assign(Object.create(null), {
   pt: "",
+  // As duas diretrizes ganharam duas ordens extras em 04/08/2026, depois de
+  // uma varredura ao vivo pegar (a) o espanhol devolvendo TODOS os campos
+  // vazios com um sonho curto e (b) o inglês emprestando a palavra "relato"
+  // do prompt em português ("This relato is too lean..."). A instrução do
+  // sistema é em PT — o modelo precisa ouvir explicitamente que nem as
+  // PALAVRAS soltas do prompt podem vazar, e que campo vazio nunca é saída.
   es: [
     "IMPORTANTE: responde COMPLETAMENTE en español. Todos los campos del JSON",
     "—títulos, cuerpo, listas— van en español, sin una sola frase en portugués.",
-    "Los nombres de obras y autores se mantienen en su forma consagrada",
-    "(Tetrabiblos sigue siendo Tetrabiblos, Ptolomeu se escribe Ptolomeo).",
+    "Tampoco tomes prestadas palabras sueltas de las instrucciones (escribe",
+    "'tu relato' como 'lo que contaste', nunca 'relato' a la portuguesa si no",
+    "encaja). Los nombres de obras y autores se mantienen en su forma",
+    "consagrada (Tetrabiblos sigue siendo Tetrabiblos, Ptolomeu se escribe",
+    "Ptolomeo). NUNCA devuelvas title o body vacíos: si el material es",
+    "demasiado corto para interpretar, usa el body para pedir en español los",
+    "detalles que faltan, y aun así da un title corto.",
   ].join(" "),
   en: [
     "IMPORTANT: answer ENTIRELY in English. Every field in the JSON — titles,",
-    "body, lists — must be in English, with no Portuguese left anywhere.",
-    "Keep titles of works and author names in their established form",
-    "(Tetrabiblos stays Tetrabiblos, Ptolomeu becomes Ptolemy).",
+    "body, lists — must be in English, with no Portuguese left anywhere. Do",
+    "not borrow stray words from the instructions either (write 'what you",
+    "shared' or 'your account', never 'relato'). Keep titles of works and",
+    "author names in their established form (Tetrabiblos stays Tetrabiblos,",
+    "Ptolomeu becomes Ptolemy). NEVER return an empty title or body: if the",
+    "material is too short to interpret, use the body to ask in English for",
+    "the missing details, and still give a short title.",
   ].join(" "),
 });
 
@@ -1220,40 +1235,79 @@ class AnthropicChatProvider {
   // o sintoma de truncamento NÃO era texto cortado, era leitura genérica, e o
   // log só dizia "Unexpected end of JSON input". Agora o erro é nomeado.
   async callJson({ rota, model, maxTokens, systemPrompt, schema, content }) {
-    const response = await this.client.messages.create(
-      Object.assign(
-        {
-          model,
-          max_tokens: maxTokens,
-          system: systemBlocks(systemPrompt, model),
-          messages: [{ role: "user", content }],
-        },
-        paramsModernos(model, jsonOutput(schema))
-      )
-    );
+    // DUAS TENTATIVAS, e a segunda só existe por causa dos CAMPOS VAZIOS
+    // (04/08/2026). Uma varredura ao vivo pegou o /api/dream em espanhol
+    // devolvendo {"elementos":"","title":"","body":"","fonte":""} com um sonho
+    // curto demais: o schema obriga os CAMPOS a existirem, mas não obriga
+    // CONTEÚDO — e o modelo, sem saber se devia interpretar ou pedir mais
+    // detalhe, entregou o JSON válido mais covarde possível. O cliente
+    // (exigirTituloECorpo) derrubava isso pro mock genérico: o assinante
+    // pagava leitura real e recebia enlatado.
+    //
+    // A regra: title e body vazios = resposta inútil em QUALQUER rota destas
+    // (todas devolvem title/body; `fonte` e `elementos` PODEM ser vazios por
+    // contrato). Na primeira vez, tenta de novo com uma instrução extra
+    // explícita; na segunda, lança erro nomeado — o mock com aviso é melhor
+    // que tela quebrada, mas só depois de UMA nova chance real.
+    const REFORCO =
+      "\n\nATENÇÃO: a resposta anterior veio com campos vazios. title e body " +
+      "NUNCA podem ficar vazios — se o material for curto demais para " +
+      "interpretar, use o body para pedir, na língua da resposta, os detalhes " +
+      "que faltam, e dê um title curto mesmo assim.";
 
-    if (response.stop_reason === "max_tokens") {
-      throw new Error(`[${rota}] resposta truncada pelo max_tokens (${maxTokens}) — JSON inválido garantido`);
-    }
-    if (response.stop_reason === "refusal") {
-      throw new Error(`[${rota}] modelo recusou a requisição`);
-    }
+    for (let tentativa = 0; ; tentativa++) {
+      const conteudoDaVez =
+        tentativa === 0
+          ? content
+          : content.map((b, i) =>
+              // O reforço entra no ÚLTIMO bloco de texto, preservando imagem e
+              // contexto — mudar o system invalidaria o prefixo cacheado.
+              i === content.length - 1 && b.type === "text" ? { ...b, text: b.text + REFORCO } : b
+            );
 
-    const textBlock = (response.content || []).find((b) => b.type === "text");
-    if (!textBlock || !textBlock.text) {
-      throw new Error(`[${rota}] resposta sem bloco de texto`);
-    }
+      const response = await this.client.messages.create(
+        Object.assign(
+          {
+            model,
+            max_tokens: maxTokens,
+            system: systemBlocks(systemPrompt, model),
+            messages: [{ role: "user", content: conteudoDaVez }],
+          },
+          paramsModernos(model, jsonOutput(schema))
+        )
+      );
 
-    let parsed;
-    try {
-      parsed = JSON.parse(textBlock.text);
-    } catch {
-      throw new Error(`[${rota}] modelo devolveu JSON inválido/truncado`);
+      if (response.stop_reason === "max_tokens") {
+        throw new Error(`[${rota}] resposta truncada pelo max_tokens (${maxTokens}) — JSON inválido garantido`);
+      }
+      if (response.stop_reason === "refusal") {
+        throw new Error(`[${rota}] modelo recusou a requisição`);
+      }
+
+      const textBlock = (response.content || []).find((b) => b.type === "text");
+      if (!textBlock || !textBlock.text) {
+        throw new Error(`[${rota}] resposta sem bloco de texto`);
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(textBlock.text);
+      } catch {
+        throw new Error(`[${rota}] modelo devolveu JSON inválido/truncado`);
+      }
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error(`[${rota}] JSON devolvido não é um objeto`);
+      }
+
+      const tituloVazio = typeof parsed.title === "string" && parsed.title.trim() === "";
+      const corpoVazio = typeof parsed.body === "string" && parsed.body.trim() === "";
+      if (!tituloVazio && !corpoVazio) return parsed;
+
+      if (tentativa >= 1) {
+        throw new Error(`[${rota}] modelo devolveu title/body vazios mesmo após reforço`);
+      }
+      console.warn(`[${rota}] title/body vazios — tentando de novo com reforço`);
     }
-    if (!parsed || typeof parsed !== "object") {
-      throw new Error(`[${rota}] JSON devolvido não é um objeto`);
-    }
-    return parsed;
   }
 
   // Monta o turno do usuário: texto da instrução + bloco de contexto quando
