@@ -104,7 +104,7 @@ async function newSoloPage(browser, extraStorage = {}) {
     await page.getByText('Carreira', { exact: false }).first().click();
     await page.waitForTimeout(1200);
     const body = await page.evaluate(() => document.body.innerText);
-    check('2º tema bloqueia e pede assinatura', body.includes('Assinar agora'));
+    check('2º tema bloqueia e pede assinatura', /Ver meus 7 dias grátis|Assinar agora/.test(body));
     check('CTA de convidar par também presente', /convide seu par/i.test(body));
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
@@ -194,7 +194,7 @@ async function newSoloPage(browser, extraStorage = {}) {
     await page.getByText('Chat', { exact: false }).first().click();
     await page.waitForTimeout(1300);
     let body = await page.evaluate(() => document.body.innerText);
-    check('limite atingido mostra bloqueio', body.includes('Você já usou sua leitura gratuita de Chat Espiritual'));
+    check('limite atingido mostra bloqueio', /a primeira foi por conta da casa|Você já usou sua leitura gratuita/.test(body));
     // Copy do copy-chief (04/08): o CTA do bloqueio virou 'Ver meus 7 dias
     // grátis →' (onetimelock.cta.subscribe). O regex aceita o antigo tambem
     // pra o portao nao quebrar de novo se a copy for revertida.
@@ -220,7 +220,7 @@ async function newSoloPage(browser, extraStorage = {}) {
     // assinatura libera tudo e o par entra de graça pelo link). Checar botão
     // por rótulo de botão, não por frase de parágrafo, é o que impede o teste
     // de quebrar toda vez que alguém melhora uma copy.
-    check('as 2 CTAs presentes', body.includes('Assinar agora') && /convidar meu par/i.test(body));
+    check('as 2 CTAs presentes', /Ver meus 7 dias grátis|Assinar agora/.test(body) && /convid(ar meu|e seu) par/i.test(body));
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }
@@ -249,7 +249,7 @@ async function newSoloPage(browser, extraStorage = {}) {
     await page.getByText('Reconectar', { exact: false }).first().click();
     await page.waitForTimeout(1400);
     const body = await page.evaluate(() => document.body.innerText);
-    check('conteúdo real + SubscribeTeaser', body.includes('Continue com a assinatura'));
+    check('conteúdo real + SubscribeTeaser', /entra pela sua assinatura|Continue com a assinatura/.test(body));
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }
