@@ -72,6 +72,11 @@ function canon(v) {
 function corpus(l) {
   return [
     l.aspecto, l.natureza, l.categoria, l.resumo, l.texto, l.forte, l.cuidado,
+    // O caminho entra na varredura junto com o resto: ele é texto de tela, e
+    // não ganha licença nenhuma por ser conselho. (`|| ''` porque ele é null nas
+    // leituras não tensas — e um null virando "null" no join envenenaria as
+    // buscas de "undefined"/"[object Object]" logo abaixo.)
+    l.caminho || '',
     l.chamada, ...DIMS.map((d) => l.vidaReal[d]),
     l.grauNome, l.notaEscala, l.notaGrau, l.ressalvaSignoSolar, l.notaCaracterologia,
     ...l.verbatins.map((v) => v.parafrase),
@@ -87,13 +92,44 @@ function frases(texto) {
 
 const GOLDEN = JSON.parse(fs.readFileSync(path.join(__dirname, 'golden', 'synastry.pt.golden.json'), 'utf8'));
 
+// ---------------------------------------------------------------------------
+// O GOLDEN É ANTERIOR AO CAMPO `caminho` (04/08/2026) — e continua valendo
+// ---------------------------------------------------------------------------
+// A captura de test/golden/synastry.pt.golden.json foi feita antes de existir
+// `caminho` (o caminho prático de convivência das leituras tensas). Havia duas
+// saídas: recapturar o golden, ou tirar o campo novo antes de comparar.
+//
+// RECAPTURAR SERIA PERDER A PROVA. O golden existe pra travar UMA coisa: que o
+// texto PT que já estava na tela não muda um byte. Recapturá-lo a cada campo
+// novo transforma o portão num carimbo — quem mexer no `cuidado` do trígono
+// junto com o campo novo passa verde, porque o golden já teria sido reescrito
+// com o defeito dentro.
+//
+// Então a comparação TIRA `caminho` e mantém o hash antigo intacto. O que isso
+// prova, e é exatamente o que se quer provar: a mudança de 04/08/2026 é
+// PURAMENTE ADITIVA — nenhum dos 32 campos anteriores mudou em nenhum dos 144
+// pares. O campo novo não fica sem rede: ele tem testes próprios (a seção 6
+// deste arquivo e a seção 15 de test/synastry.test.js), e a lista abaixo é de
+// UM item de propósito — quem quiser acrescentar um segundo campo aqui vai ter
+// que justificar por escrito, que é o custo certo pra essa decisão.
+const CAMPOS_POSTERIORES_AO_GOLDEN = ['caminho'];
+
+function comoNoGolden(leitura) {
+  const copia = { ...leitura };
+  for (const campo of CAMPOS_POSTERIORES_AO_GOLDEN) {
+    assert.ok(campo in copia, `o campo ${campo} sumiu do motor — a lista de campos pós-golden está desatualizada`);
+    delete copia[campo];
+  }
+  return canon(copia);
+}
+
 // ===========================================================================
 // 1. O PT É OURO — byte a byte contra a captura pré-refatoração
 // ===========================================================================
 
 test('GOLDEN: o hash dos 144 pares PT é idêntico ao capturado antes da extração', () => {
   const todos = {};
-  for (const p of PARES.pt) todos[p.a + '+' + p.b] = canon(p.leitura);
+  for (const p of PARES.pt) todos[p.a + '+' + p.b] = comoNoGolden(p.leitura);
   const hash = crypto.createHash('sha256').update(JSON.stringify(todos)).digest('hex');
   assert.equal(
     hash,
@@ -105,7 +141,22 @@ test('GOLDEN: o hash dos 144 pares PT é idêntico ao capturado antes da extraç
 test('GOLDEN: os três pares de referência conferem inteiros, campo a campo', () => {
   for (const [chave, esperado] of Object.entries(GOLDEN.pares)) {
     const [a, b] = chave.split('+');
-    assert.deepEqual(canon(compatibility(a, b)), esperado, `par golden ${chave} divergiu`);
+    assert.deepEqual(comoNoGolden(compatibility(a, b)), esperado, `par golden ${chave} divergiu`);
+  }
+});
+
+test('GOLDEN: o campo novo é ADITIVO — o golden não tem nenhum campo que o motor perdeu', () => {
+  // A contrapartida de tirar `caminho` antes de comparar: se um dia alguém
+  // apagar um campo antigo E acrescentar um novo, o hash acima quebra — mas
+  // este teste diz QUAL campo sumiu, que é a informação que o hash não dá.
+  for (const [chave, esperado] of Object.entries(GOLDEN.pares)) {
+    const [a, b] = chave.split('+');
+    const atual = compatibility(a, b);
+    for (const campo of Object.keys(esperado)) {
+      assert.ok(campo in atual, `${chave}: o motor perdeu o campo ${campo}, que existia no golden`);
+    }
+    const novos = Object.keys(atual).filter((k) => !(k in esperado));
+    assert.deepEqual(novos.sort(), [...CAMPOS_POSTERIORES_AO_GOLDEN].sort(), `${chave}: apareceu campo novo sem entrar na lista de campos pós-golden`);
   }
 });
 
@@ -455,4 +506,166 @@ test('a tela de Compatibilidade passa o lang do useLanguage() pro motor', () => 
   const src = fs.readFileSync(path.join(__dirname, '..', 'screens', 'CompatibilityScreen.js'), 'utf8');
   assert.match(src, /const \{ t, lang \} = useLanguage\(\)/, 'a tela não pega o lang do contexto');
   assert.match(src, /compatibility\(signA\.name, signB\.name, lang\)/, 'a tela não passa o lang pro motor');
+});
+
+// ===========================================================================
+// 6. O CAMINHO — todo par difícil sai com o que fazer, nas TRÊS línguas
+// ===========================================================================
+// Feedback do dono, 04/08/2026: "nos pares difíceis o app já fala a real
+// (mantém!) — mas agora TODO par difícil precisa sair com um caminho prático de
+// convivência". Um caminho que existe só em português é um caminho que não
+// existe: o app é divulgado no mundo inteiro e 2/3 dos leitores ficariam com o
+// diagnóstico sem a saída. Daí estes testes viverem AQUI, e não só na suíte PT.
+
+// A LINHA VERMELHA DO CAMPO — mesma disciplina de SAUDE e FATALISMO acima, e
+// pelo mesmo motivo: conselho é onde a promessa entra sem pedir licença. Quem
+// escreve "o que costuma ajudar" escreve "isso resolve" na revisão seguinte.
+// A lista é de FORMA, não de palavra solta.
+const PROMESSA = {
+  pt: [
+    [/\b(vai|vão|irá|irão) (resolver|consertar|salvar|acabar com|dar certo|funcionar|melhorar)\b/i, 'futuro garantido'],
+    [/\bgarant(e|em|ido|ida|ia)\b|\bprometemos\b|\bcom certeza\b/i, 'garantia explícita'],
+    [/\bbasta (fazer|dizer|combinar|marcar)\b|\bé só (fazer|dizer|combinar|marcar)\b/i, 'promessa de suficiência'],
+    [/\bsempre funciona\b|\bnunca falha\b|\bresolve o problema\b/i, 'infalibilidade'],
+    [/\bvale a pena (tentar|insistir|ficar|continuar)\b/i, 'conselho sobre a relação, não sobre o gesto'],
+  ],
+  es: [
+    [/\b(va|van) a (resolver|arreglar|salvar|funcionar|mejorar|acabar con)\b/i, 'futuro garantido'],
+    [/\bgarantiz\w+|\bprometemos\b|\bcon seguridad\b/i, 'garantia explícita'],
+    [/\bbasta con\b|\bsolo tienen que\b|\bsólo tienen que\b/i, 'promessa de suficiência'],
+    [/\bsiempre funciona\b|\bnunca falla\b|\bresuelve el problema\b/i, 'infalibilidade'],
+    [/\bvale la pena (intentar|insistir|seguir|quedarse)\b/i, 'conselho sobre a relação, não sobre o gesto'],
+  ],
+  en: [
+    [/\bwill (fix|solve|save|work|mend|sort (it|this) out)\b/i, 'futuro garantido'],
+    [/\bguarantee\w*|\bwe promise\b|\bfor sure\b/i, 'garantia explícita'],
+    [/\ball you (need|have) to do\b|\bjust (do|say|agree|book) \b/i, 'promessa de suficiência'],
+    [/\balways works\b|\bnever fails\b|\bsolves the problem\b/i, 'infalibilidade'],
+    [/\bworth (staying|trying to stay|holding on)\b/i, 'conselho sobre a relação, não sobre o gesto'],
+  ],
+};
+
+// A CONTRAPARTIDA POSITIVA: sem hedge, a frase vira receita. Toda leitura tensa
+// tem que RESSALVAR o gesto que propõe — "costuma", "suele", "tends to".
+const HEDGE = {
+  pt: /\bcostum(a|am)\b|\braramente\b|\bquase nunca\b/i,
+  es: /\bsuele(n)?\b|\brara vez\b|\bcasi nunca\b/i,
+  en: /\btends? to\b|\busually\b|\brarely\b|\balmost never\b/i,
+};
+
+test('TODO par tenso sai com caminho, nos três idiomas — e nenhum par fácil recebe conselho que não pediu', () => {
+  for (const lang of ['pt', 'es', 'en']) {
+    const tensos = PARES[lang].filter((p) => S.CATEGORIAS_COM_CAMINHO.includes(p.leitura.categoriaId));
+    // 36 desarmônicos (quadratura 24 + oposição 12) + 48 sem aspecto (as duas
+    // aversões) = 84. Se esta conta mudar, a definição de "difícil" mudou junto
+    // e alguém precisa dizer por quê.
+    assert.equal(tensos.length, 84, `${lang}: a contagem de pares tensos mudou`);
+    for (const p of tensos) {
+      const c = p.leitura.caminho;
+      assert.equal(typeof c, 'string', `${lang} ${p.a}+${p.b} (${p.leitura.id}) sem caminho`);
+      assert.ok(c.trim().length >= 200, `${lang} ${p.a}+${p.b} com caminho de ${c.length} caracteres — curto demais pra ser caminho`);
+      const n = frases(c);
+      assert.ok(n >= 2 && n <= 4, `${lang} ${p.a}+${p.b}: caminho com ${n} frases`);
+      assert.ok(HEDGE[lang].test(c), `${lang} ${p.a}+${p.b}: caminho sem ressalva — vira receita`);
+      assert.ok(!c.includes('%'), `${lang} ${p.a}+${p.b}: porcentagem no caminho`);
+      assert.ok(!c.includes('undefined') && !c.includes('[object Object]'), `${lang} ${p.a}+${p.b}`);
+    }
+    // E o contrário: harmônico e co-presença NÃO recebem caminho. Escrever
+    // "como conviver" onde não há atrito é encher linguiça com cara de conselho.
+    for (const p of PARES[lang].filter((x) => !S.CATEGORIAS_COM_CAMINHO.includes(x.leitura.categoriaId))) {
+      assert.equal(p.leitura.caminho, null, `${lang} ${p.a}+${p.b} (${p.leitura.categoriaId}) ganhou caminho sem ter atrito`);
+    }
+  }
+});
+
+test('nenhum caminho, em nenhum idioma, promete resultado', () => {
+  for (const [lang, regexes] of Object.entries(PROMESSA)) {
+    for (const p of PARES[lang]) {
+      const c = p.leitura.caminho;
+      if (!c) continue;
+      for (const [re, motivo] of regexes) {
+        assert.ok(!re.test(c), `${lang} ${p.a}+${p.b} — ${motivo}: ${c.match(re)}`);
+      }
+      // E o caminho passa pelas MESMAS listas do resto da leitura, sem desconto.
+      for (const re of SAUDE[lang]) assert.ok(!re.test(c), `${lang} ${p.a}+${p.b} — saúde no caminho: ${c.match(re)}`);
+      for (const re of FATALISMO[lang]) assert.ok(!re.test(c), `${lang} ${p.a}+${p.b} — veredito no caminho: ${c.match(re)}`);
+    }
+  }
+  // Contrapartida: se a varredura não morde, ela não protege ninguém.
+  assert.ok(PROMESSA.pt.some(([re]) => re.test('isso vai resolver o atrito de vocês')));
+  assert.ok(PROMESSA.pt.some(([re]) => re.test('basta combinar antes e pronto')));
+  assert.ok(PROMESSA.es.some(([re]) => re.test('esto va a arreglar la relación')));
+  assert.ok(PROMESSA.en.some(([re]) => re.test('this will fix the fight')));
+  assert.ok(PROMESSA.en.some(([re]) => re.test('all you need to do is talk')));
+  // E não morde o que É permitido — o tom do app.
+  assert.ok(!PROMESSA.pt.some(([re]) => re.test('combinar antes quem decide o quê costuma render mais')));
+  assert.ok(!PROMESSA.en.some(([re]) => re.test('taking turns at leading tends to hold up better')));
+});
+
+test('o caminho diz de onde vem — fonte citada, ou rótulo de leitura do app', () => {
+  // Regra 5 do cabeçalho de lib/synastry.js aplicada ao campo novo: conselho sem
+  // procedência é conselho de revista. Ou tem locus, ou está assinado como nosso.
+  const MARCA = {
+    pt: /Lilly|Tetrabiblos|Aristóteles|leitura deste app/,
+    es: /Lilly|Tetrabiblos|Aristóteles|lectura de esta app/,
+    en: /Lilly|Tetrabiblos|Aristotle|this app's reading/,
+  };
+  for (const [lang, re] of Object.entries(MARCA)) {
+    for (const p of PARES[lang].filter((x) => x.leitura.caminho)) {
+      assert.match(p.leitura.caminho, re, `${lang} ${p.a}+${p.b}: caminho sem fonte e sem rótulo`);
+    }
+  }
+  // A citação de Lilly é a que sustenta a quadratura, e ela vai VERBATIM nos
+  // três idiomas com a página — traduzir citação é falsificá-la (regra 1).
+  for (const lang of ['pt', 'es', 'en']) {
+    for (const p of PARES[lang].filter((x) => x.leitura.id === 'quadratura')) {
+      assert.match(p.leitura.caminho, /imperfect enmity/, `${lang} ${p.a}+${p.b} traduziu a citação de Lilly`);
+      assert.match(p.leitura.caminho, /1647, p\. 106/, `${lang} ${p.a}+${p.b} citou Lilly sem a página`);
+    }
+  }
+});
+
+test('o caminho não colapsa: quatro relações, textos distintos, e nenhum idioma copia o outro', () => {
+  // A mesma disciplina que impede os 144 pares de virarem 10 textos vale pro
+  // campo novo: a quadratura distingue contrários absolutos de fio em comum, as
+  // duas aversões não se confundem, e nenhuma relação empresta o caminho de
+  // outra. (Contar "formas" trocando nome de signo por curinga, como faz
+  // test/synastry.test.js, não serve aqui: a lista de nomes é a PT, e em es/en
+  // ela não casa com nada — a contagem sairia inflada e provaria o contrário
+  // do que se quer. Então a medida é por RELAÇÃO, que é idêntica nos três.)
+  for (const lang of ['pt', 'es', 'en']) {
+    const porId = {};
+    for (const p of PARES[lang].filter((x) => x.leitura.caminho)) {
+      (porId[p.leitura.id] = porId[p.leitura.id] || new Set()).add(p.leitura.caminho);
+    }
+    assert.deepEqual(Object.keys(porId).sort(), ['aversao150', 'aversao30', 'oposicao', 'quadratura'], lang);
+    assert.ok(porId.quadratura.size >= 2, `${lang}: a quadratura de contrários absolutos e a de fio em comum saem iguais`);
+    // Nenhuma relação compartilha um caminho com outra.
+    const ids = Object.keys(porId);
+    for (const a of ids) {
+      for (const b of ids) {
+        if (a >= b) continue;
+        for (const texto of porId[a]) {
+          assert.ok(!porId[b].has(texto), `${lang}: ${a} e ${b} compartilham o mesmo caminho`);
+        }
+      }
+    }
+  }
+  // E entre idiomas: se dois batem, um deles não foi traduzido.
+  for (const id of ['quadratura', 'oposicao', 'aversao30', 'aversao150']) {
+    const [pt, es, en] = ['pt', 'es', 'en'].map((l) => PARES[l].find((p) => p.leitura.id === id).leitura.caminho);
+    assert.notEqual(es, pt, `es/${id} ficou igual ao pt`);
+    assert.notEqual(en, pt, `en/${id} ficou igual ao pt`);
+    assert.notEqual(en, es, `en/${id} ficou igual ao es`);
+  }
+});
+
+test('a tela renderiza o caminho no idioma da leitura — o campo novo chega na tela', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'screens', 'CompatibilityScreen.js'), 'utf8');
+  assert.match(src, /result\.caminho/, 'o caminho não chega na tela em idioma nenhum');
+  // E ele NÃO pode ser escrito à mão na tela: o texto vive nos packs, senão
+  // sai em português pro mundo inteiro — o defeito que a extração de 31/07/2026
+  // corrigiu no resto da leitura.
+  assert.ok(!src.includes('Por onde começar'), 'o caminho foi escrito à mão na tela, em português');
+  assert.ok(!src.includes('Where to start, in practice'), 'o caminho foi escrito à mão na tela');
 });

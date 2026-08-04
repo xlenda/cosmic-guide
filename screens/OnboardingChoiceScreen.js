@@ -85,8 +85,14 @@ export default function OnboardingChoiceScreen() {
               </LinearGradient>
               <Text style={styles.cardTitle}>{t('onboarding.solo.title')}</Text>
               <Text style={styles.cardDesc}>{t('onboarding.solo.desc')}</Text>
+              {/* Cada card tem AGORA o seu próprio rótulo de botão — antes os
+                  dois liam a MESMA chave, e ela dizia "Começar": o toque daqui abre um
+                  grid de 12 signos que aparecia sem aviso nenhum — é o ponto
+                  onde a pessoa some (ver escolherSolo acima) — e nomear o
+                  passo antes tira a surpresa. A seta continua sendo o Ionicons
+                  ao lado; por isso o texto não traz "→". */}
               <View style={styles.cardCta}>
-                <Text style={styles.cardCtaText}>{t('onboarding.cta')}</Text>
+                <Text style={styles.cardCtaText}>{t('onboarding.solo.cta')}</Text>
                 <Ionicons name="arrow-forward" size={16} color={colors.accent} />
               </View>
             </TouchableOpacity>
@@ -102,7 +108,7 @@ export default function OnboardingChoiceScreen() {
               <Text style={styles.cardTitle}>{t('onboarding.couple.title')}</Text>
               <Text style={styles.cardDesc}>{t('onboarding.couple.desc')}</Text>
               <View style={styles.cardCta}>
-                <Text style={styles.cardCtaText}>{t('onboarding.cta')}</Text>
+                <Text style={styles.cardCtaText}>{t('onboarding.couple.cta')}</Text>
                 <Ionicons name="arrow-forward" size={16} color={colors.accent} />
               </View>
             </TouchableOpacity>

@@ -528,7 +528,10 @@ export default function ProfileScreen() {
                     (await getCorrelationCode(coupleData.voce, coupleData.amor)) ||
                     (user?.email ? await getSoloCorrelationCode(user.email) : null);
                 } catch {}
-                shareInvite({ ...coupleData, accessCode });
+                // `t` vai junto: a mensagem do convite é traduzida em
+                // lib/i18n.js ('invite.share.*') e sem ele cairia no PT pra
+                // quem está com o app em ES/EN.
+                shareInvite({ ...coupleData, accessCode }, t);
               }}
             />
           )}

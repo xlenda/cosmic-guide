@@ -122,13 +122,28 @@ function formatarDataBR(iso) {
 // As 9 primeiras já são grátis (1 uso) sem assinatura; as 5 seguintes hoje
 // também ganharam 1 uso grátis (ver components/FeatureGate.js) — a assinatura
 // é o que torna TODAS elas ilimitadas, não a única forma de ver cada uma.
-// Traduzido (PT/ES/EN) — chaves planos.benefit.1..7 em lib/i18n.js.
-// Solo (sem coupleData) só vê os benefícios 1-2 (trial + as 9 leituras
-// individuais) — os benefícios 3-7 são as 5 telas exclusivas de casal
-// (Reconectar/Descobrir/Agir/Progresso-Retrospectiva/Linha do tempo), que a
-// assinatura solo não desbloqueia (só formar casal desbloqueia, ver
-// components/FeatureGate.js e OneTimeLock.js).
-const COUPLE_BENEFIT_KEYS = [1, 2, 3, 4, 5, 6, 7].map((n) => `planos.benefit.${n}`);
+// Traduzido (PT/ES/EN) em lib/i18n.js. Solo (sem coupleData) NÃO vê as cinco
+// telas exclusivas de casal (Reconectar/Descobrir/Agir/Progresso-Retrospectiva/
+// Linha do tempo): a assinatura solo não as desbloqueia — só formar casal
+// desbloqueia (ver components/FeatureGate.js e OneTimeLock.js). É por isso que
+// as duas listas existem, e é o que SOLO_BENEFIT_KEYS mantém verdadeiro.
+// A lista do casal recebeu em 04/08/2026 o MESMO tratamento que a do solo já
+// tinha (proposta 8 de design/propostas-copy.md). Ela era: trial, UM bullet com
+// as nove leituras amontoadas numa vírgula só (a antiga chave de nº 2), as
+// cinco telas de casal, e nenhuma razão para acreditar no fim.
+//
+// Agora a ordem é: trial → as nove leituras DESMONTADAS por desejo (as mesmas
+// seis chaves que o solo usa, 'planos.benefit.solo.2..7' — uma fonte só de
+// verdade, em vez de duas redações do mesmo fato) → as cinco telas exclusivas
+// de casal → a chave de nº 8, que não é benefício e sim razão para acreditar,
+// e por isso fecha. A de nº 2 foi APAGADA do dicionário junto, nos três
+// idiomas, pra ninguém reencontrar o amontoado e achar que ainda vale.
+const COUPLE_BENEFIT_KEYS = [
+  'planos.benefit.1',
+  ...[2, 3, 4, 5, 6, 7].map((n) => `planos.benefit.solo.${n}`),
+  ...[3, 4, 5, 6, 7].map((n) => `planos.benefit.${n}`),
+  'planos.benefit.8',
+];
 // Solo tinha DUAS linhas, e a segunda amontoava as nove leituras separadas por
 // vírgula — o olho lê isso como uma linha só, não como nove. As oito chaves
 // próprias (bloco PLANOS_SOLO_I18N em lib/i18n.js) desmontam o amontoado em

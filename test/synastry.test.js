@@ -53,8 +53,15 @@ function porId(id) {
 // TUDO que a tela mostra como leitura, os dois blocos juntos. A varredura de
 // veredito, de saúde e de porcentagem morde este texto inteiro — o bloco quente
 // não ganha licença nenhuma por ser quente (regra 7 de lib/synastry.js).
+// O `caminho` (04/08/2026) entra aqui de propósito, e não numa varredura
+// separada: é texto de tela como qualquer outro, e conselho é justamente onde a
+// promessa, o veredito e a linguagem de saúde entram fantasiados de gentileza.
+// Pondo-o no corpo, toda regra que este arquivo já tem passa a valer pra ele —
+// e toda regra que ele ganhar amanhã também, sem ninguém precisar lembrar.
+// (`|| ''` porque ele é null nas leituras não tensas: só quadratura, oposição e
+// as duas aversões recebem caminho.)
 function corpo(leitura) {
-  return [leitura.resumo, leitura.texto, leitura.forte, leitura.cuidado, ...vidaReal(leitura)].join(' \n ');
+  return [leitura.resumo, leitura.texto, leitura.forte, leitura.cuidado, leitura.caminho || '', ...vidaReal(leitura)].join(' \n ');
 }
 
 // Só o BLOCO 1, na ordem em que a tela desenha, com a chamada na frente.
@@ -1294,6 +1301,7 @@ test('a tela continua renderizando TODA peça do bloco 2 — nada foi recolhido 
     ['result.texto', 'a leitura longa'],
     ['result.forte', 'o ponto forte'],
     ['result.cuidado', 'a atenção'],
+    ['result.caminho', 'o caminho prático que acompanha a atenção'],
     ['result.verbatins.map', 'os verbatins de Robbins'],
     ['v.parafrase', 'a paráfrase em português'],
     ['v.texto', 'o inglês de Robbins'],
@@ -1334,6 +1342,163 @@ test('os rótulos dos dois blocos existem nos três idiomas', () => {
       for (const [re, motivo] of FATALISMO) assert.ok(!re.test(v), `${lang}/${k} — ${motivo}`);
     }
   }
+});
+
+// ===========================================================================
+// 15. O CAMINHO — o par difícil sai com o que fazer, e não só com o diagnóstico
+// ===========================================================================
+// Feedback do dono, 04/08/2026: "nos pares difíceis o app já fala a real
+// (mantém!) — mas agora TODO par difícil precisa sair com um caminho prático de
+// convivência". O `cuidado` da quadratura é um dos melhores textos do app e
+// termina em "este app não decide por você" — verdadeiro, e ainda assim uma
+// porta fechada: a pessoa fecha a tela sabendo exatamente onde dói e nada sobre
+// o que fazer na terça-feira. Estes testes travam as duas metades da correção:
+// que o caminho EXISTE em todo par tenso, e que ele não virou promessa no
+// caminho (que é como conselho honesto apodrece).
+
+test('TODO par tenso tem caminho, e nenhum par sem atrito recebe conselho que não pediu', () => {
+  const tensos = PARES.filter((p) => S.CATEGORIAS_COM_CAMINHO.includes(p.leitura.categoriaId));
+  // 24 quadraturas + 12 oposições + 48 aversões = 84 dos 144. A conta está aqui
+  // porque "difícil" é uma DEFINIÇÃO, e definição que muda em silêncio é como a
+  // tabela antiga colocou a oposição no topo sem ninguém notar.
+  assert.equal(tensos.length, 84);
+  assert.deepEqual(
+    [...new Set(tensos.map((p) => p.leitura.id))].sort(),
+    ['aversao150', 'aversao30', 'oposicao', 'quadratura']
+  );
+  for (const p of tensos) {
+    const c = p.leitura.caminho;
+    assert.equal(typeof c, 'string', `${p.a}+${p.b} (${p.leitura.id}) sem caminho`);
+    assert.ok(c.trim().length >= 200, `${p.a}+${p.b}: caminho com ${c.length} caracteres`);
+    const n = frases(c);
+    assert.ok(n >= 2 && n <= 4, `${p.a}+${p.b}: caminho com ${n} frases — ${n < 2 ? 'bullet' : 'ensaio'}`);
+  }
+  for (const p of PARES.filter((x) => !S.CATEGORIAS_COM_CAMINHO.includes(x.leitura.categoriaId))) {
+    assert.equal(p.leitura.caminho, null, `${p.a}+${p.b} (${p.leitura.categoriaId}) ganhou caminho sem ter atrito`);
+  }
+  // E o motor tem que declarar quais categorias são tensas — se a tela ou o
+  // teste tiverem que adivinhar, um dia adivinham diferente.
+  assert.deepEqual([...S.CATEGORIAS_COM_CAMINHO].sort(), ['desarmonico', 'semAspecto']);
+});
+
+// A linha vermelha DO CAMPO. Mesma forma das listas do topo do arquivo: cada
+// entrada com o motivo de estar aqui. O tom pedido é "costuma ajudar", "vale
+// tentar" — nunca "vai resolver". A diferença entre os dois é a diferença entre
+// descrever um gesto e vender um resultado, e é ela que este bloco protege.
+const PROMESSA = [
+  [/\b(vai|vão|irá|irão) (resolver|consertar|salvar|acabar com|dar certo|funcionar|melhorar)\b/i, 'futuro garantido'],
+  [/\bgarant(e|em|ido|ida|ia)\b|\bprometemos\b|\bcom certeza\b/i, 'garantia explícita'],
+  [/\bbasta (fazer|dizer|combinar|marcar)\b|\bé só (fazer|dizer|combinar|marcar)\b/i, 'promessa de suficiência'],
+  [/\bsempre funciona\b|\bnunca falha\b|\bresolve o problema\b/i, 'infalibilidade'],
+  [/\bdeixa de ser (um )?problema\b|\bo atrito (some|acaba|passa)\b/i, 'o atrito prometido como extinto'],
+];
+
+test('nenhum caminho promete — o gesto é descrito, o resultado nunca é vendido', () => {
+  for (const p of PARES.filter((x) => x.leitura.caminho)) {
+    for (const [re, motivo] of PROMESSA) {
+      assert.ok(!re.test(p.leitura.caminho), `${p.a}+${p.b} — ${motivo}: ${p.leitura.caminho.match(re)}`);
+    }
+    // E toda proposta vem ressalvada: sem hedge, gesto vira receita.
+    assert.match(p.leitura.caminho, /\bcostum(a|am)\b|\braramente\b|\bquase nunca\b/i, `${p.a}+${p.b}: caminho sem ressalva`);
+  }
+  // Contrapartida: se a varredura não morde, ela não protege ninguém.
+  assert.ok(PROMESSA.some(([re]) => re.test('combinar isso antes vai resolver a briga')));
+  assert.ok(PROMESSA.some(([re]) => re.test('basta combinar quem decide o quê')));
+  assert.ok(PROMESSA.some(([re]) => re.test('depois disso o atrito some')));
+  // E não morde o tom que o app de fato usa.
+  assert.ok(!PROMESSA.some(([re]) => re.test('combinar antes quem decide o quê costuma render mais do que acertar no calor da hora')));
+});
+
+test('o caminho é CONCRETO — propõe um gesto, não um adjetivo', () => {
+  // "aprendam a se comunicar" não é caminho, é elogio ao problema. O teste não
+  // consegue medir concretude, mas consegue medir o oposto: a lista abaixo é do
+  // vocabulário de autoajuda que aparece quando ninguém teve o que dizer.
+  const VAZIO = [
+    [/aprend(er|am?) a se comunicar|melhor(ar|em?) a comunicação/i, 'adjetivo com cara de conselho'],
+    [/ten(ha|ham|ho) mais paciência|sejam? mais (compreensiv|tolerant|paciente)/i, 'conselho que não descreve gesto nenhum'],
+    [/o amor vence|com amor tudo|se amarem de verdade/i, 'clichê no lugar do gesto'],
+    [/trabalhem? a relação|invistam? na relação/i, 'verbo de palestra'],
+  ];
+  for (const p of PARES.filter((x) => x.leitura.caminho)) {
+    for (const [re, motivo] of VAZIO) {
+      assert.ok(!re.test(p.leitura.caminho), `${p.a}+${p.b} — ${motivo}: ${p.leitura.caminho.match(re)}`);
+    }
+  }
+  assert.ok(VAZIO.some(([re]) => re.test('vocês precisam aprender a se comunicar')));
+});
+
+test('o caminho da quadratura usa Lilly — a melhor fonte da tradição pra isso, e o app não a usava', () => {
+  // docs/tradicao/02-aspectos-e-sinastria.md §2.4: Lilly chama a quadratura de
+  // "imperfect enmity" e, no exemplo horário da MESMA página, tira daí que "the
+  // matter is not yet so farre gone, but there may be hopes of reconciliation
+  // betwixt them". Briga com conserto possível, dito em 1647 — e até 04/08/2026
+  // o app citava Lilly só pra ordenar trígono e sextil. A citação fica em inglês
+  // (regra 1: traduzir citação é falsificá-la) com a glosa ao lado.
+  for (const p of porId('quadratura')) {
+    const c = p.leitura.caminho;
+    assert.match(c, /imperfect enmity/, `${p.a}+${p.b} perdeu o verbatim de Lilly`);
+    assert.match(c, /inimizade imperfeita/, `${p.a}+${p.b} deixou o inglês sem glosa`);
+    assert.match(c, /Christian Astrology, Londres, 1647, p\. 106/, `${p.a}+${p.b} citou Lilly sem o locus completo`);
+    assert.match(c, /reconciliação possível/, `${p.a}+${p.b} não diz o que a citação implica`);
+  }
+  // A quadratura de contrários absolutos e a de fio em comum não recebem o mesmo
+  // caminho: o terreno neutro existe numa e não existe na outra, e é justamente
+  // isso que muda o que dá pra fazer.
+  const contrarios = porId('quadratura').filter((p) => p.leitura.qualidadesEmComum.length === 0);
+  const comFio = porId('quadratura').filter((p) => p.leitura.qualidadesEmComum.length === 1);
+  assert.ok(contrarios.length > 0 && comFio.length > 0);
+  assert.notEqual(contrarios[0].leitura.caminho, comFio[0].leitura.caminho);
+  assert.match(comFio[0].leitura.caminho, /fio em comum/, 'a quadratura com qualidade em comum não nomeia o fio');
+});
+
+test('o caminho da oposição parte do eixo, e da qualidade que os dois COMPARTILHAM', () => {
+  // O erro que este arquivo inteiro existe pra impedir seria voltar aqui: propor
+  // "convivência" pra oposição explicando-a por elementos incompatíveis. Signos
+  // opostos compartilham uma qualidade — é aritmética, está no teste da seção 4,
+  // e é o único terreno comum conferível que este par tem.
+  for (const p of porId('oposicao')) {
+    const c = p.leitura.caminho;
+    assert.match(c, /eixo/, `${p.a}+${p.b}: o caminho da oposição não parte do eixo`);
+    assert.match(c, /compartilham o /, `${p.a}+${p.b}: o caminho não usa a qualidade em comum`);
+    assert.match(c, new RegExp(p.leitura.qualidadesEmComum[0]), `${p.a}+${p.b}: nomeia outra qualidade que não a do par`);
+    assert.match(c, /leitura deste app/, `${p.a}+${p.b}: usa Aristóteles sem admitir que a aplicação é nossa`);
+  }
+});
+
+test('as duas aversões têm caminhos DIFERENTES — 30° e 150° não colapsam nem no conselho', () => {
+  // ID_POR_DISTANCIA separa aversao30 de aversao150 justamente porque a tabela
+  // antiga as colapsava. O campo novo não pode reabrir a porta.
+  const a30 = porId('aversao30')[0].leitura.caminho;
+  const a150 = porId('aversao150')[0].leitura.caminho;
+  assert.notEqual(a30, a150);
+  // O vizinho de 30° não tem assunto pronto — o caminho é explicitar o que
+  // ficaria subentendido. O de 150° não tem encontro nenhum — o caminho é criar
+  // o ponto de encontro. São problemas diferentes e saídas diferentes.
+  assert.match(a30, /subentendido/);
+  assert.match(a150, /ponto fixo na semana/);
+  // E os dois se apoiam na fonte: IV.7 (o laço tem tipo) e I.16 (não há
+  // familiaridade), com a aplicação prática assinada como nossa.
+  assert.match(a30, /Tetrabiblos IV\.7/);
+  assert.match(a150, /Tetrabiblos I\.16/);
+  for (const c of [a30, a150]) assert.match(c, /leitura deste app/);
+});
+
+test('a tela põe o caminho COLADO na atenção, e só onde ele existe', () => {
+  const src = semComentarios(fonteDaTela());
+  const cuidado = src.indexOf('result.cuidado');
+  const caminho = src.indexOf('result.caminho');
+  assert.ok(caminho > 0, 'a tela não mostra o caminho');
+  assert.ok(caminho > cuidado, 'o caminho subiu para antes da atenção — o diagnóstico abre, a saída fecha');
+  // Entre um e outro não pode entrar outro card: a saída tem que ler como
+  // continuação da atenção, não como bloco solto lá embaixo.
+  const entre = src.slice(cuidado, caminho);
+  assert.ok(!entre.includes('styles.traitCard'), 'o caminho caiu num card separado da atenção');
+  assert.ok(!entre.includes('styles.noteCard'), 'o caminho ficou depois das ressalvas');
+  // E é condicional: trígono e co-presença não têm caminho, e a tela não pode
+  // renderizar um <Text> vazio no lugar.
+  assert.match(src, /\{!!result\.caminho &&/, 'a tela renderiza o caminho sem checar se ele existe');
+  // O texto vem do motor, não da tela — senão sai em português pro mundo todo.
+  assert.ok(!/caminho[A-Za-z]*\s*=\s*['"]/.test(src), 'a tela escreveu caminho à mão');
 });
 
 test('o Diário Cósmico passa a guardar o BLOCO 1, que é o que a pessoa leu', () => {

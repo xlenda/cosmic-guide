@@ -348,6 +348,20 @@ export default function CompatibilityScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.traitLabel}>{t('compat.watch')}</Text>
                 <Text style={styles.traitText}>{result.cuidado}</Text>
+                {/* O CAMINHO, colado na Atenção — feedback do dono, 04/08/2026.
+                    A Atenção nomeia a dor e para; sozinha, ela deixa o par
+                    difícil sem saída nenhuma. O caminho vem do motor
+                    (lib/synastry.js, seção 5.1) e só existe nas categorias
+                    tensas — desarmônico e sem aspecto —, então o `&&` não é
+                    defensivo: é a regra. Trígono e co-presença não recebem a
+                    linha porque não têm o que resolver, e inventar conselho
+                    onde não há atrito é o oposto de falar a real.
+
+                    Sem rótulo próprio de propósito: cada pack já abre a frase
+                    anunciando que dali em diante é prática, na língua certa —
+                    um rótulo aqui exigiria chave nova em lib/i18n.js e sairia
+                    em português pra quem lê em inglês. */}
+                {!!result.caminho && <Text style={styles.traitPath}>{result.caminho}</Text>}
               </View>
             </View>
 
@@ -537,6 +551,13 @@ const styles = StyleSheet.create({
   traitIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   traitLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
   traitText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  // O caminho lê como CONTINUAÇÃO da Atenção, não como card novo: mesmo corpo
+  // de texto, um respiro acima e uma barra à esquerda pra separar o "o que
+  // fazer" do "o que dói" sem quebrar a hierarquia do bloco 2.
+  traitPath: {
+    color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 10,
+    paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: colors.accent + '55',
+  },
   offerCard: {
     marginTop: 16, padding: 18, borderRadius: 16,
     backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.pink + '77',

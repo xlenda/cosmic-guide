@@ -55,8 +55,10 @@ export function SubscribeTeaser() {
             número é o jeito garantido de um dia mudarem um e esquecerem o
             outro. OfferSummary lê a MESMA chave do card do plano Mensal em
             Planos (planos.plan.trial.detail) e ainda acrescenta o que faltava
-            aqui — que dá pra cancelar quando quiser. A chave antiga fica no
-            dicionário, sem uso, pra não mexer em tradução alheia. */}
+            aqui — que dá pra cancelar quando quiser. A chave antiga foi
+            APAGADA do dicionário em 04/08/2026 (nos três idiomas): chave morta
+            continua indo no bundle e é o rascunho que a próxima tela copia
+            sem perceber — e essa guardava um preço digitado à mão. */}
         <OfferSummary compact style={styles.teaserOffer} testID="gate-teaser-offer" />
         <TouchableOpacity
           style={styles.btn}

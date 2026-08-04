@@ -713,7 +713,13 @@ export default function HomeScreen() {
       // O link vai junto de propósito: é ele que faz o WhatsApp/Telegram
       // mostrarem a prévia rica (OG tags em public/index.html) e traz quem
       // recebeu a frase pra dentro do app.
-      const result = await Share.share({ message: `${todaysLovePhrase}\n\n💜 https://cosmicguide.cloud` });
+      // A TAGLINE ENTRE A FRASE E A URL (04/08/2026): o link ia pelado, e link
+      // pelado quem recebe não abre — lê a frase, acha bonitinha e ignora a
+      // URL. "Amanhã tem outra" é o motivo de voltar, e é literal: a frase é
+      // determinística por data (lib/lovePhrase.js).
+      const result = await Share.share({
+        message: `${todaysLovePhrase}\n\n${t('home.lovePhrase.shareTagline')} https://cosmicguide.cloud`,
+      });
       // Missão 'compartilhar-frase' (lib/missions.js): marca a ação SÓ quando
       // o share não foi descartado (iOS reporta dismissedAction; Android e web
       // só resolvem em sucesso; cancelar na web rejeita e cai no catch). O
@@ -1104,7 +1110,13 @@ export default function HomeScreen() {
             <Text style={styles.lovePhraseText}>{todaysLovePhrase}</Text>
             <TouchableOpacity activeOpacity={0.85} style={styles.lovePhraseBtn} onPress={handleShareLovePhrase}>
               <Ionicons name="share-social" size={16} color={colors.accent} />
-              <Text style={styles.lovePhraseBtnText}>{t('home.lovePhrase.share')}</Text>
+              {/* O card aparece pros dois perfis, então o rótulo muda com quem
+                  está olhando: "meu amor" só existe quando há par cadastrado.
+                  Chamar de "Compartilhar" nomeava o mecanismo do botão, não o
+                  que a pessoa quer fazer com ele. */}
+              <Text style={styles.lovePhraseBtnText}>
+                {t(isCouple ? 'home.lovePhrase.share' : 'home.lovePhrase.shareSolo')}
+              </Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>
