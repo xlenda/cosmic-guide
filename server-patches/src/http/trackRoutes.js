@@ -166,14 +166,34 @@ const jsonParser = express.json({ limit: "16kb", type: ["application/json", "tex
 // desligado e um erro no log", que é o que telemetria merece.
 // A transação faz 30 inserts custarem um fsync só, em vez de 30 (o banco está
 // em WAL e este é o caminho quente da rota).
+// O PAÍS DA SESSÃO (04/08/2026) — resolvido AQUI, no ingest, e só a sigla.
+// geoip-lite carrega preguiçoso e dentro de try: o pacote mora no node_modules
+// do SERVIDOR (npm install geoip-lite lá; server-patches não versiona
+// package.json) — se um dia faltar, o rastreio segue funcionando com country
+// NULL em vez de derrubar a telemetria. O IP nunca é gravado nem logado:
+// país é agregado de marketing, IP é dado pessoal.
+let geoip = undefined;
+function paisDoIp(ip) {
+  if (geoip === undefined) {
+    try { geoip = require("geoip-lite"); } catch { geoip = null; }
+  }
+  if (!geoip || !ip) return null;
+  try {
+    const r = geoip.lookup(ip);
+    return r && typeof r.country === "string" && /^[A-Z]{2}$/.test(r.country) ? r.country : null;
+  } catch {
+    return null;
+  }
+}
+
 let inserirLote = null;
 function obterInserirLote() {
   if (inserirLote) return inserirLote;
   const stmt = db.prepare(
-    "INSERT INTO funnel_events (session_id, event, props, created_at) VALUES (?, ?, ?, ?)"
+    "INSERT INTO funnel_events (session_id, event, props, created_at, country) VALUES (?, ?, ?, ?, ?)"
   );
-  inserirLote = db.transaction((rows) => {
-    for (const r of rows) stmt.run(r.sessionId, r.event, r.props, r.createdAt);
+  inserirLote = db.transaction((rows, country) => {
+    for (const r of rows) stmt.run(r.sessionId, r.event, r.props, r.createdAt, country);
   });
   return inserirLote;
 }
@@ -361,7 +381,7 @@ router.post("/", trackLimiter, jsonParser, (req, res) => {
     if (!resultado.ok) return res.status(400).json({ error: resultado.error });
 
     try {
-      obterInserirLote()(resultado.rows);
+      obterInserirLote()(resultado.rows, paisDoIp(req.ip));
     } catch (err) {
       console.error("[api/track] falha ao gravar lote:", err && err.message);
     }

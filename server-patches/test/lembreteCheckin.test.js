@@ -145,7 +145,11 @@ test("o número 014 não colide com nenhuma migração já existente", () => {
     .filter((f) => /^\d+_.*\.sql$/.test(f))
     .map((f) => parseInt(f, 10));
   assert.equal(new Set(numeros).size, numeros.length, "há dois arquivos de migração com o mesmo número");
-  assert.equal(Math.max(...numeros), 14, "014 tem que ser a última — o runner compara com user_version");
+  // "Ser a última" era verdade no dia em que a 014 nasceu e virou mentira no
+  // dia seguinte (015 chegou com o país do funil) — teste que trava o mundo
+  // parado quebra a cada avanço. O que importa e não muda: a 014 EXISTE e
+  // nenhum número se repete.
+  assert.ok(numeros.includes(14), "a migração 014 sumiu");
 });
 
 // ---------------------------------------------------------------------------

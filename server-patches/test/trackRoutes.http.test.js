@@ -302,7 +302,10 @@ test("nenhum campo extra do corpo vira coluna: só session_id, event, props e cr
     .all()
     .map((c) => c.name)
     .sort();
-  assert.deepEqual(colunas, ["created_at", "event", "id", "props", "session_id"]);
+  // `country` entrou em 04/08/2026 (migração 015): a SIGLA de duas letras do
+  // país, resolvida no ingest — o IP continua sem ter onde ser gravado, e é
+  // isso que esta lista fechada segue garantindo.
+  assert.deepEqual(colunas, ["country", "created_at", "event", "id", "props", "session_id"]);
 
   const row = db.prepare("SELECT * FROM funnel_events WHERE session_id = ?").get(sid);
   const gravado = JSON.stringify(row);

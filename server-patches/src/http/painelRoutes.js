@@ -102,6 +102,27 @@ function coletarMetricas() {
     db.prepare(`SELECT COUNT(DISTINCT couple_key) AS n FROM flame_checkins WHERE day = ?`).get(hoje).n
   );
 
+  const paises = bloco("paises", () => ({
+    // Sessões distintas por país — a pergunta literal do dono ("de quais
+    // países são?"). NULL vira '??' (evento anterior à coluna, ou IP que a
+    // base local não conhece) — mostrar o buraco é mais honesto que somá-lo
+    // no maior país.
+    hoje: db
+      .prepare(
+        `SELECT COALESCE(country, '??') AS pais, COUNT(DISTINCT session_id) AS n
+         FROM funnel_events WHERE substr(created_at,1,10) = ? AND event = 'app_open'
+         GROUP BY pais ORDER BY n DESC LIMIT 12`
+      )
+      .all(hoje),
+    d7: db
+      .prepare(
+        `SELECT COALESCE(country, '??') AS pais, COUNT(DISTINCT session_id) AS n
+         FROM funnel_events WHERE substr(created_at,1,10) >= ? AND event = 'app_open'
+         GROUP BY pais ORDER BY n DESC LIMIT 12`
+      )
+      .all(diaISO(6)),
+  }));
+
   const cards = bloco("cards", () => {
     const manifesto = JSON.parse(
       fs.readFileSync(path.join(__dirname, "..", "..", "data", "daily-cards", "latest.json"), "utf8")
@@ -109,7 +130,7 @@ function coletarMetricas() {
     return manifesto.date;
   });
 
-  return { geradoEm: new Date().toISOString(), hoje, funil, assinaturas, ia, push, chama, cardsDoDia: cards };
+  return { geradoEm: new Date().toISOString(), hoje, funil, assinaturas, ia, push, chama, paises, cardsDoDia: cards };
 }
 
 // ---------------------------------------------------------------------------
@@ -202,6 +223,16 @@ async function carregar() {
   degraus.forEach(([nome,ev])=>{ const n=evHoje(ev); html+='<div class="linha"><span class="nome">'+nome+'</span><span class="barra"><i style="width:'+Math.round(n/topo*100)+'%"></i></span><span class="n">'+n+'</span></div>'; });
   html += '</div>';
 
+  const bandeira = c => c==='??' ? '🌐 ?' : String.fromCodePoint(...[...c].map(x=>127397+x.charCodeAt(0)))+' '+c;
+  const ps = (m.paises||{});
+  if ((ps.hoje||[]).length || (ps.d7||[]).length) {
+    const lista = (ps.hoje||[]).length ? ps.hoje : ps.d7;
+    const titulo = (ps.hoje||[]).length ? 'Países · hoje' : 'Países · 7 dias';
+    const maxP = Math.max(1, ...lista.map(r=>r.n));
+    html += '<h2>'+titulo+' (sessões)</h2><div class="card">';
+    lista.forEach(r=>{ html+='<div class="linha"><span class="nome">'+bandeira(r.pais)+'</span><span class="barra"><i style="width:'+Math.round(r.n/maxP*100)+'%"></i></span><span class="n">'+r.n+'</span></div>'; });
+    html += '</div>';
+  }
   html += '<h2>Sessões · 14 dias</h2><div class="card">'+barras(porDia(f,r=>r.event==='app_open',dias14))+'</div>';
   html += '<h2>Assinaturas novas · 14 dias</h2><div class="card">'+barras(porDia(((m.assinaturas||{}).novasPorDia||[]),()=>true,dias14))+'</div>';
 

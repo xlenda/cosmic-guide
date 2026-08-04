@@ -1,0 +1,13 @@
+-- O PAÍS DE CADA SESSÃO (04/08/2026) — pedido do dono olhando o painel:
+-- "dessas sessões de hoje, de quais países são?". O Vercel Analytics tem a
+-- resposta mas não abre API; a partir daqui o app responde sozinho.
+--
+-- PRIVACIDADE POR DESENHO: o servidor resolve o país NA HORA do ingest
+-- (geoip-lite, base local, zero chamada externa) e grava SÓ a sigla de duas
+-- letras. O IP nunca é gravado — nem aqui, nem em log. País é agregado de
+-- marketing; IP é dado pessoal. Um não precisa do outro.
+--
+-- ALTER simples e não "IF NOT EXISTS" (que o SQLite não tem): o runner de
+-- migrações garante execução única pelo user_version — é exatamente pra isso
+-- que ele existe.
+ALTER TABLE funnel_events ADD COLUMN country TEXT;
