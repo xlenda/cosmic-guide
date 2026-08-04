@@ -510,6 +510,12 @@ app.post("/api/enhance-insight", aiLimiter, optionalAuth, aiQuota.gate("enhance-
 // Cada rota exige um JWT válido do Supabase (ver socialAuth.js).
 app.use("/api/social", socialRouter);
 
+// Os fundos do card de compartilhar a Frase do Dia/do Amor — público e só
+// leitura (quem escreve é o cron de scripts/gerar-cards-do-dia.js). Sem rate
+// limiter próprio de propósito: são 3 arquivos por dia com Cache-Control
+// agressivo, o CDN/navegador segura o grosso.
+app.use("/api/daily-cards", require("./dailyCardsRoutes").dailyCardsRouter);
+
 // Rotas de suporte/admin (buscar/forçar status de assinatura) — protegidas
 // por ADMIN_TOKEN (header X-Admin-Token), nunca abertas sem essa var setada.
 app.use("/api/admin", buildAdminRouter({ repository, adminToken: ADMIN_TOKEN }));
