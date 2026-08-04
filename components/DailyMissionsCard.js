@@ -30,7 +30,7 @@ import { Alert } from '../lib/webAlert';
 import { localDayStr } from '../lib/localDay';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
 import { useLanguage } from '../context/LanguageContext';
-import { HUMORES, diaISO, lerCheckins, registrarCheckin, resumoDaSemana, termometroDaLunacao } from '../lib/checkin';
+import { HUMORES, diaISO, lerCheckins, registrarCheckin, resumoDaSemana, termometroDaLunacao, comparacaoMensal } from '../lib/checkin';
 import {
   getTodaysMissions,
   getMissionProgress,
@@ -270,6 +270,17 @@ export default function DailyMissionsCard() {
                           : ''}
                       </Text>
                     )}
+                    {(() => {
+                      // Você × você de 30 dias atrás — só com 8+ respostas em
+                      // CADA janela, e só quando a mudança existe de fato.
+                      const mes = comparacaoMensal(checkins);
+                      if (!mes || mes.direcao !== 'mais-leve') return null;
+                      return (
+                        <Text style={s.checkinResumo}>
+                          {t('checkin.mes.maisLeve', { n: mes.atual.leve, prev: mes.anterior.leve })}
+                        </Text>
+                      );
+                    })()}
                     {/* Sem efeméride o termômetro some — nunca inventa Lua. */}
                     {termo && (
                       <Text style={s.checkinResumo}>

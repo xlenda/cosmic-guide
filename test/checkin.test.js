@@ -6,7 +6,7 @@
 // termômetro pra prometer sorte, é aqui que quebra primeiro.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resumoDaSemana, termometroDaLunacao, registrarCheckin, lerCheckins, HUMORES, diaISO } from '../lib/checkin.js';
+import { resumoDaSemana, termometroDaLunacao, registrarCheckin, lerCheckins, HUMORES, diaISO, comparacaoMensal } from '../lib/checkin.js';
 
 // Uma quarta-feira à tarde: semana atual = seg 03/08 a dom 09/08 de 2026.
 const QUARTA = new Date(2026, 7, 5, 15, 0, 0);
@@ -78,4 +78,22 @@ test('as três respostas têm id único e emoji — e são exatamente três (um 
   assert.equal(HUMORES.length, 3);
   assert.equal(new Set(HUMORES.map((h) => h.id)).size, 3);
   for (const h of HUMORES) assert.ok(h.emoji);
+});
+
+test('a comparacao mensal so fala quando tem amostra E melhora de verdade', () => {
+  const hoje = new Date(2026, 7, 4);
+  const montar = (leves30, leves60, total = 12) => {
+    const m = {};
+    for (let i = 0; i < total; i++) m[diaISO(new Date(2026, 7, 4 - i * 2))] = i < leves30 ? 'leve' : 'neutro';
+    for (let i = 0; i < total; i++) m[diaISO(new Date(2026, 7, 4 - 30 - i * 2))] = i < leves60 ? 'leve' : 'neutro';
+    return m;
+  };
+  // Amostra rala: silencio, nunca numero fraco.
+  assert.equal(comparacaoMensal({ '2026-08-01': 'leve' }, hoje), null);
+  // Melhora real: direcao 'mais-leve' com os dois placares.
+  const melhora = comparacaoMensal(montar(9, 4), hoje);
+  assert.equal(melhora.direcao, 'mais-leve');
+  assert.ok(melhora.atual.leve > melhora.anterior.leve);
+  // Piora NAO vira frase de celebracao — direcao honesta.
+  assert.equal(comparacaoMensal(montar(3, 9), hoje).direcao, 'menos-leve');
 });
