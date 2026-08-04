@@ -1003,7 +1003,14 @@ export default function BirthChartScreen() {
 
       <DatePickerModal
         visible={soloDatePickerOpen}
-        title="Data de nascimento"
+        title={t('chart.birthData')}
+        // NASCIMENTO NÃO ACONTECE NO FUTURO (03/08/2026). O padrão do modal é
+        // CURRENT_YEAR + 15, que serve pra data de cápsula do tempo, não pra
+        // nascimento: dava pra escolher 2039 e aí a profecção — que conta anos
+        // de vida — respondia "a data escolhida é anterior ao seu nascimento"
+        // e a pessoa ficava sem saída, sem nada dizendo que o erro era o ano.
+        // Fechado na raiz: o ano nem aparece na lista.
+        maxYear={new Date().getFullYear()}
         initialDate={soloDate || undefined}
         onClose={() => setSoloDatePickerOpen(false)}
         onConfirm={(dateStr) => setSoloDate(dateStr)}

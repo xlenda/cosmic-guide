@@ -164,19 +164,47 @@ test("conta com assinatura ativa: /me devolve acesso e o correlationCode pro aut
   assert.equal(res.body.currentPeriodEnd, "2027-07-26T12:00:00.000Z");
 });
 
-test("assinatura de CASAL marca hasCoupleAccess; assinatura solo não", async () => {
+// O ESCOPO DEIXOU DE SER FRONTEIRA DE ACESSO em 29/07/2026, por decisão do
+// dono registrada em GetAccountSubscriptionUseCase.js: "quando ele assina pode
+// deixar funcionar o casal também". A linha continua gravando solo/casal por
+// honestidade histórica e pra relatório — o que mudou é que ela não NEGA mais.
+//
+// Este teste travava a regra ANTERIOR e ficou vermelho desde então. Um teste
+// vermelho crônico é pior que teste nenhum: ele treina a gente a ignorar a cor
+// e esconde a falha de verdade quando ela aparecer.
+//
+// A trava que importa e que fica aqui: os dois lados têm que CONCORDAR. O app
+// colapsa igual (combineAccessResults em lib/coupleData.js faz
+// `hasCoupleAccess = hasAccess`), e se um dia um lado mudar sozinho o acesso
+// passa a piscar conforme qual fonte respondeu primeiro.
+test("qualquer assinatura ativa concede hasCoupleAccess (decisão do dono, 29/07/2026)", async () => {
   const solo = new FakeSubscriptionRepository([
     { correlationCode: CODE_ATIVA, status: "active", scope: "solo", supabaseUserId: "u1" },
   ]);
   const soloRes = await supertest(buildApp(solo)).get("/api/subscription/me").set(authHeader("u1", "a@x.com"));
   assert.equal(soloRes.body.hasAccess, true);
-  assert.equal(soloRes.body.hasCoupleAccess, false);
+  assert.equal(
+    soloRes.body.hasCoupleAccess,
+    true,
+    "assinatura solo também libera o casal — se isto virar false, lib/coupleData.js precisa mudar junto"
+  );
+  // O escopo continua gravado e visível: a decisão foi sobre ACESSO, não sobre
+  // apagar a informação de o que a pessoa comprou.
+  assert.equal(soloRes.body.scope, "solo");
 
   const casal = new FakeSubscriptionRepository([
     { correlationCode: CODE_ATIVA, status: "active", scope: "couple", coupleName: "Ana & Léo", supabaseUserId: "u1" },
   ]);
   const casalRes = await supertest(buildApp(casal)).get("/api/subscription/me").set(authHeader("u1", "a@x.com"));
   assert.equal(casalRes.body.hasCoupleAccess, true);
+  assert.equal(casalRes.body.scope, "couple");
+});
+
+test("sem assinatura nenhuma, hasCoupleAccess é false — o colapso não vira porta aberta", async () => {
+  const vazio = new FakeSubscriptionRepository([]);
+  const res = await supertest(buildApp(vazio)).get("/api/subscription/me").set(authHeader("u1", "a@x.com"));
+  assert.equal(res.body.hasAccess, false);
+  assert.equal(res.body.hasCoupleAccess, false);
 });
 
 test("past_due (janela de dunning) ainda concede acesso", async () => {

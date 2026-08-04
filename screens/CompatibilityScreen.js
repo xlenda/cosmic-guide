@@ -88,9 +88,33 @@ export default function CompatibilityScreen() {
   const { t, lang } = useLanguage();
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
-  const { hasAccess, accessConfirmed } = useCouple();
+  const { hasAccess, accessConfirmed, coupleData, soloSign } = useCouple();
+  // ÁRIES × VIRGEM ERAM O PADRÃO FIXO ATÉ 03/08/2026 — dois signos que não
+  // têm nada a ver com quem está olhando. A Home mostrava o casal de verdade
+  // (coupleData.sa e coupleData.sb) e esta tela abria em outro par: o mesmo
+  // app dizia duas coisas diferentes sobre as mesmas duas pessoas.
+  //
+  // Os seletores continuam livres — a tela existe pra comparar quem a pessoa
+  // quiser, e o botão "Trocar" segue ali. O que muda é de onde ela PARTE.
   const [signA, setSignA] = useState(zodiacSigns[0]);
   const [signB, setSignB] = useState(zodiacSigns[5]);
+  // Uma vez só: depois que a pessoa mexeu num seletor, o contexto não pode
+  // mais puxar de volta pro casal salvo no meio da comparação dela.
+  const [semeado, setSemeado] = useState(false);
+
+  useEffect(() => {
+    if (semeado) return;
+    const acha = (nome) => (nome ? zodiacSigns.find((z) => z.name === nome) : null);
+    // Casal formado: os dois signos dele. Solo: o próprio signo na esquerda e
+    // a direita fica no padrão, que é exatamente o gesto de "com quem eu
+    // combino?". Sem nenhum dos dois, nada muda — não há o que semear.
+    const a = acha(coupleData?.sa) || soloSign || null;
+    const b = acha(coupleData?.sb) || null;
+    if (!a && !b) return;
+    if (a) setSignA(a);
+    if (b) setSignB(b);
+    setSemeado(true);
+  }, [coupleData, soloSign, semeado]);
   const [picking, setPicking] = useState(null); // 'A' | 'B' | null
   const [result, setResult] = useState(null);
   const [locked, setLocked] = useState(false);
