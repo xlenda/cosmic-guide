@@ -881,6 +881,29 @@ export default function HomeScreen() {
             <Text style={styles.thoughtToggle}>
               {thoughtExpanded ? t('home.thought.collapse') : t('home.thought.expand')}
             </Text>
+            {/* Compartilhar o PENSAMENTO como card (04/08/2026) — mesmo motor
+                da Frase do Amor, com o fundo SOLO do dia. O botão fica dentro
+                do card existente (regra do dono: nada de card novo na Home) e
+                para a propagação pra não disparar o expandir/recolher. */}
+            {thoughtExpanded && (
+              <TouchableOpacity
+                style={styles.thoughtShareBtn}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                onPress={async (e) => {
+                  e.stopPropagation && e.stopPropagation();
+                  const via = await compartilharFraseComoCard({ frase: todaysThought, tipo: 'solo' });
+                  if (via === 'compartilhado' || via === 'baixado') return;
+                  if (via === 'cancelado') return;
+                  try {
+                    await Share.share({ message: `${todaysThought}\n\n✦ https://cosmicguide.cloud` });
+                  } catch {}
+                }}
+              >
+                <Ionicons name="share-social" size={14} color={colors.gold} />
+                <Text style={styles.thoughtShareTxt}>{t('home.thought.share')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -1258,6 +1281,8 @@ const styles = StyleSheet.create({
   thoughtReadBadge: { color: colors.teal, fontSize: 11, fontWeight: '800' },
   thoughtDate: { color: colors.textMuted, fontSize: 11, marginTop: 2, textTransform: 'capitalize' },
   thoughtText: { color: colors.text, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  thoughtShareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, alignSelf: 'flex-start' },
+  thoughtShareTxt: { color: colors.gold, fontSize: 12, fontWeight: '600' },
   thoughtToggle: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: 6 },
   lovePhraseCard: { marginHorizontal: 16, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   lovePhraseInner: { padding: 18 },

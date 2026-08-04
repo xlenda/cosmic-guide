@@ -37,3 +37,4 @@ test/zz*.js
 
 # Scripts de medição que agentes deixam pra trás
 scratch_*.js
+server-patches/ADMIN_TOKEN.local.txt

@@ -4,11 +4,16 @@
 // Hotmart sobrescreve com o valor real da compra), mas deixava qualquer um
 // gravar um valor mentiroso no registro pendente — dado do cliente nunca
 // deve decidir preço, nem cosmético (achado de auditoria, 26/07/2026).
-const PLAN_PRICING = {
+// Object.create(null) e não objeto literal (04/08/2026, pendente #30 da
+// auditoria): com literal, plan="constructor" devolvia a função herdada do
+// prototype — truthy, então o fallback `|| PLAN_PRICING.trial` nunca disparava
+// e amountCents ia pro banco como undefined. Mesmo bug (e mesma cura) do
+// personaId do chat em AnthropicChatProvider.js.
+const PLAN_PRICING = Object.assign(Object.create(null), {
   trial: { amountCents: 500, currency: "USD" },
   quarterly: { amountCents: 1000, currency: "USD" },
   annual: { amountCents: 2000, currency: "USD" },
-};
+});
 
 // Janela de reuso de pendência. Dentro dela, clicar "Assinar" de novo devolve a
 // MESMA linha em vez de criar outra (o Carlos gerou 4 linhas pendentes pra 1

@@ -25,6 +25,7 @@ import {
   isEntradaFavorita,
 } from '../lib/journal';
 import { fetchAiWeeklyInsight, isAiAccessError, isLoginRequired } from '../lib/aiClient';
+import { lerCheckins, resumoDaSemana } from '../lib/checkin';
 import { useAuth } from '../context/AuthContext';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -221,8 +222,18 @@ export default function DiaryScreen() {
     const recent = await getRecentEntriesForWeeklyInsight();
     let result;
     try {
+      // O placar do check-in vai junto (04/08/2026): a síntese passa a ler
+      // como a pessoa MARCOU a própria semana — dado dela, contagem literal.
+      // Falha ao ler o placar nunca segura o insight: extras é opcional.
+      let extras;
+      try {
+        const dados = await lerCheckins();
+        const placar = resumoDaSemana(dados);
+        if (placar.atual.total > 0) extras = { checkins: placar };
+      } catch {}
       result = await fetchAiWeeklyInsight(
-        recent.map((e) => ({ type: e.type, typeLabel: e.typeLabel, title: e.title, body: e.body }))
+        recent.map((e) => ({ type: e.type, typeLabel: e.typeLabel, title: e.title, body: e.body })),
+        extras
       );
     } catch (err) {
       // PAYWALL DE VERDADE (30/07/2026): a cota grátis do Insight da Semana

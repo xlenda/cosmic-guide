@@ -805,7 +805,17 @@ app.post("/api/weekly-insight", aiLimiter, optionalAuth, aiQuota.gate("weekly-in
         return res.status(400).json({ error: "cada leitura precisa de title e body em string" });
       }
     }
-    const summary = await aiProvider.summarizeWeeklyInsight({ readings, lang: langDoPedido(req) });
+    // extras.checkins (04/08/2026): o placar do check-in diario — contagens
+    // que a propria pessoa marcou. Saneado numero a numero na porta: extras e
+    // body de cliente, e cliente nao dita prompt — so numeros pequenos passam.
+    const extrasBrutos = (req.body || {}).extras;
+    let extras;
+    if (extrasBrutos && extrasBrutos.checkins) {
+      const n = (v) => (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 31 ? Math.floor(v) : 0);
+      const placar = (o) => ({ leve: n(o && o.leve), neutro: n(o && o.neutro), pesado: n(o && o.pesado), total: n(o && o.total) });
+      extras = { checkins: { atual: placar(extrasBrutos.checkins.atual), anterior: placar(extrasBrutos.checkins.anterior) } };
+    }
+    const summary = await aiProvider.summarizeWeeklyInsight({ readings, extras, lang: langDoPedido(req) });
     console.log("[api/weekly-insight] sucesso");
     countAiUsage("weekly-insight");
     res.json(summary);

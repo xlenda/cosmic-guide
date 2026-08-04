@@ -1592,6 +1592,21 @@ class AnthropicChatProvider {
       );
     }
 
+    if (extras && extras.checkins && extras.checkins.atual && extras.checkins.atual.total > 0) {
+      const c = extras.checkins;
+      // Contagem REAL marcada pela propria pessoa (1 toque por dia no app) —
+      // nao e diagnostico nem medida clinica, e a sintese nao pode tratar
+      // como tal: e materia-prima de espelho, igual ao diario.
+      partes.push(
+        `Como ela marcou o próprio coração nesta semana (check-in de 1 toque, contagem literal): ` +
+          `${c.atual.leve} dia(s) leve(s), ${c.atual.neutro} tranquilo(s), ${c.atual.pesado} pesado(s), em ${c.atual.total} respostas.` +
+          (c.anterior && c.anterior.total > 0
+            ? ` Na semana anterior: ${c.anterior.leve} leve(s), ${c.anterior.neutro} tranquilo(s), ${c.anterior.pesado} pesado(s).`
+            : "") +
+          ` Use como fio, nunca como diagnóstico — e cite no máximo uma vez.`
+      );
+    }
+
     partes.push("Escreva a síntese da semana: fio condutor, contraste, uma coisa concreta.");
 
     return this.callJson({
