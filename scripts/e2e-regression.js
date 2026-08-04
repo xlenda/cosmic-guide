@@ -249,7 +249,7 @@ async function newSoloPage(browser, extraStorage = {}) {
     await page.getByText('Reconectar', { exact: false }).first().click();
     await page.waitForTimeout(1400);
     const body = await page.evaluate(() => document.body.innerText);
-    check('conteúdo real + SubscribeTeaser', /entra pela sua assinatura|Continue com a assinatura/.test(body));
+    check('conteúdo real + SubscribeTeaser', /O resto desta tela está logo aí embaixo|Continue com a assinatura/.test(body));
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }
