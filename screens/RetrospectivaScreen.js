@@ -21,6 +21,7 @@ import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
 import { getStreak } from '../lib/coupleData';
 import { yearlyRecap, collectData } from '../lib/activity';
+import { useLanguage } from '../context/LanguageContext';
 
 const HEADER_GRADIENT = ['#FFC85C', '#FF7BD5'];
 
@@ -56,6 +57,7 @@ function fmt(iso) {
 }
 
 export default function RetrospectivaScreen() {
+  const { t } = useLanguage();
   const navigation = useNavigation();
   const { coupleData } = useCouple();
   const voce = coupleData?.voce;
@@ -89,12 +91,12 @@ export default function RetrospectivaScreen() {
         <GradientHeader title="Retrospectiva" subtitle="O ano de vocês" onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
         <View style={styles.emptyProfile}>
           <Ionicons name="heart-outline" size={40} color={colors.accent} />
-          <Text style={styles.emptyProfileTitle}>Complete o quiz do casal primeiro</Text>
+          <Text style={styles.emptyProfileTitle}>{t('retro.needQuiz')}</Text>
           <Text style={styles.emptyProfileDesc}>
             Precisamos saber os nomes de vocês para montar a retrospectiva do casal.
           </Text>
           <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
-            <Text style={styles.btnText}>Fazer o quiz do casal</Text>
+            <Text style={styles.btnText}>{t('retro.doQuiz')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -131,16 +133,16 @@ export default function RetrospectivaScreen() {
           {semMemorias ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>🌱</Text>
-              <Text style={styles.emptyStateTitle}>O ano de vocês ainda está sendo escrito</Text>
-              <Text style={styles.emptyStateDesc}>Comecem a guardar memórias na Linha do Tempo 💛</Text>
+              <Text style={styles.emptyStateTitle}>{t('retro.empty.title')}</Text>
+              <Text style={styles.emptyStateDesc}>{t('retro.empty.desc')}</Text>
               <TouchableOpacity style={[styles.btn, { marginTop: 16 }]} onPress={() => navigation.navigate(ROUTES.TIMELINE)}>
-                <Text style={styles.btnText}>Guardar a primeira memória →</Text>
+                <Text style={styles.btnText}>{t('retro.empty.cta')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               <View style={[styles.card, { alignItems: 'center' }]}>
-                <Text style={styles.overline}>Total do ano</Text>
+                <Text style={styles.overline}>{t('retro.yearTotal')}</Text>
                 <Text style={styles.bigNumber}><CountUp value={recap.memoriesCount} /></Text>
                 <Text style={styles.mutedText}>
                   {recap.memoriesCount === 1 ? 'memória guardada' : 'memórias guardadas'} em {recap.year}
@@ -148,7 +150,7 @@ export default function RetrospectivaScreen() {
               </View>
 
               <View style={styles.sectionHead}>
-                <Text style={styles.sectionHeadTitle}>Resumo do ano</Text>
+                <Text style={styles.sectionHeadTitle}>{t('retro.yearSummary')}</Text>
               </View>
               <View style={styles.card}>
                 <View style={styles.featureItem}>
@@ -165,7 +167,7 @@ export default function RetrospectivaScreen() {
                   <Text style={styles.featureIcon}>💞</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.featureBold}><CountUp value={reconectarChecks} /></Text>
-                    <Text style={styles.featureText}>missões de reconexão completadas desde o início</Text>
+                    <Text style={styles.featureText}>{t('retro.missionsDone')}</Text>
                   </View>
                 </View>
 
@@ -173,7 +175,7 @@ export default function RetrospectivaScreen() {
                   <Text style={styles.featureIcon}>🔥</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.featureBold}><CountUp value={streak.longest} /></Text>
-                    <Text style={styles.featureText}>sequência mais longa de dias seguidos</Text>
+                    <Text style={styles.featureText}>{t('retro.longestStreak')}</Text>
                   </View>
                 </View>
 
@@ -199,14 +201,14 @@ export default function RetrospectivaScreen() {
               </View>
 
               <View style={styles.sectionHead}>
-                <Text style={styles.sectionHeadTitle}>🎁 Guardem esse ano</Text>
+                <Text style={styles.sectionHeadTitle}>{t('retro.keepYear')}</Text>
               </View>
               <View style={[styles.card, { alignItems: 'center' }]}>
                 <Text style={[styles.mutedText, { marginBottom: 12 }]}>
                   Compartilhem a retrospectiva de vocês com quem torce pela história de vocês.
                 </Text>
                 <TouchableOpacity style={styles.btn} onPress={handleShare}>
-                  <Text style={styles.btnText}>Compartilhar</Text>
+                  <Text style={styles.btnText}>{t('retro.share')}</Text>
                 </TouchableOpacity>
               </View>
             </>

@@ -17,6 +17,7 @@ import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
 import { getStreak } from '../lib/coupleData';
 import { computeBadges, monthlyRecap } from '../lib/activity';
+import { useLanguage } from '../context/LanguageContext';
 
 const HEADER_GRADIENT = ['#5FD98C', '#5CE0D8'];
 
@@ -44,6 +45,7 @@ function CountUp({ value, duration = 900 }) {
 }
 
 export default function ProgressoScreen() {
+  const { t } = useLanguage();
   const navigation = useNavigation();
   const { coupleData } = useCouple();
   const voce = coupleData?.voce;
@@ -75,12 +77,12 @@ export default function ProgressoScreen() {
         <GradientHeader title="Progresso" subtitle="Sequência e conquistas" onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
         <View style={styles.emptyProfile}>
           <Ionicons name="heart-outline" size={40} color={colors.accent} />
-          <Text style={styles.emptyProfileTitle}>Complete o quiz do casal primeiro</Text>
+          <Text style={styles.emptyProfileTitle}>{t('retro.needQuiz')}</Text>
           <Text style={styles.emptyProfileDesc}>
             Precisamos saber os nomes de vocês para acompanhar a sequência e as conquistas do casal.
           </Text>
           <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
-            <Text style={styles.btnText}>Fazer o quiz do casal</Text>
+            <Text style={styles.btnText}>{t('retro.doQuiz')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -120,27 +122,27 @@ export default function ProgressoScreen() {
           {/* Resumo do mês */}
           {recap && (
             <View style={[styles.card, { marginTop: 14 }]}>
-              <Text style={styles.overline}>Resumo do mês</Text>
+              <Text style={styles.overline}>{t('progresso.monthSummary')}</Text>
               <Text style={[styles.sectionTitle, { marginTop: 2, textTransform: 'capitalize' }]}>{recap.mesLabel}</Text>
               <View style={styles.statRow}>
                 <View style={styles.stat}>
                   <Text style={styles.statValue}>{recap.memoriesThisMonth}</Text>
-                  <Text style={styles.statLabel}>📸 memórias</Text>
+                  <Text style={styles.statLabel}>{t('progresso.memories')}</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.stat}>
                   <Text style={styles.statValue}>{recap.capsulesSealedThisMonth}</Text>
-                  <Text style={styles.statLabel}>⏳ cápsulas</Text>
+                  <Text style={styles.statLabel}>{t('progresso.capsules')}</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.stat}>
                   <Text style={styles.statValue}>{recap.reconectarChecks}</Text>
-                  <Text style={styles.statLabel}>💞 missões</Text>
+                  <Text style={styles.statLabel}>{t('progresso.missions')}</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.stat}>
                   <Text style={styles.statValue}>{recap.agirDoneCount}</Text>
-                  <Text style={styles.statLabel}>🎯 gestos</Text>
+                  <Text style={styles.statLabel}>{t('progresso.gestures')}</Text>
                 </View>
               </View>
             </View>

@@ -544,9 +544,10 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
 // mesmo grau exato) — sem isso, mostra o mesmo tipo de aviso honesto já usado
 // pro Ascendente, nunca uma casa fabricada.
 function HousesSection({ housesList, isCouple, onFixTime, onFixCity }) {
+  const { t } = useLanguage();
   return (
     <>
-      <Text style={styles.sub}>Casas (Casas Inteiras)</Text>
+      <Text style={styles.sub}>{t('chart.houses')}</Text>
       {housesList ? (
         <View style={styles.housesGrid}>
           {housesList.map((h) => (
@@ -578,9 +579,10 @@ function HousesSection({ housesList, isCouple, onFixTime, onFixCity }) {
 // hora) — se lib/signs.js não conseguir calcular (ex.: astronomy-engine
 // indisponível), mostra aviso honesto em vez de lista vazia silenciosa.
 function AspectsSection({ aspectsList }) {
+  const { t } = useLanguage();
   return (
     <>
-      <Text style={styles.sub}>Aspectos</Text>
+      <Text style={styles.sub}>{t('chart.aspects')}</Text>
       {aspectsList ? (
         aspectsList.length > 0 ? (
           aspectsList.map((a, i) => (
@@ -593,12 +595,12 @@ function AspectsSection({ aspectsList }) {
           ))
         ) : (
           <View style={styles.planetRow}>
-            <Text style={styles.planetDesc}>Nenhum aspecto maior encontrado dentro do orbe padrão para esta data.</Text>
+            <Text style={styles.planetDesc}>{t('chart.noAspects')}</Text>
           </View>
         )
       ) : (
         <View style={styles.planetRow}>
-          <Text style={styles.planetDesc}>Não foi possível calcular os aspectos agora.</Text>
+          <Text style={styles.planetDesc}>{t('chart.aspectsError')}</Text>
         </View>
       )}
     </>
@@ -613,9 +615,10 @@ function AspectsSection({ aspectsList }) {
 // cidade de nascimento (pro fuso/instante UTC exato), mesma exigência do
 // Ascendente.
 function AstroCartographySection({ astro, isCouple, onFixTime, onFixCity }) {
+  const { t } = useLanguage();
   return (
     <>
-      <Text style={styles.sub}>Astrocartografia (prévia por cidades)</Text>
+      <Text style={styles.sub}>{t('chart.astrocarto')}</Text>
       <Text style={styles.mutedNote}>
         Prévia textual com cidades notáveis — ainda não é um mapa interativo completo.
       </Text>
@@ -631,7 +634,7 @@ function AstroCartographySection({ astro, isCouple, onFixTime, onFixCity }) {
           ))
         ) : (
           <View style={styles.planetRow}>
-            <Text style={styles.planetDesc}>Nenhum planeta caiu angular em nenhuma das cidades notáveis para esta data/hora.</Text>
+            <Text style={styles.planetDesc}>{t('chart.noAngular')}</Text>
           </View>
         )
       ) : (
@@ -883,7 +886,7 @@ export default function BirthChartScreen() {
 
             {!selectedBirth?.date ? (
               <View style={styles.formCard}>
-                <Text style={styles.formTitle}>Dados de nascimento</Text>
+                <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
                 <Text style={styles.mutedNote}>
                   Não encontramos a data de nascimento de {person === 'voce' ? coupleData.voce : coupleData.amor}. Refaça o Quiz do Casal (em Perfil) para calcular o mapa astral.
                 </Text>
@@ -901,7 +904,7 @@ export default function BirthChartScreen() {
             ) : (
               <>
                 <View style={styles.formCard}>
-                  <Text style={styles.formTitle}>Dados de nascimento</Text>
+                  <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
                   <Text style={styles.dateReadout}>
                     {formatDateBR(selectedBirth.date)}{selectedBirth.time ? ` · ${selectedBirth.time}` : ' · hora não informada'}
                   </Text>
@@ -922,7 +925,7 @@ export default function BirthChartScreen() {
         ) : (
           <>
             <View style={styles.formCard}>
-              <Text style={styles.formTitle}>Dados de nascimento</Text>
+              <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
               <TouchableOpacity style={styles.dateBtn} onPress={() => setSoloDatePickerOpen(true)}>
                 <Ionicons name="calendar" size={16} color={colors.textMuted} />
                 <Text style={[styles.dateBtnText, !soloDate && styles.dateBtnPlaceholder]}>
@@ -957,7 +960,7 @@ export default function BirthChartScreen() {
                   />
                 </View>
               </View>
-              <Text style={styles.mutedNote}>Hora é opcional, mas revela o Ascendente (junto com a cidade).</Text>
+              <Text style={styles.mutedNote}>{t('chart.timeOptional')}</Text>
 
               <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerOpen(true)}>
                 <Ionicons name="location" size={16} color={colors.textMuted} />
@@ -969,7 +972,7 @@ export default function BirthChartScreen() {
               <TouchableOpacity activeOpacity={0.85} onPress={generateSolo} style={styles.btnWrap} disabled={!soloDate}>
                 <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                   <Ionicons name="planet" size={18} color="#fff" />
-                  <Text style={styles.btnText}>Gerar Mapa Astral</Text>
+                  <Text style={styles.btnText}>{t('chart.generate')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>

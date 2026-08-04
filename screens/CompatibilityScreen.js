@@ -312,7 +312,7 @@ export default function CompatibilityScreen() {
                 <Ionicons name="heart-circle" size={20} color={colors.pink} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.traitLabel}>Ponto forte</Text>
+                <Text style={styles.traitLabel}>{t('compat.strength')}</Text>
                 <Text style={styles.traitText}>{result.forte}</Text>
               </View>
             </View>
@@ -322,7 +322,7 @@ export default function CompatibilityScreen() {
                 <Ionicons name="alert-circle" size={20} color={colors.accent} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.traitLabel}>Atenção</Text>
+                <Text style={styles.traitLabel}>{t('compat.watch')}</Text>
                 <Text style={styles.traitText}>{result.cuidado}</Text>
               </View>
             </View>
@@ -407,7 +407,7 @@ export default function CompatibilityScreen() {
               activeOpacity={0.85}
               onPress={() => navigation.navigate(ROUTES.PLANOS)}
             >
-              <Text style={styles.offerBtnText}>Começar meus 7 dias grátis →</Text>
+              <Text style={styles.offerBtnText}>{t('compat.trialCta')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -417,6 +417,7 @@ export default function CompatibilityScreen() {
 }
 
 function SignSlot({ sign, onPress, active }) {
+  const { t } = useLanguage();
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.slot, active && { borderColor: sign.color }]}>
       <View style={[styles.slotGlyphWrap, { backgroundColor: sign.color + '22' }]}>
@@ -426,7 +427,7 @@ function SignSlot({ sign, onPress, active }) {
       <Text style={styles.slotDates}>{sign.dates}</Text>
       <View style={styles.changeRow}>
         <Ionicons name="swap-vertical" size={12} color={colors.accent} />
-        <Text style={styles.changeText}>Trocar</Text>
+        <Text style={styles.changeText}>{t('compat.swap')}</Text>
       </View>
     </TouchableOpacity>
   );

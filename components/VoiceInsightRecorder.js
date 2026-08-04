@@ -15,6 +15,7 @@ import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import { attachVoiceInsight } from '../lib/journal';
 import { fetchAiEnhancedInsight, isAiAccessError, isLoginRequired } from '../lib/aiClient';
+import { useLanguage } from '../context/LanguageContext';
 
 function getSpeechRecognitionCtor() {
   if (typeof window === 'undefined') return null;
@@ -26,6 +27,7 @@ const STEP = { IDLE: 'idle', RECORDING: 'recording', REVIEW: 'review', ENHANCING
 // entryId: id da entrada já salva no Diário Cósmico (lib/journal.js) pra essa
 // leitura — o insight é anexado nela, nunca cria uma entrada nova.
 export default function VoiceInsightRecorder({ entryId, readingType, readingTitle }) {
+  const { t } = useLanguage();
   const navigation = useNavigation();
   const [step, setStep] = useState(STEP.IDLE);
   const [transcript, setTranscript] = useState('');
@@ -142,7 +144,7 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
     return (
       <View style={styles.card}>
         <Ionicons name="checkmark-circle" size={22} color={colors.green} />
-        <Text style={styles.doneTitle}>Insight guardado no seu Diário Cósmico</Text>
+        <Text style={styles.doneTitle}>{t('voice.saved')}</Text>
         {enhanced && <Text style={styles.enhancedText}>{enhanced}</Text>}
         {!enhanced && <Text style={styles.transcriptText}>{transcript}</Text>}
         {error && <Text style={styles.errorText}>{error}</Text>}
@@ -157,7 +159,7 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
           activeOpacity={0.7}
           onPress={() => (navigation.getParent() || navigation).navigate(ROUTES.HOME_TAB, { screen: ROUTES.DIARY })}
         >
-          <Text style={styles.diaryLinkText}>Ver no Diário Cósmico</Text>
+          <Text style={styles.diaryLinkText}>{t('voice.seeInDiary')}</Text>
           <Ionicons name="arrow-forward" size={14} color={colors.accent} />
         </TouchableOpacity>
       </View>
@@ -168,7 +170,7 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
     return (
       <View style={styles.card}>
         <ActivityIndicator color={colors.teal} />
-        <Text style={styles.hint}>Organizando seu insight com IA...</Text>
+        <Text style={styles.hint}>{t('voice.polishing')}</Text>
       </View>
     );
   }
@@ -176,16 +178,16 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
   if (step === STEP.REVIEW) {
     return (
       <View style={styles.card}>
-        <Text style={styles.label}>Seu insight</Text>
+        <Text style={styles.label}>{t('voice.yourInsight')}</Text>
         <Text style={styles.transcriptText}>{transcript}</Text>
         <View style={styles.rowButtons}>
           <TouchableOpacity style={styles.secondaryBtn} onPress={saveOriginalOnly} disabled={busy}>
-            <Text style={styles.secondaryBtnText}>Salvar assim</Text>
+            <Text style={styles.secondaryBtnText}>{t('voice.saveAsIs')}</Text>
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.85} onPress={enhanceWithAi} disabled={busy} style={{ flex: 1, borderRadius: 12, overflow: 'hidden' }}>
             <LinearGradient colors={gradients.teal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
               <Ionicons name="sparkles" size={16} color="#0E0821" />
-              <Text style={styles.primaryBtnText}>Lapidar com IA</Text>
+              <Text style={styles.primaryBtnText}>{t('voice.polish')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -198,12 +200,12 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
       <View style={styles.card}>
         <View style={styles.recordingRow}>
           <View style={styles.recDot} />
-          <Text style={styles.recordingText}>Gravando insight...</Text>
+          <Text style={styles.recordingText}>{t('voice.recording')}</Text>
         </View>
         {!!transcript && <Text style={styles.transcriptText}>{transcript}</Text>}
         <TouchableOpacity activeOpacity={0.85} onPress={stopRecording} style={styles.finishBtn}>
           <Ionicons name="stop-circle" size={18} color={colors.red} />
-          <Text style={styles.finishBtnText}>Finalizar</Text>
+          <Text style={styles.finishBtnText}>{t('voice.finish')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -212,18 +214,18 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
   // STEP.IDLE
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>Quer guardar um insight dessa leitura?</Text>
+      <Text style={styles.label}>{t('voice.ask')}</Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       {speechSupported ? (
         <TouchableOpacity activeOpacity={0.85} onPress={startRecording} style={{ borderRadius: 12, overflow: 'hidden' }}>
           <LinearGradient colors={gradients.teal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
             <Ionicons name="mic" size={18} color="#0E0821" />
-            <Text style={styles.primaryBtnText}>Gravar meu insight</Text>
+            <Text style={styles.primaryBtnText}>{t('voice.record')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       ) : (
         <>
-          <Text style={styles.hint}>Seu navegador não grava voz aqui — escreva seu insight:</Text>
+          <Text style={styles.hint}>{t('voice.noMic')}</Text>
           <TextInput
             value={manualText}
             onChangeText={setManualText}
@@ -234,7 +236,7 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
           />
           <TouchableOpacity activeOpacity={0.85} onPress={useManualText} style={{ borderRadius: 12, overflow: 'hidden', marginTop: 8 }}>
             <LinearGradient colors={gradients.teal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
-              <Text style={styles.primaryBtnText}>Continuar</Text>
+              <Text style={styles.primaryBtnText}>{t('voice.continue')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </>

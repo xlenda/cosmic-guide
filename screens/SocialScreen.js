@@ -38,6 +38,7 @@ function timeAgo(iso) {
 }
 
 function ProfileSetup({ onCreated }) {
+  const { t } = useLanguage();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [avatarEmoji, setAvatarEmoji] = useState(AVATAR_OPTIONS[0]);
@@ -64,8 +65,8 @@ function ProfileSetup({ onCreated }) {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Crie seu perfil social</Text>
-        <Text style={styles.cardText}>Escolha como quer aparecer pros outros leitores no feed.</Text>
+        <Text style={styles.cardTitle}>{t('social.createProfile.title')}</Text>
+        <Text style={styles.cardText}>{t('social.createProfile.desc')}</Text>
 
         <View style={styles.avatarRow}>
           {AVATAR_OPTIONS.map((emoji) => (
@@ -100,7 +101,7 @@ function ProfileSetup({ onCreated }) {
 
         <TouchableOpacity activeOpacity={0.85} onPress={submit} disabled={saving} style={{ borderRadius: 12, overflow: 'hidden', marginTop: 6 }}>
           <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
-            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Criar perfil</Text>}
+            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{t('social.createProfile.cta')}</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -147,6 +148,7 @@ function PostCard({ post, myUserId, onToggleLike, onOpenComments, onOpenProfile,
 // visíveis (o backend já filtra: só aparece o body dos posts se for o dono ou
 // quem segue — GET /users/:userId, canViewPosts).
 function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
+  const { t } = useLanguage();
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -179,7 +181,7 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
     <View style={styles.commentsOverlay}>
       <View style={styles.commentsPanel}>
         <View style={styles.commentsHeader}>
-          <Text style={styles.commentsTitle}>Perfil</Text>
+          <Text style={styles.commentsTitle}>{t('social.profile')}</Text>
           <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
@@ -228,6 +230,7 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
 }
 
 function CommentsPanel({ post, onClose }) {
+  const { t } = useLanguage();
   const [comments, setComments] = useState(null);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -256,7 +259,7 @@ function CommentsPanel({ post, onClose }) {
     <View style={styles.commentsOverlay}>
       <View style={styles.commentsPanel}>
         <View style={styles.commentsHeader}>
-          <Text style={styles.commentsTitle}>Comentários</Text>
+          <Text style={styles.commentsTitle}>{t('social.comments')}</Text>
           <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
@@ -268,7 +271,7 @@ function CommentsPanel({ post, onClose }) {
             data={comments}
             keyExtractor={(c) => String(c.id)}
             style={{ maxHeight: 260 }}
-            ListEmptyComponent={<Text style={styles.emptyComments}>Nenhum comentário ainda.</Text>}
+            ListEmptyComponent={<Text style={styles.emptyComments}>{t('social.noComments')}</Text>}
             renderItem={({ item }) => (
               <View style={styles.commentRow}>
                 <Text style={styles.postAvatar}>{item.avatar_emoji || '✨'}</Text>
@@ -298,6 +301,7 @@ function CommentsPanel({ post, onClose }) {
 }
 
 function SearchPanel({ onFollowChange }) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -346,7 +350,7 @@ function SearchPanel({ onFollowChange }) {
             <Text style={styles.postMeta}>@{r.username}</Text>
           </View>
           <TouchableOpacity disabled={busy} onPress={() => follow(r.user_id)} style={styles.followBtn}>
-            <Text style={styles.followBtnText}>Seguir</Text>
+            <Text style={styles.followBtnText}>{t('social.follow')}</Text>
           </TouchableOpacity>
         </View>
       ))}
@@ -470,9 +474,9 @@ export default function SocialScreen() {
         <GradientHeader title="Feed Social" subtitle="Entre em contato com outros leitores" gradient={gradients.purple} />
         <View style={styles.card}>
           <Ionicons name="lock-closed" size={30} color={colors.gold} />
-          <Text style={styles.cardTitle}>Faça login para usar o Feed Social</Text>
+          <Text style={styles.cardTitle}>{t('social.loginNeeded')}</Text>
           <TouchableOpacity style={styles.primaryBtnFlat} onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.primaryBtnFlatText}>Fazer login →</Text>
+            <Text style={styles.primaryBtnFlatText}>{t('social.loginCta')}</Text>
           </TouchableOpacity>
         </View>
       </View>

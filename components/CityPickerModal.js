@@ -70,6 +70,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import { cityLabel, createCitySearch, CITY_ATTRIBUTION, CITIES } from '../lib/cities';
+import { translate } from '../lib/i18n';
 
 const ROW_HEIGHT = 46;
 
@@ -101,6 +102,10 @@ export default function CityPickerModal({
   birthTime = null,
   lang = 'pt',
 }) {
+  // O idioma vem POR PROP, nao pelo hook: este modal e aberto de telas que ja
+  // sabem a lingua (o Mapa Astral passa a dele), e usar useLanguage aqui
+  // deixaria o modal discordando do pai que o abriu.
+  const t = (chave) => translate(lang, chave);
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [estado, setEstado] = useState(ESTADO_INICIAL);
@@ -154,7 +159,7 @@ export default function CityPickerModal({
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
       <View testID="city-picker-modal" style={[styles.panel, { paddingTop: insets.top + 10, paddingBottom: insets.bottom }]}>
         <View style={styles.header}>
-          <Text style={styles.title}>Cidade de nascimento</Text>
+          <Text style={styles.title}>{t('city.title')}</Text>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose} accessibilityLabel="Fechar" testID="city-picker-close">
             <Ionicons name="close" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -190,7 +195,7 @@ export default function CityPickerModal({
             <Ionicons name="cloud-offline-outline" size={14} color={colors.textMuted} />
             <Text style={styles.warnText}>{aviso}</Text>
             <TouchableOpacity onPress={repetirBusca} accessibilityLabel="Tentar de novo">
-              <Text style={styles.warnRetry}>Tentar de novo</Text>
+              <Text style={styles.warnRetry}>{t('city.retry')}</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -243,11 +248,11 @@ export default function CityPickerModal({
         <View style={styles.actions}>
           {hasSelection ? (
             <TouchableOpacity style={styles.ghost} onPress={onClear}>
-              <Text style={styles.ghostText}>Remover cidade</Text>
+              <Text style={styles.ghostText}>{t('city.remove')}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.ghost} onPress={onClose}>
-              <Text style={styles.ghostText}>Pular (opcional)</Text>
+              <Text style={styles.ghostText}>{t('city.skip')}</Text>
             </TouchableOpacity>
           )}
         </View>

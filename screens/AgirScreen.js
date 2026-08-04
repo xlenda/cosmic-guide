@@ -387,12 +387,12 @@ export default function AgirScreen() {
               <View style={styles.goalActions}>
                 {!goalDone && (
                   <TouchableOpacity style={styles.btn} onPress={markGoalDone}>
-                    <Text style={styles.btnText}>Marcar como cumprida 💛</Text>
+                    <Text style={styles.btnText}>{t('agir.markDone')}</Text>
                   </TouchableOpacity>
                 )}
-                {goalDone && <Text style={styles.completeTextInline}>Meta cumprida! Que orgulho de vocês dois.</Text>}
+                {goalDone && <Text style={styles.completeTextInline}>{t('agir.done')}</Text>}
                 <TouchableOpacity onPress={clearGoal}>
-                  <Text style={styles.delText}>trocar meta</Text>
+                  <Text style={styles.delText}>{t('agir.swapGoal')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -401,13 +401,13 @@ export default function AgirScreen() {
 
         {/* 5) Sonhos do casal */}
         <View style={styles.sectionHeadRow}>
-          <Text style={styles.sectionTitle}>Sonhos do casal</Text>
+          <Text style={styles.sectionTitle}>{t('agir.dreams')}</Text>
           {loaded && dreams.length > 0 && (
             <Text style={styles.sectionHeadAction}>{dreams.filter((d) => d.done).length}/{dreams.length}</Text>
           )}
         </View>
         <View style={styles.card}>
-          <Text style={styles.mutedText}>Metas maiores, sem prazo — ficam aqui até vocês cumprirem.</Text>
+          <Text style={styles.mutedText}>{t('agir.dreamsDesc')}</Text>
 
           <View style={styles.dreamInputRow}>
             <TextInput
@@ -419,15 +419,15 @@ export default function AgirScreen() {
               onSubmitEditing={addDream}
             />
             <TouchableOpacity style={styles.btn} onPress={addDream}>
-              <Text style={styles.btnText}>Adicionar</Text>
+              <Text style={styles.btnText}>{t('agir.add')}</Text>
             </TouchableOpacity>
           </View>
 
           {loaded && dreams.length === 0 && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>🌠</Text>
-              <Text style={styles.emptyStateTitle}>Ainda não há sonhos guardados</Text>
-              <Text style={styles.emptyStateDesc}>Adicionem sua primeira meta grande e fiquem aqui até cumpri-la.</Text>
+              <Text style={styles.emptyStateTitle}>{t('agir.empty.title')}</Text>
+              <Text style={styles.emptyStateDesc}>{t('agir.empty.desc')}</Text>
             </View>
           )}
 
@@ -440,7 +440,7 @@ export default function AgirScreen() {
                   </TouchableOpacity>
                   <Text style={[styles.listItemText, { flex: 1 }, d.done && styles.listItemTextDone]}>{d.text}</Text>
                   <TouchableOpacity onPress={() => delDream(d.id)}>
-                    <Text style={styles.delText}>remover</Text>
+                    <Text style={styles.delText}>{t('agir.remove')}</Text>
                   </TouchableOpacity>
                 </View>
               ))}

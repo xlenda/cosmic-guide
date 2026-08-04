@@ -128,7 +128,7 @@ export default function MonthlyWrappedScreen() {
         {backBtn}
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>🌑</Text>
-          <Text style={styles.emptyTitle}>Esse mês ainda não tem registros</Text>
+          <Text style={styles.emptyTitle}>{t('wrapped.empty')}</Text>
           <Text style={styles.emptyDesc}>
             A retrospectiva só conta o que você mesmo registrou no app — quando houver leituras, ela nasce sozinha.
           </Text>
@@ -139,7 +139,7 @@ export default function MonthlyWrappedScreen() {
             <Text style={styles.btnText}>{t('wrapped.empty.readingsCta')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.btnGhost} onPress={() => navigation.goBack()}>
-            <Text style={styles.btnGhostText}>Voltar</Text>
+            <Text style={styles.btnGhostText}>{t('wrapped.back')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -149,7 +149,7 @@ export default function MonthlyWrappedScreen() {
   const slideStyle = [styles.slide, { minHeight: winH }];
   const hint = (
     <View style={styles.hint}>
-      <Text style={styles.hintText}>deslize</Text>
+      <Text style={styles.hintText}>{t('wrapped.swipe')}</Text>
       <Ionicons name="chevron-down" size={20} color="rgba(255,255,255,0.7)" />
     </View>
   );
@@ -159,7 +159,7 @@ export default function MonthlyWrappedScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Slide 1 — total de leituras do mês */}
         <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={slideStyle}>
-          <Text style={styles.overline}>Sua Retrospectiva Cósmica</Text>
+          <Text style={styles.overline}>{t('wrapped.title')}</Text>
           <Text style={styles.monthLabel}>{wrapped.monthLabel}</Text>
           <Text style={styles.bigNumber}><CountUp value={wrapped.totalReadings} /></Text>
           <Text style={styles.caption}>
@@ -171,7 +171,7 @@ export default function MonthlyWrappedScreen() {
         {/* Slide 2 — tipo favorito + energia do mês (só existe com leitura no mês) */}
         {wrapped.topType && (
           <LinearGradient colors={gradients.pink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={slideStyle}>
-            <Text style={styles.overline}>Sua leitura favorita</Text>
+            <Text style={styles.overline}>{t('wrapped.favorite')}</Text>
             <Text style={styles.slideEmoji}>{TYPE_EMOJI[wrapped.topType.type] || '🔮'}</Text>
             <Text style={styles.mediumTitle}>{wrapped.topType.typeLabel}</Text>
             <Text style={styles.caption}>
@@ -184,7 +184,7 @@ export default function MonthlyWrappedScreen() {
 
         {/* Slide 3 — dias ativos + melhor sequência dentro do mês */}
         <LinearGradient colors={gradients.teal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={slideStyle}>
-          <Text style={styles.overline}>Sua presença</Text>
+          <Text style={styles.overline}>{t('wrapped.presence')}</Text>
           <Text style={styles.bigNumber}><CountUp value={wrapped.activeDays} /></Text>
           <Text style={styles.caption}>
             {wrapped.activeDays === 1 ? 'dia ativo no mês' : 'dias ativos no mês'}
@@ -199,7 +199,7 @@ export default function MonthlyWrappedScreen() {
 
         {/* Slide 4 — tokens ganhos no mês */}
         <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={slideStyle}>
-          <Text style={styles.overline}>Sua colheita</Text>
+          <Text style={styles.overline}>{t('wrapped.harvest')}</Text>
           <Text style={styles.bigNumber}><CountUp value={wrapped.tokensEarned} /></Text>
           <Text style={styles.caption}>
             {wrapped.tokensEarned === 1 ? 'token ganho no mês' : 'tokens ganhos no mês'}
@@ -209,7 +209,7 @@ export default function MonthlyWrappedScreen() {
 
         {/* Slide final — resumo + compartilhar */}
         <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={slideStyle}>
-          <Text style={styles.overline}>Seu mês em uma olhada</Text>
+          <Text style={styles.overline}>{t('wrapped.glance')}</Text>
           <View style={styles.summaryCard}>
             <Text style={styles.summaryRow}>
               🔮 {wrapped.totalReadings} {wrapped.totalReadings === 1 ? 'leitura' : 'leituras'}
@@ -226,7 +226,7 @@ export default function MonthlyWrappedScreen() {
             {wrapped.energy && <Text style={styles.summaryEnergy}>{wrapped.energy.phrase}</Text>}
           </View>
           <TouchableOpacity style={styles.btn} onPress={handleShare}>
-            <Text style={styles.btnText}>Compartilhar</Text>
+            <Text style={styles.btnText}>{t('wrapped.share')}</Text>
           </TouchableOpacity>
           <Text style={styles.disclaimer}>
             Todos os números vêm do que você mesmo registrou no app — nada aqui foi inventado. Leituras são tradição simbólica, pra reflexão e entretenimento.
