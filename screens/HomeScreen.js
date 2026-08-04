@@ -23,6 +23,7 @@ import { activeCelestialEvents } from '../lib/celestialSeasons';
 import { CHAVES_DE_TRADUCAO, nomeDoSigno } from '../lib/synastry';
 import { getTodaysThought } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
+import { compartilharFraseComoCard } from '../lib/shareCard';
 import { personalSkyToday } from '../lib/personalSky';
 import { fasesDoCeuPessoal } from '../lib/transitoFase';
 import { getAnyBirthData } from '../lib/birthData';
@@ -667,6 +668,20 @@ export default function HomeScreen() {
   // (pedido explícito do Lenda, 25/07/2026 — retenção via compartilhamento).
   const todaysLovePhrase = getTodaysLovePhrase(lang);
   const handleShareLovePhrase = async () => {
+    // PRIMEIRO O CARD, DEPOIS O TEXTO (04/08/2026, pedido do Lenda): a frase
+    // sai como imagem — fundo cinematográfico do dia (/api/daily-cards) com a
+    // frase e a marca desenhadas por cima. Três saídas possíveis:
+    //   'compartilhado'/'baixado' → deu certo, registra a missão e para;
+    //   'cancelado' → a pessoa abriu o share e desistiu — desistir é
+    //                 desistir, não empilhamos outro diálogo em cima;
+    //   false → falha técnica (rede, canvas, nativo) → o share de TEXTO de
+    //           sempre assume, que nunca quebra.
+    const viaCard = await compartilharFraseComoCard({ frase: todaysLovePhrase, tipo: 'casal' });
+    if (viaCard === 'compartilhado' || viaCard === 'baixado') {
+      recordMissionAction(MISSION_ACTIONS.FRASE_COMPARTILHADA);
+      return;
+    }
+    if (viaCard === 'cancelado') return;
     try {
       // O link vai junto de propósito: é ele que faz o WhatsApp/Telegram
       // mostrarem a prévia rica (OG tags em public/index.html) e traz quem
