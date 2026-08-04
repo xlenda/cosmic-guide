@@ -22,10 +22,17 @@
 // A varredura de 04/08 listou mais superfícies (ONDA B: Horóscopo, Calendário
 // Lunar, ZodiacBody, Calendário Cósmico, resumo do Mapa). Quando cada uma for
 // corrigida, o caso dela entra aqui embaixo.
+//
+// ONDA B ENTROU EM 04/08/2026, e com ela dois casos que não são de ORDEM DE
+// JSX e por isso ficam no fim do arquivo, separados: o disclaimer da tela de
+// Sonhos (#7) e a primeira frase do funil do casal (#15). Nesses dois o defeito
+// estava DENTRO do parágrafo — nenhuma reordenação de tela resolvia —, então a
+// guarda mede a ordem interna do texto, nos três idiomas.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { LANGUAGES, _DICTS_FOR_TESTS } = require('../lib/i18n.js');
 
 const SCREENS = path.join(__dirname, '..', 'screens');
 
@@ -101,6 +108,147 @@ test('Profecções · card do ano — o texto abre, título e chips descem', () 
   );
 });
 
+// ===========================================================================
+// ONDA B — a ficha do céu como cabeçalho (04/08/2026)
+// ===========================================================================
+// O padrão desta onda é diferente do da onda A: aqui o texto quente também já
+// existia, mas o que abria a tela era a MEDIDA — chips de efeméride, nome de
+// fase com porcentagem, data/hora/UTC, título com dois planetas e um ângulo.
+// Medida não é mentira e não sai da tela; ela só não é motivo pra ficar.
+
+test('Horóscopo · os chips do céu descem pra depois do primeiro bloco de leitura', () => {
+  // Os três fatos (Lua, fase, regente do dia) eram o PRIMEIRO card do rolo.
+  // Agora a leitura do dia abre e <FichaDoCeu> entra depois do bloco 1 — o
+  // mesmo desenho que o próprio card já usava por dentro com o metodoToggle.
+  const src = fonteDaTela('HoroscopeScreen.js');
+  const bloco = trecho(src, 'leitura.blocks.map(', 'styles.footerCard', 'HoroscopeScreen/céu do dia');
+  quenteAbre(bloco, 'leituraLinhas.map(', ['<FichaDoCeu'], 'HoroscopeScreen/céu do dia');
+  assert.ok(
+    src.includes("t('horoscope.sky.factsTitle')"),
+    'HoroscopeScreen: a ficha do céu sumiu da tela — ela desce, não se apaga'
+  );
+});
+
+test('Mapa Astral · resumo — o trio abre, data/hora/UTC viram recibo', () => {
+  const src = fonteDaTela('BirthChartScreen.js');
+  const bloco = trecho(src, 'styles.summaryCard', "t('birthchart.positions')", 'BirthChartScreen/resumo');
+  quenteAbre(bloco, 'styles.trio', ['formatDateBR(chart.date)', 'formatOffset(chart.zone.offset)'], 'BirthChartScreen/resumo');
+});
+
+test('Calendário Lunar · a reflexão abre, o nome da fase e a iluminação descem', () => {
+  const src = fonteDaTela('LunarCalendarScreen.js');
+  const bloco = trecho(src, 'styles.todayCard', 'styles.disclaimer', 'LunarCalendarScreen/hoje');
+  quenteAbre(bloco, '{today.reflexao}', ['{today.name}', '{today.illumination}'], 'LunarCalendarScreen/hoje');
+});
+
+test('Homem Zodiacal · "A Lua hoje" abre pela leitura, o chip do signo desce pro latim', () => {
+  const src = fonteDaTela('ZodiacBodyScreen.js');
+  const bloco = trecho(src, 'testID="zodiacbody-moon"', "t('zodiacBody.figure.hint')", 'ZodiacBodyScreen/lua');
+  quenteAbre(
+    bloco,
+    "t('zodiacBody.moon.part'",
+    ['{transit.sign.emoji}', '{moonEntry.latin}', "t('zodiacBody.author.manilius')"],
+    'ZodiacBodyScreen/lua'
+  );
+  // A linha que impede o cartão de virar calendário de procedimento continua
+  // no ar — mexer na ordem deste cartão nunca pode custar essa frase.
+  assert.ok(
+    src.includes("t('zodiacBody.moon.notACalendar')"),
+    'ZodiacBodyScreen: a ressalva que freia decisão sobre o corpo sumiu do cartão da Lua'
+  );
+});
+
+test('Home · Evento cósmico — a descrição abre, "{planetA} em {aspect}" vira recibo', () => {
+  const src = fonteDaTela('HomeScreen.js');
+  const bloco = trecho(src, "t('home.sectionCosmicEvent')", '</ScrollView>', 'HomeScreen/evento cósmico');
+  quenteAbre(bloco, "'home.cosmicEventDesc'", ["'home.cosmicEventTitle'", "'home.cosmicEventDate'"], 'HomeScreen/evento cósmico');
+});
+
+test('Home · compatibilidade — o resumo abre, "{aspecto} · {categoria}" desce', () => {
+  const src = fonteDaTela('HomeScreen.js');
+  const bloco = trecho(src, '{compat ? (', "t('home.compatSeeMore')", 'HomeScreen/compatibilidade');
+  quenteAbre(bloco, '{compat.resumo}', ["'home.compatAspect'"], 'HomeScreen/compatibilidade');
+});
+
+test('Calendário Cósmico · temporada — o gancho sobe, título e datas descem', () => {
+  const src = fonteDaTela('CalendarioCosmicoScreen.js');
+  const bloco = trecho(src, 'testID="calendario-temporada"', 'testID="calendario-voc"', 'CalendarioCosmicoScreen/temporada');
+  quenteAbre(
+    bloco,
+    "'calendario.season.note'",
+    ["'calendario.season.title'", "'calendario.season.startedAt'"],
+    'CalendarioCosmicoScreen/temporada'
+  );
+});
+
+test('Calendário Cósmico · card de evento — o parágrafo abre, nome e data descem', () => {
+  // Reordenação pura: o pack já escreve o parágrafo abrindo pela cena, então
+  // nada foi reescrito e nenhum golden foi recapturado.
+  const src = fonteDaTela('CalendarioCosmicoScreen.js');
+  const bloco = trecho(src, 'function EventoCard(', 'function FaseCard(', 'CalendarioCosmicoScreen/evento');
+  quenteAbre(bloco, '{conversa}', ['{evento.titulo}', 'styles.eventoQuando'], 'CalendarioCosmicoScreen/evento');
+});
+
+test('Idade Real · a história abre, quem inventou e quando descem pro recibo', () => {
+  const src = fonteDaTela('IdadeRealScreen.js');
+  const bloco = trecho(src, 'styles.corpo', 'styles.recibo', 'IdadeRealScreen/card aberto');
+  quenteAbre(bloco, '{item.detalhe}', ['UI.rotuloQuem', 'UI.rotuloQuando'], 'IdadeRealScreen/card aberto');
+});
+
+// ---------------------------------------------------------------------------
+// Os dois casos de TEXTO — a ordem dentro do parágrafo, nos três idiomas
+// ---------------------------------------------------------------------------
+
+test('Sonhos · o disclaimer abre na vida real e fecha com Artemidoro/Jung como recibo', () => {
+  // Ele é o PRIMEIRO parágrafo da tela, antes do campo de digitar o sonho.
+  // Abria por "a tradição milenar... o grego Artemidoro... Carl Jung": currículo
+  // antes de uma palavra sobre quem acordou com o sonho.
+  for (const lang of LANGUAGES) {
+    const texto = _DICTS_FOR_TESTS[lang]['dream.disclaimer'];
+    assert.ok(texto, `${lang}: dream.disclaimer não existe`);
+    const primeiraFrase = texto.split(/(?<=[.;!?])\s+/)[0];
+    assert.ok(
+      !/Artemidor|Jung|tradi[cç][aã]o mil|milenar|antiquity|Antiguidade|Antig[üu]edad/i.test(primeiraFrase),
+      `${lang}: o disclaimer de Sonhos volta a abrir pela linhagem — "${primeiraFrase}"`
+    );
+    // A linhagem não pode sumir: ela é o recibo, e recibo não se apaga.
+    for (const recibo of ['Artemidor', 'Jung']) {
+      assert.ok(texto.includes(recibo), `${lang}: o disclaimer perdeu ${recibo} — a ficha desce, não se apaga`);
+    }
+    assert.ok(
+      texto.indexOf('Jung') > texto.indexOf(primeiraFrase) + primeiraFrase.length - 1,
+      `${lang}: Jung voltou pra abertura do disclaimer`
+    );
+    // E a única frase do app que manda procurar gente de verdade continua no
+    // fim, inteira. Sonho é a porta por onde entra quem está sofrendo.
+    assert.match(
+      texto,
+      /(N[ãa]o substitui|No sustituye|does not replace)[^.]*(profissional|profesional|professional)/i,
+      `${lang}: o disclaimer de Sonhos perdeu a linha que manda procurar acompanhamento`
+    );
+  }
+});
+
+test('Funil do casal · quiz.hero.sub não abre por lista de jargão, e não promete nada', () => {
+  // "Sol + Ascendente + Lua. Cartas. Compatibilidade do casal." era a primeira
+  // frase de quem chega pelo link — jargão empilhado na tela de conversão.
+  for (const lang of LANGUAGES) {
+    const texto = _DICTS_FOR_TESTS[lang]['quiz.hero.sub'];
+    assert.ok(texto && texto.length > 60, `${lang}: quiz.hero.sub sumiu ou encolheu pra uma etiqueta`);
+    assert.ok(
+      !/^(Sol|Sun)\s*\+/.test(texto.trim()),
+      `${lang}: a chamada do funil voltou a abrir pela lista de jargão — "${texto}"`
+    );
+    // A doutrina não afrouxa na tela que converte: nada de porcentagem, nada de
+    // prova social, nada de garantia.
+    assert.ok(!/\d\s*%/.test(texto), `${lang}: porcentagem na chamada do funil`);
+    assert.ok(
+      !/garant|assegur|guarantee|mais de \d|m[áa]s de \d|more than \d/i.test(texto),
+      `${lang}: promessa ou prova social na chamada do funil — "${texto}"`
+    );
+  }
+});
+
 test('a ficha continua na tela — descer não é apagar', () => {
   // O erro oposto ao que esta frente corrigiu, e o mais fácil de cometer na
   // próxima limpeza: sumir com o dado em nome da leitura. O app mostra a conta
@@ -109,9 +257,30 @@ test('a ficha continua na tela — descer não é apagar', () => {
   const prof = fonteDaTela('ProfeccoesScreen.js');
   const home = fonteDaTela('HomeScreen.js');
   for (const [origem, src, campos] of [
-    ['BirthChartScreen', birth, ['{seita.seitaMapa}', '{chart.profeccao.titulo}', '{chart.profeccao.origemRotulo}']],
+    [
+      'BirthChartScreen',
+      birth,
+      [
+        '{seita.seitaMapa}',
+        '{chart.profeccao.titulo}',
+        '{chart.profeccao.origemRotulo}',
+        // ONDA B: a linha do instante de nascimento desceu pra baixo do trio —
+        // e é ela que prova que a conta usou o fuso e o horário de verão certos.
+        'formatDateBR(chart.date)',
+        'formatOffset(chart.zone.offset)',
+      ],
+    ],
     ['ProfeccoesScreen', prof, ['{anual.titulo}', '{anual.casaProfectada}', '{anual.senhorDoAno}', '{anual.origemRotulo}']],
-    ['HomeScreen', home, ['{aspecto.text}', 'fase.linhaCurta']],
+    ['HomeScreen', home, ['{aspecto.text}', 'fase.linhaCurta', "'home.cosmicEventTitle'", "'home.compatAspect'"]],
+    ['HoroscopeScreen', fonteDaTela('HoroscopeScreen.js'), ["'horoscope.sky.fact.moon'", "'horoscope.sky.fact.phase'", "'horoscope.sky.fact.dayRuler'"]],
+    ['LunarCalendarScreen', fonteDaTela('LunarCalendarScreen.js'), ['{today.name}', '{today.illumination}']],
+    ['ZodiacBodyScreen', fonteDaTela('ZodiacBodyScreen.js'), ['{transit.sign.emoji}', '{moonEntry.latin}', '{moonEntry.locus}']],
+    [
+      'CalendarioCosmicoScreen',
+      fonteDaTela('CalendarioCosmicoScreen.js'),
+      ['{evento.titulo}', "'calendario.season.title'", "'calendario.season.startedAt'", "'calendario.season.endsAt'"],
+    ],
+    ['IdadeRealScreen', fonteDaTela('IdadeRealScreen.js'), ['{item.quemInventou}', '{item.quando}']],
   ]) {
     for (const campo of campos) {
       assert.ok(src.includes(campo), `${origem}: ${campo} sumiu da tela — a ficha desce, não se apaga`);

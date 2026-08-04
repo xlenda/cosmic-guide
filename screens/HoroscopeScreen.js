@@ -243,31 +243,16 @@ export default function HoroscopeScreen() {
 
         {leitura.available && (
           <>
-            {/* Os três fatos brutos, no lugar exato onde ficavam a cor, o
-                número e a hora "da sorte". Ali havia literal sorteado; aqui há
-                efeméride. */}
-            <Text style={styles.sub}>{t('horoscope.sky.factsTitle')}</Text>
-            <View style={styles.factsRow}>
-              <FactItem
-                icon="moon"
-                color={colors.teal}
-                label={t('horoscope.sky.fact.moon')}
-                value={`${f.luaEmoji || ''} ${f.luaSigno}`.trim()}
-              />
-              <FactItem
-                icon="ellipse"
-                color={colors.gold}
-                label={t('horoscope.sky.fact.phase')}
-                value={`${f.faseEmoji || ''} ${f.faseNome}`.trim()}
-                hint={typeof f.iluminacao === 'number' ? t('horoscope.sky.fact.illum', { pct: String(f.iluminacao) }) : null}
-              />
-              <FactItem
-                icon="planet"
-                color={colors.pink}
-                label={t('horoscope.sky.fact.dayRuler')}
-                value={t(`grounding.ruler.${slugPlaneta(f.regenteDoDia)}.name`)}
-              />
-            </View>
+            {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — os três chips do céu
+                (Lua, fase, regente do dia) ABRIAM esta tela. Eram o primeiro
+                card do rolo: quem chegava pra ler o dia lia "🌙 Escorpião ·
+                🌗 Quarto minguante · Marte" antes de uma linha sequer sobre si.
+                A ficha não sumiu nem virou toque: ela DESCEU um bloco, e agora
+                é recibo do que já foi lido — o primeiro bloco de leitura abre,
+                e logo abaixo dele vem de onde saiu a conta. A ordem é a mesma
+                que o card do dia já usava por dentro (leitura, e o método atrás
+                do metodoToggle). test/quentePrimeiroNasTelas.test.js falha se
+                <FichaDoCeu> voltar pra cima do primeiro bloco. */}
 
             {/* LEITURA em cima, MÉTODO atrás de um toque.
                 (31/07/2026) Auditoria de leitura: renderizados os doze signos
@@ -280,7 +265,7 @@ export default function HoroscopeScreen() {
                 Nada saiu. Cada linha declara em lib/dailyHoroscope.js se é
                 leitura ou método, e o método fica um toque adiante, por bloco.
                 Quem quer a costura abre; quem quer o dia lê o dia. */}
-            {leitura.blocks.map((bloco) => {
+            {leitura.blocks.map((bloco, indice) => {
               const leituraLinhas = bloco.lines.filter((l) => l.role !== 'metodo');
               const metodoLinhas = bloco.lines.filter((l) => l.role === 'metodo');
               const aberto = !!metodoAberto[bloco.id];
@@ -323,6 +308,10 @@ export default function HoroscopeScreen() {
                       </>
                     )}
                   </View>
+                  {/* O céu bruto do dia, logo depois da primeira leitura: os
+                      mesmos três fatos de sempre (nada foi apagado), agora no
+                      lugar de recibo. */}
+                  {indice === 0 && <FichaDoCeu f={f} t={t} />}
                 </View>
               );
             })}
@@ -348,6 +337,40 @@ function slugPlaneta(planeta) {
     'Sol': 'sol', 'Lua': 'lua', 'Mercúrio': 'mercurio', 'Vênus': 'venus',
     'Marte': 'marte', 'Júpiter': 'jupiter', 'Saturno': 'saturno',
   }[planeta] || 'sol';
+}
+
+// A FICHA DO CÉU — os três fatos brutos, no lugar exato onde ficavam a cor, o
+// número e a hora "da sorte". Ali havia literal sorteado; aqui há efeméride.
+// Virou componente em 04/08/2026 só para poder DESCER sem perder nada: ela é
+// renderizada depois do primeiro bloco de leitura, e o arquivo a declara aqui
+// embaixo para que a ordem do código-fonte conte a mesma história que a tela.
+function FichaDoCeu({ f, t }) {
+  return (
+    <>
+      <Text style={styles.sub}>{t('horoscope.sky.factsTitle')}</Text>
+      <View style={styles.factsRow}>
+        <FactItem
+          icon="moon"
+          color={colors.teal}
+          label={t('horoscope.sky.fact.moon')}
+          value={`${f.luaEmoji || ''} ${f.luaSigno}`.trim()}
+        />
+        <FactItem
+          icon="ellipse"
+          color={colors.gold}
+          label={t('horoscope.sky.fact.phase')}
+          value={`${f.faseEmoji || ''} ${f.faseNome}`.trim()}
+          hint={typeof f.iluminacao === 'number' ? t('horoscope.sky.fact.illum', { pct: String(f.iluminacao) }) : null}
+        />
+        <FactItem
+          icon="planet"
+          color={colors.pink}
+          label={t('horoscope.sky.fact.dayRuler')}
+          value={t(`grounding.ruler.${slugPlaneta(f.regenteDoDia)}.name`)}
+        />
+      </View>
+    </>
+  );
 }
 
 function FactItem({ icon, color, label, value, hint }) {

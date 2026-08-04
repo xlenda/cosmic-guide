@@ -317,14 +317,23 @@ export default function LunarCalendarScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o cartão abria com
+            "Lua Cheia" em corpo 22 e "97% iluminada hoje" logo abaixo, e só
+            então a reflexão. Nome de fase e porcentagem são medida: dizem o que
+            a Lua está fazendo, não o que isso tem a ver com quem está lendo. A
+            reflexão passa a abrir; o desenho da Lua (emoji) fica onde estava,
+            porque ilustra em vez de informar. O nome e a iluminação DESCERAM
+            para a linha de recibo — a conta continua à vista, e continua sendo
+            astronomia de verdade (ver o disclaimer logo abaixo).
+            test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
         {today ? (
           <View style={styles.todayCard}>
             <Text style={styles.todayEmoji}>{today.emoji}</Text>
+            <Text style={styles.todayReflection}>{today.reflexao}</Text>
             <Text style={styles.todayName}>{today.name}</Text>
             {today.illumination !== null ? (
               <Text style={styles.todayIllum}>{today.illumination}% iluminada hoje</Text>
             ) : null}
-            <Text style={styles.todayReflection}>{today.reflexao}</Text>
           </View>
         ) : (
           <View style={styles.todayCard}>
@@ -623,12 +632,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   todayEmoji: { fontSize: 56 },
-  todayName: { color: colors.text, fontSize: 22, fontWeight: '800', marginTop: 4 },
-  todayIllum: { color: colors.teal, fontSize: 14, fontWeight: '700' },
+  // O nome da fase e a iluminação viraram a linha de recibo do cartão (a
+  // reflexão subiu). Menores e com o fio em cima: continuam legíveis, continuam
+  // sendo a medida que o app fez — só não são mais a manchete.
+  todayName: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 12 },
+  todayIllum: { color: colors.teal, fontSize: 13, fontWeight: '700' },
   todayReflection: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 21,
+    color: colors.text,
+    fontSize: 15,
+    lineHeight: 23,
     textAlign: 'center',
     marginTop: 8,
   },

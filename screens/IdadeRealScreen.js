@@ -253,6 +253,18 @@ export default function IdadeRealScreen() {
                         <View style={styles.divisorLinha} />
                       </View>
 
+                      {/* A história, em voz de conversa — prende primeiro.
+                          QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026): o
+                          comentário já dizia "prende primeiro" e a tela fazia o
+                          contrário — quem abria o card lia "Quem inventou:
+                          Nicholas Culpeper / Quando: 1652" antes da frase que
+                          explica por que aquilo importa. Os dois campos descem
+                          para junto do recibo, que é o lugar de quem-e-quando
+                          neste app. Nenhum texto do pack mudou (o golden de
+                          idadeReal segue intacto).
+                          test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
+                      <Text style={styles.detalhe}>{item.detalhe}</Text>
+
                       <View style={styles.paresRow}>
                         <View style={styles.par}>
                           <Text style={styles.parRotulo}>{UI.rotuloQuem}</Text>
@@ -265,9 +277,6 @@ export default function IdadeRealScreen() {
                           <Text style={styles.parValor}>{item.quando}</Text>
                         </View>
                       </View>
-
-                      {/* A história, em voz de conversa — prende primeiro. */}
-                      <Text style={styles.detalhe}>{item.detalhe}</Text>
 
                       {/* Sem data não é zero: é ausência declarada. */}
                       {item.anosAtras === null ? (

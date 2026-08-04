@@ -99,11 +99,15 @@ function perguntaCabe(p, respostas) {
 // única do app que manda procurar gente de verdade. Sonho é a porta por onde
 // entra quem está em sofrimento — a pessoa digita o pesadelo às três da manhã.
 // A linha é curta, no fim, e não desmente a leitura; só diz onde fica a ajuda.
-const DISCLAIMER =
-  'Esta interpretação une IA com a simbologia dos sonhos — a tradição milenar de ler o que os ' +
-  'sonhos dizem sobre quem sonha. E não é moda nova: o grego Artemidoro já escrevia sobre isso ' +
-  'na Antiguidade. Séculos depois, Carl Jung (1875-1961) voltou a tratá-los como material ' +
-  'simbólico. Não substitui acompanhamento profissional.';
+//
+// QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o texto era literal aqui, em
+// português, e ABRIA por "a tradição milenar... o grego Artemidoro... Carl
+// Jung". Como ele é o primeiro parágrafo da tela, o app se apresentava por
+// currículo antes de dizer uma palavra sobre quem acordou com o sonho. O texto
+// foi reescrito para abrir na cena real e fechar com a linhagem como recibo, e
+// mudou de casa: mora em lib/i18n.js ('dream.disclaimer'), nas três línguas.
+// A ordem dentro do parágrafo é a lei; a frase que manda procurar ajuda
+// continua sendo a última, intacta.
 
 // Estados possíveis da tela: intro (digitando o sonho) -> result (leitura exibida).
 const STEP = { INTRO: 'intro', RESULT: 'result' };
@@ -515,7 +519,7 @@ export default function DreamScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+          <Text style={styles.disclaimer}>{t('dream.disclaimer')}</Text>
 
           {step === STEP.INTRO && (
             <View style={styles.section}>
@@ -608,7 +612,7 @@ export default function DreamScreen() {
                 </View>
               )}
 
-              <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+              <Text style={styles.disclaimer}>{t('dream.disclaimer')}</Text>
 
               <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={resetToIntro}>
                 <Ionicons name="refresh" size={18} color="#fff" />

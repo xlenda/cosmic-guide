@@ -285,6 +285,22 @@ function EventoCard({ evento, selecionado, onLayout }) {
       onLayout={onLayout}
       testID={`calendario-evento-${evento.tipo}-${evento.diaLocal}`}
     >
+      {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — cada card abria por
+          "🌑 Lua Nova · 05/08": nome do fenômeno e data, que é geometria, e só
+          depois o parágrafo que explica o que está acontecendo no céu. O pack já
+          escreve esse parágrafo abrindo pela cena ("A Lua sumiu do céu — e sumiu
+          porque..."), então bastou reordenar: nenhuma palavra do pack mudou, e
+          nenhum golden foi recapturado. A leitura abre, o recibo do parágrafo
+          continua colado nela, e a linha de identificação (emoji, nome, data)
+          desce para junto da nota de precisão — a ficha do card num lugar só.
+          test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
+      <Text style={styles.body}>{conversa}</Text>
+      {recibo ? (
+        <Text style={styles.recibo}>
+          <Text style={styles.reciboMarca}>{t('calendario.event.receiptMark')}</Text> {recibo}
+        </Text>
+      ) : null}
+
       <View style={styles.eventoTopo}>
         <Text style={styles.eventoEmoji}>{evento.emoji}</Text>
         <Text style={styles.eventoTitulo}>{evento.titulo}</Text>
@@ -292,13 +308,6 @@ function EventoCard({ evento, selecionado, onLayout }) {
           {ehInstante ? t('calendario.event.dateTime', { data, hora: horaLocal(evento.data, lang) }) : data}
         </Text>
       </View>
-
-      <Text style={styles.body}>{conversa}</Text>
-      {recibo ? (
-        <Text style={styles.recibo}>
-          <Text style={styles.reciboMarca}>{t('calendario.event.receiptMark')}</Text> {recibo}
-        </Text>
-      ) : null}
 
       {/* Precisão declarada onde ela é menor. Mercúrio retrógrado sai do motor
           com precisao 'dia' porque a detecção é por diferença centrada de dois
@@ -888,9 +897,19 @@ export default function CalendarioCosmicoScreen() {
         ) : null}
 
         {/* ---- A temporada corrente ---- */}
+        {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o gancho deste bloco
+            estava na QUARTA linha: "A gente ouve 'temporada de Leão' o ano
+            inteiro e ninguém diz o que é. É isto: ...". Antes dele vinham o
+            título e a data de ingresso — a resposta impressa em cima da
+            pergunta que faz alguém querer lê-la. A nota sobe para logo depois do
+            kicker; título e datas descem e viram o recibo que a própria nota
+            promete ("sai da mesma conta que marca o ingresso na lista aqui
+            embaixo"). Nenhuma palavra do pack mudou.
+            test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
         {temporada ? (
           <View style={styles.temporada} testID="calendario-temporada">
             <Text style={styles.kicker}>{t('calendario.season.kicker')}</Text>
+            <Text style={styles.body}>{t('calendario.season.note')}</Text>
             <Text style={styles.temporadaTitulo}>
               {emojiTemporada ? `${emojiTemporada} ` : ''}
               {t('calendario.season.title', { signo: temporada.signoDisplay })}
@@ -906,7 +925,6 @@ export default function CalendarioCosmicoScreen() {
                     proximo: temporada.outroDisplay,
                   })}
             </Text>
-            <Text style={styles.body}>{t('calendario.season.note')}</Text>
           </View>
         ) : null}
 
@@ -1218,7 +1236,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   eventoSelecionado: { borderColor: colors.purple },
-  eventoTopo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  // A linha de identificação do evento desceu para depois do parágrafo (a
+  // leitura abre), então ela ganhou o fio de cima que todo recibo tem aqui.
+  eventoTopo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+  },
   eventoEmoji: { fontSize: 20 },
   eventoTitulo: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
   eventoQuando: { color: colors.teal, fontSize: 12, fontWeight: '700' },

@@ -13,10 +13,19 @@
 // frase existe para MANDAR procurar ajuda de verdade ou para negar que o app
 // substitui alguma ("Não substitui exame médico", de PalmScreen). Proibida
 // quando serve de credencial.
+//
+// 04/08/2026: a varredura passou a morder também os disclaimers que moram no
+// DICIONÁRIO. O de screens/DreamScreen.js — o que criou este arquivo — saiu de
+// dentro da tela e virou 'dream.disclaimer' em lib/i18n.js, porque era literal
+// em português e quem lia o app em espanhol ou inglês recebia a ressalva mais
+// importante do app na língua errada. Se a varredura continuasse só em
+// screens/, a mudança de casa teria APAGADO a proteção sem nenhum teste
+// vermelho. Agora ela cobre as duas casas, e nos três idiomas.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { LANGUAGES, _DICTS_FOR_TESTS } = require('../lib/i18n.js');
 
 const SCREENS = path.join(__dirname, '..', 'screens');
 
@@ -32,7 +41,9 @@ const MANDA_PROCURAR_AJUDA = /n[ãa]o substitui|n[ãa]o constitui|n[ãa]o [ée] 
 const STR = String.raw`'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"`;
 const CADEIA = new RegExp(String.raw`(?:\bDISCLAIMER\b\s*=|\bdisclaimer\s*:)\s*((?:${STR})(?:\s*\+\s*(?:${STR}))*)`, 'g');
 
-// Devolve [ [origem, texto], ... ] com todo disclaimer literal das telas.
+// Devolve [ [origem, texto], ... ] com todo disclaimer literal das telas E toda
+// chave *.disclaimer do dicionário, nos três idiomas. As duas casas do mesmo
+// tipo de frase, varridas pela mesma régua.
 function disclaimersDeTela() {
   const out = [];
   for (const f of fs.readdirSync(SCREENS).filter((f) => f.endsWith('.js'))) {
@@ -43,6 +54,13 @@ function disclaimersDeTela() {
       const texto = [...m[1].matchAll(new RegExp(STR, 'g'))].map((s) => s[0].slice(1, -1)).join('');
       n += 1;
       out.push([`${f}#${n}`, texto]);
+    }
+  }
+  for (const lang of LANGUAGES) {
+    const dict = _DICTS_FOR_TESTS[lang];
+    for (const chave of Object.keys(dict)) {
+      if (!/(^|\.)disclaimer$/.test(chave)) continue;
+      out.push([`i18n:${lang}/${chave}`, dict[chave]]);
     }
   }
   return out;

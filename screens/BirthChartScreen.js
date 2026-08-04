@@ -434,13 +434,17 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
   ];
   return (
     <>
+      {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — este cartão abria pela
+          linha de cadastro: data, hora, UTC-03:00 e "horário de verão". É a
+          primeira coisa da tela inteira, e é a única que ninguém veio ver: a
+          pessoa já sabe quando nasceu. O trio (Sol, Lua, Ascendente) é o que ela
+          abriu o app para ler — ele sobe, e a linha de instante DESCE para
+          recibo do que foi calculado. Nada saiu: fuso e horário de verão
+          continuam na tela, e continuam sendo a prova de que a conta usou o
+          instante certo (é por isso que existem — ver o cabeçalho deste
+          arquivo). test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
       <View style={styles.summaryCard}>
         <LinearGradient colors={gradients.card} style={styles.summaryInner}>
-          <Text style={styles.summaryMeta}>
-            {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
-            {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
-            {chart.zone && chart.zone.dst ? ' · horário de verão' : ''}
-          </Text>
           <View style={styles.trio}>
             {rows.map((r) => (
               <View key={r.key} style={styles.trioItem}>
@@ -450,6 +454,11 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
               </View>
             ))}
           </View>
+          <Text style={[styles.summaryMeta, styles.summaryMetaRecibo]}>
+            {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
+            {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
+            {chart.zone && chart.zone.dst ? ' · horário de verão' : ''}
+          </Text>
         </LinearGradient>
       </View>
 
@@ -1171,7 +1180,19 @@ const styles = StyleSheet.create({
   summaryCard: { marginTop: 20, borderRadius: 18, overflow: 'hidden' },
   summaryInner: { padding: 20, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   summaryMeta: { color: colors.textMuted, fontSize: 13 },
-  trio: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 18 },
+  // A mesma linha de sempre, agora embaixo do trio: separada por um fio, como
+  // toda ficha que virou recibo neste app.
+  summaryMetaRecibo: {
+    marginTop: 18,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    textAlign: 'center',
+  },
+  // marginTop 0 desde 04/08/2026: o trio virou o PRIMEIRO filho do cartão (a
+  // linha de data/hora/UTC desceu), e os 18px de respiro que existiam para
+  // separá-lo dela agora só empurrariam o cartão inteiro para baixo.
+  trio: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 0 },
   trioItem: { alignItems: 'center' },
   trioLabel: { color: colors.textMuted, fontSize: 12 },
   trioGlyph: { fontSize: 30, marginVertical: 6 },

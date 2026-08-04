@@ -1157,6 +1157,14 @@ export default function HomeScreen() {
         </View>
 
         {/* Compatibilidade do casal (sinastria real, lib/signs.js) */}
+        {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — abaixo dos dois nomes
+            vinha "{aspecto} · {categoria}" (ex.: "trígono · harmônico"), e só
+            depois o resumo em língua de gente. É o mesmo movimento que
+            screens/CompatibilityScreen.js fez em 31/07: o par de termos não
+            some, desce e vira recibo do que acabou de ser lido. Os dois signos
+            continuam no topo porque são a identificação do cartão — quem está
+            olhando é quem digitou aqueles nomes.
+            test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
         {compat ? (
           <TouchableOpacity
             activeOpacity={0.9}
@@ -1170,12 +1178,6 @@ export default function HomeScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.horoSign}>{coupleData.sa} + {coupleData.sb}</Text>
-                  <Text style={styles.horoDates}>
-                    {t('home.compatAspect', {
-                      aspecto: t(CHAVES_DE_TRADUCAO.aspecto[compat.familia]),
-                      categoria: t(CHAVES_DE_TRADUCAO.categoria[compat.categoriaId]),
-                    })}
-                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
               </View>
@@ -1184,6 +1186,12 @@ export default function HomeScreen() {
                   não cabe num cartão de Home. O resumo é uma linha e diz a
                   mesma coisa sem prometer nada a mais. */}
               <Text style={styles.horoText}>{compat.resumo}</Text>
+              <Text style={[styles.horoDates, styles.horoDatesRecibo]}>
+                {t('home.compatAspect', {
+                  aspecto: t(CHAVES_DE_TRADUCAO.aspecto[compat.familia]),
+                  categoria: t(CHAVES_DE_TRADUCAO.categoria[compat.categoriaId]),
+                })}
+              </Text>
               <Text style={styles.horoLink}>{t('home.compatSeeMore')}</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -1251,6 +1259,14 @@ export default function HomeScreen() {
         )}
 
         {/* Cosmic event */}
+        {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o cartão abria com
+            "Marte em quadratura com Saturno" e só embaixo dizia, em língua de
+            gente, que dois planetas estão conversando no céu de hoje. O texto
+            quente já existia e já estava escrito certo (home.cosmicEventDesc):
+            era a ORDEM da tela que punha o nome técnico na frente dele. A
+            descrição sobe, o título com os dois planetas e o ângulo desce e vira
+            recibo, junto da data. Nenhuma palavra mudou — nem aqui, nem no
+            dicionário. test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
         <Text style={styles.sectionTitle}>{t('home.sectionCosmicEvent')}</Text>
         <View style={styles.eventCard}>
           <LinearGradient colors={['#2A1D52', '#3A1F6B']} style={styles.eventInner}>
@@ -1258,15 +1274,15 @@ export default function HomeScreen() {
               <Ionicons name="star" size={22} color={colors.gold} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.eventTitle}>
-                {cosmicEvent
-                  ? t('home.cosmicEventTitle', { planetA: cosmicEvent.planetA, aspect: cosmicEvent.aspectType.toLowerCase(), planetB: cosmicEvent.planetB })
-                  : t('home.cosmicEventTitleEmpty')}
-              </Text>
               <Text style={styles.eventDesc}>
                 {cosmicEvent
                   ? t('home.cosmicEventDesc', { orb: cosmicEvent.orb.toFixed(1) })
                   : t('home.cosmicEventDescEmpty')}
+              </Text>
+              <Text style={styles.eventTitle}>
+                {cosmicEvent
+                  ? t('home.cosmicEventTitle', { planetA: cosmicEvent.planetA, aspect: cosmicEvent.aspectType.toLowerCase(), planetB: cosmicEvent.planetB })
+                  : t('home.cosmicEventTitleEmpty')}
               </Text>
               <Text style={styles.eventDate}>{t('home.cosmicEventDate', { date: dateStr })}</Text>
             </View>
@@ -1410,6 +1426,9 @@ const styles = StyleSheet.create({
   signChipGlyph: { fontSize: 18 },
   horoSign: { color: colors.text, fontSize: 17, fontWeight: '800' },
   horoDates: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  // O mesmo rótulo, agora embaixo do resumo (a ficha desceu no cartão do
+  // casal): só o respiro muda, o estilo continua sendo o de linha de apoio.
+  horoDatesRecibo: { marginTop: 8 },
   horoText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
   horoLink: { color: colors.accent, fontSize: 13, fontWeight: '700', marginTop: 12 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 24, marginBottom: 12, marginHorizontal: 16 },
@@ -1417,8 +1436,10 @@ const styles = StyleSheet.create({
   eventCard: { marginHorizontal: 16, borderRadius: 16, overflow: 'hidden' },
   eventInner: { flexDirection: 'row', padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 16, alignItems: 'flex-start' },
   eventIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(255,200,92,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  eventTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  eventDesc: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 4 },
+  // O título com os dois planetas e o ângulo virou recibo (a descrição subiu):
+  // um degrau menor, apagado, com respiro em cima. Continua na tela inteiro.
+  eventTitle: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginTop: 8 },
+  eventDesc: { color: colors.text, fontSize: 14, lineHeight: 21 },
   eventDate: { color: colors.gold, fontSize: 12, fontWeight: '700', marginTop: 8 },
 
   milestoneBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 28 },

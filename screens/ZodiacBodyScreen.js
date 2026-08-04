@@ -362,18 +362,27 @@ export default function ZodiacBodyScreen() {
         </View>
 
         {/* ---- A Lua caminhando pelo corpo ---- */}
+        {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o cartão abria com
+            "♈ Áries" em corpo grande: a posição, sozinha, antes de qualquer
+            motivo para se importar com ela. A linha que diz o que a lista antiga
+            punha ali (zodiacBody.moon.part, que já nomeia o signo dentro da
+            frase) passa a abrir, e o chip do signo desce para junto do verso
+            latino e do locus de Manílio — que é onde a ficha desta tela sempre
+            morou. Nada saiu, inclusive a linha em dourado que impede o cartão de
+            virar calendário de procedimento.
+            test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
         <View style={styles.card} testID="zodiacbody-moon">
           <Text style={styles.cardLabel}>{t('zodiacBody.moon.title')}</Text>
           {transit && moonEntry ? (
             <>
-              <Text style={styles.moonSign}>
-                {transit.sign.emoji} {signName(moonEntry.id)}
-              </Text>
               <Text style={styles.moonPart}>
                 {t('zodiacBody.moon.part', {
                   sign: signName(moonEntry.id),
                   part: t(signKey(moonEntry.id, 'part')),
                 })}
+              </Text>
+              <Text style={styles.moonSign}>
+                {transit.sign.emoji} {signName(moonEntry.id)}
               </Text>
               <Text style={styles.latin}>«{moonEntry.latin}»</Text>
               <Text style={styles.source}>
@@ -878,7 +887,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  moonSign: { color: colors.gold, fontSize: 22, fontWeight: '800' },
+  // O chip do signo desceu para a ficha (a leitura abre): 16 em vez de 22, com
+  // respiro em cima para separar do parágrafo. Continua em dourado — é a mesma
+  // informação de sempre, só não é mais a manchete.
+  moonSign: { color: colors.gold, fontSize: 16, fontWeight: '800', marginTop: 10 },
   moonPart: { color: colors.text, fontSize: 15, lineHeight: 22 },
   moonNext: { color: colors.teal, fontSize: 13, fontWeight: '700', lineHeight: 19 },
   moonRate: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
