@@ -123,6 +123,38 @@ function coletarMetricas() {
       .all(diaISO(6)),
   }));
 
+  const receita = bloco("receita", () =>
+    // Dinheiro DE VERDADE, não projeção: soma do que as assinaturas vivas
+    // pagaram (amount_cents gravado pelo servidor no checkout — preço nunca
+    // veio do cliente). past_due entra: dunning ainda é cliente.
+    db.prepare(`SELECT COALESCE(SUM(amount_cents),0) AS cents FROM subscriptions
+                WHERE status IN ('active','past_due')`).get().cents
+  );
+
+  const planosClicados = bloco("planosClicados", () =>
+    // O que a pessoa ESCOLHE quando vê os preços (plan_select do funil, 14d).
+    // Intenção não é venda — mas diz qual oferta chama, antes do cartão.
+    db.prepare(`SELECT json_extract(props,'$.plan') AS plano, COUNT(*) AS n
+                FROM funnel_events
+                WHERE event='plan_select' AND substr(created_at,1,10) >= ?
+                GROUP BY plano ORDER BY n DESC`).all(inicio14)
+  );
+
+  const horas = bloco("horas", () =>
+    // Sessões por hora (UTC — o cliente converte pra hora do Brasil): a
+    // resposta de "que horas meu público entra?", que é a resposta de "que
+    // horas postar no orgânico".
+    db.prepare(`SELECT substr(created_at,12,2) AS h, COUNT(DISTINCT session_id) AS n
+                FROM funnel_events WHERE event='app_open' AND substr(created_at,1,10) >= ?
+                GROUP BY h`).all(diaISO(6))
+  );
+
+  const paisesLeram = bloco("paisesLeram", () =>
+    db.prepare(`SELECT COALESCE(country,'??') AS pais, COUNT(DISTINCT session_id) AS n
+                FROM funnel_events WHERE event='reading_done' AND substr(created_at,1,10) >= ?
+                GROUP BY pais`).all(diaISO(6))
+  );
+
   const cards = bloco("cards", () => {
     const manifesto = JSON.parse(
       fs.readFileSync(path.join(__dirname, "..", "..", "data", "daily-cards", "latest.json"), "utf8")
@@ -130,7 +162,7 @@ function coletarMetricas() {
     return manifesto.date;
   });
 
-  return { geradoEm: new Date().toISOString(), hoje, funil, assinaturas, ia, push, chama, paises, cardsDoDia: cards };
+  return { geradoEm: new Date().toISOString(), hoje, funil, assinaturas, ia, push, chama, paises, receita, planosClicados, horas, paisesLeram, cardsDoDia: cards };
 }
 
 // ---------------------------------------------------------------------------
@@ -217,6 +249,7 @@ async function carregar() {
     + '<div class="tile"><b>'+ativas+'</b><span>assinaturas ativas</span></div>'
     + '<div class="tile"><b>'+(st.pending||0)+'</b><span>pendentes</span></div>'
     + '<div class="tile"><b>'+soma((m.ia||[]),r=>r.dia===hoje)+'</b><span>leituras de IA hoje</span></div>'
+    + '<div class="tile"><b>US$ '+(((m.receita||0)/100).toFixed(0))+'</b><span>receita ativa</span></div>' 
     + '</div>';
 
   html += '<h2>Funil de hoje (sessões)</h2><div class="card">';
@@ -230,9 +263,42 @@ async function carregar() {
     const titulo = (ps.hoje||[]).length ? 'Países · hoje' : 'Países · 7 dias';
     const maxP = Math.max(1, ...lista.map(r=>r.n));
     html += '<h2>'+titulo+' (sessões)</h2><div class="card">';
-    lista.forEach(r=>{ html+='<div class="linha"><span class="nome">'+bandeira(r.pais)+'</span><span class="barra"><i style="width:'+Math.round(r.n/maxP*100)+'%"></i></span><span class="n">'+r.n+'</span></div>'; });
+    const leram = {}; (m.paisesLeram||[]).forEach(r=>leram[r.pais]=r.n);
+    lista.forEach(r=>{ const l=leram[r.pais]; html+='<div class="linha"><span class="nome">'+bandeira(r.pais)+(l?' · '+l+' leram':'')+'</span><span class="barra"><i style="width:'+Math.round(r.n/maxP*100)+'%"></i></span><span class="n">'+r.n+'</span></div>'; });
     html += '</div>';
   }
+  // Conversão dos últimos 7 dias — % sobre quem abriu o app.
+  const a7 = Math.max(1, ev7('app_open'));
+  const pc = ev => Math.round(ev7(ev)/a7*100);
+  html += '<div class="rodape" style="margin:8px 0 0">7 dias: '+ev7('app_open')+' sessões · '+pc('reading_done')+'% leram · '+pc('paywall_view')+'% viram paywall · '+pc('checkout_click')+'% clicaram assinar</div>';
+
+  // Qual leitura de IA é a favorita (7d) — onde investir conteúdo.
+  const iaTop = {};
+  (m.ia||[]).forEach(r=>{ iaTop[r.endpoint]=(iaTop[r.endpoint]||0)+r.n; });
+  const iaLista = Object.entries(iaTop).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if (iaLista.length) {
+    const maxIa = Math.max(1, ...iaLista.map(x=>x[1]));
+    html += '<h2>Leituras de IA · 7 dias</h2><div class="card">';
+    iaLista.forEach(([nome,n])=>{ html+='<div class="linha"><span class="nome">'+nome+'</span><span class="barra"><i style="width:'+Math.round(n/maxIa*100)+'%"></i></span><span class="n">'+n+'</span></div>'; });
+    html += '</div>';
+  }
+
+  // Qual plano chama quando a pessoa vê os preços (cliques, 14d).
+  const planos = (m.planosClicados||[]).filter(r=>r.plano);
+  if (planos.length) {
+    const maxPl = Math.max(1, ...planos.map(r=>r.n));
+    html += '<h2>Planos clicados · 14 dias</h2><div class="card">';
+    planos.forEach(r=>{ html+='<div class="linha"><span class="nome">'+r.plano+'</span><span class="barra"><i style="width:'+Math.round(r.n/maxPl*100)+'%"></i></span><span class="n">'+r.n+'</span></div>'; });
+    html += '</div>';
+  }
+
+  // Horário de pico em hora do BRASIL — a resposta de "que horas postar".
+  const hs = new Array(24).fill(0);
+  (m.horas||[]).forEach(r=>{ hs[(parseInt(r.h,10)+21)%24] += r.n; });
+  if (hs.some(v=>v>0)) {
+    html += '<h2>Horário das sessões · 7 dias (hora BR)</h2><div class="card">'+barras(hs)+'<div class="rodape" style="margin-top:4px">0h ————————— 12h ————————— 23h</div></div>';
+  }
+
   html += '<h2>Sessões · 14 dias</h2><div class="card">'+barras(porDia(f,r=>r.event==='app_open',dias14))+'</div>';
   html += '<h2>Assinaturas novas · 14 dias</h2><div class="card">'+barras(porDia(((m.assinaturas||{}).novasPorDia||[]),()=>true,dias14))+'</div>';
 
