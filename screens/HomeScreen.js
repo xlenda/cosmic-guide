@@ -1003,7 +1003,10 @@ export default function HomeScreen() {
               return (
                 <View key={i} style={i > 0 ? { marginTop: 8 } : null}>
                   <Text style={styles.peekText}>{a.text}</Text>
-                  {fase && fase.texto ? <Text style={styles.skyFaseText}>{fase.texto}</Text> : null}
+                  {/* `linhaCurta` é o nome do campo em lib/transitoFase.js —
+                      escrevi `fase.texto` aqui em 01/08 e, como undefined é
+                      falsy, a linha sumia calada em vez de quebrar. */}
+                  {fase && fase.linhaCurta ? <Text style={styles.skyFaseText}>{fase.linhaCurta}</Text> : null}
                 </View>
               );
             })}

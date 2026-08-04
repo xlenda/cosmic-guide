@@ -1151,6 +1151,39 @@ function cortarNaUltimaFraseCompleta(texto) {
   return `${t}…`;
 }
 
+// A DIRETRIZ DE IDIOMA, escrita na própria língua de destino — instrução em
+// espanhol pedindo espanhol é obedecida com muito mais firmeza do que uma
+// instrução em português pedindo espanhol, principalmente no Haiku, que é o
+// modelo do plano gratuito.
+//
+// 'pt' devolve string VAZIA de propósito: é a língua em que todos os prompts
+// do sistema já estão escritos, então não há nada a corrigir e nenhum token a
+// gastar — e o comportamento de antes de 03/08/2026 fica byte a byte intacto
+// pra maioria dos usuários.
+//
+// O aviso sobre nomes próprios existe porque as fontes são o coração do
+// produto: "Tetrabiblos" não vira "Tetrabiblos, de Ptolomeo el Cuadripartito",
+// e um nome de obra traduzido na marra deixa a citação impossível de conferir.
+const DIRETRIZES_DE_IDIOMA = Object.assign(Object.create(null), {
+  pt: "",
+  es: [
+    "IMPORTANTE: responde COMPLETAMENTE en español. Todos los campos del JSON",
+    "—títulos, cuerpo, listas— van en español, sin una sola frase en portugués.",
+    "Los nombres de obras y autores se mantienen en su forma consagrada",
+    "(Tetrabiblos sigue siendo Tetrabiblos, Ptolomeu se escribe Ptolomeo).",
+  ].join(" "),
+  en: [
+    "IMPORTANT: answer ENTIRELY in English. Every field in the JSON — titles,",
+    "body, lists — must be in English, with no Portuguese left anywhere.",
+    "Keep titles of works and author names in their established form",
+    "(Tetrabiblos stays Tetrabiblos, Ptolomeu becomes Ptolemy).",
+  ].join(" "),
+});
+
+function diretrizDeIdioma(lang) {
+  return DIRETRIZES_DE_IDIOMA[lang] || "";
+}
+
 class AnthropicChatProvider {
   constructor({ apiKey }) {
     // Require adiado pra dentro do construtor: só é resolvido quando ANTHROPIC_API_KEY
@@ -1206,7 +1239,13 @@ class AnthropicChatProvider {
   // Monta o turno do usuário: texto da instrução + bloco de contexto quando
   // houver. O contexto vai AQUI e nunca no system, pra não invalidar o
   // prefixo cacheado do prompt (que é estável e é o caro).
-  static userContent({ instrucao, contexto, imagem }) {
+  //
+  // A DIRETRIZ DE IDIOMA anda junto, pelo mesmo motivo: o app é vendido em 3
+  // línguas e até 03/08/2026 todo mundo recebia a leitura em português. Ela
+  // vai no turno do usuário, NÃO no system, porque o system é o pedaço
+  // cacheado — colocar a língua lá criaria três prefixos diferentes e
+  // triplicaria o custo de cache pra economizar as ~15 palavras daqui.
+  static userContent({ instrucao, contexto, imagem, lang }) {
     const blocos = [];
     if (imagem) {
       blocos.push({
@@ -1215,7 +1254,9 @@ class AnthropicChatProvider {
       });
     }
     const ctx = blocoContexto(contexto);
-    blocos.push({ type: "text", text: ctx ? `${ctx}\n\n${instrucao}` : instrucao });
+    const idioma = diretrizDeIdioma(lang);
+    const corpo = ctx ? `${ctx}\n\n${instrucao}` : instrucao;
+    blocos.push({ type: "text", text: idioma ? `${corpo}\n\n${idioma}` : corpo });
     return blocos;
   }
 
@@ -1223,7 +1264,7 @@ class AnthropicChatProvider {
   // tier: 'premium' usa o modelo maior (assinante); qualquer outro valor cai
   // no gratuito. Enquanto server.js não mandar tier, é sempre gratuito e o
   // comportamento é o de hoje.
-  async chat({ personaId, message, history, contexto, tier }) {
+  async chat({ personaId, message, history, contexto, tier, lang }) {
     // Sem hasOwnProperty (ou Object.create(null), que é o que usamos acima),
     // personaId = 'constructor' devolvia a função Object — truthy, então o
     // fallback não disparava e `system: Object` ia pro SDK, virando 500.
@@ -1250,7 +1291,12 @@ class AnthropicChatProvider {
       .filter((m) => m.content.length > 0);
 
     const ctx = blocoContexto(contexto);
-    const mensagemFinal = ctx ? `${ctx}\n\n${message}` : message;
+    const idioma = diretrizDeIdioma(lang);
+    // O chat monta o turno na mão (tem histórico), então repete o que
+    // userContent faz pelas outras rotas. A diretriz vai só na ÚLTIMA
+    // mensagem: repetir em cada turno do histórico pagaria o texto N vezes.
+    const comCtx = ctx ? `${ctx}\n\n${message}` : message;
+    const mensagemFinal = idioma ? `${comCtx}\n\n${idioma}` : comCtx;
     const messages = [...trimmedHistory, { role: "user", content: mensagemFinal }];
 
     const response = await this.client.messages.create(
@@ -1277,7 +1323,7 @@ class AnthropicChatProvider {
   }
 
   // ---- Rotas de imagem ----------------------------------------------------
-  async analyzePalm({ imageBase64, mediaType, contexto }) {
+  async analyzePalm({ imageBase64, mediaType, contexto, lang }) {
     return this.callJson({
       rota: "palm",
       model: PALM_MODEL,
@@ -1287,13 +1333,14 @@ class AnthropicChatProvider {
       content: AnthropicChatProvider.userContent({
         imagem: { imageBase64, mediaType },
         contexto,
+        lang,
         instrucao:
           "Leia esta mão. Descreva primeiro o que você vê, depois interprete só o que descreveu.",
       }),
     });
   }
 
-  async analyzeCoffee({ imageBase64, mediaType, contexto }) {
+  async analyzeCoffee({ imageBase64, mediaType, contexto, lang }) {
     return this.callJson({
       rota: "coffee",
       model: COFFEE_MODEL,
@@ -1303,13 +1350,14 @@ class AnthropicChatProvider {
       content: AnthropicChatProvider.userContent({
         imagem: { imageBase64, mediaType },
         contexto,
+        lang,
         instrucao:
           "Leia esta xícara. Localize a alça primeiro, descreva o que você vê e onde, depois interprete no máximo três formas.",
       }),
     });
   }
 
-  async analyzeFace({ imageBase64, mediaType, contexto }) {
+  async analyzeFace({ imageBase64, mediaType, contexto, lang }) {
     return this.callJson({
       rota: "face",
       model: FACE_MODEL,
@@ -1319,13 +1367,14 @@ class AnthropicChatProvider {
       content: AnthropicChatProvider.userContent({
         imagem: { imageBase64, mediaType },
         contexto,
+        lang,
         instrucao:
           "Leia este rosto pelo mian xiang: elemento, três divisões, um palácio. Descreva antes de interpretar. Nada sobre beleza, idade, peso, etnia ou saúde.",
       }),
     });
   }
 
-  async analyzeFoot({ imageBase64, mediaType, contexto }) {
+  async analyzeFoot({ imageBase64, mediaType, contexto, lang }) {
     return this.callJson({
       rota: "foot",
       model: FOOT_MODEL,
@@ -1335,13 +1384,14 @@ class AnthropicChatProvider {
       content: AnthropicChatProvider.userContent({
         imagem: { imageBase64, mediaType },
         contexto,
+        lang,
         instrucao:
           "Leia este pé pelo samudrika shastra e pela fisiognomonia chinesa. Descreva antes de interpretar. Nada de pé grego/egípcio/romano e nada de saúde.",
       }),
     });
   }
 
-  async analyzeMoles({ imageBase64, mediaType, contexto }) {
+  async analyzeMoles({ imageBase64, mediaType, contexto, lang }) {
     return this.callJson({
       rota: "moles",
       model: MOLES_MODEL,
@@ -1351,6 +1401,7 @@ class AnthropicChatProvider {
       content: AnthropicChatProvider.userContent({
         imagem: { imageBase64, mediaType },
         contexto,
+        lang,
         instrucao:
           "Leia estas marcas pela moleosofia: identifique a zona do corpo e leia pela regência planetária dela. No máximo duas marcas. Nunca comente cor, formato, borda, tamanho ou textura.",
       }),
@@ -1358,7 +1409,7 @@ class AnthropicChatProvider {
   }
 
   // ---- Sonho --------------------------------------------------------------
-  async interpretDream({ dreamText, contexto, tier }) {
+  async interpretDream({ dreamText, contexto, tier, lang }) {
     const model = tier === "premium" ? DREAM_MODEL_PREMIUM : DREAM_MODEL;
     return this.callJson({
       rota: "dream",
@@ -1368,6 +1419,7 @@ class AnthropicChatProvider {
       schema: DREAM_OUTPUT_SCHEMA,
       content: AnthropicChatProvider.userContent({
         contexto,
+        lang,
         instrucao: `Sonho relatado por ela:\n\n"""\n${dreamText}\n"""\n\nInterprete seguindo o método. Só símbolos que estão no relato.`,
       }),
     });
@@ -1375,7 +1427,7 @@ class AnthropicChatProvider {
 
   // ---- Tiragem de tarô (rota ainda não ligada em server.js) ---------------
   // cartas: [{ posicao: 'Passado', nome: 'A Torre', invertida: true }, ...]
-  async interpretTarotSpread({ cartas, pergunta, contexto }) {
+  async interpretTarotSpread({ cartas, pergunta, contexto, lang }) {
     const lista = (Array.isArray(cartas) ? cartas : [])
       .map((c) => `${c.posicao || "?"}: ${c.nome}${c.invertida ? " (invertida)" : ""}`)
       .join("\n");
@@ -1388,6 +1440,7 @@ class AnthropicChatProvider {
       schema: TAROT_OUTPUT_SCHEMA,
       content: AnthropicChatProvider.userContent({
         contexto,
+        lang,
         instrucao: `Tiragem que ELA puxou, na ordem:\n${lista}${contextoPergunta}\n\nLeia como UMA tiragem: cada carta na sua posição e o que as três dizem juntas.`,
       }),
     });
@@ -1396,7 +1449,7 @@ class AnthropicChatProvider {
   // ---- Insight de voz -----------------------------------------------------
   // readingType/readingTitle dão contexto pra IA, mas nunca entram na
   // resposta como conteúdo novo — só ajudam a interpretar o que foi dito.
-  async enhanceInsight({ transcript, readingType, readingTitle }) {
+  async enhanceInsight({ transcript, readingType, readingTitle, lang }) {
     const ctx = readingTitle ? ` (logo após a leitura "${readingTitle}", tipo ${readingType})` : "";
     return this.callJson({
       rota: "enhance-insight",
@@ -1404,12 +1457,10 @@ class AnthropicChatProvider {
       maxTokens: MAX_TOKENS.enhance,
       systemPrompt: ENHANCE_INSIGHT_SYSTEM_PROMPT,
       schema: ENHANCE_INSIGHT_OUTPUT_SCHEMA,
-      content: [
-        {
-          type: "text",
-          text: `Insight gravado por voz${ctx}:\n\n"""\n${transcript}\n"""\n\nOrganize. Se já estiver claro, devolva praticamente igual.`,
-        },
-      ],
+      content: AnthropicChatProvider.userContent({
+        lang,
+        instrucao: `Insight gravado por voz${ctx}:\n\n"""\n${transcript}\n"""\n\nOrganize. Se já estiver claro, devolva praticamente igual.`,
+      }),
     });
   }
 
@@ -1419,7 +1470,7 @@ class AnthropicChatProvider {
   // extras (opcional): { insightsDeVoz: [{data, texto}], diario: [{data, texto}] }
   //   — é o dado mais rico do app inteiro (a própria pessoa dizendo o que
   //   sentiu) e hoje não chega aqui. Ver "COMO LIGAR O CONTEXTO".
-  async summarizeWeeklyInsight({ readings, extras, contexto }) {
+  async summarizeWeeklyInsight({ readings, extras, contexto, lang }) {
     return this.summarizeWeek({
       rota: "weekly-insight",
       model: WEEKLY_INSIGHT_MODEL,
@@ -1427,12 +1478,13 @@ class AnthropicChatProvider {
       readings,
       extras,
       contexto,
+      lang,
     });
   }
 
   // Mantida como método próprio porque server.js chama por este nome.
   // Agora é só um escopo diferente do mesmo prompt.
-  async summarizeCoffeeWeek({ readings, extras, contexto }) {
+  async summarizeCoffeeWeek({ readings, extras, contexto, lang }) {
     return this.summarizeWeek({
       rota: "coffee-weekly-summary",
       model: WEEKLY_SUMMARY_MODEL,
@@ -1440,10 +1492,11 @@ class AnthropicChatProvider {
       readings,
       extras,
       contexto,
+      lang,
     });
   }
 
-  async summarizeWeek({ rota, model, systemPrompt, readings, extras, contexto }) {
+  async summarizeWeek({ rota, model, systemPrompt, readings, extras, contexto, lang }) {
     const lista = (Array.isArray(readings) ? readings : [])
       .map((r, i) => `Leitura ${i + 1}${r.typeLabel || r.type ? ` (${r.typeLabel || r.type})` : ""} — "${r.title}": ${r.body}`)
       .join("\n\n");
@@ -1475,6 +1528,7 @@ class AnthropicChatProvider {
       schema: WEEKLY_OUTPUT_SCHEMA,
       content: AnthropicChatProvider.userContent({
         contexto,
+        lang,
         instrucao: partes.join("\n\n"),
       }),
     });

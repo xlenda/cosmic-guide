@@ -8,9 +8,19 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { translate, DEFAULT_LANGUAGE, LANGUAGES } from '../lib/i18n';
+import { setLanguageProvider } from '../lib/aiClient';
 
 const LANGUAGE_KEY = 'app-language';
 const LanguageContext = createContext(null);
+
+// O idioma escolhido também precisa VIAJAR NA CHAMADA DE IA (03/08/2026) —
+// senão o servidor, cujos prompts são em português, devolve leitura em
+// português pra quem está com o app em espanhol ou inglês. aiClient.js não
+// pode importar este arquivo (React/AsyncStorage não existem no node:test que
+// exercita ele), então a dependência anda no sentido contrário: aqui guardamos
+// o idioma vigente e registramos um leitor síncrono lá.
+let langVigente = DEFAULT_LANGUAGE;
+setLanguageProvider(() => langVigente);
 
 function readUrlLang() {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.location.search) return null;
@@ -40,6 +50,7 @@ export function LanguageProvider({ children }) {
     (async () => {
       const urlLang = readUrlLang();
       if (urlLang) {
+        langVigente = urlLang;
         setLang(urlLang);
         try {
           await AsyncStorage.setItem(LANGUAGE_KEY, urlLang);
@@ -49,7 +60,10 @@ export function LanguageProvider({ children }) {
       }
       try {
         const saved = await AsyncStorage.getItem(LANGUAGE_KEY);
-        if (saved && LANGUAGES.includes(saved)) setLang(saved);
+        if (saved && LANGUAGES.includes(saved)) {
+          langVigente = saved;
+          setLang(saved);
+        }
       } catch {}
       setReady(true);
     })();
@@ -57,6 +71,7 @@ export function LanguageProvider({ children }) {
 
   const changeLanguage = async (nextLang) => {
     if (!LANGUAGES.includes(nextLang)) return;
+    langVigente = nextLang;
     setLang(nextLang);
     try {
       await AsyncStorage.setItem(LANGUAGE_KEY, nextLang);

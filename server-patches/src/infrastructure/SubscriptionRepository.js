@@ -109,6 +109,24 @@ class SubscriptionRepository {
   // o correlationCode salvo no aparelho a cada clique em "Assinar", então a
   // última pendência é a única linha que o aparelho da pessoa consegue
   // consultar em /api/subscription/:correlationCode.
+  // A ORDENAÇÃO AQUI É DEFESA, NÃO SÓ PREFERÊNCIA (02/08/2026).
+  //
+  // /api/checkout/initiate é público de propósito (o funil não tem login), e
+  // aceita `customerEmail` cru do body. Sem o desempate abaixo, um anônimo
+  // podia criar uma pendência com o e-mail de OUTRA pessoa e, como a busca era
+  // só `ORDER BY created_at DESC`, a linha dele venceria a corrida no webhook
+  // quando a vítima comprasse de verdade: a vítima pagava e via paywall,
+  // enquanto o atacante ficava com o correlationCode de uma assinatura ativa.
+  //
+  // O desempate: linha ligada a uma CONTA cujo e-mail é o mesmo do comprador
+  // ganha de qualquer linha anônima. Quem provou posse do e-mail (login no
+  // Supabase) vence quem só digitou o e-mail num body de requisição. Só quando
+  // não existe nenhuma linha de conta é que as anônimas concorrem entre si
+  // pela data — que é o caso legítimo do funil (comprador sem login).
+  //
+  // Isto NÃO substitui a checagem de e-mail em ClaimSubscriptionUseCase: são
+  // as duas portas do mesmo ataque (esta fecha "quem o webhook ativa", a de lá
+  // fecha "quem consegue vincular à própria conta").
   findLatestPendingByCustomerEmail(customerEmail) {
     const email = normalizeEmailForLookup(customerEmail);
     if (!email) return null;
@@ -116,10 +134,16 @@ class SubscriptionRepository {
       .prepare(`
         SELECT * FROM subscriptions
         WHERE LOWER(TRIM(customer_email)) = ? AND status = 'pending'
-        ORDER BY created_at DESC, rowid DESC
+        ORDER BY
+          CASE
+            WHEN supabase_user_id IS NOT NULL AND LOWER(TRIM(COALESCE(account_email, ''))) = ? THEN 0
+            ELSE 1
+          END,
+          created_at DESC,
+          rowid DESC
         LIMIT 1
       `)
-      .get(email);
+      .get(email, email);
     return toEntity(row);
   }
 

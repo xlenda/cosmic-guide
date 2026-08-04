@@ -276,6 +276,27 @@ app.post("/api/checkout/initiate", checkoutLimiter, optionalAuth, async (req, re
     // amountCents/currency NÃO são mais aceitos do body — preço é decidido
     // só pelo servidor a partir do plano (ver PLAN_PRICING no use case).
     const { coupleName, customerEmail, plan, scope } = req.body || {};
+
+    // TIPO CONFERIDO AQUI, ANTES DE QUALQUER COISA (03/08/2026). O log de
+    // produção mostrou "[api/checkout/initiate] erro: SQLite3 can only bind
+    // numbers, strings, bigints, buffers, and null": um body com `plan` (ou
+    // `coupleName`) vindo como objeto/array atravessava a rota inteira, porque
+    // `plan || null` não conserta nada — objeto é truthy — e só estourava lá no
+    // fundo, no driver. O cliente levava 500 na ROTA DE PAGAMENTO, que é o
+    // último lugar do app onde a pessoa aceita ver um erro genérico.
+    //
+    // 400 é a resposta certa: o pedido está malformado, e o dono do problema é
+    // quem mandou. String, ausente ou null passam — o resto para aqui.
+    for (const [nome, valor] of [
+      ["coupleName", coupleName],
+      ["customerEmail", customerEmail],
+      ["plan", plan],
+      ["scope", scope],
+    ]) {
+      if (valor !== undefined && valor !== null && typeof valor !== "string") {
+        return res.status(400).json({ error: `${nome} deve ser texto` });
+      }
+    }
     // `scope` só decide em qual "balde" (casal/solo) a idempotência olha — não
     // é fronteira de segurança: mentir nele no máximo permite comprar um
     // segundo plano que a pessoa vai pagar. O que NÃO vem mais do body é o
@@ -332,6 +353,15 @@ app.get("/api/subscription/:correlationCode", publicReadLimiter, (req, res) => {
 // trava a digitação nesse tamanho, isso aqui é a garantia server-side (um
 // cliente alterado ou uma chamada direta à API não deve conseguir gastar
 // tokens da Anthropic com uma mensagem gigante).
+// O IDIOMA DA RESPOSTA DE IA, tirado do body (lib/aiClient.js do app põe em
+// TODA chamada desde 03/08/2026). Só as três línguas que o app vende passam;
+// qualquer outra coisa — inclusive body ausente, número, objeto — cai em 'pt',
+// que é a língua dos prompts e o comportamento de sempre.
+function langDoPedido(req) {
+  const lang = req.body && req.body.lang;
+  return lang === "es" || lang === "en" ? lang : "pt";
+}
+
 const CHAT_MESSAGE_MAX_LENGTH = 500;
 
 app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req, res) => {
@@ -342,7 +372,7 @@ app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req,
     if (typeof message !== "string" || message.length > CHAT_MESSAGE_MAX_LENGTH) {
       return res.status(400).json({ error: `message deve ter no máximo ${CHAT_MESSAGE_MAX_LENGTH} caracteres` });
     }
-    const reply = await aiProvider.chat({ personaId, message, history });
+    const reply = await aiProvider.chat({ personaId, message, history, lang: langDoPedido(req) });
     console.log("[api/chat] sucesso");
     // Único endpoint que o canary chama — ver ehCanary() acima.
     countAiUsage(ehCanary(req) ? `chat${CANARY_SUFFIX}` : "chat");
@@ -359,7 +389,7 @@ app.post("/api/palm", aiLimiter, optionalAuth, aiQuota.gate("palm"), async (req,
     const { imageBase64, mediaType } = req.body || {};
     if (!imageBase64) return res.status(400).json({ error: "imageBase64 é obrigatório" });
     const compressed = await compressImage(imageBase64, mediaType);
-    const reading = await aiProvider.analyzePalm(compressed);
+    const reading = await aiProvider.analyzePalm({ ...compressed, lang: langDoPedido(req) });
     console.log("[api/palm] sucesso");
     countAiUsage("palm");
     res.json(reading);
@@ -375,7 +405,7 @@ app.post("/api/coffee", aiLimiter, optionalAuth, aiQuota.gate("coffee"), async (
     const { imageBase64, mediaType } = req.body || {};
     if (!imageBase64) return res.status(400).json({ error: "imageBase64 é obrigatório" });
     const compressed = await compressImage(imageBase64, mediaType);
-    const reading = await aiProvider.analyzeCoffee(compressed);
+    const reading = await aiProvider.analyzeCoffee({ ...compressed, lang: langDoPedido(req) });
     console.log("[api/coffee] sucesso");
     countAiUsage("coffee");
     res.json(reading);
@@ -391,7 +421,7 @@ app.post("/api/moles", aiLimiter, optionalAuth, aiQuota.gate("moles"), async (re
     const { imageBase64, mediaType } = req.body || {};
     if (!imageBase64) return res.status(400).json({ error: "imageBase64 é obrigatório" });
     const compressed = await compressImage(imageBase64, mediaType);
-    const reading = await aiProvider.analyzeMoles(compressed);
+    const reading = await aiProvider.analyzeMoles({ ...compressed, lang: langDoPedido(req) });
     console.log("[api/moles] sucesso");
     countAiUsage("moles");
     res.json(reading);
@@ -407,7 +437,7 @@ app.post("/api/foot", aiLimiter, optionalAuth, aiQuota.gate("foot"), async (req,
     const { imageBase64, mediaType } = req.body || {};
     if (!imageBase64) return res.status(400).json({ error: "imageBase64 é obrigatório" });
     const compressed = await compressImage(imageBase64, mediaType);
-    const reading = await aiProvider.analyzeFoot(compressed);
+    const reading = await aiProvider.analyzeFoot({ ...compressed, lang: langDoPedido(req) });
     console.log("[api/foot] sucesso");
     countAiUsage("foot");
     res.json(reading);
@@ -423,7 +453,7 @@ app.post("/api/face", aiLimiter, optionalAuth, aiQuota.gate("face"), async (req,
     const { imageBase64, mediaType } = req.body || {};
     if (!imageBase64) return res.status(400).json({ error: "imageBase64 é obrigatório" });
     const compressed = await compressImage(imageBase64, mediaType);
-    const reading = await aiProvider.analyzeFace(compressed);
+    const reading = await aiProvider.analyzeFace({ ...compressed, lang: langDoPedido(req) });
     console.log("[api/face] sucesso");
     countAiUsage("face");
     res.json(reading);
@@ -445,7 +475,7 @@ app.post("/api/dream", aiLimiter, optionalAuth, aiQuota.gate("dream"), async (re
     if (typeof dreamText !== "string" || dreamText.length > DREAM_TEXT_MAX_LENGTH) {
       return res.status(400).json({ error: `dreamText deve ter no máximo ${DREAM_TEXT_MAX_LENGTH} caracteres` });
     }
-    const reading = await aiProvider.interpretDream({ dreamText });
+    const reading = await aiProvider.interpretDream({ dreamText, lang: langDoPedido(req) });
     console.log("[api/dream] sucesso");
     countAiUsage("dream");
     res.json(reading);
@@ -465,7 +495,7 @@ app.post("/api/enhance-insight", aiLimiter, optionalAuth, aiQuota.gate("enhance-
     if (typeof transcript !== "string" || transcript.length > INSIGHT_TRANSCRIPT_MAX_LENGTH) {
       return res.status(400).json({ error: `transcript deve ter no máximo ${INSIGHT_TRANSCRIPT_MAX_LENGTH} caracteres` });
     }
-    const result = await aiProvider.enhanceInsight({ transcript, readingType, readingTitle });
+    const result = await aiProvider.enhanceInsight({ transcript, readingType, readingTitle, lang: langDoPedido(req) });
     console.log("[api/enhance-insight] sucesso");
     countAiUsage("enhance-insight");
     res.json(result);
@@ -742,7 +772,7 @@ app.post("/api/coffee-weekly-summary", aiLimiter, optionalAuth, aiQuota.gate("co
         return res.status(400).json({ error: "cada leitura precisa de title e body em string" });
       }
     }
-    const summary = await aiProvider.summarizeCoffeeWeek({ readings });
+    const summary = await aiProvider.summarizeCoffeeWeek({ readings, lang: langDoPedido(req) });
     console.log("[api/coffee-weekly-summary] sucesso");
     countAiUsage("coffee-weekly-summary");
     res.json(summary);
@@ -769,7 +799,7 @@ app.post("/api/weekly-insight", aiLimiter, optionalAuth, aiQuota.gate("weekly-in
         return res.status(400).json({ error: "cada leitura precisa de title e body em string" });
       }
     }
-    const summary = await aiProvider.summarizeWeeklyInsight({ readings });
+    const summary = await aiProvider.summarizeWeeklyInsight({ readings, lang: langDoPedido(req) });
     console.log("[api/weekly-insight] sucesso");
     countAiUsage("weekly-insight");
     res.json(summary);
