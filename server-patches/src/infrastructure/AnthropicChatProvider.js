@@ -504,6 +504,26 @@ function montarPrompt(partes) {
   return partes.filter(Boolean).join("\n\n");
 }
 
+// O CHAT PRECISA DE TODAS AS LISTAS, nao so a do proprio dominio (03/08/2026).
+//
+// Cada LEITURA e de um assunto so — uma leitura de mao nao deve citar datas de
+// taro, e limitar os fatos ali e o certo. Uma CONVERSA nao: a pessoa pergunta
+// o que quiser, e as duas personas do Chat (Luna e Arcano) so recebiam
+// FATOS_ASTROLOGIA e FATOS_TARO. Quando alguem perguntava a Luna sobre linha
+// da mao ou sobre sonho, ela seguia a regra a risca e respondia que "a
+// pesquisa do app nao localizou fonte datada" — sobre pratica que a pesquisa
+// DATOU, e que o proprio app data em outra tela. O app desmentindo a si mesmo,
+// e ainda por cima com falsa modestia.
+//
+// O custo: ~2.000 tokens somando as oito listas, contra ~200 de uma. Como o
+// system e cacheado (systemBlocks + cache_control), isso e leitura de cache a
+// 0,1x — fracao de centavo por conversa no Haiku. Barato pra deixar de mentir.
+const TODOS_OS_FATOS = Object.values(FATOS_DATADOS).flat();
+
+function blocoFatosDeTudo() {
+  return blocoFatos(TODOS_OS_FATOS);
+}
+
 // Renderiza uma lista de fatos como parte de prompt. O rótulo é fechado de
 // propósito ("e SOMENTE estes"): é ele que transforma a lista de fatos numa
 // fronteira, e não numa sugestão de leitura complementar.
@@ -973,7 +993,7 @@ Use esse vocabulário quando ele acrescenta. Não empilhe termo pra parecer téc
 2. Não trate aspecto entre Urano, Netuno e Plutão como notícia do dia. Esses são aspectos GERACIONAIS: descrevem o pano de fundo de coortes inteiras nascidas ao longo de anos e não dizem nada sobre o dia de ninguém. Leitura diária se faz com luminares e planetas pessoais.
 3. Não atribua porcentagem a compatibilidade nem a nada mais. Número de dois dígitos é a forma mais forte de afirmar precisão que existe, e a tradição não sustenta essa promessa. Sinastria séria compara mapas — Sol com Sol, Lua com Lua, Vênus com Marte, Ascendente com Ascendente — e a linguagem é qualitativa por princípio.`,
 
-    blocoFatos(FATOS_ASTROLOGIA),
+    blocoFatosDeTudo(),
     // Nomeia as três falsidades mais repetidas sobre astrologia. Precisa
     // nomeá-las pra proibi-las, então o trecho vai registrado em proibir().
     proibir(
@@ -998,7 +1018,7 @@ Use esse vocabulário quando ele acrescenta. Não empilhe termo pra parecer téc
 
     `VOCÊ NÃO TEM BARALHO. Nunca diga que puxou, tirou ou virou uma carta. Você pode INVOCAR o arquétipo de uma carta como espelho — "o que O Enforcado desenha é exatamente isso: a pausa que você não escolheu" — sempre nomeando que é evocação, nunca tiragem. Tiragem de verdade acontece na tela do Tarô do app, e lá é a pessoa que puxa. Se o bloco <contexto> trouxer a tiragem que ela puxou, aí sim fale dessas cartas — e só dessas.`,
 
-    blocoFatos(FATOS_TARO),
+    blocoFatosDeTudo(),
     // A origem egípcia é a lenda mais repetida do tarô e a mais fácil de
     // derrubar — ela tem autor e ano. Precisa ser nomeada pra ser proibida.
     proibir(
@@ -1574,8 +1594,13 @@ const FATOS_POR_PROMPT = {
   moles: FATOS_MOLEOSOFIA,
   dream: FATOS_SONHOS,
   tarot: FATOS_TARO,
-  "persona-luna": FATOS_ASTROLOGIA,
-  "persona-arcano": FATOS_TARO,
+  // AS DUAS CONVERSAS RECEBEM TUDO (03/08/2026) — ver blocoFatosDeTudo(). O
+  // indice tem que dizer a verdade sobre o que cada prompt carrega, porque e
+  // por ele que test/aiPrompts.test.js confere se algum ano de 4 digitos
+  // apareceu num prompt sem o fato correspondente. Deixar aqui a lista antiga
+  // faria o guarda acusar como invencao exatamente o que a correcao autorizou.
+  "persona-luna": TODOS_OS_FATOS,
+  "persona-arcano": TODOS_OS_FATOS,
 };
 
 // As sínteses são leitura do próprio app: não recebem fatos e não podem fazer
