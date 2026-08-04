@@ -496,6 +496,16 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
       {chart.profeccao && chart.profeccao.disponivel && (
         <View style={styles.seitaCard}>
           <Text style={styles.seitaTitulo}>{chart.profeccao.titulo}</Text>
+          {/* DE ONDE A CONTAGEM SAIU, dito na cara (03/08/2026).
+              Este card mora logo abaixo do Ascendente, e sem hora de
+              nascimento o motor conta a partir do SOL — legítimo, Ptolomeu
+              nomeia cinco lugares prorrogativos. Só que o card não dizia qual
+              tinha usado: quem não informou a hora lia o ano inteiro achando
+              que veio do Ascendente logo acima. A tela de Profecções já era
+              honesta nisso; esta não era. */}
+          {!!chart.profeccao.origemRotulo && (
+            <Text style={styles.seitaNota}>{chart.profeccao.origemRotulo}</Text>
+          )}
           <Text style={styles.seitaTexto}>{chart.profeccao.texto}</Text>
           {/* `detalhe` E UM OBJETO DE OITO CAMPOS, nunca uma string. Antes
               estava aqui dentro de um <Text> sozinho — objeto dentro de <Text>
@@ -527,6 +537,13 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
                 <Text style={styles.seitaNota}>{chart.profeccao.detalhe.senhorModerno}</Text>
               )}
             </>
+          )}
+          {/* O QUE FALTA, e onde resolver. Mesma regra da tela de Profecções:
+              nunca deixar a pessoa num beco — se a leitura saiu do Sol por
+              falta de hora/cidade, o card diz o que preencher. O botão não
+              precisa: os campos de nascimento estão nesta mesma tela. */}
+          {!!chart.profeccao.melhoraCom && (
+            <Text style={styles.seitaNota}>{chart.profeccao.melhoraCom.texto}</Text>
           )}
           {!!chart.profeccao.fonte && <Text style={styles.seitaRecibo}>{chart.profeccao.fonte}</Text>}
         </View>

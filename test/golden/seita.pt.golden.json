@@ -80,8 +80,8 @@
     "18:40",
     "21:55"
   ],
-  "hashTexto": "2666edc0660ed430a9a22926c8941920d34eb6ac16964fa7fc4f68a5960514b7",
-  "hashCompleto": "fb210282f9d8ed27ddb1047cde62c64615812050a385d5f344a1a659fdb9551e",
+  "hashTexto": "1270a688a66c15d9491f0efb091cab1fc5cb2371ce7ac3dd8df50b0eed7f102b",
+  "hashCompleto": "b6ba76decde7bd4a3749b33b0d9597fff9f6b9637220f9e46ed99bd11bc17904",
   "hashVarredura": "24c47fb995b19149c0e032ccd2095746847b24ff2f6612b7741f9d9107a6d251",
   "hashLinhas": "647ea54a79d4b005e7ee89fa73e42c30cd7eedf6785ece2ddd1b64e6810cbf72",
   "pares": {
@@ -92,7 +92,7 @@
       "chamada": "Na hora exata em que você nasceu ainda havia claridade lá fora: o Sol estava acima da linha do horizonte. Parece detalhe de certidão. É a peça que muda a leitura de sete planetas de uma vez.",
       "comoResolver": null,
       "disponivel": true,
-      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 46,0 graus acima do horizonte.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de dia tem o time do dia jogando em casa. O mesmo Saturno, o mesmo Marte e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Saturno num mapa diurno — o seu — não é o Saturno de um mapa noturno.",
+      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 46,0 graus dessa linha, medidos no círculo dos signos, do lado de cima.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de dia tem o time do dia jogando em casa. O mesmo Saturno, o mesmo Marte e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Saturno num mapa diurno — o seu — não é o Saturno de um mapa noturno.",
       "falta": [],
       "fonte": [
         "Ptolomeu, Tetrabiblos I.7 (trad. F. E. Robbins, Loeb/Harvard, 1940) — a tabela das seitas: Sol e Júpiter diurnos, Lua e Vênus noturnos, Mercúrio comum, diurno como estrela da manhã e noturno como estrela da tarde",
@@ -452,7 +452,7 @@
       "chamada": "Na hora exata em que você nasceu já estava escuro lá fora: o Sol estava abaixo da linha do horizonte. Parece detalhe de certidão. É a peça que muda a leitura de sete planetas de uma vez.",
       "comoResolver": null,
       "disponivel": true,
-      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 81,5 graus abaixo do horizonte.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de noite tem o time da noite jogando em casa. O mesmo Marte, o mesmo Saturno e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Marte num mapa noturno — o seu — não é o Marte de um mapa diurno.",
+      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 81,5 graus dessa linha, medidos no círculo dos signos, do lado de baixo.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de noite tem o time da noite jogando em casa. O mesmo Marte, o mesmo Saturno e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Marte num mapa noturno — o seu — não é o Marte de um mapa diurno.",
       "falta": [],
       "fonte": [
         "Ptolomeu, Tetrabiblos I.7 (trad. F. E. Robbins, Loeb/Harvard, 1940) — a tabela das seitas: Sol e Júpiter diurnos, Lua e Vênus noturnos, Mercúrio comum, diurno como estrela da manhã e noturno como estrela da tarde",
@@ -812,7 +812,7 @@
       "chamada": "Na hora exata em que você nasceu ainda havia claridade lá fora: o Sol estava acima da linha do horizonte. Parece detalhe de certidão. É a peça que muda a leitura de sete planetas de uma vez.",
       "comoResolver": null,
       "disponivel": true,
-      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 0,0 graus acima do horizonte.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de dia tem o time do dia jogando em casa. O mesmo Saturno, o mesmo Marte e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Saturno num mapa diurno — o seu — não é o Saturno de um mapa noturno.",
+      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 0,0 graus dessa linha, medidos no círculo dos signos, do lado de cima.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de dia tem o time do dia jogando em casa. O mesmo Saturno, o mesmo Marte e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Saturno num mapa diurno — o seu — não é o Saturno de um mapa noturno.",
       "falta": [],
       "fonte": [
         "Ptolomeu, Tetrabiblos I.7 (trad. F. E. Robbins, Loeb/Harvard, 1940) — a tabela das seitas: Sol e Júpiter diurnos, Lua e Vênus noturnos, Mercúrio comum, diurno como estrela da manhã e noturno como estrela da tarde",
@@ -1164,6 +1164,1446 @@
           "texto": "have both powers, because they have a common nature"
         }
       ]
+    },
+    "mercurio-tarde-sp": {
+      "ascendente": {
+        "grau": 297.777375
+      },
+      "chamada": "Na hora exata em que você nasceu ainda havia claridade lá fora: o Sol estava acima da linha do horizonte. Parece detalhe de certidão. É a peça que muda a leitura de sete planetas de uma vez.",
+      "comoResolver": null,
+      "disponivel": true,
+      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 45,1 graus dessa linha, medidos no círculo dos signos, do lado de cima.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de dia tem o time do dia jogando em casa. O mesmo Saturno, o mesmo Marte e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Saturno num mapa diurno — o seu — não é o Saturno de um mapa noturno.",
+      "falta": [],
+      "fonte": [
+        "Ptolomeu, Tetrabiblos I.7 (trad. F. E. Robbins, Loeb/Harvard, 1940) — a tabela das seitas: Sol e Júpiter diurnos, Lua e Vênus noturnos, Mercúrio comum, diurno como estrela da manhã e noturno como estrela da tarde",
+        "Vétio Valente, Anthologiae I.1 (trad. Riley) — a mesma grade planeta a planeta, e a regra do maléfico que opera na própria seita",
+        "Ptolomeu, Tetrabiblos I.5 — benéficos, maléficos e comuns, derivados das quatro qualidades: a Lua entre os benéficos, o Sol entre os comuns",
+        "Ptolomeu, Tetrabiblos I.8 — oriental e ocidental: o planeta que aparece no céu antes do Sol e o que aparece depois",
+        "Ptolomeu, Tetrabiblos I.7 — a razão dada para os dois maléficos entrarem na seita contrária à própria natureza (Saturno no dia, Marte na noite). Vem do resumo do capítulo; esta base não conferiu a frase inteira no original",
+        "Liz Greene, Saturn: A New Look at an Old Devil, 1976 — o Saturno das lições e do amadurecimento, que é leitura do séc. XX e não da tradição antiga"
+      ],
+      "grausDoHorizonte": 45.116288,
+      "limitrofe": false,
+      "mercurio": {
+        "elongacaoGraus": 4.757092,
+        "estrela": "tarde",
+        "seita": "noturno",
+        "texto": "Mercúrio apareceu no céu depois do Sol naquele dia — estrela da tarde, a 4,8 graus dele. Por esse critério, entra no time da noite."
+      },
+      "motivo": null,
+      "notaCondicao": "Uma ressalva que a própria fonte impõe. Valente pede duas coisas ao mesmo tempo: o planeta estar na própria seita E estar operando em lugar apropriado. A seita este app calcula, e é o que você está lendo aqui. O lugar apropriado, não — isso pede a casa e a condição de cada planeta, que esta tela ainda não lê. Metade da regra, dita como metade.",
+      "notaLeituraDoApp": "O que é conta e o que é leitura. A conta: o app compara a longitude do Sol com o eixo do Ascendente e do Descendente, que é o horizonte desenhado no mapa — hora, cidade e efeméride de verdade, sem tabela. A leitura: quem é do dia e quem é da noite é tabela de Ptolomeu (Tetrabiblos I.7) e de Valente (Anthologiae I.1), os dois do séc. II. O jeito de contar isso em português de hoje é do app, e só isso.",
+      "notaLimitrofe": null,
+      "planetas": [
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": false,
+          "linha": "O Sol está em casa: ele é o dono do turno em que você nasceu. Isso não o torna bonzinho. Ptolomeu não põe o Sol entre os benéficos — põe entre os comuns, que pegam a cor de quem estiver por perto.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Sol",
+          "planeta": "Sol",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "A Lua é do turno da noite e você nasceu de dia: fora da própria seita. Continua benéfica na lista de Ptolomeu, junto de Júpiter e Vênus — coisa que quase todo resumo esquece. Só não está no turno dela.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Lua",
+          "planeta": "Lua",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": true,
+          "linha": "Mercúrio muda de lado conforme apareça antes ou depois do Sol. No seu caso ele é estrela da tarde, o que o põe no turno da noite — e o seu mapa é diurno. Fora da própria seita, então.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Mercúrio",
+          "planeta": "Mercúrio",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": null
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Vênus é do turno da noite e você nasceu de dia: fora da própria seita. Segue benéfica na conta de Ptolomeu — a classificação sai da natureza dela, não do turno.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Vênus",
+          "planeta": "Vênus",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Marte é do turno da noite e você nasceu de dia: fora da própria seita. E aqui o app freia. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Marte de dia é pior, e a lacuna fica declarada em vez de preenchida.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Marte",
+          "planeta": "Marte",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Júpiter está em casa: do turno do dia, e é nele que você nasceu. É benéfico na lista de Ptolomeu, e o motivo que ele dá é físico, não moral — Júpiter aquece e umedece na medida, e são essas as duas qualidades que a fonte chama de fecundas.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Júpiter",
+          "planeta": "Júpiter",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Esta é a linha que o resumo de Saturno costuma pular: Saturno é o maléfico do turno do DIA, e você nasceu de dia. Ele está na própria seita. Valente, na mesma página em que o chama de maléfico, escreve que maléfico bem posto na própria seita é doador de bem — e lista cargo, supervisão e administração de bem alheio. O Saturno das lições e do amadurecimento, esse é outro: vem de Liz Greene, 1976.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Saturno",
+          "planeta": "Saturno",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": 1781,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Urano. A doutrina é sobre os sete que se enxergam a olho nu, e Urano só foi descoberto em 1781 — mais de mil e seiscentos anos depois de Ptolomeu escrever a tabela. O app não inventa um lugar para ele nela.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Urano",
+          "planeta": "Urano",
+          "recibo": "Descoberto em 1781. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        },
+        {
+          "ano": 1846,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Netuno. A tabela é do séc. II e Netuno foi descoberto em 1846: não há como Ptolomeu ou Valente terem dito qualquer coisa sobre ele. Deixar a linha em branco seria mais honesto que preenchê-la, e dizer isso é mais honesto ainda.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Netuno",
+          "planeta": "Netuno",
+          "recibo": "Descoberto em 1846. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        },
+        {
+          "ano": 1930,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Plutão. Ele foi descoberto em 1930 — dezoito séculos depois da tabela. Onde a fonte não fala, o app também não.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Plutão",
+          "planeta": "Plutão",
+          "recibo": "Descoberto em 1930. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        }
+      ],
+      "planetasDaSeita": [
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": false,
+          "linha": "O Sol está em casa: ele é o dono do turno em que você nasceu. Isso não o torna bonzinho. Ptolomeu não põe o Sol entre os benéficos — põe entre os comuns, que pegam a cor de quem estiver por perto.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Sol",
+          "planeta": "Sol",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Júpiter está em casa: do turno do dia, e é nele que você nasceu. É benéfico na lista de Ptolomeu, e o motivo que ele dá é físico, não moral — Júpiter aquece e umedece na medida, e são essas as duas qualidades que a fonte chama de fecundas.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Júpiter",
+          "planeta": "Júpiter",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Esta é a linha que o resumo de Saturno costuma pular: Saturno é o maléfico do turno do DIA, e você nasceu de dia. Ele está na própria seita. Valente, na mesma página em que o chama de maléfico, escreve que maléfico bem posto na própria seita é doador de bem — e lista cargo, supervisão e administração de bem alheio. O Saturno das lições e do amadurecimento, esse é outro: vem de Liz Greene, 1976.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Saturno",
+          "planeta": "Saturno",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        }
+      ],
+      "planetasForaDaSeita": [
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "A Lua é do turno da noite e você nasceu de dia: fora da própria seita. Continua benéfica na lista de Ptolomeu, junto de Júpiter e Vênus — coisa que quase todo resumo esquece. Só não está no turno dela.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Lua",
+          "planeta": "Lua",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": true,
+          "linha": "Mercúrio muda de lado conforme apareça antes ou depois do Sol. No seu caso ele é estrela da tarde, o que o põe no turno da noite — e o seu mapa é diurno. Fora da própria seita, então.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Mercúrio",
+          "planeta": "Mercúrio",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": null
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Vênus é do turno da noite e você nasceu de dia: fora da própria seita. Segue benéfica na conta de Ptolomeu — a classificação sai da natureza dela, não do turno.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Vênus",
+          "planeta": "Vênus",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Marte é do turno da noite e você nasceu de dia: fora da própria seita. E aqui o app freia. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Marte de dia é pior, e a lacuna fica declarada em vez de preenchida.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Marte",
+          "planeta": "Marte",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        }
+      ],
+      "planetasIndeterminados": [],
+      "seita": "diurno",
+      "seitaMapa": "mapa diurno",
+      "seitaNome": "diurno",
+      "sol": {
+        "acimaDoHorizonte": true,
+        "grausDoAscendente": 225.116288,
+        "longitude": 162.893663
+      },
+      "verbatins": [
+        {
+          "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+          "parafrase": "Até os astros maléficos, quando operam em lugares apropriados e na própria seita, são doadores de bem e sinal das maiores posições; quando estão inoperantes, trazem desastres e acusações.",
+          "texto": "even the malefic stars, when they are operative in appropriate places in their own sect, are bestowers of good and indicative of the greatest positions and success; when they are inoperative, they bring about disasters and accusations."
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.7, trad. Robbins, 1940",
+          "parafrase": "Mercúrio é comum, como já era: diurno quando aparece no céu antes do Sol, noturno quando aparece depois.",
+          "texto": "common as before, diurnal when it is a morning star and nocturnal as an evening star"
+        }
+      ],
+      "verbatinsDasClasses": [
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Júpiter, Vênus e a Lua são benéficos pela natureza temperada e por abundarem no quente e no úmido — e repare que a Lua está na lista.",
+          "texto": "because of their tempered nature and because they abound in the hot and the moist"
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Saturno e Marte são maléficos por excesso: um de frio, o outro de secura. É classificação de qualidade elemental, não de caráter.",
+          "texto": "one because of his excessive cold and the other for his excessive dryness"
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Sol e Mercúrio têm os dois poderes, porque a natureza deles é comum — pegam a cor da companhia. O Sol não é benéfico na conta de Ptolomeu.",
+          "texto": "have both powers, because they have a common nature"
+        }
+      ]
+    },
+    "mercurio-manha-noite-sp": {
+      "ascendente": {
+        "grau": 174.858158
+      },
+      "chamada": "Na hora exata em que você nasceu já estava escuro lá fora: o Sol estava abaixo da linha do horizonte. Parece detalhe de certidão. É a peça que muda a leitura de sete planetas de uma vez.",
+      "comoResolver": null,
+      "disponivel": true,
+      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 64,3 graus dessa linha, medidos no círculo dos signos, do lado de baixo.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de noite tem o time da noite jogando em casa. O mesmo Marte, o mesmo Saturno e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Marte num mapa noturno — o seu — não é o Marte de um mapa diurno.",
+      "falta": [],
+      "fonte": [
+        "Ptolomeu, Tetrabiblos I.7 (trad. F. E. Robbins, Loeb/Harvard, 1940) — a tabela das seitas: Sol e Júpiter diurnos, Lua e Vênus noturnos, Mercúrio comum, diurno como estrela da manhã e noturno como estrela da tarde",
+        "Vétio Valente, Anthologiae I.1 (trad. Riley) — a mesma grade planeta a planeta, e a regra do maléfico que opera na própria seita",
+        "Ptolomeu, Tetrabiblos I.5 — benéficos, maléficos e comuns, derivados das quatro qualidades: a Lua entre os benéficos, o Sol entre os comuns",
+        "Ptolomeu, Tetrabiblos I.8 — oriental e ocidental: o planeta que aparece no céu antes do Sol e o que aparece depois",
+        "Ptolomeu, Tetrabiblos I.7 — a razão dada para os dois maléficos entrarem na seita contrária à própria natureza (Saturno no dia, Marte na noite). Vem do resumo do capítulo; esta base não conferiu a frase inteira no original",
+        "Liz Greene, Saturn: A New Look at an Old Devil, 1976 — o Saturno das lições e do amadurecimento, que é leitura do séc. XX e não da tradição antiga"
+      ],
+      "grausDoHorizonte": 64.299159,
+      "limitrofe": false,
+      "mercurio": {
+        "elongacaoGraus": 4.631352,
+        "estrela": "manha",
+        "seita": "diurno",
+        "texto": "Mercúrio apareceu no céu antes do Sol naquele dia — estrela da manhã, a 4,6 graus dele. Por esse critério, entra no time do dia."
+      },
+      "motivo": null,
+      "notaCondicao": "Uma ressalva que a própria fonte impõe. Valente pede duas coisas ao mesmo tempo: o planeta estar na própria seita E estar operando em lugar apropriado. A seita este app calcula, e é o que você está lendo aqui. O lugar apropriado, não — isso pede a casa e a condição de cada planeta, que esta tela ainda não lê. Metade da regra, dita como metade.",
+      "notaLeituraDoApp": "O que é conta e o que é leitura. A conta: o app compara a longitude do Sol com o eixo do Ascendente e do Descendente, que é o horizonte desenhado no mapa — hora, cidade e efeméride de verdade, sem tabela. A leitura: quem é do dia e quem é da noite é tabela de Ptolomeu (Tetrabiblos I.7) e de Valente (Anthologiae I.1), os dois do séc. II. O jeito de contar isso em português de hoje é do app, e só isso.",
+      "notaLimitrofe": null,
+      "planetas": [
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": false,
+          "linha": "O Sol é do turno do dia e você nasceu de noite: ele está fora da própria seita. Também não vira problema por causa disso. Na conta de Ptolomeu o Sol é comum, e comum é quem pega a cor da companhia.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Sol",
+          "planeta": "Sol",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "A Lua está em casa: você nasceu no turno dela. E tem um detalhe que quase ninguém conta — na lista de Ptolomeu a Lua é benéfica, no mesmo grupo de Júpiter e Vênus. O costume é citar os dois e esquecer o luminar.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Lua",
+          "planeta": "Lua",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": true,
+          "linha": "Mercúrio muda de lado conforme apareça antes ou depois do Sol. No seu caso ele é estrela da manhã, o que o põe no turno do dia — e o seu mapa é noturno. Fora da própria seita, então.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Mercúrio",
+          "planeta": "Mercúrio",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": null
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Vênus está em casa: é do turno da noite, e é nele que você nasceu. Valente resume o que ela move em duas palavras — desejo e afeto — e Ptolomeu a põe entre os benéficos.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Vênus",
+          "planeta": "Vênus",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Marte é maléfico na lista antiga, e aqui vem a virada: você nasceu de noite, que é o turno dele. Marte está na própria seita. Valente escreve, na mesma página em que o chama de maléfico, que maléfico assim colocado é doador de bem. Na fonte, Marte é o que corta, forja e comanda.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Marte",
+          "planeta": "Marte",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Júpiter é do turno do dia e você nasceu de noite: fora da própria seita. Continua benéfico na conta de Ptolomeu — a classificação sai da natureza dele, não do turno.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Júpiter",
+          "planeta": "Júpiter",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Saturno é do turno do dia e você nasceu de noite: fora da própria seita. E aqui o app para. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Saturno de noite é pior, e a lacuna fica declarada em vez de preenchida.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Saturno",
+          "planeta": "Saturno",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": 1781,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Urano. A doutrina é sobre os sete que se enxergam a olho nu, e Urano só foi descoberto em 1781 — mais de mil e seiscentos anos depois de Ptolomeu escrever a tabela. O app não inventa um lugar para ele nela.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Urano",
+          "planeta": "Urano",
+          "recibo": "Descoberto em 1781. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        },
+        {
+          "ano": 1846,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Netuno. A tabela é do séc. II e Netuno foi descoberto em 1846: não há como Ptolomeu ou Valente terem dito qualquer coisa sobre ele. Deixar a linha em branco seria mais honesto que preenchê-la, e dizer isso é mais honesto ainda.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Netuno",
+          "planeta": "Netuno",
+          "recibo": "Descoberto em 1846. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        },
+        {
+          "ano": 1930,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Plutão. Ele foi descoberto em 1930 — dezoito séculos depois da tabela. Onde a fonte não fala, o app também não.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Plutão",
+          "planeta": "Plutão",
+          "recibo": "Descoberto em 1930. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        }
+      ],
+      "planetasDaSeita": [
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "A Lua está em casa: você nasceu no turno dela. E tem um detalhe que quase ninguém conta — na lista de Ptolomeu a Lua é benéfica, no mesmo grupo de Júpiter e Vênus. O costume é citar os dois e esquecer o luminar.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Lua",
+          "planeta": "Lua",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Vênus está em casa: é do turno da noite, e é nele que você nasceu. Valente resume o que ela move em duas palavras — desejo e afeto — e Ptolomeu a põe entre os benéficos.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Vênus",
+          "planeta": "Vênus",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Marte é maléfico na lista antiga, e aqui vem a virada: você nasceu de noite, que é o turno dele. Marte está na própria seita. Valente escreve, na mesma página em que o chama de maléfico, que maléfico assim colocado é doador de bem. Na fonte, Marte é o que corta, forja e comanda.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Marte",
+          "planeta": "Marte",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        }
+      ],
+      "planetasForaDaSeita": [
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": false,
+          "linha": "O Sol é do turno do dia e você nasceu de noite: ele está fora da própria seita. Também não vira problema por causa disso. Na conta de Ptolomeu o Sol é comum, e comum é quem pega a cor da companhia.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Sol",
+          "planeta": "Sol",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": true,
+          "linha": "Mercúrio muda de lado conforme apareça antes ou depois do Sol. No seu caso ele é estrela da manhã, o que o põe no turno do dia — e o seu mapa é noturno. Fora da própria seita, então.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Mercúrio",
+          "planeta": "Mercúrio",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": null
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Júpiter é do turno do dia e você nasceu de noite: fora da própria seita. Continua benéfico na conta de Ptolomeu — a classificação sai da natureza dele, não do turno.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Júpiter",
+          "planeta": "Júpiter",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Saturno é do turno do dia e você nasceu de noite: fora da própria seita. E aqui o app para. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Saturno de noite é pior, e a lacuna fica declarada em vez de preenchida.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Saturno",
+          "planeta": "Saturno",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        }
+      ],
+      "planetasIndeterminados": [],
+      "seita": "noturno",
+      "seitaMapa": "mapa noturno",
+      "seitaNome": "noturno",
+      "sol": {
+        "acimaDoHorizonte": false,
+        "grausDoAscendente": 115.700841,
+        "longitude": 290.558999
+      },
+      "verbatins": [
+        {
+          "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+          "parafrase": "Até os astros maléficos, quando operam em lugares apropriados e na própria seita, são doadores de bem e sinal das maiores posições; quando estão inoperantes, trazem desastres e acusações.",
+          "texto": "even the malefic stars, when they are operative in appropriate places in their own sect, are bestowers of good and indicative of the greatest positions and success; when they are inoperative, they bring about disasters and accusations."
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.7, trad. Robbins, 1940",
+          "parafrase": "Mercúrio é comum, como já era: diurno quando aparece no céu antes do Sol, noturno quando aparece depois.",
+          "texto": "common as before, diurnal when it is a morning star and nocturnal as an evening star"
+        }
+      ],
+      "verbatinsDasClasses": [
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Júpiter, Vênus e a Lua são benéficos pela natureza temperada e por abundarem no quente e no úmido — e repare que a Lua está na lista.",
+          "texto": "because of their tempered nature and because they abound in the hot and the moist"
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Saturno e Marte são maléficos por excesso: um de frio, o outro de secura. É classificação de qualidade elemental, não de caráter.",
+          "texto": "one because of his excessive cold and the other for his excessive dryness"
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Sol e Mercúrio têm os dois poderes, porque a natureza deles é comum — pegam a cor da companhia. O Sol não é benéfico na conta de Ptolomeu.",
+          "texto": "have both powers, because they have a common nature"
+        }
+      ]
+    },
+    "diurno-ny": {
+      "ascendente": {
+        "grau": 41.8868
+      },
+      "chamada": "Na hora exata em que você nasceu ainda havia claridade lá fora: o Sol estava acima da linha do horizonte. Parece detalhe de certidão. É a peça que muda a leitura de sete planetas de uma vez.",
+      "comoResolver": null,
+      "disponivel": true,
+      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 61,8 graus dessa linha, medidos no círculo dos signos, do lado de cima.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de dia tem o time do dia jogando em casa. O mesmo Saturno, o mesmo Marte e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Saturno num mapa diurno — o seu — não é o Saturno de um mapa noturno.",
+      "falta": [],
+      "fonte": [
+        "Ptolomeu, Tetrabiblos I.7 (trad. F. E. Robbins, Loeb/Harvard, 1940) — a tabela das seitas: Sol e Júpiter diurnos, Lua e Vênus noturnos, Mercúrio comum, diurno como estrela da manhã e noturno como estrela da tarde",
+        "Vétio Valente, Anthologiae I.1 (trad. Riley) — a mesma grade planeta a planeta, e a regra do maléfico que opera na própria seita",
+        "Ptolomeu, Tetrabiblos I.5 — benéficos, maléficos e comuns, derivados das quatro qualidades: a Lua entre os benéficos, o Sol entre os comuns",
+        "Ptolomeu, Tetrabiblos I.8 — oriental e ocidental: o planeta que aparece no céu antes do Sol e o que aparece depois",
+        "Ptolomeu, Tetrabiblos I.7 — a razão dada para os dois maléficos entrarem na seita contrária à própria natureza (Saturno no dia, Marte na noite). Vem do resumo do capítulo; esta base não conferiu a frase inteira no original",
+        "Liz Greene, Saturn: A New Look at an Old Devil, 1976 — o Saturno das lições e do amadurecimento, que é leitura do séc. XX e não da tradição antiga"
+      ],
+      "grausDoHorizonte": 61.788661,
+      "limitrofe": false,
+      "mercurio": {
+        "elongacaoGraus": 10.614858,
+        "estrela": "tarde",
+        "seita": "noturno",
+        "texto": "Mercúrio apareceu no céu depois do Sol naquele dia — estrela da tarde, a 10,6 graus dele. Por esse critério, entra no time da noite."
+      },
+      "motivo": null,
+      "notaCondicao": "Uma ressalva que a própria fonte impõe. Valente pede duas coisas ao mesmo tempo: o planeta estar na própria seita E estar operando em lugar apropriado. A seita este app calcula, e é o que você está lendo aqui. O lugar apropriado, não — isso pede a casa e a condição de cada planeta, que esta tela ainda não lê. Metade da regra, dita como metade.",
+      "notaLeituraDoApp": "O que é conta e o que é leitura. A conta: o app compara a longitude do Sol com o eixo do Ascendente e do Descendente, que é o horizonte desenhado no mapa — hora, cidade e efeméride de verdade, sem tabela. A leitura: quem é do dia e quem é da noite é tabela de Ptolomeu (Tetrabiblos I.7) e de Valente (Anthologiae I.1), os dois do séc. II. O jeito de contar isso em português de hoje é do app, e só isso.",
+      "notaLimitrofe": null,
+      "planetas": [
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": false,
+          "linha": "O Sol está em casa: ele é o dono do turno em que você nasceu. Isso não o torna bonzinho. Ptolomeu não põe o Sol entre os benéficos — põe entre os comuns, que pegam a cor de quem estiver por perto.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Sol",
+          "planeta": "Sol",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "A Lua é do turno da noite e você nasceu de dia: fora da própria seita. Continua benéfica na lista de Ptolomeu, junto de Júpiter e Vênus — coisa que quase todo resumo esquece. Só não está no turno dela.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Lua",
+          "planeta": "Lua",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": true,
+          "linha": "Mercúrio muda de lado conforme apareça antes ou depois do Sol. No seu caso ele é estrela da tarde, o que o põe no turno da noite — e o seu mapa é diurno. Fora da própria seita, então.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Mercúrio",
+          "planeta": "Mercúrio",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": null
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Vênus é do turno da noite e você nasceu de dia: fora da própria seita. Segue benéfica na conta de Ptolomeu — a classificação sai da natureza dela, não do turno.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Vênus",
+          "planeta": "Vênus",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Marte é do turno da noite e você nasceu de dia: fora da própria seita. E aqui o app freia. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Marte de dia é pior, e a lacuna fica declarada em vez de preenchida.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Marte",
+          "planeta": "Marte",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Júpiter está em casa: do turno do dia, e é nele que você nasceu. É benéfico na lista de Ptolomeu, e o motivo que ele dá é físico, não moral — Júpiter aquece e umedece na medida, e são essas as duas qualidades que a fonte chama de fecundas.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Júpiter",
+          "planeta": "Júpiter",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Esta é a linha que o resumo de Saturno costuma pular: Saturno é o maléfico do turno do DIA, e você nasceu de dia. Ele está na própria seita. Valente, na mesma página em que o chama de maléfico, escreve que maléfico bem posto na própria seita é doador de bem — e lista cargo, supervisão e administração de bem alheio. O Saturno das lições e do amadurecimento, esse é outro: vem de Liz Greene, 1976.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Saturno",
+          "planeta": "Saturno",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": 1781,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Urano. A doutrina é sobre os sete que se enxergam a olho nu, e Urano só foi descoberto em 1781 — mais de mil e seiscentos anos depois de Ptolomeu escrever a tabela. O app não inventa um lugar para ele nela.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Urano",
+          "planeta": "Urano",
+          "recibo": "Descoberto em 1781. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        },
+        {
+          "ano": 1846,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Netuno. A tabela é do séc. II e Netuno foi descoberto em 1846: não há como Ptolomeu ou Valente terem dito qualquer coisa sobre ele. Deixar a linha em branco seria mais honesto que preenchê-la, e dizer isso é mais honesto ainda.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Netuno",
+          "planeta": "Netuno",
+          "recibo": "Descoberto em 1846. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        },
+        {
+          "ano": 1930,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Plutão. Ele foi descoberto em 1930 — dezoito séculos depois da tabela. Onde a fonte não fala, o app também não.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Plutão",
+          "planeta": "Plutão",
+          "recibo": "Descoberto em 1930. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        }
+      ],
+      "planetasDaSeita": [
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": false,
+          "linha": "O Sol está em casa: ele é o dono do turno em que você nasceu. Isso não o torna bonzinho. Ptolomeu não põe o Sol entre os benéficos — põe entre os comuns, que pegam a cor de quem estiver por perto.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Sol",
+          "planeta": "Sol",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Júpiter está em casa: do turno do dia, e é nele que você nasceu. É benéfico na lista de Ptolomeu, e o motivo que ele dá é físico, não moral — Júpiter aquece e umedece na medida, e são essas as duas qualidades que a fonte chama de fecundas.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Júpiter",
+          "planeta": "Júpiter",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Esta é a linha que o resumo de Saturno costuma pular: Saturno é o maléfico do turno do DIA, e você nasceu de dia. Ele está na própria seita. Valente, na mesma página em que o chama de maléfico, escreve que maléfico bem posto na própria seita é doador de bem — e lista cargo, supervisão e administração de bem alheio. O Saturno das lições e do amadurecimento, esse é outro: vem de Liz Greene, 1976.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Saturno",
+          "planeta": "Saturno",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        }
+      ],
+      "planetasForaDaSeita": [
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "A Lua é do turno da noite e você nasceu de dia: fora da própria seita. Continua benéfica na lista de Ptolomeu, junto de Júpiter e Vênus — coisa que quase todo resumo esquece. Só não está no turno dela.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Lua",
+          "planeta": "Lua",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": true,
+          "linha": "Mercúrio muda de lado conforme apareça antes ou depois do Sol. No seu caso ele é estrela da tarde, o que o põe no turno da noite — e o seu mapa é diurno. Fora da própria seita, então.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Mercúrio",
+          "planeta": "Mercúrio",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": null
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Vênus é do turno da noite e você nasceu de dia: fora da própria seita. Segue benéfica na conta de Ptolomeu — a classificação sai da natureza dela, não do turno.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Vênus",
+          "planeta": "Vênus",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Marte é do turno da noite e você nasceu de dia: fora da própria seita. E aqui o app freia. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Marte de dia é pior, e a lacuna fica declarada em vez de preenchida.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Marte",
+          "planeta": "Marte",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        }
+      ],
+      "planetasIndeterminados": [],
+      "seita": "diurno",
+      "seitaMapa": "mapa diurno",
+      "seitaNome": "diurno",
+      "sol": {
+        "acimaDoHorizonte": true,
+        "grausDoAscendente": 298.211339,
+        "longitude": 340.098139
+      },
+      "verbatins": [
+        {
+          "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+          "parafrase": "Até os astros maléficos, quando operam em lugares apropriados e na própria seita, são doadores de bem e sinal das maiores posições; quando estão inoperantes, trazem desastres e acusações.",
+          "texto": "even the malefic stars, when they are operative in appropriate places in their own sect, are bestowers of good and indicative of the greatest positions and success; when they are inoperative, they bring about disasters and accusations."
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.7, trad. Robbins, 1940",
+          "parafrase": "Mercúrio é comum, como já era: diurno quando aparece no céu antes do Sol, noturno quando aparece depois.",
+          "texto": "common as before, diurnal when it is a morning star and nocturnal as an evening star"
+        }
+      ],
+      "verbatinsDasClasses": [
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Júpiter, Vênus e a Lua são benéficos pela natureza temperada e por abundarem no quente e no úmido — e repare que a Lua está na lista.",
+          "texto": "because of their tempered nature and because they abound in the hot and the moist"
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Saturno e Marte são maléficos por excesso: um de frio, o outro de secura. É classificação de qualidade elemental, não de caráter.",
+          "texto": "one because of his excessive cold and the other for his excessive dryness"
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Sol e Mercúrio têm os dois poderes, porque a natureza deles é comum — pegam a cor da companhia. O Sol não é benéfico na conta de Ptolomeu.",
+          "texto": "have both powers, because they have a common nature"
+        }
+      ]
+    },
+    "noturno-ny": {
+      "ascendente": {
+        "grau": 153.572442
+      },
+      "chamada": "Na hora exata em que você nasceu já estava escuro lá fora: o Sol estava abaixo da linha do horizonte. Parece detalhe de certidão. É a peça que muda a leitura de sete planetas de uma vez.",
+      "comoResolver": null,
+      "disponivel": true,
+      "explicacao": "Todo mapa cai de um lado ou do outro dessa linha, sem meio-termo: ou o Sol já tinha nascido e ainda não se posto, ou não. O seu Sol estava a 53,1 graus dessa linha, medidos no círculo dos signos, do lado de baixo.\n\nO que isso faz: a astrologia antiga divide os planetas em dois times. Três jogam de dia, três jogam de noite, e um troca de lado conforme o caso. Quem nasceu de noite tem o time da noite jogando em casa. O mesmo Marte, o mesmo Saturno e a mesma Lua não se leem igual nos dois mapas — e é só isso que separa os dois.\n\nO nome disso na fonte é seita (hairesis, no grego — o time a que cada planeta pertence). A tabela é de Ptolomeu, Tetrabiblos I.7, séc. II: Sol e Júpiter de dia, Lua e Vênus de noite, Mercúrio conforme apareça no céu antes ou depois do Sol. Vétio Valente, no mesmo século, confere planeta por planeta na Anthologiae I.1.\n\nE Valente acrescenta a frase que quase todo resumo pula: maléfico que opera em lugar apropriado e na própria seita é doador de bem, não de estrago. É por isso que Marte num mapa noturno — o seu — não é o Marte de um mapa diurno.",
+      "falta": [],
+      "fonte": [
+        "Ptolomeu, Tetrabiblos I.7 (trad. F. E. Robbins, Loeb/Harvard, 1940) — a tabela das seitas: Sol e Júpiter diurnos, Lua e Vênus noturnos, Mercúrio comum, diurno como estrela da manhã e noturno como estrela da tarde",
+        "Vétio Valente, Anthologiae I.1 (trad. Riley) — a mesma grade planeta a planeta, e a regra do maléfico que opera na própria seita",
+        "Ptolomeu, Tetrabiblos I.5 — benéficos, maléficos e comuns, derivados das quatro qualidades: a Lua entre os benéficos, o Sol entre os comuns",
+        "Ptolomeu, Tetrabiblos I.8 — oriental e ocidental: o planeta que aparece no céu antes do Sol e o que aparece depois",
+        "Ptolomeu, Tetrabiblos I.7 — a razão dada para os dois maléficos entrarem na seita contrária à própria natureza (Saturno no dia, Marte na noite). Vem do resumo do capítulo; esta base não conferiu a frase inteira no original",
+        "Liz Greene, Saturn: A New Look at an Old Devil, 1976 — o Saturno das lições e do amadurecimento, que é leitura do séc. XX e não da tradição antiga"
+      ],
+      "grausDoHorizonte": 53.06637,
+      "limitrofe": false,
+      "mercurio": {
+        "elongacaoGraus": 14.724259,
+        "estrela": "manha",
+        "seita": "diurno",
+        "texto": "Mercúrio apareceu no céu antes do Sol naquele dia — estrela da manhã, a 14,7 graus dele. Por esse critério, entra no time do dia."
+      },
+      "motivo": null,
+      "notaCondicao": "Uma ressalva que a própria fonte impõe. Valente pede duas coisas ao mesmo tempo: o planeta estar na própria seita E estar operando em lugar apropriado. A seita este app calcula, e é o que você está lendo aqui. O lugar apropriado, não — isso pede a casa e a condição de cada planeta, que esta tela ainda não lê. Metade da regra, dita como metade.",
+      "notaLeituraDoApp": "O que é conta e o que é leitura. A conta: o app compara a longitude do Sol com o eixo do Ascendente e do Descendente, que é o horizonte desenhado no mapa — hora, cidade e efeméride de verdade, sem tabela. A leitura: quem é do dia e quem é da noite é tabela de Ptolomeu (Tetrabiblos I.7) e de Valente (Anthologiae I.1), os dois do séc. II. O jeito de contar isso em português de hoje é do app, e só isso.",
+      "notaLimitrofe": null,
+      "planetas": [
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": false,
+          "linha": "O Sol é do turno do dia e você nasceu de noite: ele está fora da própria seita. Também não vira problema por causa disso. Na conta de Ptolomeu o Sol é comum, e comum é quem pega a cor da companhia.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Sol",
+          "planeta": "Sol",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "A Lua está em casa: você nasceu no turno dela. E tem um detalhe que quase ninguém conta — na lista de Ptolomeu a Lua é benéfica, no mesmo grupo de Júpiter e Vênus. O costume é citar os dois e esquecer o luminar.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Lua",
+          "planeta": "Lua",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": true,
+          "linha": "Mercúrio muda de lado conforme apareça antes ou depois do Sol. No seu caso ele é estrela da manhã, o que o põe no turno do dia — e o seu mapa é noturno. Fora da própria seita, então.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Mercúrio",
+          "planeta": "Mercúrio",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": null
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Vênus está em casa: é do turno da noite, e é nele que você nasceu. Valente resume o que ela move em duas palavras — desejo e afeto — e Ptolomeu a põe entre os benéficos.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Vênus",
+          "planeta": "Vênus",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Marte é maléfico na lista antiga, e aqui vem a virada: você nasceu de noite, que é o turno dele. Marte está na própria seita. Valente escreve, na mesma página em que o chama de maléfico, que maléfico assim colocado é doador de bem. Na fonte, Marte é o que corta, forja e comanda.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Marte",
+          "planeta": "Marte",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Júpiter é do turno do dia e você nasceu de noite: fora da própria seita. Continua benéfico na conta de Ptolomeu — a classificação sai da natureza dele, não do turno.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Júpiter",
+          "planeta": "Júpiter",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Saturno é do turno do dia e você nasceu de noite: fora da própria seita. E aqui o app para. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Saturno de noite é pior, e a lacuna fica declarada em vez de preenchida.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Saturno",
+          "planeta": "Saturno",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": 1781,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Urano. A doutrina é sobre os sete que se enxergam a olho nu, e Urano só foi descoberto em 1781 — mais de mil e seiscentos anos depois de Ptolomeu escrever a tabela. O app não inventa um lugar para ele nela.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Urano",
+          "planeta": "Urano",
+          "recibo": "Descoberto em 1781. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        },
+        {
+          "ano": 1846,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Netuno. A tabela é do séc. II e Netuno foi descoberto em 1846: não há como Ptolomeu ou Valente terem dito qualquer coisa sobre ele. Deixar a linha em branco seria mais honesto que preenchê-la, e dizer isso é mais honesto ainda.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Netuno",
+          "planeta": "Netuno",
+          "recibo": "Descoberto em 1846. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        },
+        {
+          "ano": 1930,
+          "classe": null,
+          "classeNome": null,
+          "comum": false,
+          "linha": "Seita não se aplica a Plutão. Ele foi descoberto em 1930 — dezoito séculos depois da tabela. Onde a fonte não fala, o app também não.",
+          "moderno": true,
+          "naSeita": null,
+          "nome": "Plutão",
+          "planeta": "Plutão",
+          "recibo": "Descoberto em 1930. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+          "seitaDoPlaneta": null,
+          "verbatimSeita": null
+        }
+      ],
+      "planetasDaSeita": [
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "A Lua está em casa: você nasceu no turno dela. E tem um detalhe que quase ninguém conta — na lista de Ptolomeu a Lua é benéfica, no mesmo grupo de Júpiter e Vênus. O costume é citar os dois e esquecer o luminar.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Lua",
+          "planeta": "Lua",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Vênus está em casa: é do turno da noite, e é nele que você nasceu. Valente resume o que ela move em duas palavras — desejo e afeto — e Ptolomeu a põe entre os benéficos.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Vênus",
+          "planeta": "Vênus",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Marte é maléfico na lista antiga, e aqui vem a virada: você nasceu de noite, que é o turno dele. Marte está na própria seita. Valente escreve, na mesma página em que o chama de maléfico, que maléfico assim colocado é doador de bem. Na fonte, Marte é o que corta, forja e comanda.",
+          "moderno": false,
+          "naSeita": true,
+          "nome": "Marte",
+          "planeta": "Marte",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "noturno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+            "texto": "of the night sect"
+          }
+        }
+      ],
+      "planetasForaDaSeita": [
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": false,
+          "linha": "O Sol é do turno do dia e você nasceu de noite: ele está fora da própria seita. Também não vira problema por causa disso. Na conta de Ptolomeu o Sol é comum, e comum é quem pega a cor da companhia.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Sol",
+          "planeta": "Sol",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "comum",
+          "classeNome": "comum",
+          "comum": true,
+          "linha": "Mercúrio muda de lado conforme apareça antes ou depois do Sol. No seu caso ele é estrela da manhã, o que o põe no turno do dia — e o seu mapa é noturno. Fora da própria seita, então.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Mercúrio",
+          "planeta": "Mercúrio",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": null
+        },
+        {
+          "ano": null,
+          "classe": "benefico",
+          "classeNome": "benéfico",
+          "comum": false,
+          "linha": "Júpiter é do turno do dia e você nasceu de noite: fora da própria seita. Continua benéfico na conta de Ptolomeu — a classificação sai da natureza dele, não do turno.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Júpiter",
+          "planeta": "Júpiter",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        },
+        {
+          "ano": null,
+          "classe": "malefico",
+          "classeNome": "maléfico",
+          "comum": false,
+          "linha": "Saturno é do turno do dia e você nasceu de noite: fora da própria seita. E aqui o app para. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Saturno de noite é pior, e a lacuna fica declarada em vez de preenchida.",
+          "moderno": false,
+          "naSeita": false,
+          "nome": "Saturno",
+          "planeta": "Saturno",
+          "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+          "seitaDoPlaneta": "diurno",
+          "verbatimSeita": {
+            "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+            "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+            "texto": "of the day sect"
+          }
+        }
+      ],
+      "planetasIndeterminados": [],
+      "seita": "noturno",
+      "seitaMapa": "mapa noturno",
+      "seitaNome": "noturno",
+      "sol": {
+        "acimaDoHorizonte": false,
+        "grausDoAscendente": 126.93363,
+        "longitude": 280.506072
+      },
+      "verbatins": [
+        {
+          "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+          "parafrase": "Até os astros maléficos, quando operam em lugares apropriados e na própria seita, são doadores de bem e sinal das maiores posições; quando estão inoperantes, trazem desastres e acusações.",
+          "texto": "even the malefic stars, when they are operative in appropriate places in their own sect, are bestowers of good and indicative of the greatest positions and success; when they are inoperative, they bring about disasters and accusations."
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.7, trad. Robbins, 1940",
+          "parafrase": "Mercúrio é comum, como já era: diurno quando aparece no céu antes do Sol, noturno quando aparece depois.",
+          "texto": "common as before, diurnal when it is a morning star and nocturnal as an evening star"
+        }
+      ],
+      "verbatinsDasClasses": [
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Júpiter, Vênus e a Lua são benéficos pela natureza temperada e por abundarem no quente e no úmido — e repare que a Lua está na lista.",
+          "texto": "because of their tempered nature and because they abound in the hot and the moist"
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Saturno e Marte são maléficos por excesso: um de frio, o outro de secura. É classificação de qualidade elemental, não de caráter.",
+          "texto": "one because of his excessive cold and the other for his excessive dryness"
+        },
+        {
+          "locus": "Ptolomeu, Tetrabiblos I.5, trad. Robbins, 1940",
+          "parafrase": "Sol e Mercúrio têm os dois poderes, porque a natureza deles é comum — pegam a cor da companhia. O Sol não é benéfico na conta de Ptolomeu.",
+          "texto": "have both powers, because they have a common nature"
+        }
+      ]
     }
   },
   "semDado": {
@@ -1433,18 +2873,18 @@
     }
   },
   "linhas": {
-    "Saturno|mapa-diurno": {
+    "Sol|mapa-diurno": {
       "ano": null,
-      "classe": "malefico",
-      "classeNome": "maléfico",
+      "classe": "comum",
+      "classeNome": "comum",
       "comum": false,
       "disponivel": true,
-      "linha": "Esta é a linha que o resumo de Saturno costuma pular: Saturno é o maléfico do turno do DIA, e você nasceu de dia. Ele está na própria seita. Valente, na mesma página em que o chama de maléfico, escreve que maléfico bem posto na própria seita é doador de bem — e lista cargo, supervisão e administração de bem alheio. O Saturno das lições e do amadurecimento, esse é outro: vem de Liz Greene, 1976.",
+      "linha": "O Sol está em casa: ele é o dono do turno em que você nasceu. Isso não o torna bonzinho. Ptolomeu não põe o Sol entre os benéficos — põe entre os comuns, que pegam a cor de quem estiver por perto.",
       "moderno": false,
       "naSeita": true,
-      "nome": "Saturno",
-      "planeta": "Saturno",
-      "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+      "nome": "Sol",
+      "planeta": "Sol",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
       "seitaDoPlaneta": "diurno",
       "verbatimSeita": {
         "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
@@ -1452,24 +2892,338 @@
         "texto": "of the day sect"
       }
     },
-    "Saturno|mapa-noturno": {
+    "Sol|mapa-noturno": {
       "ano": null,
-      "classe": "malefico",
-      "classeNome": "maléfico",
+      "classe": "comum",
+      "classeNome": "comum",
       "comum": false,
       "disponivel": true,
-      "linha": "Saturno é do turno do dia e você nasceu de noite: fora da própria seita. E aqui o app para. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Saturno de noite é pior, e a lacuna fica declarada em vez de preenchida.",
+      "linha": "O Sol é do turno do dia e você nasceu de noite: ele está fora da própria seita. Também não vira problema por causa disso. Na conta de Ptolomeu o Sol é comum, e comum é quem pega a cor da companhia.",
       "moderno": false,
       "naSeita": false,
-      "nome": "Saturno",
-      "planeta": "Saturno",
-      "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+      "nome": "Sol",
+      "planeta": "Sol",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
       "seitaDoPlaneta": "diurno",
       "verbatimSeita": {
         "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
         "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
         "texto": "of the day sect"
       }
+    },
+    "Sol|so-diurno": {
+      "ano": null,
+      "classe": "comum",
+      "classeNome": "comum",
+      "comum": false,
+      "disponivel": true,
+      "linha": "O Sol está em casa: ele é o dono do turno em que você nasceu. Isso não o torna bonzinho. Ptolomeu não põe o Sol entre os benéficos — põe entre os comuns, que pegam a cor de quem estiver por perto.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Sol",
+      "planeta": "Sol",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Sol|so-noturno": {
+      "ano": null,
+      "classe": "comum",
+      "classeNome": "comum",
+      "comum": false,
+      "disponivel": true,
+      "linha": "O Sol é do turno do dia e você nasceu de noite: ele está fora da própria seita. Também não vira problema por causa disso. Na conta de Ptolomeu o Sol é comum, e comum é quem pega a cor da companhia.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Sol",
+      "planeta": "Sol",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Sol|sem-mapa": {
+      "ano": null,
+      "classe": "comum",
+      "classeNome": "comum",
+      "comoResolver": "Informe a hora de nascimento no Mapa Astral — é o mesmo campo que destrava o Ascendente.",
+      "comum": false,
+      "disponivel": false,
+      "linha": "Falta a hora. Diurno ou noturno é uma pergunta sobre o instante: o Sol estava acima ou abaixo do horizonte quando você nasceu? Meio-dia e meia-noite do mesmo dia dão respostas opostas, então aqui não existe palpite honesto a dar.",
+      "moderno": false,
+      "naSeita": null,
+      "nome": "Sol",
+      "planeta": "Sol",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — o Sol abre a lista dos diurnos. Valente, Anthologiae I.1: \"of the day sect\". Classe comum: Tetrabiblos I.5.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": null
+    },
+    "Lua|mapa-diurno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "A Lua é do turno da noite e você nasceu de dia: fora da própria seita. Continua benéfica na lista de Ptolomeu, junto de Júpiter e Vênus — coisa que quase todo resumo esquece. Só não está no turno dela.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Lua",
+      "planeta": "Lua",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+        "texto": "of the night sect"
+      }
+    },
+    "Lua|mapa-noturno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "A Lua está em casa: você nasceu no turno dela. E tem um detalhe que quase ninguém conta — na lista de Ptolomeu a Lua é benéfica, no mesmo grupo de Júpiter e Vênus. O costume é citar os dois e esquecer o luminar.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Lua",
+      "planeta": "Lua",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+        "texto": "of the night sect"
+      }
+    },
+    "Lua|so-diurno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "A Lua é do turno da noite e você nasceu de dia: fora da própria seita. Continua benéfica na lista de Ptolomeu, junto de Júpiter e Vênus — coisa que quase todo resumo esquece. Só não está no turno dela.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Lua",
+      "planeta": "Lua",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+        "texto": "of the night sect"
+      }
+    },
+    "Lua|so-noturno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "A Lua está em casa: você nasceu no turno dela. E tem um detalhe que quase ninguém conta — na lista de Ptolomeu a Lua é benéfica, no mesmo grupo de Júpiter e Vênus. O costume é citar os dois e esquecer o luminar.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Lua",
+      "planeta": "Lua",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+        "texto": "of the night sect"
+      }
+    },
+    "Lua|sem-mapa": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comoResolver": "Informe a hora de nascimento no Mapa Astral — é o mesmo campo que destrava o Ascendente.",
+      "comum": false,
+      "disponivel": false,
+      "linha": "Falta a hora. Diurno ou noturno é uma pergunta sobre o instante: o Sol estava acima ou abaixo do horizonte quando você nasceu? Meio-dia e meia-noite do mesmo dia dão respostas opostas, então aqui não existe palpite honesto a dar.",
+      "moderno": false,
+      "naSeita": null,
+      "nome": "Lua",
+      "planeta": "Lua",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": null
+    },
+    "Mercúrio|mapa-diurno": {
+      "ano": null,
+      "classe": "comum",
+      "classeNome": "comum",
+      "comum": true,
+      "disponivel": true,
+      "linha": "Mercúrio é o único que muda de lado, e o critério é a hora em que ele aparece no céu: antes do Sol, é do dia; depois, é da noite. No seu caso ele é estrela da manhã — e caiu no mesmo turno do seu mapa. Está em casa.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Mercúrio",
+      "planeta": "Mercúrio",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": null
+    },
+    "Mercúrio|mapa-noturno": {
+      "ano": null,
+      "classe": "comum",
+      "classeNome": "comum",
+      "comum": true,
+      "disponivel": true,
+      "linha": "Mercúrio muda de lado conforme apareça antes ou depois do Sol. No seu caso ele é estrela da manhã, o que o põe no turno do dia — e o seu mapa é noturno. Fora da própria seita, então.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Mercúrio",
+      "planeta": "Mercúrio",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": null
+    },
+    "Mercúrio|so-diurno": {
+      "ano": null,
+      "classe": "comum",
+      "classeNome": "comum",
+      "comum": true,
+      "disponivel": true,
+      "linha": "Mercúrio é o único que troca de lado: entra no dia se aparece no céu antes do Sol, e na noite se aparece depois. Sem o mapa calculado não dá para dizer qual dos dois é o seu, e o app não chuta.",
+      "moderno": false,
+      "naSeita": null,
+      "nome": "Mercúrio",
+      "planeta": "Mercúrio",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Mercúrio|so-noturno": {
+      "ano": null,
+      "classe": "comum",
+      "classeNome": "comum",
+      "comum": true,
+      "disponivel": true,
+      "linha": "Mercúrio é o único que troca de lado: entra no dia se aparece no céu antes do Sol, e na noite se aparece depois. Sem o mapa calculado não dá para dizer qual dos dois é o seu, e o app não chuta.",
+      "moderno": false,
+      "naSeita": null,
+      "nome": "Mercúrio",
+      "planeta": "Mercúrio",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Mercúrio|sem-mapa": {
+      "ano": null,
+      "classe": "comum",
+      "classeNome": "comum",
+      "comoResolver": "Informe a hora de nascimento no Mapa Astral — é o mesmo campo que destrava o Ascendente.",
+      "comum": true,
+      "disponivel": false,
+      "linha": "Falta a hora. Diurno ou noturno é uma pergunta sobre o instante: o Sol estava acima ou abaixo do horizonte quando você nasceu? Meio-dia e meia-noite do mesmo dia dão respostas opostas, então aqui não existe palpite honesto a dar.",
+      "moderno": false,
+      "naSeita": null,
+      "nome": "Mercúrio",
+      "planeta": "Mercúrio",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Vênus|mapa-diurno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Vênus é do turno da noite e você nasceu de dia: fora da própria seita. Segue benéfica na conta de Ptolomeu — a classificação sai da natureza dela, não do turno.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Vênus",
+      "planeta": "Vênus",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+        "texto": "of the night sect"
+      }
+    },
+    "Vênus|mapa-noturno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Vênus está em casa: é do turno da noite, e é nele que você nasceu. Valente resume o que ela move em duas palavras — desejo e afeto — e Ptolomeu a põe entre os benéficos.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Vênus",
+      "planeta": "Vênus",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+        "texto": "of the night sect"
+      }
+    },
+    "Vênus|so-diurno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Vênus é do turno da noite e você nasceu de dia: fora da própria seita. Segue benéfica na conta de Ptolomeu — a classificação sai da natureza dela, não do turno.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Vênus",
+      "planeta": "Vênus",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+        "texto": "of the night sect"
+      }
+    },
+    "Vênus|so-noturno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Vênus está em casa: é do turno da noite, e é nele que você nasceu. Valente resume o que ela move em duas palavras — desejo e afeto — e Ptolomeu a põe entre os benéficos.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Vênus",
+      "planeta": "Vênus",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+        "texto": "of the night sect"
+      }
+    },
+    "Vênus|sem-mapa": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comoResolver": "Informe a hora de nascimento no Mapa Astral — é o mesmo campo que destrava o Ascendente.",
+      "comum": false,
+      "disponivel": false,
+      "linha": "Falta a hora. Diurno ou noturno é uma pergunta sobre o instante: o Sol estava acima ou abaixo do horizonte quando você nasceu? Meio-dia e meia-noite do mesmo dia dão respostas opostas, então aqui não existe palpite honesto a dar.",
+      "moderno": false,
+      "naSeita": null,
+      "nome": "Vênus",
+      "planeta": "Vênus",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Vênus entre os noturnos. Valente, Anthologiae I.1: \"of the night sect\", e \"Venus is desire and love\". Benéfica: Tetrabiblos I.5.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": null
     },
     "Marte|mapa-diurno": {
       "ano": null,
@@ -1509,55 +3263,273 @@
         "texto": "of the night sect"
       }
     },
-    "Mercúrio|mapa-diurno": {
+    "Marte|so-diurno": {
       "ano": null,
-      "classe": "comum",
-      "classeNome": "comum",
-      "comum": true,
-      "disponivel": true,
-      "linha": "Mercúrio é o único que muda de lado, e o critério é a hora em que ele aparece no céu: antes do Sol, é do dia; depois, é da noite. No seu caso ele é estrela da manhã — e caiu no mesmo turno do seu mapa. Está em casa.",
-      "moderno": false,
-      "naSeita": true,
-      "nome": "Mercúrio",
-      "planeta": "Mercúrio",
-      "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
-      "seitaDoPlaneta": "diurno",
-      "verbatimSeita": null
-    },
-    "Mercúrio|sem-mapa": {
-      "ano": null,
-      "classe": "comum",
-      "classeNome": "comum",
-      "comoResolver": "Informe a hora de nascimento no Mapa Astral — é o mesmo campo que destrava o Ascendente.",
-      "comum": true,
-      "disponivel": false,
-      "linha": "Falta a hora. Diurno ou noturno é uma pergunta sobre o instante: o Sol estava acima ou abaixo do horizonte quando você nasceu? Meio-dia e meia-noite do mesmo dia dão respostas opostas, então aqui não existe palpite honesto a dar.",
-      "moderno": false,
-      "naSeita": null,
-      "nome": "Mercúrio",
-      "planeta": "Mercúrio",
-      "recibo": "Ptolomeu, Tetrabiblos I.7 — \"common as before, diurnal when it is a morning star and nocturnal as an evening star\". Estrela da manhã e da tarde: Tetrabiblos I.8. A grade de Valente em I.1, como esta base a registra, não inclui Mercúrio.",
-      "seitaDoPlaneta": null,
-      "verbatimSeita": null
-    },
-    "Lua|mapa-diurno": {
-      "ano": null,
-      "classe": "benefico",
-      "classeNome": "benéfico",
+      "classe": "malefico",
+      "classeNome": "maléfico",
       "comum": false,
       "disponivel": true,
-      "linha": "A Lua é do turno da noite e você nasceu de dia: fora da própria seita. Continua benéfica na lista de Ptolomeu, junto de Júpiter e Vênus — coisa que quase todo resumo esquece. Só não está no turno dela.",
+      "linha": "Marte é do turno da noite e você nasceu de dia: fora da própria seita. E aqui o app freia. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Marte de dia é pior, e a lacuna fica declarada em vez de preenchida.",
       "moderno": false,
       "naSeita": false,
-      "nome": "Lua",
-      "planeta": "Lua",
-      "recibo": "Ptolomeu, Tetrabiblos I.7 — a Lua abre a lista dos noturnos. Valente, Anthologiae I.1: \"of the night sect\". Benéfica: Tetrabiblos I.5, junto de Júpiter e Vênus.",
+      "nome": "Marte",
+      "planeta": "Marte",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
       "seitaDoPlaneta": "noturno",
       "verbatimSeita": {
         "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
         "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
         "texto": "of the night sect"
       }
+    },
+    "Marte|so-noturno": {
+      "ano": null,
+      "classe": "malefico",
+      "classeNome": "maléfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Marte é maléfico na lista antiga, e aqui vem a virada: você nasceu de noite, que é o turno dele. Marte está na própria seita. Valente escreve, na mesma página em que o chama de maléfico, que maléfico assim colocado é doador de bem. Na fonte, Marte é o que corta, forja e comanda.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Marte",
+      "planeta": "Marte",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de noite: Lua, Vênus e Marte.",
+        "texto": "of the night sect"
+      }
+    },
+    "Marte|sem-mapa": {
+      "ano": null,
+      "classe": "malefico",
+      "classeNome": "maléfico",
+      "comoResolver": "Informe a hora de nascimento no Mapa Astral — é o mesmo campo que destrava o Ascendente.",
+      "comum": false,
+      "disponivel": false,
+      "linha": "Falta a hora. Diurno ou noturno é uma pergunta sobre o instante: o Sol estava acima ou abaixo do horizonte quando você nasceu? Meio-dia e meia-noite do mesmo dia dão respostas opostas, então aqui não existe palpite honesto a dar.",
+      "moderno": false,
+      "naSeita": null,
+      "nome": "Marte",
+      "planeta": "Marte",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Marte na seita da noite. Valente, Anthologiae I.1: \"of the night sect\". Maléfico por secura excessiva: Tetrabiblos I.5. A razão dada para ele entrar na noite — que é úmida e tempera o seco — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+      "seitaDoPlaneta": "noturno",
+      "verbatimSeita": null
+    },
+    "Júpiter|mapa-diurno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Júpiter está em casa: do turno do dia, e é nele que você nasceu. É benéfico na lista de Ptolomeu, e o motivo que ele dá é físico, não moral — Júpiter aquece e umedece na medida, e são essas as duas qualidades que a fonte chama de fecundas.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Júpiter",
+      "planeta": "Júpiter",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Júpiter|mapa-noturno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Júpiter é do turno do dia e você nasceu de noite: fora da própria seita. Continua benéfico na conta de Ptolomeu — a classificação sai da natureza dele, não do turno.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Júpiter",
+      "planeta": "Júpiter",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Júpiter|so-diurno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Júpiter está em casa: do turno do dia, e é nele que você nasceu. É benéfico na lista de Ptolomeu, e o motivo que ele dá é físico, não moral — Júpiter aquece e umedece na medida, e são essas as duas qualidades que a fonte chama de fecundas.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Júpiter",
+      "planeta": "Júpiter",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Júpiter|so-noturno": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Júpiter é do turno do dia e você nasceu de noite: fora da própria seita. Continua benéfico na conta de Ptolomeu — a classificação sai da natureza dele, não do turno.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Júpiter",
+      "planeta": "Júpiter",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Júpiter|sem-mapa": {
+      "ano": null,
+      "classe": "benefico",
+      "classeNome": "benéfico",
+      "comoResolver": "Informe a hora de nascimento no Mapa Astral — é o mesmo campo que destrava o Ascendente.",
+      "comum": false,
+      "disponivel": false,
+      "linha": "Falta a hora. Diurno ou noturno é uma pergunta sobre o instante: o Sol estava acima ou abaixo do horizonte quando você nasceu? Meio-dia e meia-noite do mesmo dia dão respostas opostas, então aqui não existe palpite honesto a dar.",
+      "moderno": false,
+      "naSeita": null,
+      "nome": "Júpiter",
+      "planeta": "Júpiter",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Júpiter entre os diurnos. Valente, Anthologiae I.1: \"of the day sect\". Benéfico: Tetrabiblos I.5, \"because of their tempered nature and because they abound in the hot and the moist\".",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": null
+    },
+    "Saturno|mapa-diurno": {
+      "ano": null,
+      "classe": "malefico",
+      "classeNome": "maléfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Esta é a linha que o resumo de Saturno costuma pular: Saturno é o maléfico do turno do DIA, e você nasceu de dia. Ele está na própria seita. Valente, na mesma página em que o chama de maléfico, escreve que maléfico bem posto na própria seita é doador de bem — e lista cargo, supervisão e administração de bem alheio. O Saturno das lições e do amadurecimento, esse é outro: vem de Liz Greene, 1976.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Saturno",
+      "planeta": "Saturno",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Saturno|mapa-noturno": {
+      "ano": null,
+      "classe": "malefico",
+      "classeNome": "maléfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Saturno é do turno do dia e você nasceu de noite: fora da própria seita. E aqui o app para. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Saturno de noite é pior, e a lacuna fica declarada em vez de preenchida.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Saturno",
+      "planeta": "Saturno",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Saturno|so-diurno": {
+      "ano": null,
+      "classe": "malefico",
+      "classeNome": "maléfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Esta é a linha que o resumo de Saturno costuma pular: Saturno é o maléfico do turno do DIA, e você nasceu de dia. Ele está na própria seita. Valente, na mesma página em que o chama de maléfico, escreve que maléfico bem posto na própria seita é doador de bem — e lista cargo, supervisão e administração de bem alheio. O Saturno das lições e do amadurecimento, esse é outro: vem de Liz Greene, 1976.",
+      "moderno": false,
+      "naSeita": true,
+      "nome": "Saturno",
+      "planeta": "Saturno",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Saturno|so-noturno": {
+      "ano": null,
+      "classe": "malefico",
+      "classeNome": "maléfico",
+      "comum": false,
+      "disponivel": true,
+      "linha": "Saturno é do turno do dia e você nasceu de noite: fora da própria seita. E aqui o app para. A frase de Valente sobre doador de bem é para maléfico NA própria seita; a frase oposta dele é sobre maléfico inoperante, que não é a mesma coisa. Nenhum texto antigo desta base diz que Saturno de noite é pior, e a lacuna fica declarada em vez de preenchida.",
+      "moderno": false,
+      "naSeita": false,
+      "nome": "Saturno",
+      "planeta": "Saturno",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": {
+        "locus": "Vétio Valente, Anthologiae I.1, trad. Riley",
+        "parafrase": "A etiqueta que Valente dá, planeta a planeta, aos que jogam de dia: Sol, Júpiter e Saturno.",
+        "texto": "of the day sect"
+      }
+    },
+    "Saturno|sem-mapa": {
+      "ano": null,
+      "classe": "malefico",
+      "classeNome": "maléfico",
+      "comoResolver": "Informe a hora de nascimento no Mapa Astral — é o mesmo campo que destrava o Ascendente.",
+      "comum": false,
+      "disponivel": false,
+      "linha": "Falta a hora. Diurno ou noturno é uma pergunta sobre o instante: o Sol estava acima ou abaixo do horizonte quando você nasceu? Meio-dia e meia-noite do mesmo dia dão respostas opostas, então aqui não existe palpite honesto a dar.",
+      "moderno": false,
+      "naSeita": null,
+      "nome": "Saturno",
+      "planeta": "Saturno",
+      "recibo": "Ptolomeu, Tetrabiblos I.7 — Saturno na seita do dia. Valente, Anthologiae I.1: \"of the day sect\". Maléfico por frio excessivo: Tetrabiblos I.5. A razão dada para ele entrar no dia — que é quente e tempera o frio — vem do resumo do capítulo I.7, e esta base não conferiu a frase inteira no original.",
+      "seitaDoPlaneta": "diurno",
+      "verbatimSeita": null
+    },
+    "Urano|mapa-diurno": {
+      "ano": 1781,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Urano. A doutrina é sobre os sete que se enxergam a olho nu, e Urano só foi descoberto em 1781 — mais de mil e seiscentos anos depois de Ptolomeu escrever a tabela. O app não inventa um lugar para ele nela.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Urano",
+      "planeta": "Urano",
+      "recibo": "Descoberto em 1781. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Urano|mapa-noturno": {
+      "ano": 1781,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Urano. A doutrina é sobre os sete que se enxergam a olho nu, e Urano só foi descoberto em 1781 — mais de mil e seiscentos anos depois de Ptolomeu escrever a tabela. O app não inventa um lugar para ele nela.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Urano",
+      "planeta": "Urano",
+      "recibo": "Descoberto em 1781. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
     },
     "Urano|so-diurno": {
       "ano": 1781,
@@ -1571,6 +3543,186 @@
       "nome": "Urano",
       "planeta": "Urano",
       "recibo": "Descoberto em 1781. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Urano|so-noturno": {
+      "ano": 1781,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Urano. A doutrina é sobre os sete que se enxergam a olho nu, e Urano só foi descoberto em 1781 — mais de mil e seiscentos anos depois de Ptolomeu escrever a tabela. O app não inventa um lugar para ele nela.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Urano",
+      "planeta": "Urano",
+      "recibo": "Descoberto em 1781. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Urano|sem-mapa": {
+      "ano": 1781,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Urano. A doutrina é sobre os sete que se enxergam a olho nu, e Urano só foi descoberto em 1781 — mais de mil e seiscentos anos depois de Ptolomeu escrever a tabela. O app não inventa um lugar para ele nela.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Urano",
+      "planeta": "Urano",
+      "recibo": "Descoberto em 1781. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Netuno|mapa-diurno": {
+      "ano": 1846,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Netuno. A tabela é do séc. II e Netuno foi descoberto em 1846: não há como Ptolomeu ou Valente terem dito qualquer coisa sobre ele. Deixar a linha em branco seria mais honesto que preenchê-la, e dizer isso é mais honesto ainda.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Netuno",
+      "planeta": "Netuno",
+      "recibo": "Descoberto em 1846. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Netuno|mapa-noturno": {
+      "ano": 1846,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Netuno. A tabela é do séc. II e Netuno foi descoberto em 1846: não há como Ptolomeu ou Valente terem dito qualquer coisa sobre ele. Deixar a linha em branco seria mais honesto que preenchê-la, e dizer isso é mais honesto ainda.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Netuno",
+      "planeta": "Netuno",
+      "recibo": "Descoberto em 1846. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Netuno|so-diurno": {
+      "ano": 1846,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Netuno. A tabela é do séc. II e Netuno foi descoberto em 1846: não há como Ptolomeu ou Valente terem dito qualquer coisa sobre ele. Deixar a linha em branco seria mais honesto que preenchê-la, e dizer isso é mais honesto ainda.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Netuno",
+      "planeta": "Netuno",
+      "recibo": "Descoberto em 1846. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Netuno|so-noturno": {
+      "ano": 1846,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Netuno. A tabela é do séc. II e Netuno foi descoberto em 1846: não há como Ptolomeu ou Valente terem dito qualquer coisa sobre ele. Deixar a linha em branco seria mais honesto que preenchê-la, e dizer isso é mais honesto ainda.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Netuno",
+      "planeta": "Netuno",
+      "recibo": "Descoberto em 1846. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Netuno|sem-mapa": {
+      "ano": 1846,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Netuno. A tabela é do séc. II e Netuno foi descoberto em 1846: não há como Ptolomeu ou Valente terem dito qualquer coisa sobre ele. Deixar a linha em branco seria mais honesto que preenchê-la, e dizer isso é mais honesto ainda.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Netuno",
+      "planeta": "Netuno",
+      "recibo": "Descoberto em 1846. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Plutão|mapa-diurno": {
+      "ano": 1930,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Plutão. Ele foi descoberto em 1930 — dezoito séculos depois da tabela. Onde a fonte não fala, o app também não.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Plutão",
+      "planeta": "Plutão",
+      "recibo": "Descoberto em 1930. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Plutão|mapa-noturno": {
+      "ano": 1930,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Plutão. Ele foi descoberto em 1930 — dezoito séculos depois da tabela. Onde a fonte não fala, o app também não.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Plutão",
+      "planeta": "Plutão",
+      "recibo": "Descoberto em 1930. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Plutão|so-diurno": {
+      "ano": 1930,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Plutão. Ele foi descoberto em 1930 — dezoito séculos depois da tabela. Onde a fonte não fala, o app também não.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Plutão",
+      "planeta": "Plutão",
+      "recibo": "Descoberto em 1930. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Plutão|so-noturno": {
+      "ano": 1930,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Plutão. Ele foi descoberto em 1930 — dezoito séculos depois da tabela. Onde a fonte não fala, o app também não.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Plutão",
+      "planeta": "Plutão",
+      "recibo": "Descoberto em 1930. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
+      "seitaDoPlaneta": null,
+      "verbatimSeita": null
+    },
+    "Plutão|sem-mapa": {
+      "ano": 1930,
+      "classe": null,
+      "classeNome": null,
+      "comum": false,
+      "disponivel": true,
+      "linha": "Seita não se aplica a Plutão. Ele foi descoberto em 1930 — dezoito séculos depois da tabela. Onde a fonte não fala, o app também não.",
+      "moderno": true,
+      "naSeita": null,
+      "nome": "Plutão",
+      "planeta": "Plutão",
+      "recibo": "Descoberto em 1930. Não está em Ptolomeu nem em Valente: não há seita antiga a atribuir.",
       "seitaDoPlaneta": null,
       "verbatimSeita": null
     }
