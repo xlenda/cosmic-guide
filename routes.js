@@ -19,6 +19,11 @@ export const ROUTES = {
   // ingresso do Sol, retrógrado, aspecto exato). É a casa das "Temporadas do
   // Céu" que saíram da Home em 31/07/2026.
   CALENDARIO_COSMICO: 'CalendarioCosmico',
+  // Retrospectiva da Lua Cheia — o balanço do ciclo desde a última Lua Nova
+  // (lib/retroLunacao.js). Vizinha das duas telas de calendário porque é a
+  // terceira que só existe por causa de uma data do céu: ela abre no dia em que
+  // a Lua está cheia e, fora dele, diz quando volta.
+  RETRO_LUA: 'RetroLuaCheia',
   ZODIAC_BODY: 'ZodiacBody',
   GROUNDING: 'Grounding',
   RITUAIS: 'Rituais',

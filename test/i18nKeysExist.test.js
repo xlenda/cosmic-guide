@@ -48,6 +48,13 @@ const PREFIXOS_DINAMICOS = [
   'horoscope.sky.', // lib/dailyHoroscope.js — skyKey() monta o campo (linha 460)
   'grounding.', // lib/grounding.js — helpers de chave (cabeçalho, linha 70)
   'zodiacBody.', // lib/zodiacBody.js — prefixo declarado no cabeçalho (linha 35)
+  // JornadaScreen.js — t(`arco.convite.${c.id}`) e t(`arco.categoria.${c.categoria}`),
+  // montadas a partir de CONVITES/CATEGORIAS de lib/arco.js. Quem confere o
+  // CONTEÚDO das duas famílias é test/arco.test.js: ele exige rótulo nos três
+  // idiomas pra cada id do motor, recusa rótulo órfão sem convite correspondente,
+  // e varre as duas atrás de promessa de efeito.
+  'arco.convite.',
+  'arco.categoria.',
   // AS TRÊS FAMÍLIAS DE CONTEÚDO — `jornada.`, `rituais.` e `calendarioCosmico.`
   // — NÃO entram aqui, e por dois motivos diferentes que vale distinguir:
   //

@@ -28,6 +28,10 @@ import { personalSkyToday } from '../lib/personalSky';
 import { fasesDoCeuPessoal } from '../lib/transitoFase';
 import { getAnyBirthData } from '../lib/birthData';
 import { computeMonthlyWrapped, getWrappedMonth, isWrappedAvailable } from '../lib/monthlyWrapped';
+// Só a checagem do DIA entra na Home — o balanço em si é da tela. Serve pra
+// dizer no subtítulo do card que hoje é o dia, em vez de deixar a pessoa
+// descobrir isso só se tocar.
+import { ehDiaDeLuaCheia } from '../lib/retroLunacao';
 import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration, recordActiveDay } from '../lib/streak';
 import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
 import { localDayStr } from '../lib/localDay';
@@ -417,6 +421,15 @@ export default function HomeScreen() {
     }
   }, [todayISO, lang]);
 
+  // SUBTÍTULO VIVO DA RETROSPECTIVA DA LUA CHEIA. Mesma jogada do subtítulo do
+  // Calendário Cósmico logo acima, e aqui ela vale ainda mais: a tela só tem o
+  // que mostrar nos dias de Lua Cheia, e um card com a mesma frase o mês
+  // inteiro esconderia justamente o dia em que vale a pena tocar. Memoizado por
+  // todayISO — é trigonometria barata, mas roda uma vez por dia, não a cada
+  // re-render da Home. Sem efeméride ehDiaDeLuaCheia devolve false e o card
+  // volta ao subtítulo estático: nunca um "hoje é o dia" chutado.
+  const retroLuaHoje = useMemo(() => ehDiaDeLuaCheia(new Date(`${todayISO}T12:00:00`)), [todayISO]);
+
   const todaysAspects = useMemo(() => aspects(todayISO, null), [todayISO]);
   const cosmicEvent = useMemo(() => {
     if (!todaysAspects || todaysAspects.length === 0) return null;
@@ -522,6 +535,20 @@ export default function HomeScreen() {
     // READING_CARD_KEYS lá em cima. Entra ao lado do Calendário Lunar porque é
     // a outra tela que muda sozinha com a Lua.
     { key: 'zodiacbody', title: t('home.card.zodiacbody.title'), subtitle: t('home.card.zodiacbody.subtitle'), icon: 'body', gradient: ['#B57BFF', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.ZODIAC_BODY) },
+    // Retrospectiva da Lua Cheia: o balanço do ciclo da PESSOA (dias de
+    // presença, placar do check-in, leituras) desde a última Lua Nova.
+    //
+    // Entra no grupo Datas, e não em Leituras, porque o que manda nela é uma
+    // data do céu — ela abre na Cheia e, fora dela, avisa quando volta. Quem
+    // procura o Calendário Lunar é exatamente quem vai entender por que esta
+    // aqui só responde em certos dias. Fora de READING_CARD_KEYS pelo mesmo
+    // motivo do Homem Zodiacal e do Calendário: não é uma leitura sobre a
+    // pessoa, é a contagem do que ela mesma registrou. Fora de LOCKED_KEYS
+    // também — não exige casal nem assinatura (ver App.js).
+    // Ícone de gráfico, não de lua: 'moon' já é o card do Sonho no mesmo grid,
+    // e duas luas confundiriam. Além disso 'stats-chart' diz a verdade sobre o
+    // que a tela é — um balanço contado, não uma leitura.
+    { key: 'retrolua', title: t('home.card.retrolua.title'), subtitle: retroLuaHoje ? t('home.card.retrolua.subtitleHoje') : t('home.card.retrolua.subtitle'), icon: 'stats-chart', gradient: ['#FFC85C', '#B57BFF'], onPress: () => navigation.navigate(ROUTES.RETRO_LUA) },
     // Assentar: o ritual de respiração e presença. Também fica fora de
     // READING_CARD_KEYS — não é leitura sobre a pessoa, é uma prática. A porta
     // principal dele é o convite no fim de cada leitura
@@ -629,7 +656,7 @@ export default function HomeScreen() {
   // quatro caíam todos em Leituras pelo grupo-padrão, inflando-o pra 13 cards
   // — a escala menor do mesmo problema que a subdivisão em grupos resolveu.
   const PRATICAS_KEYS = ['grounding', 'rituais', 'jornada'];
-  const DATAS_KEYS = ['lunarCalendar', 'calendario', 'zodiacbody'];
+  const DATAS_KEYS = ['lunarCalendar', 'calendario', 'zodiacbody', 'retrolua'];
   const CURIOSIDADES_KEYS = ['mitos', 'quizcosmico', 'wallpaper'];
   const praticasCardItems = individualCardItems.filter((c) => PRATICAS_KEYS.includes(c.key));
   const datasCardItems = individualCardItems.filter((c) => DATAS_KEYS.includes(c.key));

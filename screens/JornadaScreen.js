@@ -94,6 +94,20 @@ import {
   trilhaPorId,
   trilhasParaIdioma,
 } from '../lib/jornada';
+// O ARCO DE 7 DIAS mora nesta tela, e não num card solto na Home (regra do
+// dono). A vizinhança é a certa: a Jornada já é o lugar do app onde a unidade
+// de medida é DIA, e o Arco é a mesma ideia sem conteúdo — sete dias corridos
+// de um gesto que a pessoa escolheu. Toda a regra (janela, contagem, selo)
+// está em lib/arco.js; aqui é só a moldura, como o resto desta tela.
+import {
+  CONVITES,
+  abandonarArco,
+  escolherConvite,
+  fecharArco,
+  lerArco,
+  marcarHoje,
+  progressoDoArco,
+} from '../lib/arco';
 
 const FEATURE_KEY = 'jornada';
 
@@ -104,7 +118,7 @@ const FEATURE_KEY = 'jornada';
 // As bolinhas de progresso. Sete pontos são lidos de relance ("faltam três")
 // de um jeito que uma barra contínua não é — e sete é pouco o bastante pra
 // caber numa linha em qualquer largura de tela.
-function Bolinhas({ feitos, total, atual, rotulo }) {
+function Bolinhas({ feitos, total, atual, rotulo, marcados }) {
   const pontos = [];
   for (let n = 1; n <= total; n += 1) pontos.push(n);
   return (
@@ -114,7 +128,14 @@ function Bolinhas({ feitos, total, atual, rotulo }) {
           key={n}
           style={[
             styles.dot,
-            n <= feitos && styles.dotFeito,
+            // `marcados` (um booleano por dia) manda quando vem preenchido, e
+            // ele existe por causa do Arco: lá os dias feitos NÃO são um
+            // prefixo contíguo — dá pra ter o 1 e o 3 sem o 2, porque faltar um
+            // dia não zera nada. Sem esta porta, o Arco desenharia `n <= feitos`
+            // e pintaria cheia uma bolinha de dia que a pessoa não marcou, que é
+            // exatamente o tipo de número que esta feature não pode mostrar.
+            // A trilha continua no caminho antigo: lá o progresso É contíguo.
+            (marcados ? marcados[n - 1] : n <= feitos) && styles.dotFeito,
             n === atual && styles.dotAtual,
           ]}
         />
@@ -187,10 +208,17 @@ export default function JornadaScreen() {
   const [gravando, setGravando] = useState(false);
   const [fontesAbertas, setFontesAbertas] = useState(false);
   const [revendo, setRevendo] = useState(null); // dia anterior aberto pra reler
+  const [arco, setArco] = useState(null); // lerArco() — o Arco de 7 Dias
+  const [arcoOcupado, setArcoOcupado] = useState(false);
+  const [trocando, setTrocando] = useState(false); // 1º toque em "trocar" pede confirmação
 
   const recarregar = useCallback(async () => {
-    const j = await carregarJornada(lang);
+    // O Arco entra no MESMO recarregar da trilha de propósito: os dois medem
+    // dia LOCAL, e é o useFocusEffect abaixo que faz a virada da meia-noite
+    // aparecer sem reabrir o app (ver o comentário dele).
+    const [j, a] = await Promise.all([carregarJornada(lang), lerArco()]);
     setEstado(j);
+    setArco(a);
     return j;
   }, [lang]);
 
@@ -205,6 +233,11 @@ export default function JornadaScreen() {
   useFocusEffect(
     useCallback(() => {
       recarregar();
+      // A confirmação de "trocar de convite" morre ao sair da tela. Ela é um
+      // estado de UM gesto, e a tela fica montada na stack da aba: sem isto,
+      // quem tocasse em "trocar", saísse pra pensar e voltasse encontraria o
+      // segundo toque — o destrutivo — armado esperando um dedo distraído.
+      setTrocando(false);
     }, [recarregar])
   );
 
@@ -290,6 +323,69 @@ export default function JornadaScreen() {
     await recarregar();
   }, [trilhaId, recarregar]);
 
+  // -------------------------------------------------------------------------
+  // O ARCO DE 7 DIAS — as quatro ações, todas por lib/arco.js
+  // -------------------------------------------------------------------------
+  // A tela não decide nada aqui: o motor devolve null quando a ação não vale
+  // (dia já marcado, janela vencida, arco ainda correndo) e a tela só ignora.
+  // `arcoOcupado` é a mesma trava de toque duplo do `gravando` da trilha.
+  const comArcoOcupado = useCallback(
+    async (acao) => {
+      if (arcoOcupado) return;
+      setArcoOcupado(true);
+      try {
+        const novo = await acao();
+        if (novo) setArco(novo);
+        return novo;
+      } finally {
+        setArcoOcupado(false);
+      }
+    },
+    [arcoOcupado]
+  );
+
+  const escolherArco = useCallback(
+    (id) => {
+      setTrocando(false);
+      return comArcoOcupado(() => escolherConvite(id));
+    },
+    [comArcoOcupado]
+  );
+
+  const marcarArco = useCallback(
+    () =>
+      comArcoOcupado(async () => {
+        const novo = await marcarHoje();
+        // Mesmo caminho de qualquer coisa terminada no app (lib/streak.js): o
+        // Arco não inventa contagem própria de presença, ele marca o dia como
+        // ativo e mais nada — igual ao concluir da trilha, logo acima.
+        if (novo) recordActiveDay().catch(() => {});
+        return novo;
+      }),
+    [comArcoOcupado]
+  );
+
+  // Guarda o selo do arco terminado e devolve a lista de convites.
+  const novoArco = useCallback(() => comArcoOcupado(() => fecharArco()), [comArcoOcupado]);
+
+  // Trocar de convite no meio do arco pede DOIS toques, e não é frescura: o
+  // primeiro toque troca o rótulo pela consequência escrita (o arco atual não
+  // vira selo), o segundo executa. É a mesma lição do botão "refazer" lá
+  // embaixo — um toque só que apaga progresso é armadilha, não atalho.
+  const trocarArco = useCallback(() => {
+    if (!trocando) {
+      setTrocando(true);
+      return undefined;
+    }
+    setTrocando(false);
+    return comArcoOcupado(() => abandonarArco());
+  }, [trocando, comArcoOcupado]);
+
+  // Sem `arco` ainda não há o que desenhar; com ele, o motor diz tudo — em que
+  // dia estamos, quantos dias houve, e se a frase "veio todos os dias" é
+  // verdade agora. Recalculado a cada foco porque `recarregar` troca `arco`.
+  const arcoProgresso = useMemo(() => (arco ? progressoDoArco(arco) : null), [arco]);
+
   const trilha = trilhaId ? trilhaPorId(trilhaId, lang) : null;
   const progresso = estado && trilhaId ? estado.trilhas[trilhaId] : null;
 
@@ -372,6 +468,164 @@ export default function JornadaScreen() {
               })}
             </Text>
           </View>
+
+          {/* ---------------------------------------------------------------
+              O ARCO DE 7 DIAS
+              ---------------------------------------------------------------
+              Fica ACIMA das trilhas porque é o motivo de voltar amanhã: quem
+              já tem um arco em curso abre a Jornada pra marcar o dia, e fazer
+              essa pessoa rolar a tela até o fim pra dar um toque seria cobrar
+              pedágio pelo hábito que o app convidou a ter. Quem ainda não
+              escolheu lê três linhas e seis convites — as trilhas continuam
+              logo abaixo, inteiras.
+
+              Não tem paywall, e é decisão de produto: o Arco não entrega
+              conteúdo nenhum (não gasta IA, não abre leitura), ele CONTA dias.
+              Trancar a régua atrás da assinatura seria vender o cadeado, não a
+              feature — e mataria justamente o motivo de a pessoa voltar. */}
+          {arcoProgresso === null && arco !== null ? (
+            <View style={styles.arco} testID="jornada-arco-escolher">
+              <Text style={styles.kicker}>{t('arco.kicker')}</Text>
+              <Text style={styles.arcoTitulo}>{t('arco.escolha.title')}</Text>
+              <Text style={styles.hint}>{t('arco.escolha.body')}</Text>
+              <View style={styles.arcoConvites}>
+                {CONVITES.map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={styles.arcoConvite}
+                    activeOpacity={0.85}
+                    disabled={arcoOcupado}
+                    onPress={() => escolherArco(c.id)}
+                    accessibilityRole="button"
+                    testID={`jornada-arco-convite-${c.id}`}
+                  >
+                    <Text style={styles.arcoConviteCat}>{t(`arco.categoria.${c.categoria}`)}</Text>
+                    <Text style={styles.arcoConviteTexto}>{t(`arco.convite.${c.id}`)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {arco.selos.length > 0 ? (
+                <Text style={styles.hint}>{t('arco.selos', { n: arco.selos.length })}</Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {arcoProgresso && arcoProgresso.fechado ? (
+            // ---- O DIA 7: selo e placar. O número do placar é o que houve ----
+            <View style={styles.arco} testID="jornada-arco-selo">
+              <Text style={styles.kicker}>{t('arco.kicker')}</Text>
+              <View style={styles.arcoSelo}>
+                <View style={styles.medalhaIcone}>
+                  <Ionicons name="ribbon" size={20} color={colors.gold} />
+                </View>
+                <View style={styles.arcoSeloTextos}>
+                  <Text style={styles.arcoSeloTitulo}>{t('arco.selo.title')}</Text>
+                  <Text style={styles.arcoSeloPlacar}>
+                    {t('arco.selo.placar', {
+                      feitos: arcoProgresso.feitos,
+                      total: arcoProgresso.total,
+                    })}
+                  </Text>
+                  <Text style={styles.hint}>
+                    {arcoProgresso.maiorSequencia === 1
+                      ? t('arco.selo.sequencia.um')
+                      : t('arco.selo.sequencia', { n: arcoProgresso.maiorSequencia })}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.hint}>
+                {t('arco.selo.convite', {
+                  convite: t(`arco.convite.${arcoProgresso.conviteId}`),
+                })}
+              </Text>
+              <Bolinhas
+                total={arcoProgresso.total}
+                marcados={arcoProgresso.passos.map((p) => p.marcado)}
+                rotulo={t('arco.a11y', {
+                  dia: arcoProgresso.total,
+                  total: arcoProgresso.total,
+                  feitos: arcoProgresso.feitos,
+                })}
+              />
+              <TouchableOpacity
+                style={styles.secundario}
+                activeOpacity={0.85}
+                disabled={arcoOcupado}
+                onPress={novoArco}
+                accessibilityRole="button"
+                testID="jornada-arco-novo"
+              >
+                <Ionicons name="add" size={15} color={colors.teal} />
+                <Text style={styles.secundarioTexto}>{t('arco.novo')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {arcoProgresso && !arcoProgresso.fechado ? (
+            // ---- O arco em curso: "Dia 4 de 7 — você veio todos os dias" ----
+            <View style={styles.arco} testID="jornada-arco-curso">
+              <Text style={styles.kicker}>{t('arco.kicker')}</Text>
+              <Text style={styles.arcoDia}>
+                {t('arco.dia', { dia: arcoProgresso.dia, total: arcoProgresso.total })}
+                {/* A segunda metade da linha só existe quando é VERDADE — o
+                    motor já decidiu isso em `todosOsDias` (marcou hoje E não
+                    faltou nenhum). Quando não é, entra a contagem seca logo
+                    abaixo, que é a mesma informação sem elogio nenhum. */}
+                {arcoProgresso.todosOsDias ? ` — ${t('arco.todosOsDias')}` : ''}
+              </Text>
+              {!arcoProgresso.todosOsDias ? (
+                <Text style={styles.hint}>
+                  {arcoProgresso.feitos === 0
+                    ? t('arco.contagem.zero')
+                    : arcoProgresso.feitos === 1
+                    ? t('arco.contagem.um')
+                    : t('arco.contagem', { feitos: arcoProgresso.feitos })}
+                </Text>
+              ) : null}
+              <Text style={styles.arcoConviteAtivo}>
+                {t(`arco.convite.${arcoProgresso.conviteId}`)}
+              </Text>
+              <Bolinhas
+                total={arcoProgresso.total}
+                atual={arcoProgresso.dia}
+                marcados={arcoProgresso.passos.map((p) => p.marcado)}
+                rotulo={t('arco.a11y', {
+                  dia: arcoProgresso.dia,
+                  total: arcoProgresso.total,
+                  feitos: arcoProgresso.feitos,
+                })}
+              />
+              {arcoProgresso.marcouHoje ? (
+                <View style={styles.arcoMarcado}>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.green} />
+                  <Text style={styles.arcoMarcadoTexto}>{t('arco.marcado')}</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.principal, arcoOcupado && styles.principalOcupado]}
+                  activeOpacity={0.85}
+                  disabled={arcoOcupado}
+                  onPress={marcarArco}
+                  accessibilityRole="button"
+                  testID="jornada-arco-marcar"
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                  <Text style={styles.principalTexto}>{t('arco.marcar')}</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={styles.hint}>{t('arco.nota')}</Text>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={trocarArco}
+                accessibilityRole="button"
+                testID="jornada-arco-trocar"
+              >
+                <Text style={[styles.arcoTrocar, trocando && styles.arcoTrocarConfirma]}>
+                  {trocando ? t('arco.trocar.confirma') : t('arco.trocar')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <Text style={styles.grupo}>{t('jornada.trilhas.title')}</Text>
 
@@ -777,6 +1031,69 @@ const styles = StyleSheet.create({
 
   resumoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   resumoTexto: { color: colors.teal, fontSize: 13, fontWeight: '700' },
+
+  // ---- arco de 7 dias ----
+  // Mesma moldura do cartão do passo de hoje (styles.hoje), com a borda neutra:
+  // a borda roxa é do que a pessoa TEM que fazer hoje na trilha, e o Arco é
+  // convite, não tarefa. Um convite com a mesma urgência visual de uma tarefa
+  // pendente vira cobrança — e cobrança é o oposto do que esta seção é.
+  arco: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    gap: 10,
+  },
+  arcoTitulo: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  arcoConvites: { gap: 8 },
+  arcoConvite: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+  },
+  arcoConviteCat: {
+    color: colors.purple,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    width: 66,
+  },
+  arcoConviteTexto: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+    flex: 1,
+    lineHeight: 19,
+  },
+  arcoDia: { color: colors.text, fontSize: 16, fontWeight: '800', lineHeight: 23 },
+  arcoConviteAtivo: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  arcoMarcado: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(95,217,140,0.12)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(95,217,140,0.45)',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 4,
+  },
+  arcoMarcadoTexto: { color: colors.green, fontSize: 13, fontWeight: '800', flex: 1 },
+  arcoTrocar: { color: colors.textMuted, fontSize: 11, fontWeight: '700', lineHeight: 17 },
+  arcoTrocarConfirma: { color: colors.amber },
+  arcoSelo: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  arcoSeloTextos: { flex: 1, gap: 2 },
+  arcoSeloTitulo: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  arcoSeloPlacar: { color: colors.gold, fontSize: 14, fontWeight: '800' },
 
   // ---- bolinhas ----
   dots: { flexDirection: 'row', gap: 6, alignItems: 'center', marginTop: 4 },

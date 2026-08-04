@@ -128,6 +128,11 @@ const MitosScreen = lazy(() => import('./screens/MitosScreen'));
 // das outras telas de conteudo: quem nunca abrir nao paga o parse.
 const IdadeRealScreen = lazy(() => import('./screens/IdadeRealScreen'));
 const ProfeccoesScreen = lazy(() => import('./screens/ProfeccoesScreen'));
+// Retrospectiva da Lua Cheia — o balanço do ciclo (lib/retroLunacao.js). Lazy
+// pelo mesmo motivo das outras: na maior parte dos dias do mês esta tela nem
+// tem o que mostrar (só abre na Cheia), então cobrar o parse dela de todo mundo
+// no bundle inicial seria o pior negócio da lista.
+const RetroLuaCheiaScreen = lazy(() => import('./screens/RetroLuaCheiaScreen'));
 const ComoDecideScreen = lazy(() => import('./screens/ComoDecideScreen'));
 const ComoVoceTaScreen = lazy(() => import('./screens/ComoVoceTaScreen'));
 const QuizCosmicoScreen = lazy(() => import('./screens/QuizCosmicoScreen'));
@@ -337,6 +342,11 @@ function HomeStack() {
         {/* Profecções: técnica preditiva helenística (Ptolomeu IV.10) — vive
             no grid porque é conteúdo de consulta, como Mapa Astral. */}
         <Stack.Screen name={ROUTES.PROFECCOES} component={ProfeccoesScreen} />
+        {/* Retrospectiva da Lua Cheia: o ciclo da pessoa desde a última Lua
+            Nova. Sem gate de assinatura e sem gate de casal — é a contagem do
+            que ela mesma registrou, e cobrar pra devolver o próprio dado seria
+            o tipo de muro que este app não levanta. */}
+        <Stack.Screen name={ROUTES.RETRO_LUA} component={RetroLuaCheiaScreen} />
         <Stack.Screen name={ROUTES.COMO_VOCE_TA} component={ComoVoceTaScreen} />
         <Stack.Screen name={ROUTES.QUIZ_COSMICO} component={QuizCosmicoScreen} />
         <Stack.Screen name={ROUTES.WALLPAPER} component={WallpaperScreen} />
