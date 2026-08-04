@@ -52,7 +52,7 @@ const path = require('node:path');
 const DT = require('../lib/dailyThought.js');
 const W = require('../lib/wallpaper.js');
 const { SIGNS, aspects } = require('../lib/signs.js');
-const { getMoonPhase } = require('../lib/lunarCalendar.js');
+const { getMoonPhase, faseDoDia } = require('../lib/lunarCalendar.js');
 const { translate } = require('../lib/i18n.js');
 const GOLDEN = require('./golden/pensamento.pt.golden.json');
 
@@ -698,7 +698,11 @@ test('o nome da fase é o MESMO de lib/lunarCalendar.js — uma fonte de verdade
     d.setDate(d.getDate() + i);
     const canonica = W.getWallpaperData(d, 'pt').fase;
     for (const lang of IDIOMAS) {
-      const doMotor = getMoonPhase(new Date(`${W.getWallpaperData(d, 'pt').dia}T12:00:00Z`), lang);
+      // Ancorado por faseDoDia, nao mais por `T12:00:00Z` (03/08/2026): o
+      // app inteiro passou a ter UMA ancora pro dia, o meio-dia LOCAL, e
+      // este teste existe justamente pra provar que as superficies
+      // concordam — entao ele tem que perguntar do mesmo jeito que elas.
+      const doMotor = faseDoDia(W.getWallpaperData(d, 'pt').dia, lang);
       assert.equal(
         PACOTES_WALLPAPER[lang].fases[canonica],
         doMotor.name,

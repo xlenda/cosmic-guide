@@ -196,8 +196,10 @@ test("sem efeméride o módulo não fabrica céu, mas não joga fora o regente (
   // continua verdadeira — o que fica marcado como indisponível é o céu
   // observado.
   const lunar = require("../lib/lunarCalendar.js");
-  const original = Object.getOwnPropertyDescriptor(lunar, "getMoonPhase");
-  Object.defineProperty(lunar, "getMoonPhase", { value: () => null, configurable: true });
+  const original = Object.getOwnPropertyDescriptor(lunar, "faseDoDia");
+  // getSkyTuning passou a perguntar por DIA (faseDoDia), nao por instante:
+  // o duble tem que cobrir a porta que o modulo realmente usa.
+  Object.defineProperty(lunar, "faseDoDia", { value: () => null, configurable: true });
   try {
     const t = getSkyTuning(dia("2026-07-30")); // quinta = Júpiter
     assert.equal(t.ceuDisponivel, false);
@@ -210,7 +212,7 @@ test("sem efeméride o módulo não fabrica céu, mas não joga fora o regente (
     const frase = descreverCeu(t);
     assert.match(frase, /não é o céu de hoje/i, "a tela precisa poder dizer que não é o céu real");
   } finally {
-    if (original) Object.defineProperty(lunar, "getMoonPhase", original);
+    if (original) Object.defineProperty(lunar, "faseDoDia", original);
   }
 });
 
