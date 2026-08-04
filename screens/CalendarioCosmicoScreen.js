@@ -664,7 +664,7 @@ export default function CalendarioCosmicoScreen() {
     if (nascimento === undefined) return undefined; // ainda lendo o disco
     if (!nascimento || !nascimento.date) return null; // sem data: vira convite
     try {
-      const aspectos = personalSkyToday(nascimento, MAX_TRANSITOS);
+      const aspectos = personalSkyToday(nascimento, MAX_TRANSITOS, lang);
       // `null` aqui é motor de efeméride indisponível, não dia sem encontro —
       // e as duas coisas não podem sair com o mesmo texto. Nesse caso o bloco
       // inteiro não desenha: o card de indisponibilidade da lista abaixo já

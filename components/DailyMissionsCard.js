@@ -61,7 +61,7 @@ const MISSION_ROUTE = {
 
 export default function DailyMissionsCard() {
   const navigation = useNavigation();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const [missions, setMissions] = useState(null); // null = ainda carregando (não pisca card vazio)
   const [progress, setProgress] = useState(null);
   const [justAwarded, setJustAwarded] = useState(0);
@@ -163,7 +163,7 @@ export default function DailyMissionsCard() {
   return (
     <View>
       <View style={s.headRow}>
-        <Text style={s.title}>Missões de hoje</Text>
+        <Text style={s.title}>{t('missions.today')}</Text>
         <Text style={s.count}>{progress.done}/{progress.total}</Text>
       </View>
       <View style={s.card}>
@@ -212,7 +212,7 @@ export default function DailyMissionsCard() {
         {/* Link auxiliar SUTIL de propósito (linha cinza dotted) — o destaque
             visual fica com as missões, não com a Loja. */}
         <TouchableOpacity onPress={goLoja}>
-          <Text style={s.lojaLink}>trocar tokens por recompensas na Loja</Text>
+          <Text style={s.lojaLink}>{t('missions.storeLink')}</Text>
         </TouchableOpacity>
       </View>
     </View>

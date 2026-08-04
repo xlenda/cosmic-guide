@@ -279,7 +279,7 @@ export default function CoffeeScreen() {
         {readyForWeeklySummary && !weeklySummary && (
           <View style={styles.weeklyCard}>
             <Ionicons name="calendar" size={22} color={colors.gold} />
-            <Text style={styles.weeklyTitle}>Sua conclusão da semana está pronta</Text>
+            <Text style={styles.weeklyTitle}>{t('coffee.weekly.ready')}</Text>
             <Text style={styles.weeklyText}>
               Você já tem 7 leituras — dá pra ver o que se repetiu entre elas essa semana.
             </Text>
@@ -287,7 +287,7 @@ export default function CoffeeScreen() {
               <ActivityIndicator color={colors.gold} />
             ) : (
               <TouchableOpacity style={styles.weeklyBtn} activeOpacity={0.85} onPress={handleGenerateWeeklySummary}>
-                <Text style={styles.weeklyBtnText}>Ver conclusão da semana</Text>
+                <Text style={styles.weeklyBtnText}>{t('coffee.weekly.cta')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -299,7 +299,7 @@ export default function CoffeeScreen() {
             <Text style={styles.weeklyTitle}>{weeklySummary.title}</Text>
             <Text style={styles.weeklyText}>{weeklySummary.body}</Text>
             <TouchableOpacity onPress={() => setWeeklySummary(null)}>
-              <Text style={styles.linkText}>Fechar</Text>
+              <Text style={styles.linkText}>{t('coffee.close')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -313,12 +313,12 @@ export default function CoffeeScreen() {
 
             <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleTakePhoto}>
               <Ionicons name="camera" size={20} color="#fff" />
-              <Text style={styles.primaryBtnText}>Tirar foto</Text>
+              <Text style={styles.primaryBtnText}>{t('coffee.takePhoto')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.85} onPress={handlePickFromGallery}>
               <Ionicons name="images" size={20} color={colors.accent} />
-              <Text style={styles.secondaryBtnText}>Escolher da galeria</Text>
+              <Text style={styles.secondaryBtnText}>{t('coffee.pickPhoto')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -332,16 +332,16 @@ export default function CoffeeScreen() {
             {isAnalyzing ? (
               <View style={styles.loadingRow}>
                 <ActivityIndicator color={colors.accent} />
-                <Text style={styles.loadingText}>Analisando…</Text>
+                <Text style={styles.loadingText}>{t('coffee.analyzing')}</Text>
               </View>
             ) : (
               <>
                 <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleAnalyze}>
                   <Ionicons name="sparkles" size={18} color="#fff" />
-                  <Text style={styles.primaryBtnText}>Analisar</Text>
+                  <Text style={styles.primaryBtnText}>{t('coffee.analyze')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={resetToIntro}>
-                  <Text style={styles.linkText}>Trocar foto</Text>
+                  <Text style={styles.linkText}>{t('coffee.changePhoto')}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -395,7 +395,7 @@ export default function CoffeeScreen() {
                   activeOpacity={0.85}
                   onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
                 >
-                  <Text style={styles.upsellBtnText}>Assinar →</Text>
+                  <Text style={styles.upsellBtnText}>{t('coffee.subscribe')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -404,7 +404,7 @@ export default function CoffeeScreen() {
 
             <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={resetToIntro}>
               <Ionicons name="refresh" size={18} color="#fff" />
-              <Text style={styles.primaryBtnText}>Nova leitura</Text>
+              <Text style={styles.primaryBtnText}>{t('coffee.newReading')}</Text>
             </TouchableOpacity>
           </View>
         )}

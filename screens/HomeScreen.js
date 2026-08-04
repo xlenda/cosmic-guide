@@ -284,12 +284,15 @@ export default function HomeScreen() {
       getAnyBirthData().then((birth) => {
         if (!active) return;
         setPersonalSkyBirth(birth || null);
-        setPersonalSky(birth ? personalSkyToday(birth) : null);
+        setPersonalSky(birth ? personalSkyToday(birth, 3, lang) : null);
       });
       return () => {
         active = false;
       };
-    }, [])
+      // `lang` entra nas deps porque desde 03/08/2026 o texto do céu É
+      // traduzido: com a lista vazia, quem trocasse de idioma continuava
+      // vendo o céu na língua antiga até fechar e reabrir o app.
+    }, [lang])
   );
 
   // UMA chamada para a lista inteira: fasesDoCeuPessoal levanta as longitudes

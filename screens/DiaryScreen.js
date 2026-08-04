@@ -141,14 +141,14 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
 
           {!!entry.voiceTranscript && (
             <View style={styles.insightBlock}>
-              <Text style={styles.insightLabel}>Seu insight original</Text>
+              <Text style={styles.insightLabel}>{t('diary.insight.original')}</Text>
               <Text style={styles.voiceText}>{entry.voiceTranscript}</Text>
             </View>
           )}
 
           {!!entry.aiInsight && (
             <View style={styles.insightBlock}>
-              <Text style={styles.insightLabel}>Versão lapidada pela IA</Text>
+              <Text style={styles.insightLabel}>{t('diary.insight.polished')}</Text>
               <Text style={styles.aiText}>{entry.aiInsight}</Text>
             </View>
           )}
@@ -156,7 +156,7 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
           {canPin && !pinned && (
             <TouchableOpacity style={styles.pinBtn} onPress={onPin} activeOpacity={0.8}>
               <Ionicons name="bookmark" size={16} color={colors.gold} />
-              <Text style={styles.pinText}>Fixar no topo por 7 dias</Text>
+              <Text style={styles.pinText}>{t('diary.pin.cta')}</Text>
             </TouchableOpacity>
           )}
 
@@ -169,7 +169,7 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
 
           <TouchableOpacity style={styles.deleteBtn} onPress={onDelete} activeOpacity={0.8}>
             <Ionicons name="trash" size={16} color={colors.red} />
-            <Text style={styles.deleteText}>Apagar esta leitura</Text>
+            <Text style={styles.deleteText}>{t('diary.delete.cta')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -351,7 +351,7 @@ export default function DiaryScreen() {
         <TouchableOpacity activeOpacity={0.9} onPress={generateWeeklyInsight} style={styles.weeklyBtnWrap}>
           <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.weeklyBtn}>
             <Ionicons name="sparkles" size={18} color="#2A1D00" />
-            <Text style={styles.weeklyBtnText}>Ver Insight da Semana</Text>
+            <Text style={styles.weeklyBtnText}>{t('diary.weekly.cta')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       )}
@@ -359,7 +359,7 @@ export default function DiaryScreen() {
       {loadingWeekly && (
         <View style={styles.weeklyLoading}>
           <ActivityIndicator color={colors.gold} />
-          <Text style={styles.weeklyLoadingText}>Buscando o fio condutor da sua semana...</Text>
+          <Text style={styles.weeklyLoadingText}>{t('diary.weekly.loading')}</Text>
         </View>
       )}
 
@@ -374,7 +374,7 @@ export default function DiaryScreen() {
               29/07/2026). O ornamento diz visualmente "terminou aqui". */}
           <Text style={styles.weeklyCardEnd}>✦ ✦ ✦</Text>
           <TouchableOpacity onPress={() => setWeeklyInsight(null)} style={{ marginTop: 10 }}>
-            <Text style={styles.weeklyCardClose}>Fechar</Text>
+            <Text style={styles.weeklyCardClose}>{t('diary.close')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -410,7 +410,7 @@ export default function DiaryScreen() {
       {!loading && entries.length === 0 ? (
         <View style={styles.emptyWrap}>
           <Ionicons name="book" size={48} color={colors.accent} />
-          <Text style={styles.emptyTitle}>Seu diário está esperando sua primeira leitura</Text>
+          <Text style={styles.emptyTitle}>{t('diary.empty.waiting')}</Text>
           <Text style={styles.emptyDesc}>
             Toda leitura de tarô, palma, rosto, pé, pintas, café ou sonho que você fizer aparece aqui, guardadinha
             para você reviver quando quiser.

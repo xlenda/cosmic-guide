@@ -293,7 +293,7 @@ export default function TarotScreen() {
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{t('tarot.title')}</Text>
-            <Text style={styles.subtitle}>Tarô que não dourá a pílula — Passado · Presente · Futuro</Text>
+            <Text style={styles.subtitle}>{t('tarot.subtitle')}</Text>
           </View>
           {/* Álbum das 78 Cartas — cada carta tirada fica colecionada lá. */}
           <TouchableOpacity
@@ -304,7 +304,7 @@ export default function TarotScreen() {
             accessibilityLabel="Abrir Álbum de Cartas"
           >
             <Ionicons name="albums" size={20} color="#fff" />
-            <Text style={styles.albumBtnText}>Álbum</Text>
+            <Text style={styles.albumBtnText}>{t('tarot.album')}</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -438,7 +438,7 @@ export default function TarotScreen() {
                   ) : (
                     <LinearGradient colors={['#2A1D52', '#1A1235']} style={styles.tarotBack}>
                       <Ionicons name="sparkles" size={26} color={theme.color} />
-                      <Text style={styles.tapText}>Toque</Text>
+                      <Text style={styles.tapText}>{t('tarot.tap')}</Text>
                     </LinearGradient>
                   )}
                   <Text style={styles.posLabel}>{t(`tarot.position.${POSITIONS[i]}`)}</Text>

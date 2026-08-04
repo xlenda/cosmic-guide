@@ -539,7 +539,7 @@ export default function DreamScreen() {
               {isAnalyzing ? (
                 <View style={styles.loadingRow}>
                   <ActivityIndicator color={colors.accent} />
-                  <Text style={styles.loadingText}>Interpretando…</Text>
+                  <Text style={styles.loadingText}>{t('dream.interpreting')}</Text>
                 </View>
               ) : (
                 <TouchableOpacity
@@ -549,7 +549,7 @@ export default function DreamScreen() {
                   disabled={!dreamText.trim()}
                 >
                   <Ionicons name="moon" size={18} color="#fff" />
-                  <Text style={styles.primaryBtnText}>Interpretar</Text>
+                  <Text style={styles.primaryBtnText}>{t('dream.interpret')}</Text>
                 </TouchableOpacity>
               )}
 
@@ -603,7 +603,7 @@ export default function DreamScreen() {
                     activeOpacity={0.85}
                     onPress={() => navigation.getParent()?.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
                   >
-                    <Text style={styles.upsellBtnText}>Assinar →</Text>
+                    <Text style={styles.upsellBtnText}>{t('dream.subscribe')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -612,7 +612,7 @@ export default function DreamScreen() {
 
               <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={resetToIntro}>
                 <Ionicons name="refresh" size={18} color="#fff" />
-                <Text style={styles.primaryBtnText}>Novo sonho</Text>
+                <Text style={styles.primaryBtnText}>{t('dream.new')}</Text>
               </TouchableOpacity>
             </View>
           )}
