@@ -56,6 +56,14 @@
       @supports (height: 100dvh) {
         html, body, #root { height: 100dvh; }
       }
+    
+      /* Dois preventivos de iOS/WhatsApp (04/08/2026, cacada ao "nao rola"):
+         1. -webkit-overflow-scrolling: alguns WebView (WhatsApp) ainda tratam
+            scroll interno como "leve" sem isso — inofensivo nos modernos.
+         2. Se QUALQUER coisa injetar touch-action:none inline, vira pan-y:
+            tap continua funcionando, arrasto vertical NUNCA morre. */
+      #root div { -webkit-overflow-scrolling: touch; }
+      #root [style*="touch-action: none"] { touch-action: pan-y !important; }
     </style>
     <!-- Splash inline: o bundle JS (~2MB) leva um tempo real pra baixar,
          parsear e o React montar — sem isso, #root fica vazio e a pessoa vê
@@ -211,6 +219,50 @@
           if (promise) promise.textContent = copy.promise;
           if (trial) trial.textContent = copy.trial;
         } catch (e) {}
+      })();
+    </script>
+  
+    <script>
+      // MODO DIAGNOSTICO DE TOQUE (04/08/2026) — só liga com #toque na URL.
+      // Bug real de lançamento ("não consigo rolar") não reproduzível em
+      // emulador: este painel transforma o aparelho do usuário no laboratório.
+      (function () {
+        if (location.hash !== '#toque') return;
+        var box = document.createElement('div');
+        box.style.cssText = 'position:fixed;top:60px;left:8px;right:8px;z-index:99999;background:rgba(0,0,0,.85);color:#0f0;font:11px monospace;padding:8px;border-radius:8px;pointer-events:none;white-space:pre-wrap';
+        document.body.appendChild(box);
+        var st = { ts: 0, tm: 0, prevTm: 0, lastY: 0 };
+        function scroller() {
+          var best = null, diff = 0;
+          var divs = document.querySelectorAll('div');
+          for (var i = 0; i < divs.length; i++) {
+            var el = divs[i], cs = getComputedStyle(el);
+            if ((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && el.scrollHeight - el.clientHeight > diff) { diff = el.scrollHeight - el.clientHeight; best = el; }
+          }
+          return best;
+        }
+        function pinta() {
+          var s = scroller();
+          var ta = 'sem-alvo';
+          try {
+            var el = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
+            var partes = [];
+            while (el && partes.length < 6) { partes.push(getComputedStyle(el).touchAction); el = el.parentElement; }
+            ta = partes.join('>');
+          } catch (e) {}
+          var NL = String.fromCharCode(10);
+          box.textContent = [
+            'DIAGNOSTICO DO TOQUE',
+            'touchstart: ' + st.ts + '  touchmove: ' + st.tm + ' (bloq: ' + st.prevTm + ')',
+            (s ? 'scroller: top=' + Math.round(s.scrollTop) + ' de ' + (s.scrollHeight - s.clientHeight) : 'scroller: NENHUM!'),
+            'touch-action (centro): ' + ta,
+            'viewport: ' + innerWidth + 'x' + innerHeight + ' vv:' + (window.visualViewport ? Math.round(visualViewport.height) : '-')
+          ].join(NL);
+        }
+        window.addEventListener('touchstart', function () { st.ts++; pinta(); }, { capture: true, passive: true });
+        window.addEventListener('touchmove', function (e) { st.tm++; if (e.defaultPrevented) st.prevTm++; pinta(); }, { capture: false, passive: true });
+        setInterval(pinta, 800);
+        pinta();
       })();
     </script>
   </body>
