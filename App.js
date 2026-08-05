@@ -199,6 +199,17 @@ function LoadingFallback() {
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// O PAN DE VOLTAR-POR-ARRASTO MATA A ROLAGEM POR TOQUE NA WEB (04/08/2026).
+// Relato real de um usuario no iPhone no dia do lancamento: "nao consigo
+// rolar pra baixo" — reproduzido em emulacao: touchstart dispara, touchmove
+// nunca chega, NENHUMA tela rola no toque (mouse rola, e por isso o portao
+// e2e desktop nunca pegou). O culpado e o gesto de voltar do stack
+// (gesture-handler) capturando o toque. Na web, swipe-back nao existe de
+// verdade — desligar o gesto devolve a rolagem e nao tira nada de ninguem.
+// No nativo (loja, futuro) o gesto fica.
+const GESTO_STACK = { gestureEnabled: Platform.OS !== 'web' };
+
+
 // Só as rotas com `path` ganham URL própria na web (o app é servido pela Vercel
 // em cosmicguide.cloud/oddpro.pro). Sem path, abrir a tela não muda a URL: não
 // existe link compartilhável, e o Voltar do navegador SAI DO APP em vez de
@@ -302,7 +313,7 @@ function useUrlBootstrap() {
 function HomeStack() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK }}>
         <Stack.Screen name={ROUTES.HOME_MAIN} component={HomeScreen} />
         <Stack.Screen name={ROUTES.HOROSCOPE} component={HoroscopeScreen} />
         <Stack.Screen name={ROUTES.BIRTH_CHART} component={BirthChartScreen} />
@@ -379,7 +390,7 @@ function HomeStack() {
 function TarotStack() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK }}>
         <Stack.Screen name={ROUTES.TAROT_MAIN} component={TarotScreen} />
         <Stack.Screen name={ROUTES.TAROT_ALBUM} component={TarotAlbumScreen} />
       </Stack.Navigator>
@@ -390,7 +401,7 @@ function TarotStack() {
 function ProfileStack() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK }}>
         <Stack.Screen name={ROUTES.PROFILE_MAIN} component={ProfileScreen} />
         <Stack.Screen name={ROUTES.PRIVACY} component={PrivacyScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
@@ -470,7 +481,7 @@ function Gate() {
     return (
       <NavigationContainer>
         <Suspense fallback={<LoadingFallback />}>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK }}>
             <Stack.Screen name={ROUTES.ONBOARDING_CHOICE} component={OnboardingChoiceScreen} />
             <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
           </Stack.Navigator>

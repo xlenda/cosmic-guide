@@ -1040,7 +1040,12 @@ const styles = StyleSheet.create({
   // index.html), não sobra nenhum jeito de rolar quando o conteúdo é alto o
   // bastante — como no passo 5 (Astros), que empilha 6 blocos de conteúdo.
   scrollFlex: { flex: 1, minHeight: 0 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 24, paddingTop: 8 },
+  // paddingBottom 140 e nao 24 (04/08/2026): no iPhone, a barra do Safari e a
+  // pilula do navegador do WhatsApp cobrem ~100px do pe da pagina — o botao de
+  // continuar do passo das cartas morava EXATAMENTE ali, e o relato real foi
+  // "nao consigo ir pra baixo" no meio do lancamento. O respiro garante que o
+  // ultimo elemento sempre tenha pra onde rolar ate ficar visivel.
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 140, paddingTop: 8 },
 
   hero: { alignItems: 'center', marginBottom: 20 },
   heroEyebrow: { color: colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },

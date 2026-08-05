@@ -48,6 +48,14 @@
         height: 100%;
         flex: 1;
       }
+    
+      /* iOS Safari/WhatsApp (04/08/2026): 100% aqui usa o viewport GRANDE — a
+         barra do navegador COBRE o pe da pagina e o ultimo botao de cada tela
+         fica embaixo dela ("nao consigo ir pra baixo", relato real no
+         lancamento). dvh e o viewport DINAMICO, que ja desconta a barra. */
+      @supports (height: 100dvh) {
+        html, body, #root { height: 100dvh; }
+      }
     </style>
     <!-- Splash inline: o bundle JS (~2MB) leva um tempo real pra baixar,
          parsear e o React montar — sem isso, #root fica vazio e a pessoa vê
