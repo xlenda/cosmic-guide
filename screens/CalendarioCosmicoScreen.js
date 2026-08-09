@@ -1167,7 +1167,9 @@ const styles = StyleSheet.create({
   cenaWrap: { borderRadius: 18, overflow: 'hidden' },
   cenaImg: { width: '100%', height: 150 },
 
-  intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  // COMPOSIÇÃO CENTRADA (08/08/2026): a intro vem logo abaixo da cena-hero do
+  // planeta e lê como subtítulo dele — centrada, como no padrão do concorrente.
+  intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center' },
 
   navRow: {
     flexDirection: 'row',
@@ -1271,8 +1273,11 @@ const styles = StyleSheet.create({
   temporadaTitulo: { color: colors.gold, fontSize: 18, fontWeight: '800' },
   temporadaQuando: { color: colors.teal, fontSize: 13, fontWeight: '700' },
 
-  listaTitulo: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 6 },
-  listaContagem: { color: colors.textMuted, fontSize: 12, marginTop: -6 },
+  // COMPOSIÇÃO CENTRADA (08/08/2026): título de seção grande e centrado, com
+  // muito ar em cima — o padrão do concorrente premium (22/800, simétrico). A
+  // contagem acompanha o título centrado, como subtítulo da seção.
+  listaTitulo: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
+  listaContagem: { color: colors.textMuted, fontSize: 12, marginTop: -14, textAlign: 'center', alignSelf: 'center' },
 
   evento: {
     backgroundColor: colors.card,

@@ -129,10 +129,31 @@ test('Horóscopo · os chips do céu descem pra depois do primeiro bloco de leit
   );
 });
 
-test('Mapa Astral · resumo — o trio abre, data/hora/UTC viram recibo', () => {
+test('Mapa Astral · resumo — a identidade solar abre; recibo do instante e formulário descem', () => {
+  // [AUTO-DECISION 09/08/2026 — Diagramação Espelho] A âncora quente deste
+  // bloco era styles.trio (o trio Sol/Lua/Asc em fileira). O Sol saiu do trio
+  // e virou o HERÓI da tela — mascote gigante centrado + nome do signo — então
+  // o quente que abre o bloco agora é styles.heroHalo. A lei sai FORTALECIDA
+  // em dois pontos: (1) o recibo do instante (data/hora/UTC) continua descendo,
+  // agora pra baixo do herói; e (2) o FORMULÁRIO de nascimento — a maior ficha
+  // da tela, que até hoje ABRIA o rolo inteiro — desceu pra trás de um botão
+  // recolhido (testID birthchart-editar), depois do herói e do recibo. A tela
+  // abre pelo que a pessoa veio ver (quem ela é no céu) e fecha a porta de
+  // cadastro como recibo — exatamente a lei, aplicada também à entrada de
+  // dados. O par de medalhões (styles.trio, agora Lua | Ascendente) segue no
+  // bloco: descer não é apagar, e o teste de baixo confere cada campo.
   const src = fonteDaTela('BirthChartScreen.js');
   const bloco = trecho(src, 'styles.summaryCard', "t('birthchart.positions')", 'BirthChartScreen/resumo');
-  quenteAbre(bloco, 'styles.trio', ['formatDateBR(chart.date)', 'formatOffset(chart.zone.offset)'], 'BirthChartScreen/resumo');
+  quenteAbre(
+    bloco,
+    'styles.heroHalo',
+    ['formatDateBR(chart.date)', 'formatOffset(chart.zone.offset)', 'testID="birthchart-editar"'],
+    'BirthChartScreen/resumo'
+  );
+  assert.ok(
+    bloco.includes('styles.trio'),
+    'BirthChartScreen: o par de medalhões (Lua | Ascendente) sumiu do resumo — a ficha desce, não se apaga'
+  );
 });
 
 test('Calendário Lunar · a reflexão abre, o nome da fase e a iluminação descem', () => {

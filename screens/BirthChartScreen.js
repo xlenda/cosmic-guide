@@ -12,6 +12,11 @@ import CosmicScene from '../components/CosmicScene';
 // A colina que separa o bloco FLUTUANTE (trio + elementos, sem caixa) da
 // terra dos cards (posições, seita, casas...) — ver o cabeçalho do componente.
 import WaveDivider from '../components/WaveDivider';
+// DIAGRAMAÇÃO ESPELHO (09/08/2026): a fileira de pílulas flutuante do
+// concorrente premium — uma seção por vez, escolhida logo acima do dock.
+// Renderizada no ROOT da tela (depois do ScrollView na árvore), nunca dentro
+// do rolo — ver o cabeçalho do componente.
+import PillTabs from '../components/PillTabs';
 import DatePickerModal from '../components/DatePickerModal';
 import CityPickerModal from '../components/CityPickerModal';
 import { signoFromDate, moonSign, ascendantSign, houses, aspects, astrocartographyCities } from '../lib/signs';
@@ -185,6 +190,15 @@ function formatDateBR(iso) {
   if (!iso) return '';
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
+}
+
+// O rótulo de cada pílula é o PRÓPRIO título da seção que o app já tem em
+// lib/i18n.js (intocável — nenhuma chave nasce aqui), encurtado no " (" do
+// texto já traduzido: "Casas (Casas Inteiras)" vira "Casas", "Astrocartografia
+// (prévia por cidades)" vira "Astrocartografia". O título INTEIRO continua
+// aparecendo dentro da própria seção — a pílula é atalho, não substituto.
+function rotuloDePilula(texto) {
+  return String(texto).split(' (')[0];
 }
 
 const ROWS_META = [
@@ -533,7 +547,13 @@ function ElementosSection({ elementos, temHora }) {
   );
 }
 
-function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
+// DIAGRAMAÇÃO ESPELHO (09/08/2026): ChartResult ganhou quatro props de
+// composição — `aba` (qual seção as pílulas escolheram), `formulario` (o
+// formulário de nascimento INTEIRO, que desceu da abertura da tela pra trás
+// de um botão recolhido), `formAberto`/`onToggleForm` (o estado vive na tela,
+// que também renderiza as pílulas). Nenhum conteúdo mudou de texto — só de
+// lugar.
+function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', formulario = null, formAberto = false, onToggleForm }) {
   // `lang` alimenta linhaDeSeita nas linhas do Sol e da Lua — sem ele a seita
   // falaria portugues no meio de uma tela em espanhol.
   const { t, lang } = useLanguage();
@@ -556,24 +576,69 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
       {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — este cartão abria pela
           linha de cadastro: data, hora, UTC-03:00 e "horário de verão". É a
           primeira coisa da tela inteira, e é a única que ninguém veio ver: a
-          pessoa já sabe quando nasceu. O trio (Sol, Lua, Ascendente) é o que ela
-          abriu o app para ler — ele sobe, e a linha de instante DESCE para
-          recibo do que foi calculado. Nada saiu: fuso e horário de verão
+          pessoa já sabe quando nasceu. Nada saiu: fuso e horário de verão
           continuam na tela, e continuam sendo a prova de que a conta usou o
-          instante certo (é por isso que existem — ver o cabeçalho deste
-          arquivo). test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
-      {/* ONDA CENOGRÁFICA (08/08/2026): o trio perdeu a MOLDURA. Antes era um
-          card (LinearGradient + borda); agora os três medalhões flutuam direto
-          no cenário do CosmicScene, maiores — o desenho de "céu com medalhões"
-          do concorrente premium. O nome styles.summaryCard fica: é a âncora
-          que test/quentePrimeiroNasTelas.test.js usa pra recortar este bloco. */}
+          instante certo. test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
+      {/* DIAGRAMAÇÃO ESPELHO (09/08/2026): o desenho do concorrente premium,
+          espelhado. A tela abre pela IDENTIDADE — o mascote do signo SOLAR
+          gigante, centrado, com o nome do signo embaixo — e não mais pelo trio
+          em fileira. O Sol SAIU do trio (virou o herói), então o que sobra é o
+          PAR simétrico Lua | Ascendente, os medalhões de 80px de sempre. No
+          meio dos dois blocos, o recibo do instante (a mesma linha de sempre) e
+          o formulário — que descia o rolo inteiro lá de cima e agora mora atrás
+          do botão ✏️ recolhido (a maior ficha da tela finalmente virou ficha).
+          O nome do estilo do bloco segue sendo a âncora que
+          test/quentePrimeiroNasTelas.test.js usa pra recortar este trecho. */}
       <View style={styles.summaryCard}>
+        {(() => {
+          // O HERO SOLAR: mesmo contrato do medalhão de sempre (mascote do
+          // registro, ou o glifo de fonte quando não há asset/signo), só que
+          // em tamanho de protagonista — 132px, halo na cor do signo.
+          const corSol = chart.sun ? chart.sun.color : colors.textMuted;
+          const mascoteSol = chart.sun ? mascoteDoSigno(chart.sun.name) : null;
+          return (
+            <>
+              <Text style={styles.trioLabel}>{t(ROWS_META[0].labelKey)}</Text>
+              <View style={[styles.heroHalo, { backgroundColor: corSol + '22', borderColor: corSol + '44' }]}>
+                {mascoteSol ? (
+                  <Image source={mascoteSol} style={styles.heroMascote} resizeMode="cover" accessible={false} />
+                ) : (
+                  <Text style={[styles.heroGlyph, { color: corSol }]}>{chart.sun ? chart.sun.glyph : '—'}</Text>
+                )}
+              </View>
+              <Text style={styles.heroNome}>{chart.sun ? chart.sun.name : '?'}</Text>
+            </>
+          );
+        })()}
+        <Text style={[styles.summaryMeta, styles.summaryMetaRecibo]}>
+          {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
+          {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
+          {chart.zone && chart.zone.dst ? ' · horário de verão' : ''}
+        </Text>
+        {/* O FORMULÁRIO, recolhido: o botão reaproveita o título que o próprio
+            form sempre teve (chart.birthData) — nenhuma chave nova — e o form
+            expandido é EXATAMENTE o de sempre, 100% operável (data, hora,
+            cidade, gerar; no casal, a cidade da pessoa selecionada). */}
+        {!!formulario && (
+          <TouchableOpacity
+            testID="birthchart-editar"
+            style={styles.editBtn}
+            onPress={onToggleForm}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: !!formAberto }}
+            accessibilityLabel={t('chart.birthData')}
+          >
+            <Ionicons name="pencil" size={13} color={colors.textMuted} />
+            <Text style={styles.editBtnTexto}>{t('chart.birthData')}</Text>
+          </TouchableOpacity>
+        )}
+        {!!formulario && formAberto && <View style={styles.formWrap}>{formulario}</View>}
         <View style={styles.trio}>
-          {rows.map((r) => {
+          {rows.slice(1).map((r) => {
             // O medalhão: círculo com halo na cor do próprio signo (fundo na
-            // cor + '22', borda + '44'). A ORDEM dos filhos (label → medalhão →
-            // nome do signo) não mudou: é a mesma que
-            // test/quentePrimeiroNasTelas.test.js trava dentro deste bloco.
+            // cor + '22', borda + '44'), rótulo em cima, nome embaixo — o
+            // desenho de sempre, agora em PAR (Lua | Ascendente).
             //
             // MASCOTE NO MEDALHÃO (08/08/2026): dentro do halo entra o
             // personagem ilustrado do signo — o halo vira MOLDURA (a borda
@@ -599,11 +664,6 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
             );
           })}
         </View>
-        <Text style={[styles.summaryMeta, styles.summaryMetaRecibo]}>
-          {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
-          {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
-          {chart.zone && chart.zone.dst ? ' · horário de verão' : ''}
-        </Text>
       </View>
 
       {/* SEUS ELEMENTOS — logo depois do trio e antes das Posições, de
@@ -618,6 +678,16 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
           flutua sempre, com ou sem motor de elementos. */}
       <WaveDivider />
 
+      {/* SUB-ABAS PÍLULA (09/08/2026, Diagramação Espelho): daqui pra baixo a
+          tela mostra UMA seção por vez — quem escolhe é a fileira de pílulas
+          flutuante (components/PillTabs.js), renderizada no root da tela.
+          Nenhuma seção foi apagada: 'essencia' = Posições + Seita + Profecções
+          (a espinha da leitura, na MESMA ordem e com os MESMOS textos),
+          'casas', 'aspectos' e 'astro' continuam inteiros — só que atrás da
+          própria pílula. O hero + medalhões + elementos (acima da onda) são a
+          âncora fixa da tela; as pílulas só trocam o que vem depois. */}
+      {aba === 'essencia' && (
+        <>
       <Text style={styles.sub}>{t('birthchart.positions')}</Text>
       {rows.map((r) => {
         // A LINHA EXTRA DA SEITA, pendurada no proprio planeta — e para isso
@@ -728,10 +798,16 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
           {!!chart.profeccao.fonte && <Text style={styles.seitaRecibo}>{chart.profeccao.fonte}</Text>}
         </View>
       )}
+        </>
+      )}
 
-      <HousesSection housesList={chart.housesList} isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
-      <AspectsSection aspectsList={chart.aspectsList} />
-      <AstroCartographySection astro={chart.astro} isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
+      {aba === 'casas' && (
+        <HousesSection housesList={chart.housesList} isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
+      )}
+      {aba === 'aspectos' && <AspectsSection aspectsList={chart.aspectsList} />}
+      {aba === 'astro' && (
+        <AstroCartographySection astro={chart.astro} isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
+      )}
     </>
   );
 }
@@ -889,6 +965,16 @@ export default function BirthChartScreen() {
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
   const [locked, setLocked] = useState(false);
 
+  // DIAGRAMAÇÃO ESPELHO (09/08/2026) — os dois estados de composição:
+  // `aba` é a seção que a pílula flutuante escolheu ('essencia' abre, como a
+  // primeira pílula do concorrente); `formAberto` é o formulário de nascimento,
+  // que NASCE RECOLHIDO quando já existe mapa calculado — a tela abre pela
+  // identidade, e o form vira ficha atrás do botão ✏️. Sem mapa, o form abre
+  // sozinho como sempre (os estados nem entram em cena).
+  const [aba, setAba] = useState('essencia');
+  const [formAberto, setFormAberto] = useState(false);
+  const alternarForm = () => setFormAberto((v) => !v);
+
   // Refs pros CTAs de "adicione hora e cidade": no modo solo os campos já
   // existem NESTA tela, só ficam muito acima do aviso (o aviso aparece depois
   // do gráfico, do trio, dos planetas e das casas) — então o toque rola a tela
@@ -900,6 +986,9 @@ export default function BirthChartScreen() {
   const irParaQuiz = () => navigation.navigate(ROUTES.QUIZ);
   const abrirCidade = () => setCityPickerOpen(true);
   const focarHoraSolo = () => {
+    // O form pode estar RECOLHIDO atrás do ✏️ (Diagramação Espelho): abrir
+    // antes de rolar/focar, senão o horaRef nem existe montado.
+    setFormAberto(true);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
     setTimeout(() => horaRef.current?.focus(), 350);
   };
@@ -987,6 +1076,9 @@ export default function BirthChartScreen() {
     // Espelho persistente pra web (SecureStore é stub vazio lá) — é o que o
     // "Céu de hoje pra você" da Home lê (ver lib/birthData.js).
     await saveSoloBirthMirror(data);
+    // Gerou → o form recolhe e a identidade assume a tela (Diagramação
+    // Espelho). Sem mapa ainda, o estado é inócuo: o form fica visível.
+    setFormAberto(false);
   }
 
   async function selectCity(city) {
@@ -1054,6 +1146,81 @@ export default function BirthChartScreen() {
     });
   }, [activeChart?.sun?.name, activeChart?.moon?.name, activeChart?.asc?.name]);
 
+  // DIAGRAMAÇÃO ESPELHO (09/08/2026): o formulário virou CONST porque agora
+  // ele tem duas casas — sozinho na tela quando ainda NÃO há mapa (abertura de
+  // sempre), e dentro do ChartResult (atrás do botão ✏️, recolhido) quando o
+  // mapa já existe. Mesmo JSX, mesmos textos, mesmos handlers nos dois lugares:
+  // extrair é o que impede o form de divergir de si mesmo.
+  const formCasal = isCouple && selectedBirth?.date ? (
+    <View style={styles.formCard}>
+      <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
+      <Text style={styles.dateReadout}>
+        {formatDateBR(selectedBirth.date)}{selectedBirth.time ? ` · ${selectedBirth.time}` : ' · hora não informada'}
+      </Text>
+      <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerOpen(true)}>
+        <Ionicons name="location" size={16} color={colors.textMuted} />
+        <Text style={[styles.dateBtnText, !selectedCity && styles.dateBtnPlaceholder]}>
+          {selectedCity ? cityLabel(selectedCity) : 'Adicionar cidade (para o Ascendente)'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  ) : null;
+
+  const formSolo = !isCouple ? (
+    <View style={styles.formCard}>
+      <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
+      <TouchableOpacity style={styles.dateBtn} onPress={() => setSoloDatePickerOpen(true)}>
+        <Ionicons name="calendar" size={16} color={colors.textMuted} />
+        <Text style={[styles.dateBtnText, !soloDate && styles.dateBtnPlaceholder]}>
+          {soloDate ? formatDateBR(soloDate) : 'Data de nascimento'}
+        </Text>
+      </TouchableOpacity>
+
+      <View style={styles.horaRow}>
+        <View style={[styles.field, styles.horaField]}>
+          <Ionicons name="time" size={18} color={colors.textMuted} />
+          <TextInput
+            ref={horaRef}
+            style={styles.input}
+            placeholder="Hora"
+            placeholderTextColor={colors.textMuted}
+            value={soloHoraH}
+            onChangeText={setSoloHoraH}
+            keyboardType="number-pad"
+            maxLength={2}
+          />
+        </View>
+        <Text style={styles.horaColon}>:</Text>
+        <View style={[styles.field, styles.horaField]}>
+          <TextInput
+            style={styles.input}
+            placeholder="Min"
+            placeholderTextColor={colors.textMuted}
+            value={soloHoraM}
+            onChangeText={setSoloHoraM}
+            keyboardType="number-pad"
+            maxLength={2}
+          />
+        </View>
+      </View>
+      <Text style={styles.mutedNote}>{t('chart.timeOptional')}</Text>
+
+      <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerOpen(true)}>
+        <Ionicons name="location" size={16} color={colors.textMuted} />
+        <Text style={[styles.dateBtnText, !soloCity && styles.dateBtnPlaceholder]}>
+          {soloCity ? cityLabel(soloCity) : 'Cidade de nascimento (opcional)'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity activeOpacity={0.85} onPress={generateSolo} style={styles.btnWrap} disabled={!soloDate}>
+        <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
+          <Ionicons name="planet" size={18} color="#fff" />
+          <Text style={styles.btnText}>{t('chart.generate')}</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  ) : null;
+
   if (!hasAccess && locked) {
     return <OneTimeLock featureTitle="Mapa Astral" gradient={['#3A4AB5', '#6C7BFF']} />;
   }
@@ -1062,7 +1229,7 @@ export default function BirthChartScreen() {
     <View style={styles.root}>
       <CosmicScene />
       <GradientHeader title="Mapa Astral" subtitle="Seu retrato cósmico" onBack={() => navigation.goBack()} gradient={['#3A4AB5', '#6C7BFF']} />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, paddingBottom: activeChart ? 120 : 40 }} showsVerticalScrollIndicator={false}>
         {coupleLoading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
         ) : isCouple ? (
@@ -1101,86 +1268,67 @@ export default function BirthChartScreen() {
               </View>
             ) : (
               <>
-                <View style={styles.formCard}>
-                  <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
-                  <Text style={styles.dateReadout}>
-                    {formatDateBR(selectedBirth.date)}{selectedBirth.time ? ` · ${selectedBirth.time}` : ' · hora não informada'}
-                  </Text>
-                  <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerOpen(true)}>
-                    <Ionicons name="location" size={16} color={colors.textMuted} />
-                    <Text style={[styles.dateBtnText, !selectedCity && styles.dateBtnPlaceholder]}>
-                      {selectedCity ? cityLabel(selectedCity) : 'Adicionar cidade (para o Ascendente)'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
+                {/* Com mapa calculado, o form (formCasal) desce pra dentro do
+                    ChartResult — botão ✏️, recolhido. Sem mapa, ele abre a
+                    tela sozinho, como sempre. */}
+                {!coupleChart && formCasal}
                 {coupleChart && (
-                  <ChartResult chart={coupleChart} isCouple onFixTime={onFixTime} onFixCity={abrirCidade} />
+                  <ChartResult
+                    chart={coupleChart}
+                    isCouple
+                    onFixTime={onFixTime}
+                    onFixCity={abrirCidade}
+                    aba={aba}
+                    formulario={formCasal}
+                    formAberto={formAberto}
+                    onToggleForm={alternarForm}
+                  />
                 )}
               </>
             )}
           </>
         ) : (
           <>
-            <View style={styles.formCard}>
-              <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
-              <TouchableOpacity style={styles.dateBtn} onPress={() => setSoloDatePickerOpen(true)}>
-                <Ionicons name="calendar" size={16} color={colors.textMuted} />
-                <Text style={[styles.dateBtnText, !soloDate && styles.dateBtnPlaceholder]}>
-                  {soloDate ? formatDateBR(soloDate) : 'Data de nascimento'}
-                </Text>
-              </TouchableOpacity>
-
-              <View style={styles.horaRow}>
-                <View style={[styles.field, styles.horaField]}>
-                  <Ionicons name="time" size={18} color={colors.textMuted} />
-                  <TextInput
-                    ref={horaRef}
-                    style={styles.input}
-                    placeholder="Hora"
-                    placeholderTextColor={colors.textMuted}
-                    value={soloHoraH}
-                    onChangeText={setSoloHoraH}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                  />
-                </View>
-                <Text style={styles.horaColon}>:</Text>
-                <View style={[styles.field, styles.horaField]}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Min"
-                    placeholderTextColor={colors.textMuted}
-                    value={soloHoraM}
-                    onChangeText={setSoloHoraM}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                  />
-                </View>
-              </View>
-              <Text style={styles.mutedNote}>{t('chart.timeOptional')}</Text>
-
-              <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerOpen(true)}>
-                <Ionicons name="location" size={16} color={colors.textMuted} />
-                <Text style={[styles.dateBtnText, !soloCity && styles.dateBtnPlaceholder]}>
-                  {soloCity ? cityLabel(soloCity) : 'Cidade de nascimento (opcional)'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity activeOpacity={0.85} onPress={generateSolo} style={styles.btnWrap} disabled={!soloDate}>
-                <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
-                  <Ionicons name="planet" size={18} color="#fff" />
-                  <Text style={styles.btnText}>{t('chart.generate')}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
+            {/* HERO-FIRST: com mapa calculado o form (formSolo) desce pra
+                dentro do ChartResult — botão ✏️, recolhido — e a tela abre
+                pela identidade. Sem mapa, nada mudou: abre pelo formulário. */}
+            {!soloChart && formSolo}
             {soloChart && (
-              <ChartResult chart={soloChart} isCouple={false} onFixTime={onFixTime} onFixCity={abrirCidade} />
+              <ChartResult
+                chart={soloChart}
+                isCouple={false}
+                onFixTime={onFixTime}
+                onFixCity={abrirCidade}
+                aba={aba}
+                formulario={formSolo}
+                formAberto={formAberto}
+                onToggleForm={alternarForm}
+              />
             )}
           </>
         )}
       </ScrollView>
+
+      {/* AS PÍLULAS DO MAPA — flutuam por cima do fim do rolo (por isso moram
+          aqui no root, DEPOIS do ScrollView na árvore; o contentContainer
+          ganhou paddingBottom 120 ≥ 96 pra última linha não morar embaixo
+          delas). Só existem quando há mapa calculado: sem mapa a tela é só o
+          formulário, como sempre foi. Os rótulos são títulos de seção que o
+          app JÁ tem em lib/i18n.js — 'essencia' usa o título de Posições, e os
+          longos passam por rotuloDePilula (encurta no " (" do próprio texto
+          traduzido), nunca por chave nova. */}
+      {!coupleLoading && !!activeChart && (
+        <PillTabs
+          items={[
+            { id: 'essencia', label: t('birthchart.positions') },
+            { id: 'casas', label: rotuloDePilula(t('chart.houses')) },
+            { id: 'aspectos', label: t('chart.aspects') },
+            { id: 'astro', label: rotuloDePilula(t('chart.astrocarto')) },
+          ]}
+          activeId={aba}
+          onSelect={setAba}
+        />
+      )}
 
       <DatePickerModal
         visible={soloDatePickerOpen}
@@ -1341,18 +1489,59 @@ const styles = StyleSheet.create({
   // (test/quentePrimeiroNasTelas.test.js recorta o bloco pela âncora summaryCard
   // — citada aqui sem aspas de propósito: string com pontos entre aspas é o que
   // o vigia de i18nKeysExist trata como chave de tradução).
-  summaryCard: { marginTop: 24 },
-  summaryMeta: { color: colors.textMuted, fontSize: 12 },
-  // A mesma linha de sempre, embaixo do trio — agora flutuando também: sem o
-  // fio de cima (não há mais card pra costurar), só menor e central.
-  summaryMetaRecibo: {
+  // DIAGRAMAÇÃO ESPELHO (09/08/2026): o bloco inteiro virou coluna CENTRADA —
+  // herói solar, nome, recibo, botão ✏️ e o par de medalhões, tudo no eixo.
+  summaryCard: { marginTop: 16, alignItems: 'center' },
+  // O HERO SOLAR: o medalhão do Sol em tamanho de protagonista (132px, dentro
+  // da faixa 120-140 do desenho do concorrente). Cor do halo chega inline do
+  // próprio chart.sun.color (fundo +'22', borda +'44'), como nos medalhões;
+  // overflow hidden recorta o mascote por dentro da borda, igual ao trioHalo.
+  heroHalo: {
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  heroMascote: { width: 132, height: 132, borderRadius: 66 },
+  heroGlyph: { fontSize: 72, lineHeight: 82 },
+  // O nome do signo solar embaixo do herói — 24/800 centrado, o letreiro da
+  // identidade que abre a tela.
+  heroNome: { color: colors.text, fontSize: 24, fontWeight: '800', textAlign: 'center' },
+  // O botão ✏️ que guarda o formulário recolhido: chip discreto, do tamanho do
+  // próprio rótulo — ele é porta de ficha, nunca CTA.
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'center',
     marginTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface + 'CC',
+  },
+  editBtnTexto: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  // O formulário expandido dentro do bloco centrado: estica de volta pra
+  // largura toda (o pai tem alignItems center, que encolheria o formCard).
+  formWrap: { alignSelf: 'stretch', marginTop: 12 },
+  summaryMeta: { color: colors.textMuted, fontSize: 12 },
+  // A mesma linha de sempre — agora recibo do HERÓI: pequena, central, logo
+  // abaixo do nome do signo solar.
+  summaryMetaRecibo: {
+    marginTop: 6,
     textAlign: 'center',
   },
-  // marginTop 0 desde 04/08/2026: o trio virou o PRIMEIRO filho do bloco (a
-  // linha de data/hora/UTC desceu), e os 18px de respiro que existiam para
-  // separá-lo dela agora só empurrariam o bloco inteiro para baixo.
-  trio: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 0 },
+  // O PAR de medalhões (Lua | Ascendente) — o Sol saiu do trio e virou o herói,
+  // então os dois que ficaram se centram lado a lado, simétricos, com um vão
+  // de respiro entre eles.
+  trio: { flexDirection: 'row', justifyContent: 'center', gap: 44, alignSelf: 'stretch', marginTop: 18 },
   trioItem: { alignItems: 'center' },
   trioLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   // O medalhão do glifo (08/08/2026, crescido na Onda Cenográfica): círculo com
@@ -1386,9 +1575,12 @@ const styles = StyleSheet.create({
   // Sem caixa externa: os 4 círculos flutuam no cenário, 4 colunas flex
   // iguais. As cores por elemento chegam inline de ELEMENTOS_META (são 4,
   // variam por coluna); aqui, como sempre, só a geometria e o texto neutro.
-  elementosCard: { marginTop: 28 },
-  elementosTitulo: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 },
-  elementosRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  // Centrado desde a Diagramação Espelho (09/08/2026): título e leituras no
+  // eixo; a fileira de círculos estica de volta (alignSelf stretch) pra manter
+  // as 4 colunas flex de largura igual.
+  elementosCard: { marginTop: 28, alignItems: 'center' },
+  elementosTitulo: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14, textAlign: 'center' },
+  elementosRow: { flexDirection: 'row', justifyContent: 'space-between', alignSelf: 'stretch' },
   elementoCol: { flex: 1, alignItems: 'center', marginHorizontal: 3 },
   // O wrap existe SÓ pra ancorar o chip absoluto no canto do círculo — ele
   // mede exatamente o círculo, e o chip vaza um pouco pra fora, de propósito.
@@ -1425,8 +1617,8 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   elementoChipTexto: { fontSize: 12, fontWeight: '800' },
-  elementosLeitura: { color: colors.text, fontSize: 15, lineHeight: 24, marginTop: 16 },
-  elementosRecibo: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 8 },
+  elementosLeitura: { color: colors.text, fontSize: 15, lineHeight: 24, marginTop: 16, textAlign: 'center' },
+  elementosRecibo: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 8, textAlign: 'center' },
   // Título de seção em corpo de display (18/800) e com respiro de verdade em
   // cima — é o que separa "lista" de "capítulo" nos prints do concorrente.
   sub: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 28, marginBottom: 14, letterSpacing: 0.2 },

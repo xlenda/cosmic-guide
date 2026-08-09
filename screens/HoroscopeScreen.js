@@ -257,7 +257,7 @@ export default function HoroscopeScreen() {
                 <Text style={[styles.bigGlyphText, { color: sign.color }]}>{sign.icon}</Text>
               )}
             </View>
-            <View>
+            <View style={styles.signInfo}>
               <Text style={styles.bigName}>{sign.pt}</Text>
               <Text style={styles.bigDates}>{sign.dates}</Text>
               <View style={styles.elementRow}>
@@ -455,24 +455,33 @@ const styles = StyleSheet.create({
   // overflow ficam só para o degradê manter cantos suaves, lendo como mancha
   // de luz e não como caixa.
   mainCard: { borderRadius: 18, overflow: 'hidden' },
-  signHeader: { flexDirection: 'row', alignItems: 'center', padding: 18 },
-  bigGlyph: { width: 60, height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  // COMPOSIÇÃO CENTRADA (08/08/2026): o card do signo virou COLUNA centrada
+  // (mascote em cima, nome, datas, elemento embaixo) em vez de linha à
+  // esquerda — o hero simétrico do padrão do concorrente.
+  signHeader: { alignItems: 'center', padding: 18 },
+  bigGlyph: { width: 60, height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   bigGlyphText: { fontSize: 30 },
   // O MASCOTE (08/08/2026): a moldura cresce 4px em volta da arte de 64 para o
   // fundo sign.color+'33' aparecer como aro, em vez de sumir atrás do JPG.
   bigGlyphComMascote: { width: 72, height: 72, borderRadius: 20 },
   mascoteGrande: { width: 64, height: 64, borderRadius: 18 },
   mascotePequeno: { width: 36, height: 36, borderRadius: 12 },
-  bigName: { color: colors.text, fontSize: 20, fontWeight: '800' },
-  bigDates: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  elementRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },
+  // O bloco de texto do hero centrado (nome, datas, elemento) — acompanha a
+  // coluna do signHeader acima.
+  signInfo: { alignItems: 'center' },
+  bigName: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  bigDates: { color: colors.textMuted, fontSize: 12, marginTop: 2, textAlign: 'center' },
+  elementRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 4, gap: 4 },
   element: { fontSize: 12, fontWeight: '700' },
   unavailable: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, padding: 18, paddingTop: 4 },
   // Respiro (08/08/2026): a leitura é o produto — fonte maior, entrelinha
   // generosa (~1.6) e mais ar entre seções. Padrão medido no concorrente:
   // texto de leitura grande com MUITO espaço vazio é o que faz a tela parecer
   // cara. Nada de conteúdo mudou — só a roupa.
-  sub: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 28, marginBottom: 12 },
+  // COMPOSIÇÃO CENTRADA (08/08/2026): título de seção grande e centrado, com
+  // muito ar em cima — o padrão medido no concorrente premium (22-26/800,
+  // centrado, simétrico). Só a roupa muda; o conteúdo é o mesmo.
+  sub: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
   factsRow: { flexDirection: 'row', gap: 14 },
   factItem: { flex: 1, backgroundColor: colors.surface, borderRadius: 18, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   factIcon: { width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },

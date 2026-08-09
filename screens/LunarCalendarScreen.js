@@ -815,7 +815,9 @@ const styles = StyleSheet.create({
   vocShareBtnTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
   vocMarca: { color: colors.textMuted, fontSize: 10, textAlign: 'center' },
 
-  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 8 },
+  // COMPOSIÇÃO CENTRADA (08/08/2026): título de seção grande e centrado, com
+  // muito ar em cima — o padrão do concorrente premium (22/800, simétrico).
+  sectionTitle: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
   monthList: {
     backgroundColor: colors.surface,
     borderRadius: 18,

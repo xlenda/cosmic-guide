@@ -246,7 +246,7 @@ export default function LojaScreen() {
 
         {/* Brindes: mimos do nicho (ritual, wallpapers, tiragem exclusiva) com
             entrega automática real — catálogo e regras em lib/brindes.js. */}
-        <Text style={[styles.sectionTitle, { marginTop: 12 }]}>{t('loja.sectionBrindes')}</Text>
+        <Text style={styles.sectionTitle}>{t('loja.sectionBrindes')}</Text>
         <Text style={styles.sectionSubtitle}>{t('loja.sectionBrindesSubtitle')}</Text>
         {getBrindesDisponiveis()
           .filter((b) => !b.webOnly || Platform.OS === 'web')
@@ -333,7 +333,9 @@ const styles = StyleSheet.create({
   balanceCard: { paddingVertical: 22, alignItems: 'center' },
   balanceValue: { color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 6 },
   balanceLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2, fontWeight: '600' },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 10 },
+  // COMPOSIÇÃO CENTRADA (08/08/2026): título de seção grande e centrado, com
+  // muito ar em cima — o padrão do concorrente premium (22/800, simétrico).
+  sectionTitle: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -367,7 +369,9 @@ const styles = StyleSheet.create({
   redeemBtnLow: { backgroundColor: colors.surfaceElevated },
   redeemBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
-  sectionSubtitle: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginBottom: 10 },
+  // O subtítulo acompanha o título de seção centrado logo acima; o marginTop
+  // negativo encosta nele (o título já traz os 14 de respiro embaixo).
+  sectionSubtitle: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: -6, marginBottom: 10, textAlign: 'center', alignSelf: 'center' },
   ownedText: { color: colors.green, fontSize: 12, fontWeight: '700' },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(6,3,18,0.7)', justifyContent: 'flex-end' },

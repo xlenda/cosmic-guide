@@ -373,6 +373,32 @@ export default function CompatibilityScreen() {
                 dimensão nova aparece sozinha e dimensão vazia quebra o teste.
                 ============================================================ */}
             <View style={styles.realCard}>
+              {/* O PLACAR CENTRAL (09/08/2026) — a composição do concorrente
+                  com o NOSSO dado no lugar do número inventado: os dois
+                  mascotes flanqueiam um selo em destaque, e o selo estampa o
+                  que o motor calculou — o aspecto e a categoria, os mesmos
+                  textos que a linha do botão "De onde vem isso" já mostra
+                  como recibo (e CONTINUA mostrando: o placar é adição visual
+                  de dado já presente na tela, não mudança de dado). Onde o
+                  concorrente põe "99%", aqui vai a geometria com nome — o
+                  "99%" honesto desta tela. Nenhuma string nova: aspecto e
+                  categoria chegam prontos do motor no idioma da leitura, e o
+                  nome sob cada mascote é o mesmo dos seletores. */}
+              <View style={styles.placarRow}>
+                <PlacarSigno sign={signA} />
+                <View style={styles.placarSeloWrap}>
+                  <View style={styles.placarSelo}>
+                    <Text style={styles.placarSeloAspecto}>{result.aspecto}</Text>
+                    <Text style={styles.placarSeloCategoria}>{result.categoria}</Text>
+                  </View>
+                </View>
+                <PlacarSigno sign={signB} />
+              </View>
+              {/* A CHAMADA, central e logo abaixo do placar — é o mesmo
+                  result.chamada de sempre, palavra por palavra; só mudou de
+                  posto: de corpo espremido entre os botões pra manchete da
+                  composição. */}
+              <Text style={styles.realHook}>{result.chamada}</Text>
               <Text style={styles.realKicker}>{t('compat.real.kicker')}</Text>
               {/* O PAR, em corpo de display (22/800) — é o resultado que a
                   pessoa veio ver, e é o mesmo par que nomeia o Diário e o modo
@@ -400,12 +426,11 @@ export default function CompatibilityScreen() {
                   dimensões, o corpo do modo história) em voz alta, com a voz
                   do aparelho. */}
               <BotaoOuvir texto={corpoDaLeitura} style={styles.ouvirBtn} />
-              <Text style={styles.realHook}>{result.chamada}</Text>
               {DIMENSOES_VIDA_REAL.map((d) => (
                 <View key={d.id} style={styles.dimBlock}>
                   <View style={styles.dimHead}>
                     <View style={styles.dimIcon}>
-                      <Ionicons name={d.icone} size={15} color={colors.pink} />
+                      <Ionicons name={d.icone} size={20} color={colors.pink} />
                     </View>
                     <Text style={styles.dimTitle}>{t(d.chaveTitulo)}</Text>
                   </View>
@@ -661,6 +686,27 @@ function SignSlot({ sign, onPress, active }) {
   );
 }
 
+// O MEDALHÃO do placar (09/08/2026) — o mesmo personagem dos slots, agora em
+// 72px redondo com o nome embaixo, flanqueando o selo central do resultado.
+// Mesma regra do SignSlot: sem mascote no pack, o glifo de fonte assume — a
+// arte é upgrade, nunca dependência. Nome via sign.pt, o mesmo dado dos
+// seletores: nenhum texto novo.
+function PlacarSigno({ sign }) {
+  const mascote = mascoteDoSigno(sign.name);
+  return (
+    <View style={styles.placarSigno}>
+      <View style={[styles.placarMascoteWrap, { backgroundColor: sign.color + '22' }]}>
+        {mascote ? (
+          <Image source={mascote} style={styles.placarMascote} resizeMode="cover" accessible={false} />
+        ) : (
+          <Text style={[styles.placarGlyph, { color: sign.color }]}>{sign.icon}</Text>
+        )}
+      </View>
+      <Text style={styles.placarNome}>{sign.pt}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   lockedNote: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 10, marginTop: 4 },
@@ -698,12 +744,32 @@ const styles = StyleSheet.create({
     marginTop: 20, padding: 18, borderRadius: 18,
     backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.pink + '55',
   },
-  realKicker: { color: colors.pink, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+  // O PLACAR (09/08/2026) — três colunas centradas: medalhão | selo | medalhão.
+  // Os medalhões repetem o DNA do slotMascoteWrap (fundo sign.color+'22' como
+  // aro de 2px em volta da arte), só que em 76/72. O selo é a peça em
+  // destaque: fundo cheio em colors.accent, o único bloco de cor sólida do
+  // card — é ele que faz o papel do "99%" do concorrente, com dado de verdade.
+  placarRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 2 },
+  placarSigno: { alignItems: 'center', width: 88 },
+  placarMascoteWrap: { width: 76, height: 76, borderRadius: 38, justifyContent: 'center', alignItems: 'center' },
+  placarMascote: { width: 72, height: 72, borderRadius: 36 },
+  placarGlyph: { fontSize: 38 },
+  placarNome: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 6, textAlign: 'center' },
+  placarSeloWrap: { flex: 1, alignItems: 'center' },
+  placarSelo: { backgroundColor: colors.accent, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', maxWidth: '100%' },
+  placarSeloAspecto: { color: '#fff', fontSize: 17, fontWeight: '800', textAlign: 'center' },
+  placarSeloCategoria: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginTop: 2, textAlign: 'center' },
+  // Títulos de seção centrados (09/08/2026) — a diagramação espelho é
+  // simétrica no eixo vertical; o conteúdo corrido continua alinhado à
+  // esquerda, que é onde texto longo se lê melhor.
+  realKicker: { color: colors.pink, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center', marginTop: 14 },
   // O par do resultado é o display do card; o título da seção, que dividia o
   // topo com ele em 20/800, desce pra linha de apoio — um destaque só.
-  realPair: { color: colors.text, fontSize: 22, fontWeight: '800', letterSpacing: 0.3, marginTop: 6 },
-  realTitle: { color: colors.textSecondary, fontSize: 15, fontWeight: '700', marginTop: 2 },
-  realHook: { color: colors.text, fontSize: 16, lineHeight: 24, fontWeight: '600', marginTop: 10 },
+  realPair: { color: colors.text, fontSize: 22, fontWeight: '800', letterSpacing: 0.3, marginTop: 6, textAlign: 'center' },
+  realTitle: { color: colors.textSecondary, fontSize: 15, fontWeight: '700', marginTop: 2, textAlign: 'center' },
+  // A chamada virou a manchete central da composição: 17/26, centrada, logo
+  // abaixo do placar — o texto é o mesmo result.chamada de sempre.
+  realHook: { color: colors.text, fontSize: 17, lineHeight: 26, fontWeight: '600', marginTop: 14, textAlign: 'center' },
   // O botão do modo história — contorno no rosa do bloco quente, sem fundo:
   // porta pra mesma leitura, não call-to-action.
   historiaBtn: {
@@ -712,12 +778,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 18, marginTop: 12,
   },
   historiaBtnText: { color: colors.pink, fontSize: 13, fontWeight: '700' },
-  // O Ouvir centrado logo abaixo do modo história, antes da chamada.
+  // O Ouvir centrado logo abaixo do modo história (a chamada agora mora lá em
+  // cima, colada no placar).
   ouvirBtn: { alignSelf: 'center', marginTop: 12 },
   dimBlock: { marginTop: 18 },
   dimHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dimIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: colors.pink + '22', justifyContent: 'center', alignItems: 'center' },
-  dimTitle: { color: colors.text, fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
+  // Os títulos das dimensões subiram pra 17/800 com o ícone em 20 (caixa 30):
+  // na diagramação espelho eles são os subtítulos da leitura, não etiquetas.
+  // Conteúdo idêntico — só o corpo cresceu.
+  dimIcon: { width: 30, height: 30, borderRadius: 9, backgroundColor: colors.pink + '22', justifyContent: 'center', alignItems: 'center' },
+  dimTitle: { color: colors.text, fontSize: 17, fontWeight: '800', letterSpacing: 0.2 },
   dimText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 7 },
   realFootnote: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 18, fontStyle: 'italic' },
   // O ECO. Card DENTRO do bloco 1, com o tom do accent (não do rosa das
@@ -757,7 +827,7 @@ const styles = StyleSheet.create({
   resultTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
   resultDesc: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, textAlign: 'center', marginTop: 8 },
   sourceCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginTop: 14, borderWidth: 1, borderColor: colors.border },
-  sourceTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8 },
+  sourceTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
   sourceItem: { marginBottom: 10 },
   // A paráfrase lê ANTES e MAIOR que o inglês (14 vs 13, cor de texto cheia):
   // ela é a leitura; o verbatim é o recibo. O rótulo em cima é o que a impede
@@ -770,7 +840,7 @@ const styles = StyleSheet.create({
   sourceDegree: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 2 },
   sourceDegreeNote: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 6, fontStyle: 'italic' },
   noteCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginTop: 14, borderWidth: 1, borderColor: colors.border },
-  noteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8 },
+  noteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
   noteText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 8 },
   traitCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginTop: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
   traitIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },

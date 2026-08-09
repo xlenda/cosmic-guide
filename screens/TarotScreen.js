@@ -1048,10 +1048,11 @@ const styles = StyleSheet.create({
   albumBtnText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   title: { color: '#fff', fontSize: 24, fontWeight: '800' },
   subtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 4 },
-  // Tipografia display no título de seção (17/800) + marginTop generoso: o vão
+  // COMPOSIÇÃO CENTRADA (08/08/2026): título de seção grande e CENTRADO
+  // (22/800, muito ar em cima) — o padrão medido no concorrente premium. O vão
   // entre o header e o primeiro título deixa o cenário aparecer — é o respiro
   // que faz a tela ler como paisagem, não como lista.
-  sectionLabel: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 26, marginBottom: 12 },
+  sectionLabel: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
   themeRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   themeChip: { flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border, gap: 6 },
   themeText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
