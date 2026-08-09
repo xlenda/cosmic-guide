@@ -64,6 +64,24 @@
             tap continua funcionando, arrasto vertical NUNCA morre. */
       #root div { -webkit-overflow-scrolling: touch; }
       #root [style*="touch-action: none"] { touch-action: pan-y !important; }
+
+      /* MOLDURA DE CELULAR NO DESKTOP (08/08/2026). O app e desenhado pra
+         celular; esticado numa janela de 1900px o layout premium vira
+         panqueca — cards de ponta a ponta, hero sem forma (relato real do
+         dono olhando no PC: "ta tudo igual/esticado"). Em tela larga o app
+         vive numa coluna de celular centralizada, com o ceu preenchendo as
+         laterais — o mesmo enquadramento dos apps premium na web. Só >=600px:
+         celular e e2e (viewport 390) nao passam por aqui. */
+      @media (min-width: 600px) {
+        body {
+          background: radial-gradient(1200px 700px at 50% -10%, #241448 0%, #140C2E 45%, #0A0619 100%) fixed #0A0619;
+        }
+        #root {
+          max-width: 480px;
+          margin: 0 auto;
+          box-shadow: 0 0 80px rgba(0, 0, 0, 0.6), 0 0 1px rgba(179, 123, 255, 0.35);
+        }
+      }
     </style>
     <!-- Splash inline: o bundle JS (~2MB) leva um tempo real pra baixar,
          parsear e o React montar — sem isso, #root fica vazio e a pessoa vê
