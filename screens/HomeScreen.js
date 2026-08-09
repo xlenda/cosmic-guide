@@ -41,7 +41,7 @@ import { activeCelestialEvents } from '../lib/celestialSeasons';
 import { CHAVES_DE_TRADUCAO, nomeDoSigno } from '../lib/synastry';
 import { getTodaysThought } from '../lib/dailyThought';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
-import { compartilharFraseComoCard } from '../lib/shareCard';
+import { compartilharFraseComoCard, fundoDoDia } from '../lib/shareCard';
 import { personalSkyToday } from '../lib/personalSky';
 import { fasesDoCeuPessoal } from '../lib/transitoFase';
 import { getAnyBirthData } from '../lib/birthData';
@@ -419,6 +419,26 @@ export default function HomeScreen() {
         vivo = false;
       };
     }, [lang])
+  );
+
+  // O FUNDO DO DIA DA FRASE — a mesma URL que o compartilhar usa (fonte
+  // única em lib/shareCard.js). Recarrega por foco: à meia-noite o servidor
+  // troca o fundo, e a faixa acompanha. null → cena do pack como reserva.
+  const [fundoFraseDoDia, setFundoFraseDoDia] = useState(null);
+  useFocusEffect(
+    useCallback(() => {
+      let vivo = true;
+      fundoDoDia('casal')
+        .then((url) => {
+          if (vivo) setFundoFraseDoDia(url || null);
+        })
+        .catch(() => {
+          if (vivo) setFundoFraseDoDia(null);
+        });
+      return () => {
+        vivo = false;
+      };
+    }, [])
   );
 
   // A contagem em palavra: 0 e 1 têm chave própria (Hoje/Amanhã), a chave com
@@ -1375,10 +1395,18 @@ export default function HomeScreen() {
         {/* Frase do dia de amor — feita pra compartilhar de verdade com o
             par, não só ler (ver handleShareLovePhrase acima). */}
         <View style={styles.lovePhraseCard}>
-          {/* A CENA DO AMOR no topo do card (09/08/2026, "tem nada de
-              ilustração na Home") — os dois corações-planeta do pack, faixa
-              larga acima da frase. Decorativa: accessible false. */}
-          <Image source={CENAS.amor} style={styles.lovePhraseArte} resizeMode="cover" accessible={false} />
+          {/* A FAIXA MOSTRA O QUE O COMPARTILHAR ENVIA (09/08/2026, relato do
+              dono: "aparece a imagem nova mas compartilha a antiga"): o fundo
+              exibido é o MESMO fundo do dia que compartilharFraseComoCard
+              desenha (fonte única: fundoDoDia em lib/shareCard.js, tipo
+              'casal' — o mesmo hard-coded do handleShareLovePhrase). Só cai
+              na cena do pack quando o servidor não respondeu. */}
+          <Image
+            source={fundoFraseDoDia ? { uri: fundoFraseDoDia } : CENAS.amor}
+            style={styles.lovePhraseArte}
+            resizeMode="cover"
+            accessible={false}
+          />
           <LinearGradient colors={['#FF6BA0', '#B57BFF']} style={styles.lovePhraseInner}>
             <View style={styles.lovePhraseHead}>
               <Ionicons name="heart" size={18} color="#fff" />
