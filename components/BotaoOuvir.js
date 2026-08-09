@@ -17,8 +17,9 @@
 //
 // iOS Safari só fala após gesto do usuário (armadilha 1 de lib/voz.js): o
 // onPress deste botão É o gesto, então falar() daqui sempre funciona.
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { NavigationContext } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -39,6 +40,22 @@ export default function BotaoOuvir({ texto, style }) {
       parar();
     };
   }, []);
+
+  // AUDITORIA 09/08/2026: o cleanup de desmonte NÃO cobre trocar de aba nem
+  // push (React Navigation mantém a tela montada — achado real, o próprio
+  // ChatScreen documenta o unmountOnBlur=false). Sem isto, "Ouvir" no
+  // Horóscopo + tocar a aba Tarô deixava a voz narrando por cima da outra
+  // aba sem botão de parar à vista. O evento 'blur' da tela dona cobre os
+  // dois casos; useContext (e não useNavigation) porque fora de navegação
+  // ele devolve undefined em vez de lançar.
+  const navigation = useContext(NavigationContext);
+  useEffect(() => {
+    if (!navigation) return undefined;
+    return navigation.addListener('blur', () => {
+      parar();
+      if (vivo.current) setTocando(false);
+    });
+  }, [navigation]);
 
   // Texto ou idioma trocaram com o botão montado: a fala antiga não pode
   // continuar por cima do conteúdo novo. Pula o primeiro render — no mount

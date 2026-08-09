@@ -39,13 +39,16 @@
 // bloco mostra `calculando` — declarar que está calculando é honesto; mostrar
 // um estado velho de meia hora atrás não é.
 //
-// i18n: NADA DO BLOCO DA LUA FORA DE CURSO PASSA POR t() — lib/i18n.js segue
-// intocado. O chrome sai do bloco `tela` de lib/traducoes/luaForaDeCurso.
-// {pt,es,en}.js e o conteúdo sai do próprio motor, já no idioma. Esta tela só
-// repassa o `lang` do useLanguage(): não redige uma linha e usa o MESMO
-// fallback do motor (packDoIdioma: idioma desconhecido cai no PT). O chrome
-// antigo desta tela (título, DISCLAIMER) continua em PT cravado, como estava —
-// a migração dele é outro passe.
+// i18n: NADA DO BLOCO DA LUA FORA DE CURSO PASSA POR t() — o chrome dele sai
+// do bloco `tela` de lib/traducoes/luaForaDeCurso.{pt,es,en}.js e o conteúdo
+// sai do próprio motor, já no idioma. Esta tela só repassa o `lang` do
+// useLanguage(): não redige uma linha e usa o MESMO fallback do motor
+// (packDoIdioma: idioma desconhecido cai no PT). O chrome ANTIGO da tela —
+// título, subtítulo, linha de iluminação, fallback de efeméride, DISCLAIMER e
+// o rótulo do Diário — era PT cravado e migrou em 09/08/2026 pras chaves
+// `lunar.*` do [BLOCO-CHROME-LUA] de lib/i18n.js, via t(), nos três idiomas.
+// A tela NÃO importa lib/i18n.js (test/luaForaDeCurso.test.js proíbe o
+// import): t() chega pelo LanguageContext, como nas outras telas.
 //
 // COMPARTILHAR: a mesma cadeia de IdadeRealScreen.js e MitosScreen.js — Share
 // do react-native primeiro (no nativo é a folha do SO; na web,
@@ -140,17 +143,14 @@ function instanteLocal(data, locale) {
 // Mesmo tom honesto de lib/palmReadings.js / lib/chatResponses.js: a fase em
 // si é astronomia real (astronomy-engine), mas a reflexão que a acompanha é
 // simbólica — nunca previsão garantida.
-// A primeira metade deste texto é verificável e continua igual. A segunda dizia
-// "seguem a tradição milenar dos ciclos lunares", e era falsa no pior lugar
-// possível — a frase que se apresenta como o selo de honestidade da tela.
-// A divisão em OITO fases nomeadas, com leitura de cada uma, é de Dane Rudhyar,
-// "The Lunation Cycle", 1967. A moldura milenar é a de QUATRO quartos
-// (Ptolomeu, Tetrabiblos I.8). Ver docs/tradicao/04, §3.1 e §6.
-const DISCLAIMER =
-  'A fase da Lua é calculada com astronomia real (posição Sol-Lua). As reflexões que ' +
-  'acompanham cada fase misturam duas idades, e a tela diz qual é qual: a divisão em quatro ' +
-  'quartos e o calendário agrícola romano são antigos; a leitura das oito fases nomeadas é ' +
-  'de 1967 (Dane Rudhyar). Convite simbólico, não garantia de resultado.';
+// O texto do DISCLAIMER morava aqui como const em PT e virou a chave
+// `lunar.disclaimer` ([BLOCO-CHROME-LUA] de lib/i18n.js, nos três idiomas) —
+// era o selo de honestidade da tela chegando em português pra quem lê o app em
+// es/en. A doutrina dele não mudou: a primeira metade é verificável; a divisão
+// em OITO fases nomeadas, com leitura de cada uma, é de Dane Rudhyar, "The
+// Lunation Cycle", 1967; a moldura milenar é a de QUATRO quartos (Ptolomeu,
+// Tetrabiblos I.8). Ver docs/tradicao/04, §3.1 e §6 — e a varredura de
+// test/screenDisclaimers.test.js segue mordendo a chave dentro do dicionário.
 
 function capitalize(text) {
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
@@ -162,12 +162,17 @@ export default function LunarCalendarScreen() {
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
   const { hasAccess, accessConfirmed } = useCouple();
   // O fio do idioma: o CONTEÚDO (nome da fase + reflexão, e todo o bloco da Lua
-  // fora de curso) sai dos motores já no idioma do app. O chrome antigo desta
-  // tela (título, disclaimer) ainda é PT cravado — segundo passe, junto com o
-  // resto do chrome antigo.
-  // `t` entra SÓ pro cabeçalho seg–dom da grade (chaves existentes do
-  // Calendário Cósmico); todo o resto do chrome segue como estava.
-  const { lang, t } = useLanguage() || {};
+  // fora de curso) sai dos motores já no idioma do app. O chrome PRÓPRIO da
+  // tela — título, subtítulo, iluminação, fallback, disclaimer, rótulo do
+  // Diário e o cabeçalho seg–dom — passa por t(): chaves `lunar.*`
+  // ([BLOCO-CHROME-LUA] de lib/i18n.js) e as `calendario.weekday.*` já
+  // existentes. Sem provider (não acontece no app montado; defensivo desde a
+  // primeira versão da tela), t devolve a própria chave — o mesmo contrato do
+  // translate() com chave desconhecida: visível e debugável, nunca quebra. O
+  // fallback é local porque esta tela não pode importar lib/i18n.js
+  // (test/luaForaDeCurso.test.js trava o import).
+  const { lang, t: tDoContexto } = useLanguage() || {};
+  const t = typeof tDoContexto === 'function' ? tDoContexto : (key) => key;
   const [refreshTick, setRefreshTick] = useState(0);
   const [locked, setLocked] = useState(false);
 
@@ -335,9 +340,11 @@ export default function LunarCalendarScreen() {
     const iso = todayISO();
     getItemSeguro(DIARY_RECORDED_KEY).then((lastDate) => {
       if (lastDate === iso) return;
+      // O rótulo vai gravado no idioma do app NO MOMENTO da gravação — é assim
+      // que o Diário reexibe a entrada. Era 'Calendário Lunar' cravado em PT.
       recordReadingCompletion({
         type: 'lunarCalendar',
-        typeLabel: 'Calendário Lunar',
+        typeLabel: t('lunar.title'),
         title: `${today.emoji} ${today.name}`,
         body: today.reflexao,
       });
@@ -346,14 +353,14 @@ export default function LunarCalendarScreen() {
   }, [today]);
 
   if (!hasAccess && locked) {
-    return <OneTimeLock featureTitle="Calendário Lunar" gradient={gradients.hero} />;
+    return <OneTimeLock featureTitle={t('lunar.title')} gradient={gradients.hero} />;
   }
 
   return (
     <View style={styles.root}>
       <GradientHeader
-        title="Calendário Lunar"
-        subtitle="Fases da Lua em tempo real"
+        title={t('lunar.title')}
+        subtitle={t('lunar.subtitle')}
         onBack={() => navigation.goBack()}
         gradient={gradients.teal}
       />
@@ -384,18 +391,18 @@ export default function LunarCalendarScreen() {
             <Text style={styles.todayReflection}>{today.reflexao}</Text>
             <Text style={styles.todayName}>{today.name}</Text>
             {today.illumination !== null ? (
-              <Text style={styles.todayIllum}>{today.illumination}% iluminada hoje</Text>
+              <Text style={styles.todayIllum}>
+                {t('lunar.illuminatedToday', { n: today.illumination })}
+              </Text>
             ) : null}
           </View>
         ) : (
           <View style={styles.todayCard}>
-            <Text style={styles.todayReflection}>
-              Não foi possível calcular a fase da Lua agora. Tente novamente mais tarde.
-            </Text>
+            <Text style={styles.todayReflection}>{t('lunar.unavailable')}</Text>
           </View>
         )}
 
-        <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+        <Text style={styles.disclaimer}>{t('lunar.disclaimer')}</Text>
 
         {/* ==================================================================
             LUA FORA DE CURSO — as DUAS definições, e a divergência à vista
@@ -655,15 +662,13 @@ export default function LunarCalendarScreen() {
             a célula mostra o traço honesto de sempre em vez de um glifo
             chutado. */}
         <View style={styles.grade} testID="lunar-grade">
-          {typeof t === 'function' ? (
-            <View style={styles.gradeSemana}>
-              {SEMANA_KEYS.map((chave) => (
-                <Text key={chave} style={styles.gradeDiaSemana}>
-                  {t(chave)}
-                </Text>
-              ))}
-            </View>
-          ) : null}
+          <View style={styles.gradeSemana}>
+            {SEMANA_KEYS.map((chave) => (
+              <Text key={chave} style={styles.gradeDiaSemana}>
+                {t(chave)}
+              </Text>
+            ))}
+          </View>
           {semanasDoMes.map((linha, i) => (
             <View key={`semana-${i}`} style={styles.gradeSemana}>
               {linha.map((celula, j) => {

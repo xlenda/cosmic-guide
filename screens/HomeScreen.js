@@ -1401,12 +1401,24 @@ export default function HomeScreen() {
               desenha (fonte única: fundoDoDia em lib/shareCard.js, tipo
               'casal' — o mesmo hard-coded do handleShareLovePhrase). Só cai
               na cena do pack quando o servidor não respondeu. */}
-          <Image
-            source={fundoFraseDoDia ? { uri: fundoFraseDoDia } : CENAS.amor}
-            style={styles.lovePhraseArte}
-            resizeMode="cover"
-            accessible={false}
-          />
+          {/* AUDITORIA 09/08/2026: duas camadas, não um source trocado — o
+              fundo remoto demora a baixar (3G) e pode falhar (404/rotação no
+              servidor); trocando o source, a faixa ficava em BRANCO nesses
+              dois casos. Agora a cena local fica SEMPRE por baixo e o fundo
+              do dia pinta por cima quando (e se) carregar; onError volta pro
+              local em vez de faixa vazia permanente. */}
+          <View style={styles.lovePhraseArte}>
+            <Image source={CENAS.amor} style={styles.lovePhraseArteCamada} resizeMode="cover" accessible={false} />
+            {!!fundoFraseDoDia && (
+              <Image
+                source={{ uri: fundoFraseDoDia }}
+                style={styles.lovePhraseArteCamada}
+                resizeMode="cover"
+                accessible={false}
+                onError={() => setFundoFraseDoDia(null)}
+              />
+            )}
+          </View>
           <LinearGradient colors={['#FF6BA0', '#B57BFF']} style={styles.lovePhraseInner}>
             <View style={styles.lovePhraseHead}>
               <Ionicons name="heart" size={18} color="#fff" />
@@ -1718,6 +1730,7 @@ const styles = StyleSheet.create({
   thoughtToggle: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: 6 },
   lovePhraseCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   lovePhraseArte: { width: '100%', height: 96 },
+  lovePhraseArteCamada: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   lovePhraseInner: { padding: 18 },
   lovePhraseHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   lovePhraseLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },

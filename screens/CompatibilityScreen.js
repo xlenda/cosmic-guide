@@ -112,11 +112,17 @@ const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
 // dono, 31/07/2026: "muito científico tudo, preciso mesclar para o povão"):
 // primeiro o que significa em conversa de gente, depois o termo da fonte — o
 // termo não some, muda de posição.
+//
+// As FRASES moram em lib/i18n.js ([BLOCO-CHROME-COMPAT], compat.manchete.*)
+// desde 09/08/2026 — cravadas aqui elas saíam em português pra quem lê em
+// es/en. O mapa continua sendo a regra da tela: categoria do motor → chave do
+// dicionário, e test/synastry.test.js varre os VALORES nos três idiomas com o
+// mesmo filtro de fatalismo do motor.
 const MANCHETE = {
-  harmonico: 'Vocês se entendem fácil — a fonte chama isto de aspecto harmônico',
-  desarmonico: 'Tem atrito de verdade aqui — e a tradição não para na palavra dura',
-  semAspecto: 'Esses dois signos nem se enxergam de saída — sem aspecto na fonte',
-  copresenca: 'Dois iguais no mesmo lugar — mesmo signo, co-presença, não aspecto',
+  harmonico: 'compat.manchete.harmonico',
+  desarmonico: 'compat.manchete.desarmonico',
+  semAspecto: 'compat.manchete.semAspecto',
+  copresenca: 'compat.manchete.copresenca',
 };
 
 export default function CompatibilityScreen() {
@@ -235,7 +241,9 @@ export default function CompatibilityScreen() {
     // app calcula de fato, e não envelhece toda vez que a escala mudar.
     recordReadingCompletion({
       type: 'compatibility',
-      typeLabel: 'Compatibilidade',
+      // No idioma da leitura, como o body logo abaixo (t(d.chaveTitulo)) — o
+      // Diário guarda o que a pessoa leu, e ela leu no idioma dela.
+      typeLabel: t('compat.header.title'),
       title: `${signA.pt} + ${signB.pt} — ${compat.aspecto} (${compat.categoria})`,
       // O que vai pro Diário é o BLOCO 1, não o texto da fonte: é o que a
       // pessoa leu, é o que ela quer reler, e é o que faz sentido reencontrar
@@ -287,7 +295,7 @@ export default function CompatibilityScreen() {
   // resultado que acabou de ganhar — só bloqueamos de fato na próxima
   // tentativa (troca de signo, que chama setResult(null) em pick()).
   if (!hasAccess && locked && !result) {
-    return <OneTimeLock featureTitle="Compatibilidade" gradient={['#B5286B', '#7B3FB5']} />;
+    return <OneTimeLock featureTitle={t('compat.header.title')} gradient={['#B5286B', '#7B3FB5']} />;
   }
 
   return (
@@ -297,8 +305,9 @@ export default function CompatibilityScreen() {
           anterior ("Encontre seu par celestial") era resquício da roda de
           porcentagem: prometia na manchete o que o rodapé desmente — a regra 2
           de lib/synastry.js vale pro header também, e test/synastry.test.js
-          varre esta string junto com as MANCHETE. */}
-      <GradientHeader title="Compatibilidade" subtitle="Como é na vida real — e de onde isso vem" onBack={() => navigation.goBack()} gradient={['#B5286B', '#7B3FB5']} />
+          varre o valor de compat.header.subtitle nos três idiomas junto com as
+          MANCHETE. */}
+      <GradientHeader title={t('compat.header.title')} subtitle={t('compat.header.subtitle')} onBack={() => navigation.goBack()} gradient={['#B5286B', '#7B3FB5']} />
       <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={styles.pairRow}>
           <SignSlot sign={signA} onPress={() => setPicking(picking === 'A' ? null : 'A')} active={picking === 'A'} />
@@ -323,9 +332,7 @@ export default function CompatibilityScreen() {
           // compute() já recusa recalcular nesse caso — aqui é só pra não
           // deixar um botão "morto" que não faz nada visível ao tocar.
           <>
-            <Text style={styles.lockedNote}>
-              Essa foi sua leitura grátis — assine para calcular outras combinações quando quiser.
-            </Text>
+            <Text style={styles.lockedNote}>{t('compat.locked.note')}</Text>
             {/* O texto acima SUBSTITUI o botão "Calcular Compatibilidade"
                 (ternário logo abaixo) — pedia assinatura e não levava a lugar
                 nenhum, deixando o voltar como única saída. Mesmo destino do
@@ -502,15 +509,21 @@ export default function CompatibilityScreen() {
                         distância —, que é fato conferível em qualquer
                         efeméride, e não uma nota que ninguém sabe de onde vem. */}
                     <Text style={styles.circleAspect}>{result.aspecto}</Text>
+                    {/* Plural por CHAVE (signs_one/signs_other), sem lógica de
+                        plural no dicionário — o ternário daqui escolhe, mesmo
+                        padrão de arco.contagem/arco.contagem.um. */}
                     <Text style={styles.circleLabel}>
                       {result.distancia === 0
-                        ? 'mesmo signo'
-                        : `${result.graus}° · ${result.distancia} ${result.distancia === 1 ? 'signo' : 'signos'}`}
+                        ? t('compat.geometry.sameSign')
+                        : t(
+                            result.distancia === 1 ? 'compat.geometry.signs_one' : 'compat.geometry.signs_other',
+                            { graus: result.graus, distancia: result.distancia }
+                          )}
                     </Text>
                   </LinearGradient>
                 </View>
                 <Text style={styles.categoryChip}>{result.categoria}</Text>
-                <Text style={styles.resultTitle}>{MANCHETE[result.categoriaId]}</Text>
+                <Text style={styles.resultTitle}>{t(MANCHETE[result.categoriaId])}</Text>
                 <Text style={styles.resultDesc}>{result.texto}</Text>
               </LinearGradient>
             </View>
@@ -634,10 +647,8 @@ export default function CompatibilityScreen() {
             bibliografia pra vê-la. */}
         {result && highCompatOffer && (
           <View style={styles.offerCard}>
-            <Text style={styles.offerTitle}>✨ {result.aspecto} entre vocês!</Text>
-            <Text style={styles.offerText}>
-              Um aspecto que a tradição chama de harmônico merece ser explorado por inteiro — leituras sem limite, Tarô todo dia e o céu de vocês dois. 7 dias grátis pra testar.
-            </Text>
+            <Text style={styles.offerTitle}>{t('compat.offer.title', { aspecto: result.aspecto })}</Text>
+            <Text style={styles.offerText}>{t('compat.offer.body')}</Text>
             <TouchableOpacity
               style={styles.offerBtn}
               activeOpacity={0.85}

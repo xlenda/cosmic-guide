@@ -157,9 +157,16 @@ test('Mapa Astral · resumo — a identidade solar abre; recibo do instante e fo
 });
 
 test('Calendário Lunar · a reflexão abre, o nome da fase e a iluminação descem', () => {
+  // [AUTO-DECISION 09/08/2026 — chrome da tela virou i18n] A linha "{n}%
+  // iluminada hoje" era PT cravado no JSX e virou t('lunar.illuminatedToday',
+  // { n: today.illumination }) — o par exato de chavetas {today.illumination}
+  // deixou de existir no arquivo, então a âncora passa a ser o DADO que a
+  // linha interpola (today.illumination, sem chavetas). A lei não afrouxa:
+  // a reflexão continua abrindo o cartão e a iluminação continua depois dela,
+  // como recibo — só a grafia da âncora acompanhou a mudança de casa do texto.
   const src = fonteDaTela('LunarCalendarScreen.js');
   const bloco = trecho(src, 'styles.todayCard', 'styles.disclaimer', 'LunarCalendarScreen/hoje');
-  quenteAbre(bloco, '{today.reflexao}', ['{today.name}', '{today.illumination}'], 'LunarCalendarScreen/hoje');
+  quenteAbre(bloco, '{today.reflexao}', ['{today.name}', 'today.illumination'], 'LunarCalendarScreen/hoje');
 });
 
 test('Homem Zodiacal · "A Lua hoje" abre pela leitura, o chip do signo desce pro latim', () => {
@@ -322,7 +329,9 @@ test('a ficha continua na tela — descer não é apagar', () => {
     ['ProfeccoesScreen', prof, ['{anual.titulo}', '{anual.casaProfectada}', '{anual.senhorDoAno}', '{anual.origemRotulo}']],
     ['HomeScreen', home, ['{aspecto.text}', 'fase.linhaCurta', "'home.cosmicEventTitle'", "'home.compatAspect'"]],
     ['HoroscopeScreen', fonteDaTela('HoroscopeScreen.js'), ["'horoscope.sky.fact.moon'", "'horoscope.sky.fact.phase'", "'horoscope.sky.fact.dayRuler'"]],
-    ['LunarCalendarScreen', fonteDaTela('LunarCalendarScreen.js'), ['{today.name}', '{today.illumination}']],
+    // [AUTO-DECISION 09/08/2026] iluminação agora via t('lunar.illuminatedToday',
+    // { n: today.illumination }) — a âncora vira o dado interpolado, sem chavetas.
+    ['LunarCalendarScreen', fonteDaTela('LunarCalendarScreen.js'), ['{today.name}', 'today.illumination']],
     ['ZodiacBodyScreen', fonteDaTela('ZodiacBodyScreen.js'), ['{transit.sign.emoji}', '{moonEntry.latin}', '{moonEntry.locus}']],
     [
       'CalendarioCosmicoScreen',

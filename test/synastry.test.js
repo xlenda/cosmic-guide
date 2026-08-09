@@ -404,26 +404,57 @@ test('NENHUMA das 144 leituras decreta o desfecho do casal', () => {
 });
 
 test('a tela de Compatibilidade também não decreta — manchetes E subtítulo passam pelo mesmo filtro', () => {
+  // [AUTO-DECISION 09/08/2026 — extração de chrome] A MANCHETE e o subtítulo
+  // viraram chaves de lib/i18n.js ([BLOCO-CHROME-COMPAT]) pra tela falar es/en
+  // — cravados no JSX, saíam em português pra todo mundo. A âncora acompanhou:
+  // em vez de raspar o literal do arquivo da tela, o filtro lê os VALORES no
+  // dicionário. A lei sai FORTALECIDA: antes valia só pro texto pt; agora as
+  // mesmas formas proibidas são varridas nos três idiomas.
   const fs = require('node:fs');
   const path = require('node:path');
+  const { LANGUAGES, _DICTS_FOR_TESTS } = require('../lib/i18n.js');
   const src = fs.readFileSync(path.join(__dirname, '..', 'screens', 'CompatibilityScreen.js'), 'utf8');
+  // O mapa da tela continua sendo a regra categoria → manchete; os valores
+  // agora são as chaves do dicionário.
   const bloco = src.slice(src.indexOf('const MANCHETE'), src.indexOf('};', src.indexOf('const MANCHETE')));
-  for (const [re, motivo] of FATALISMO) {
-    assert.ok(!re.test(bloco), `manchete da tela — ${motivo}`);
+  const chaves = [...bloco.matchAll(/:\s*'([^']+)'/g)].map((m) => m[1]);
+  assert.equal(chaves.length, 4, 'o mapa MANCHETE da tela não tem as quatro entradas');
+  for (const chave of chaves) {
+    assert.match(chave, /^compat\.manchete\./, `entrada do mapa MANCHETE não aponta pro dicionário: "${chave}"`);
+  }
+  for (const lang of LANGUAGES) {
+    for (const chave of chaves) {
+      const manchete = _DICTS_FOR_TESTS[lang][chave];
+      assert.ok(
+        typeof manchete === 'string' && manchete.trim() !== '',
+        `${lang}: a manchete ${chave} sumiu do dicionário`
+      );
+      for (const [re, motivo] of FATALISMO) {
+        assert.ok(!re.test(manchete), `${lang}/${chave} — manchete da tela — ${motivo}`);
+      }
+    }
   }
   // O subtítulo do header também é texto de tela — e foi onde a promessa de
   // resultado sobreviveu mais tempo ("Encontre seu par celestial" prometia a
   // máquina de veredito que o resto da tela desmonta). O header descreve o que
-  // a tela FAZ; prometer O par é decretar desfecho.
-  const subtitle = (src.match(/subtitle="([^"]+)"/) || [])[1] || '';
-  assert.ok(subtitle.length > 0, 'subtitle do GradientHeader não encontrado na tela');
-  for (const [re, motivo] of FATALISMO) {
-    assert.ok(!re.test(subtitle), `subtítulo da tela — ${motivo}`);
-  }
+  // a tela FAZ; prometer O par é decretar desfecho — em qualquer idioma.
   assert.ok(
-    !/encontre (seu|o) par|par celestial|par ideal|par perfeito|alma gêmea|feitos um pro outro/i.test(subtitle),
-    `o subtítulo promete desfecho: "${subtitle}"`
+    src.includes("subtitle={t('compat.header.subtitle')}"),
+    'o subtítulo do GradientHeader não vem da chave compat.header.subtitle'
   );
+  for (const lang of LANGUAGES) {
+    const subtitle = _DICTS_FOR_TESTS[lang]['compat.header.subtitle'] || '';
+    assert.ok(subtitle.length > 0, `${lang}: compat.header.subtitle sumiu do dicionário`);
+    for (const [re, motivo] of FATALISMO) {
+      assert.ok(!re.test(subtitle), `${lang}: subtítulo da tela — ${motivo}`);
+    }
+    assert.ok(
+      !/encontre (seu|o) par|par celestial|par ideal|par perfeito|alma gêmea|feitos um pro outro|encuentra tu pareja|pareja (ideal|perfecta)|alma gemela|media naranja|find your (perfect |celestial )?(match|pair)|soul ?mate|made for each other/i.test(
+        subtitle
+      ),
+      `${lang}: o subtítulo promete desfecho: "${subtitle}"`
+    );
+  }
 });
 
 test('TODA leitura de aspecto duro carrega a nuance de IV.5 que impede a sentença', () => {

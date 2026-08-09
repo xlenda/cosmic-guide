@@ -613,7 +613,7 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', 
         <Text style={[styles.summaryMeta, styles.summaryMetaRecibo]}>
           {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
           {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
-          {chart.zone && chart.zone.dst ? ' · horário de verão' : ''}
+          {chart.zone && chart.zone.dst ? ` · ${t('birthchart.dst')}` : ''}
         </Text>
         {/* O FORMULÁRIO, recolhido: o botão reaproveita o título que o próprio
             form sempre teve (chart.birthData) — nenhuma chave nova — e o form
@@ -825,7 +825,7 @@ function HousesSection({ housesList, isCouple, onFixTime, onFixCity }) {
         <View style={styles.housesGrid}>
           {housesList.map((h) => (
             <View key={h.houseNumber} style={styles.houseCell}>
-              <Text style={styles.houseNumber}>Casa {h.houseNumber}</Text>
+              <Text style={styles.houseNumber}>{t('birthchart.houseNumber', { n: h.houseNumber })}</Text>
               <Text style={[styles.houseSign, { color: (zodiacSigns.find((z) => z.name === h.sign.name) || {}).color || colors.text }]}>
                 {h.sign.emoji} {h.sign.name}
               </Text>
@@ -835,9 +835,7 @@ function HousesSection({ housesList, isCouple, onFixTime, onFixCity }) {
       ) : (
         <>
           <View style={styles.planetRow}>
-            <Text style={styles.planetDesc}>
-              As Casas pedem hora exata e cidade de nascimento (mesma exigência do Ascendente) — adicione os dois para descobrir.
-            </Text>
+            <Text style={styles.planetDesc}>{t('birthchart.housesNeed')}</Text>
           </View>
           <FixNatalDataCTA isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
         </>
@@ -863,7 +861,7 @@ function AspectsSection({ aspectsList }) {
               <Text style={styles.aspectText}>
                 {a.planetA} {a.aspectType.toLowerCase()} {a.planetB}
               </Text>
-              <Text style={styles.aspectOrb}>orbe {a.orb.toFixed(1)}°</Text>
+              <Text style={styles.aspectOrb}>{t('birthchart.orb', { deg: a.orb.toFixed(1) })}</Text>
             </View>
           ))
         ) : (
@@ -892,17 +890,15 @@ function AstroCartographySection({ astro, isCouple, onFixTime, onFixCity }) {
   return (
     <>
       <Text style={styles.sub}>{t('chart.astrocarto')}</Text>
-      <Text style={styles.mutedNote}>
-        Prévia textual com cidades notáveis — ainda não é um mapa interativo completo.
-      </Text>
+      <Text style={styles.mutedNote}>{t('birthchart.astroPreviewNote')}</Text>
       {astro ? (
         astro.length > 0 ? (
           astro.map((a, i) => (
             <View key={`${a.city}-${a.planet}-${a.point}-${i}`} style={styles.aspectRow}>
               <Text style={styles.aspectText}>
-                {a.planet} perto de {a.point} em {a.city}
+                {t('birthchart.astroLine', { planet: a.planet, point: a.point, city: a.city })}
               </Text>
-              <Text style={styles.aspectOrb}>orbe {a.orb.toFixed(1)}°</Text>
+              <Text style={styles.aspectOrb}>{t('birthchart.orb', { deg: a.orb.toFixed(1) })}</Text>
             </View>
           ))
         ) : (
@@ -913,9 +909,7 @@ function AstroCartographySection({ astro, isCouple, onFixTime, onFixCity }) {
       ) : (
         <>
           <View style={styles.planetRow}>
-            <Text style={styles.planetDesc}>
-              A astrocartografia pede hora exata e cidade de nascimento (mesma exigência do Ascendente) — adicione os dois para descobrir.
-            </Text>
+            <Text style={styles.planetDesc}>{t('birthchart.astroNeed')}</Text>
           </View>
           <FixNatalDataCTA isCouple={isCouple} onFixTime={onFixTime} onFixCity={onFixCity} />
         </>
@@ -1133,13 +1127,21 @@ export default function BirthChartScreen() {
     const iso = todayISODiary();
     AsyncStorage.getItem(DIARY_RECORDED_KEY).then((lastDate) => {
       if (lastDate === iso) return;
-      const partes = [`Sol em ${activeChart.sun.name}`];
-      if (activeChart.moon?.name) partes.push(`Lua em ${activeChart.moon.name}`);
-      if (activeChart.asc?.name) partes.push(`Ascendente em ${activeChart.asc.name}`);
+      // Gravado no idioma ATUAL via t() — o Diário reexibe este texto depois,
+      // então PT cravado aqui viraria entrada em português pra quem usa es/en.
+      // Reusa birthchart.positionIn + os rótulos das rows (nenhuma chave nova);
+      // o NOME do signo é dado do motor e fica como veio.
+      const partes = [
+        t('birthchart.positionIn', { label: t('birthchart.row.sun.label'), sign: activeChart.sun.name }),
+      ];
+      if (activeChart.moon?.name)
+        partes.push(t('birthchart.positionIn', { label: t('birthchart.row.moon.label'), sign: activeChart.moon.name }));
+      if (activeChart.asc?.name)
+        partes.push(t('birthchart.positionIn', { label: t('birthchart.row.asc.label'), sign: activeChart.asc.name }));
       recordReadingCompletion({
         type: 'birthchart',
-        typeLabel: 'Mapa Astral',
-        title: 'Mapa Astral',
+        typeLabel: t('home.card.birthchart.title'),
+        title: t('home.card.birthchart.title'),
         body: partes.join(', ') + '.',
       });
       AsyncStorage.setItem(DIARY_RECORDED_KEY, iso);
@@ -1155,12 +1157,12 @@ export default function BirthChartScreen() {
     <View style={styles.formCard}>
       <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
       <Text style={styles.dateReadout}>
-        {formatDateBR(selectedBirth.date)}{selectedBirth.time ? ` · ${selectedBirth.time}` : ' · hora não informada'}
+        {formatDateBR(selectedBirth.date)}{selectedBirth.time ? ` · ${selectedBirth.time}` : ` · ${t('birthchart.noTime')}`}
       </Text>
       <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerOpen(true)}>
         <Ionicons name="location" size={16} color={colors.textMuted} />
         <Text style={[styles.dateBtnText, !selectedCity && styles.dateBtnPlaceholder]}>
-          {selectedCity ? cityLabel(selectedCity) : 'Adicionar cidade (para o Ascendente)'}
+          {selectedCity ? cityLabel(selectedCity) : t('birthchart.form.addCityAsc')}
         </Text>
       </TouchableOpacity>
     </View>
@@ -1172,7 +1174,7 @@ export default function BirthChartScreen() {
       <TouchableOpacity style={styles.dateBtn} onPress={() => setSoloDatePickerOpen(true)}>
         <Ionicons name="calendar" size={16} color={colors.textMuted} />
         <Text style={[styles.dateBtnText, !soloDate && styles.dateBtnPlaceholder]}>
-          {soloDate ? formatDateBR(soloDate) : 'Data de nascimento'}
+          {soloDate ? formatDateBR(soloDate) : t('birthchart.form.birthDate')}
         </Text>
       </TouchableOpacity>
 
@@ -1182,7 +1184,7 @@ export default function BirthChartScreen() {
           <TextInput
             ref={horaRef}
             style={styles.input}
-            placeholder="Hora"
+            placeholder={t('birthchart.form.hourPlaceholder')}
             placeholderTextColor={colors.textMuted}
             value={soloHoraH}
             onChangeText={setSoloHoraH}
@@ -1194,7 +1196,7 @@ export default function BirthChartScreen() {
         <View style={[styles.field, styles.horaField]}>
           <TextInput
             style={styles.input}
-            placeholder="Min"
+            placeholder={t('birthchart.form.minPlaceholder')}
             placeholderTextColor={colors.textMuted}
             value={soloHoraM}
             onChangeText={setSoloHoraM}
@@ -1208,7 +1210,7 @@ export default function BirthChartScreen() {
       <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerOpen(true)}>
         <Ionicons name="location" size={16} color={colors.textMuted} />
         <Text style={[styles.dateBtnText, !soloCity && styles.dateBtnPlaceholder]}>
-          {soloCity ? cityLabel(soloCity) : 'Cidade de nascimento (opcional)'}
+          {soloCity ? cityLabel(soloCity) : t('birthchart.form.cityOptional')}
         </Text>
       </TouchableOpacity>
 
@@ -1222,13 +1224,13 @@ export default function BirthChartScreen() {
   ) : null;
 
   if (!hasAccess && locked) {
-    return <OneTimeLock featureTitle="Mapa Astral" gradient={['#3A4AB5', '#6C7BFF']} />;
+    return <OneTimeLock featureTitle={t('home.card.birthchart.title')} gradient={['#3A4AB5', '#6C7BFF']} />;
   }
 
   return (
     <View style={styles.root}>
       <CosmicScene />
-      <GradientHeader title="Mapa Astral" subtitle="Seu retrato cósmico" onBack={() => navigation.goBack()} gradient={['#3A4AB5', '#6C7BFF']} />
+      <GradientHeader title={t('home.card.birthchart.title')} subtitle={t('birthchart.header.subtitle')} onBack={() => navigation.goBack()} gradient={['#3A4AB5', '#6C7BFF']} />
       <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, paddingBottom: activeChart ? 120 : 40 }} showsVerticalScrollIndicator={false}>
         {coupleLoading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
@@ -1253,7 +1255,7 @@ export default function BirthChartScreen() {
               <View style={styles.formCard}>
                 <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
                 <Text style={styles.mutedNote}>
-                  Não encontramos a data de nascimento de {person === 'voce' ? coupleData.voce : coupleData.amor}. Refaça o Quiz do Casal (em Perfil) para calcular o mapa astral.
+                  {t('birthchart.couple.missingDate', { name: person === 'voce' ? coupleData.voce : coupleData.amor })}
                 </Text>
                 {/* O texto acima só INFORMA onde ficam os dados; sem este
                     botão a tela inteira ficava sem uma única ação possível
@@ -1326,7 +1328,13 @@ export default function BirthChartScreen() {
             { id: 'astro', label: rotuloDePilula(t('chart.astrocarto')) },
           ]}
           activeId={aba}
-          onSelect={setAba}
+          onSelect={(id) => {
+            setAba(id);
+            // Trocar de pílula troca a SEÇÃO inteira, mas o scroll da anterior
+            // ficava: vindo do fim de uma seção longa, a nova abria no meio.
+            // Volta pro topo sem animação — troca de aba é troca de página.
+            scrollRef.current?.scrollTo({ y: 0, animated: false });
+          }}
         />
       )}
 
