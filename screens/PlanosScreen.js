@@ -29,11 +29,13 @@
 // login com Google e na confirmação de e-mail, que recarregam a página
 // inteira e fariam a pessoa reaparecer na Home, longe da oferta.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Linking, ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Linking, ScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../theme';
+import { CENAS } from '../lib/ilustracoes';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useAuth } from '../context/AuthContext';
@@ -184,6 +186,46 @@ const PLANS = [
 const PLAN_IDS = PLANS.map((p) => p.id);
 const PLANO_PADRAO = 'trial';
 
+// ARITMÉTICA DOS SELOS (09/08/2026) — nenhum selo desta tela nasce de texto
+// solto: tudo sai da conta feita AQUI, com os mesmos preços reais dos cards
+// acima. Doutrina do app: economia inventada, âncora riscada e "-70%" de
+// fantasia quebram o build — o que se mostra é só o que a divisão confirma.
+//   · mensal cheio: US$ 5/mês (plano 'trial')
+//   · trimestral:   US$ 10 ÷ 3  = US$ 3,33/mês → economia real de 33%
+//   · anual:        US$ 20 ÷ 12 = US$ 1,67/mês → economia real de 67%
+// Os textos "Economize 33%/67%" de planos.plan.*.badge são exatamente esses
+// arredondamentos — a pílula só aparece se a conta continuar dando economia,
+// então mudar um preço sem refazer o badge apaga a pílula em vez de mentir.
+const PRECO_NUM = { trial: 5, quarterly: 10, annual: 20 };
+const MESES_POR_CICLO = { trial: 1, quarterly: 3, annual: 12 };
+
+function mensalEquivalente(planId) {
+  return PRECO_NUM[planId] / MESES_POR_CICLO[planId];
+}
+
+// % de economia REAL do plano frente a pagar o mensal cheio o período todo.
+// 0 quando não há economia — e 0 significa "sem pílula", nunca número forjado.
+function economiaPct(planId) {
+  const cheio = PRECO_NUM.trial;
+  const equivalente = mensalEquivalente(planId);
+  if (!(equivalente < cheio)) return 0;
+  return Math.round((1 - equivalente / cheio) * 100);
+}
+
+// O selo "MELHOR VALOR" só existe se houver um plano comprovadamente mais
+// barato por mês que o mensal (hoje: anual, US$ 20 < 12 × US$ 5 = US$ 60).
+// Se os preços mudarem e nenhum plano economizar de verdade, MELHOR_VALOR_ID
+// vira null e o selo some sozinho — sem selo é melhor que selo falso.
+const MELHOR_VALOR_ID = (() => {
+  let melhor = null;
+  for (const p of PLANS) {
+    if (economiaPct(p.id) > 0 && (melhor === null || mensalEquivalente(p.id) < mensalEquivalente(melhor))) {
+      melhor = p.id;
+    }
+  }
+  return melhor;
+})();
+
 // Plano que a tela abre selecionado. Normalmente 'trial', mas quando a pessoa
 // volta do login (route.params.plan, posto lá pelo LoginScreen ou pelo resgate
 // da intenção no App.js) ela reencontra EXATAMENTE o plano que tinha
@@ -217,14 +259,24 @@ function pedirLogin(navigation, plan) {
   });
 }
 
+// REDESENHO PREMIUM (09/08/2026) — os 3 cards deixaram de ser colunas magras
+// lado a lado (preço 18px espremido em ~100px de largura) e viraram fileiras
+// empilhadas com hierarquia de verdade: rótulo + detalhe à esquerda, preço
+// grande (28/800) com o ciclo embaixo à direita — a diagramação do concorrente
+// premium, SEM as fraudes dele (nenhuma âncora riscada, nenhum contador). O
+// plano que a aritmética de MELHOR_VALOR_ID confirma ganha borda dourada e o
+// selo "MELHOR VALOR"; a pílula de economia reusa o texto real de
+// planos.plan.*.badge e só aparece quando economiaPct() > 0. Comportamento
+// intacto: mesmo funnel.planSelect, mesma seleção, mesmas chaves i18n.
 function PlanPicker({ selected, onSelect }) {
   const { t } = useLanguage();
   return (
-    <View style={styles.planRow}>
+    <View style={styles.planStack}>
       {PLANS.map((plan) => {
         const isSelected = plan.id === selected;
+        const destaque = plan.id === MELHOR_VALOR_ID;
         const badge = t(`planos.plan.${plan.id}.badge`);
-        const hasBadge = badge && badge !== `planos.plan.${plan.id}.badge`;
+        const hasBadge = badge && badge !== `planos.plan.${plan.id}.badge` && economiaPct(plan.id) > 0;
         return (
           <TouchableOpacity
             key={plan.id}
@@ -238,20 +290,48 @@ function PlanPicker({ selected, onSelect }) {
               funnel.planSelect(plan.id);
               onSelect(plan.id);
             }}
-            style={[styles.planCard, isSelected && styles.planCardSelected]}
+            style={[styles.planCard, destaque && styles.planCardDestaque, isSelected && styles.planCardSelected]}
           >
-            {hasBadge && (
+            {destaque && (
               <View style={styles.planBadge}>
-                <Text style={styles.planBadgeText}>{badge}</Text>
+                <Text style={styles.planBadgeText}>{t('planos.badge.bestValue')}</Text>
               </View>
             )}
-            <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>{t(`planos.plan.${plan.id}.label`)}</Text>
-            <Text style={[styles.planPrice, isSelected && styles.planLabelSelected]}>{plan.price}</Text>
-            <Text style={styles.planCycle}>{t(`planos.plan.${plan.id}.cycle`)}</Text>
-            <Text style={styles.planDetail}>{t(`planos.plan.${plan.id}.detail`)}</Text>
+            <View style={styles.planInfo}>
+              <View style={styles.planLabelRow}>
+                <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>{t(`planos.plan.${plan.id}.label`)}</Text>
+                {hasBadge && (
+                  <View style={styles.savePill}>
+                    <Text style={styles.savePillText}>{badge}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.planDetail}>{t(`planos.plan.${plan.id}.detail`)}</Text>
+            </View>
+            <View style={styles.planPriceCol}>
+              <Text style={[styles.planPrice, isSelected && styles.planLabelSelected]}>{plan.price}</Text>
+              <Text style={styles.planCycle}>{t(`planos.plan.${plan.id}.cycle`)}</Text>
+            </View>
           </TouchableOpacity>
         );
       })}
+    </View>
+  );
+}
+
+// TOPO CÊNICO (09/08/2026) — a cena do pack (lib/ilustracoes.js) sangrando as
+// bordas no padrão das âncoras (Loja/Tarô/Sonhos): margens negativas anulam o
+// padding:20 do content, a arte cola no header, e o LinearGradient funde o
+// terço inferior no fundo. O título de desbloqueio (o MESMO texto de
+// planos.unlockTitle/unlockTitleSolo que antes abria o card) pousa sobre o
+// fade. Casal vê o casal ao pôr-do-sol (cena-onboarding); solo vê a cena de
+// amor — decorativa nos dois casos (accessible=false), o texto é o título.
+function HeroCena({ isCouple, title }) {
+  return (
+    <View style={styles.cenaWrap}>
+      <Image source={isCouple ? CENAS.onboarding : CENAS.amor} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+      <LinearGradient colors={['transparent', colors.background]} style={styles.cenaFade} pointerEvents="none" />
+      <Text style={styles.heroTitle}>{title}</Text>
     </View>
   );
 }
@@ -496,9 +576,13 @@ function PlanosScreenWeb() {
         onBack={() => (aberto ? fecharCheckout() : navigation.goBack())}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Só no estado de oferta: com o checkout da Hotmart montado, a cena
+            empurraria o formulário do cartão pra fora da dobra. */}
+        {!aberto && (
+          <HeroCena isCouple={isCouple} title={t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')} />
+        )}
         {!aberto && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')}</Text>
             <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
             <BenefitsList isCouple={isCouple} />
             {/* Enquanto a sessão do Supabase não resolve, o botão vira spinner:
@@ -510,6 +594,10 @@ function PlanosScreenWeb() {
                 <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
               </TouchableOpacity>
             )}
+            {/* Rodapé de confiança do CTA — só afirma o que os Termos e o FAQ
+                já garantem por escrito (cancelamento a qualquer momento na área
+                de compras da Hotmart, acesso até o fim do período pago). */}
+            <Text style={styles.trustNote}>{t('planos.trust')}</Text>
             {/* Deslogado vê o preço primeiro e só depois a conta — mas fica
                 sabendo do passo antes de tocar, em vez de ser surpreendido por
                 um formulário de cadastro. */}
@@ -682,8 +770,10 @@ function PlanosScreenNative() {
         onBack={() => navigation.goBack()}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Mesmo topo cênico da web — no nativo o checkout abre num navegador
+            in-app, então a cena nunca disputa espaço com formulário. */}
+        <HeroCena isCouple={isCouple} title={t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')} />
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')}</Text>
           <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
           <BenefitsList isCouple={isCouple} />
           {carregando || authLoading ? (
@@ -693,6 +783,8 @@ function PlanosScreenNative() {
               <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
             </TouchableOpacity>
           )}
+          {/* Mesmo rodapé de confiança da web — só o que os Termos garantem. */}
+          <Text style={styles.trustNote}>{t('planos.trust')}</Text>
           {/* Mesma nota da web: a conta é o passo seguinte, e a pessoa sabe
               disso antes de tocar — depois de já ter visto preço e benefício. */}
           {!user && !authLoading && !carregando && (
@@ -774,20 +866,55 @@ const styles = StyleSheet.create({
   legalLink: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' },
   legalSep: { color: colors.textMuted, fontSize: 12 },
 
-  planRow: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 16 },
-  planCard: {
-    flex: 1, borderWidth: 1.5, borderColor: colors.border, borderRadius: 14,
-    paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center', backgroundColor: colors.surfaceElevated,
+  // TOPO CÊNICO — full-bleed no padrão das âncoras (Loja/Tarô): margens
+  // negativas anulam o padding:20 do content, a arte cola no header e o fade
+  // funde o terço inferior no fundo. O título pousa sobre o fade, com sombra
+  // sutil pra continuar legível sobre qualquer trecho claro da arte.
+  cenaWrap: { marginTop: -20, marginHorizontal: -20, marginBottom: 14 },
+  cenaImg: { width: '100%', height: 180 },
+  cenaFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 64 },
+  heroTitle: {
+    position: 'absolute', left: 24, right: 24, bottom: 8,
+    color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center',
+    textShadowColor: 'rgba(14, 8, 33, 0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 8,
   },
+
+  // CARDS EMPILHADOS — fileiras com hierarquia: rótulo+detalhe à esquerda,
+  // preço grande à direita. O destaque (MELHOR_VALOR_ID) tem borda dourada e
+  // mais respiro; a seleção continua sendo a borda accent + fundo tingido, e
+  // vem DEPOIS do destaque no array de estilos pra vencer quando os dois
+  // coincidem no mesmo card.
+  planStack: { alignSelf: 'stretch', marginTop: 16, gap: 10 },
+  planCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 1.5, borderColor: colors.border, borderRadius: 14,
+    paddingVertical: 14, paddingHorizontal: 14, backgroundColor: colors.surfaceElevated,
+  },
+  planCardDestaque: { borderColor: colors.gold, paddingVertical: 18 },
   planCardSelected: { borderColor: colors.accent, backgroundColor: colors.accent + '18' },
   planBadge: {
-    position: 'absolute', top: -10, backgroundColor: colors.gold, borderRadius: 8,
-    paddingHorizontal: 6, paddingVertical: 2,
+    position: 'absolute', top: -10, right: 14, backgroundColor: colors.gold, borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 2,
   },
-  planBadgeText: { color: '#2A1D00', fontSize: 9, fontWeight: '800' },
-  planLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '700', marginTop: 6 },
+  planBadgeText: { color: '#2A1D00', fontSize: 9, fontWeight: '800', letterSpacing: 0.4 },
+  planInfo: { flex: 1 },
+  planLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  planLabel: { color: colors.textSecondary, fontSize: 15, fontWeight: '800' },
   planLabelSelected: { color: colors.text },
-  planPrice: { color: colors.textSecondary, fontSize: 18, fontWeight: '800', marginTop: 4 },
+  // Pílula de economia — o texto real de planos.plan.*.badge (33%/67%, a conta
+  // verdadeira feita em economiaPct), agora inline em vez de selo flutuante,
+  // porque o slot flutuante passou a ser do "MELHOR VALOR".
+  savePill: {
+    backgroundColor: colors.gold + '26', borderWidth: 1, borderColor: colors.gold + '66',
+    borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1,
+  },
+  savePillText: { color: colors.gold, fontSize: 10, fontWeight: '800' },
+  planPriceCol: { alignItems: 'flex-end' },
+  planPrice: { color: colors.textSecondary, fontSize: 28, fontWeight: '800', lineHeight: 32 },
   planCycle: { color: colors.textMuted, fontSize: 11 },
-  planDetail: { color: colors.gold, fontSize: 11, fontWeight: '700', marginTop: 6, textAlign: 'center' },
+  planDetail: { color: colors.gold, fontSize: 11, fontWeight: '700', marginTop: 4 },
+
+  // Rodapé de confiança do CTA: menor e mais quieto que o botão, como a
+  // loginNote — informa, não compete.
+  trustNote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 10 },
 });

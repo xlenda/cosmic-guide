@@ -4,7 +4,7 @@
 // Recarrega a cada foco de tela (useFocusEffect) porque a pessoa normalmente
 // chega aqui vindo de uma leitura que acabou de salvar uma entrada nova.
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Alert } from '../lib/webAlert';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,6 +31,16 @@ import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { shareToFeed } from '../lib/socialClient';
 import { ROUTES } from '../routes';
+// O VAZIO ILUSTRADO ([BLOCO-ESPERA], 09/08/2026) — o diário sem entradas já
+// tinha empty-state decente (título, texto e CTA, que FICAM intocados); entrou
+// só a arte acima deles, e o vazio vira convite visual.
+// [AUTO-DECISION] tile-retrospectiva, como a missão sugeriu: é a arte de
+// "olhar o caminho percorrido", exatamente o que o diário promete guardar.
+// Contrato de lib/ilustracoes.js: arte null → o ícone de livro de sempre
+// continua no lugar (a arte é upgrade, nunca dependência).
+import { tileArte } from '../lib/ilustracoes';
+
+const ARTE_VAZIO = tileArte('retrospectiva');
 
 const TYPE_ICONS = {
   tarot: 'albums',
@@ -420,7 +430,14 @@ export default function DiaryScreen() {
 
       {!loading && entries.length === 0 ? (
         <View style={styles.emptyWrap}>
-          <Ionicons name="book" size={48} color={colors.accent} />
+          {/* A arte no lugar do ícone seco — mesma regra dos mascotes: com
+              imagem, imagem; sem imagem, o glifo de sempre. accessible=false
+              porque é cenário, não informação (o texto abaixo diz tudo). */}
+          {ARTE_VAZIO ? (
+            <Image source={ARTE_VAZIO} style={styles.emptyArte} resizeMode="cover" accessible={false} />
+          ) : (
+            <Ionicons name="book" size={48} color={colors.accent} />
+          )}
           <Text style={styles.emptyTitle}>{t('diary.empty.waiting')}</Text>
           <Text style={styles.emptyDesc}>
             Toda leitura de tarô, palma, rosto, pé, pintas, café ou sonho que você fizer aparece aqui, guardadinha
@@ -565,6 +582,9 @@ const styles = StyleSheet.create({
   deleteText: { color: colors.red, fontSize: 13, fontWeight: '700' },
 
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36 },
+  // A arte do vazio ([BLOCO-ESPERA]) — 112px redonda, dentro da faixa 96-120
+  // pedida; convite visual, sem animação (vazio não é espera).
+  emptyArte: { width: 112, height: 112, borderRadius: 56 },
   emptyTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginTop: 16 },
   emptyDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
   emptyBtn: { marginTop: 22, borderRadius: 14, overflow: 'hidden', alignSelf: 'stretch' },

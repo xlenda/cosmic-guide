@@ -1,5 +1,5 @@
-import React from 'react';
-import { TouchableOpacity, Text, View, Image, StyleSheet } from 'react-native';
+import React, { useRef } from 'react';
+import { TouchableOpacity, Text, View, Image, StyleSheet, Animated, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
@@ -19,6 +19,30 @@ import { useLanguage } from '../context/LanguageContext';
 //     feature fica quebrada esperando arte.
 export default function FeatureCard({ title, subtitle, icon, gradient, arte, onPress, locked, testID }) {
   const { t } = useLanguage();
+  // PRESS-IN ENCOLHE, PRESS-OUT DEVOLVE (09/08/2026) — o feedback vivo de app
+  // nativo que faltava no toque. O TouchableOpacity FICA (o fade de
+  // activeOpacity, a acessibilidade e o testID não mudam uma vírgula): a
+  // escala entra por FORA, num Animated.View que embrulha o card inteiro e
+  // ouve onPressIn/onPressOut. Springs curtos de propósito — nada aqui atrasa
+  // o onPress. useNativeDriver segue a convenção da casa (BreathGuide):
+  // driver de verdade no nativo, JS na web, e é one-shot, nunca loop.
+  const escala = useRef(new Animated.Value(1)).current;
+  const aoApertar = () => {
+    Animated.spring(escala, {
+      toValue: 0.965,
+      speed: 40,
+      bounciness: 0,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  };
+  const aoSoltar = () => {
+    Animated.spring(escala, {
+      toValue: 1,
+      speed: 24,
+      bounciness: 5,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  };
   const aoTocar = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress && onPress();
@@ -26,9 +50,12 @@ export default function FeatureCard({ title, subtitle, icon, gradient, arte, onP
 
   if (arte) {
     return (
+      <Animated.View style={[styles.animWrap, { transform: [{ scale: escala }] }]}>
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={aoTocar}
+        onPressIn={aoApertar}
+        onPressOut={aoSoltar}
         style={[styles.card, locked && styles.cardLocked]}
         accessibilityRole="button"
         accessibilityLabel={locked ? t('featureCard.lockedA11y', { title }) : title}
@@ -50,13 +77,17 @@ export default function FeatureCard({ title, subtitle, icon, gradient, arte, onP
           <Text style={styles.subtituloBanner} numberOfLines={1}>{subtitle}</Text>
         </View>
       </TouchableOpacity>
+      </Animated.View>
     );
   }
 
   return (
+    <Animated.View style={[styles.animWrap, { transform: [{ scale: escala }] }]}>
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={aoTocar}
+      onPressIn={aoApertar}
+      onPressOut={aoSoltar}
       style={styles.card}
       accessibilityRole="button"
       accessibilityLabel={locked ? t('featureCard.lockedA11y', { title }) : title}
@@ -76,10 +107,17 @@ export default function FeatureCard({ title, subtitle, icon, gradient, arte, onP
         <Text style={styles.subtitle}>{subtitle}</Text>
       </LinearGradient>
     </TouchableOpacity>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  // O embrulho da escala de toque. flex: 1 aqui e flex: 1 no card: o wrapper
+  // herda o papel de célula do grid (CardGrid.js dá flex por coluna) e o card
+  // preenche o wrapper — flexBasis de `flex: 1` é '0%', que dentro de altura
+  // indefinida resolve pra conteúdo nas DUAS engines (Yoga e CSS), então a
+  // grade mede igualzinho a antes.
+  animWrap: { flex: 1 },
   card: {
     flex: 1,
     borderRadius: 16,

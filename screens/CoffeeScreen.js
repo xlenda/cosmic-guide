@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Animated,
+  Easing,
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -45,6 +47,9 @@ import { paraSlides } from '../lib/storySlides';
 // O BOTÃO "OUVIR" (09/08/2026) — reading.body em voz alta com a voz do
 // aparelho (Web Speech API, lib/voz.js). Sem a API ele devolve null sozinho.
 import BotaoOuvir from '../components/BotaoOuvir';
+// A ARTE DA ESPERA ([BLOCO-ESPERA], 09/08/2026) — o tile do café
+// (lib/ilustracoes.js, 256px) pulsa enquanto a IA analisa a foto.
+import { tileArte } from '../lib/ilustracoes';
 
 const FEATURE_KEY = 'coffee';
 
@@ -83,6 +88,58 @@ const DISCLAIMER =
 // Estados possíveis da tela: intro (sem foto) -> preview (foto escolhida,
 // aguardando "Analisar") -> result (leitura exibida).
 const STEP = { INTRO: 'intro', PREVIEW: 'preview', RESULT: 'result' };
+
+// O BLOCO DE ESPERA ILUSTRADO ([BLOCO-ESPERA], 09/08/2026) — enquanto a IA
+// analisa a borra, a arte do tile do café respira no lugar do spinner seco.
+// O pulso de opacidade (0.55↔1) nasce no mount e morre no cleanup: o bloco só
+// renderiza enquanto isAnalyzing, então o fim da espera DESMONTA e para o
+// loop — nada roda em segundo plano. useNativeDriver só fora da web
+// (react-native-web não tem o driver nativo). A frase é convite honesto ao
+// que está acontecendo, nunca promessa; o rodapé de sempre (coffee.analyzing)
+// segue embaixo, intocado, ao lado do indicador pequeno.
+function EsperaIlustrada({ arte, frase, rodape }) {
+  const opacidade = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacidade, {
+          toValue: 0.55,
+          duration: 1100,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(opacidade, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [opacidade]);
+
+  return (
+    <View style={styles.esperaWrap}>
+      {/* arte null → sem imagem, o bloco continua inteiro (contrato de
+          lib/ilustracoes.js). accessible={false}: é cenário, não informação. */}
+      {arte ? (
+        <Animated.Image
+          source={arte}
+          style={[styles.esperaArte, { opacity: opacidade }]}
+          resizeMode="cover"
+          accessible={false}
+        />
+      ) : null}
+      <Text style={styles.esperaFrase}>{frase}</Text>
+      <View style={styles.loadingRow}>
+        <ActivityIndicator size="small" color={colors.accent} />
+        <Text style={styles.loadingText}>{rodape}</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function CoffeeScreen() {
   const navigation = useNavigation();
@@ -350,10 +407,11 @@ export default function CoffeeScreen() {
             </View>
 
             {isAnalyzing ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator color={colors.accent} />
-                <Text style={styles.loadingText}>{t('coffee.analyzing')}</Text>
-              </View>
+              <EsperaIlustrada
+                arte={tileArte('coffee')}
+                frase={t('espera.coffee')}
+                rodape={t('coffee.analyzing')}
+              />
             ) : (
               <>
                 <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleAnalyze}>
@@ -525,6 +583,11 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '100%' },
   loadingRow: { flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
   loadingText: { color: colors.textSecondary, fontSize: 14 },
+  // O bloco de espera ilustrado ([BLOCO-ESPERA]) — arte 96px redonda pulsando
+  // + frase de convite; o indicador pequeno de sempre fecha como rodapé.
+  esperaWrap: { alignItems: 'center', gap: 12, paddingVertical: 14 },
+  esperaArte: { width: 96, height: 96, borderRadius: 48 },
+  esperaFrase: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
   linkText: { color: colors.accent, fontSize: 14, textAlign: 'center', fontWeight: '600' },
   resultCard: {
     backgroundColor: colors.card,

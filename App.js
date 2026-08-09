@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
 
@@ -210,6 +210,30 @@ const Stack = createStackNavigator();
 // No nativo (loja, futuro) o gesto fica.
 const GESTO_STACK = { gestureEnabled: Platform.OS !== 'web' };
 
+// A TRANSIÇÃO DE EMPURRAR TELA (09/08/2026) — slide horizontal estilo iOS nos
+// quatro Stack.Navigator. O stack v6 NASCE sem animação na web (conferido no
+// fonte instalado, CardStack.js: animationEnabled = Platform.OS !== 'web'...),
+// então o `animationEnabled: true` aqui é o que liga o slide no navegador.
+// Liga SÓ a animação: o preset não mexe em gestureEnabled, então o
+// GESTO_STACK acima continua mandando e o gesto de voltar-por-arrasto segue
+// desligado na web (o bug de rolagem documentado ali não volta).
+//
+// Custo na web, declarado (doutrina do BreathGuide): o próprio stack usa
+// useNativeDriver = Platform.OS !== 'web' por dentro (Card.js) — driver JS via
+// rAF, mas é um spring ONE-SHOT de ~300ms com overshootClamping (o
+// TransitionIOSSpec do preset), disparado só quando alguém navega. Nada de
+// loop, nada de custo parado.
+//
+// O cardStyle fixa o fundo do app na carta que desliza: sem ele, o vão atrás
+// da tela durante o slide seria o cinza-claro do DefaultTheme do
+// react-navigation (CardContainer.js usa colors.background do theme, e o
+// NavigationContainer daqui não recebe theme nenhum).
+const TRANSICAO_STACK = {
+  ...TransitionPresets.SlideFromRightIOS,
+  animationEnabled: true,
+  cardStyle: { backgroundColor: colors.background },
+};
+
 
 // Só as rotas com `path` ganham URL própria na web (o app é servido pela Vercel
 // em cosmicguide.cloud/oddpro.pro). Sem path, abrir a tela não muda a URL: não
@@ -314,7 +338,7 @@ function useUrlBootstrap() {
 function HomeStack() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}>
         <Stack.Screen name={ROUTES.HOME_MAIN} component={HomeScreen} />
         <Stack.Screen name={ROUTES.HOROSCOPE} component={HoroscopeScreen} />
         <Stack.Screen name={ROUTES.BIRTH_CHART} component={BirthChartScreen} />
@@ -391,7 +415,7 @@ function HomeStack() {
 function TarotStack() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}>
         <Stack.Screen name={ROUTES.TAROT_MAIN} component={TarotScreen} />
         <Stack.Screen name={ROUTES.TAROT_ALBUM} component={TarotAlbumScreen} />
       </Stack.Navigator>
@@ -402,7 +426,7 @@ function TarotStack() {
 function ProfileStack() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}>
         <Stack.Screen name={ROUTES.PROFILE_MAIN} component={ProfileScreen} />
         <Stack.Screen name={ROUTES.PRIVACY} component={PrivacyScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
@@ -497,7 +521,7 @@ function Gate() {
     return (
       <NavigationContainer>
         <Suspense fallback={<LoadingFallback />}>
-          <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK }}>
+          <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}>
             <Stack.Screen name={ROUTES.ONBOARDING_CHOICE} component={OnboardingChoiceScreen} />
             <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
           </Stack.Navigator>
