@@ -342,6 +342,51 @@ export default function HomeScreen() {
     });
   }, [personalSky, personalSkyFases]);
 
+  // O CÉU NOS PRÓXIMOS DIAS — countdown real do próximo evento do Calendário
+  // Cósmico (lib/proximosEventos.js recorta lib/calendarioCosmico.js; nada é
+  // calculado aqui). Duas decisões deliberadas:
+  //
+  //   1. import() DINÂMICO, mesma razão da linha de hoje logo abaixo: o motor
+  //      do calendário puxa os TRÊS packs de texto de lib/traducoes/ (centenas
+  //      de parágrafos), e a tela do Calendário é lazy() em App.js exatamente
+  //      pra esse peso ficar fora do parse inicial. Um import estático aqui
+  //      mataria essa decisão em silêncio — a Home é raiz de aba e carrega
+  //      sempre. De quebra, a primeira chamada do mês custa ~140 ms de
+  //      efeméride: rodando DEPOIS da primeira pintura, dentro do efeito, ela
+  //      não segura o primeiro quadro (as chamadas seguintes saem do cache).
+  //   2. recalcula a cada FOCO: à meia-noite "faltam 1 dia" vira "Amanhã" e o
+  //      evento de ontem sai da lista — a Home fica montada na stack e sem
+  //      isso mostraria a contagem de ontem. `lang` nas deps porque o título
+  //      do evento vem traduzido do pack do calendário.
+  //
+  // null = não desenha o card. Motor indisponível, mês sem evento pela frente
+  // ou chunk que não baixou dão o MESMO null — nunca um erro na cara de quem
+  // só abriu o app, mesma disciplina do subtítulo vivo do card do Calendário.
+  const [proximosCeu, setProximosCeu] = useState(null);
+  useFocusEffect(
+    useCallback(() => {
+      let vivo = true;
+      (async () => {
+        try {
+          const { proximosEventos } = await import('../lib/proximosEventos');
+          const lista = proximosEventos(new Date(), lang, 3);
+          if (vivo) setProximosCeu(Array.isArray(lista) && lista.length > 0 ? lista : null);
+        } catch {
+          if (vivo) setProximosCeu(null);
+        }
+      })();
+      return () => {
+        vivo = false;
+      };
+    }, [lang])
+  );
+
+  // A contagem em palavra: 0 e 1 têm chave própria (Hoje/Amanhã), a chave com
+  // {n} só recebe n >= 2 — o plural das três línguas está certo por
+  // construção, sem lógica de plural nenhuma.
+  const rotuloFaltamDias = (n) =>
+    n === 0 ? t('home.eventos.hoje') : n === 1 ? t('home.eventos.amanha') : t('home.eventos.dias', { n });
+
   // A linha de hoje (ver o bloco grande no topo do arquivo pro porquê de ser
   // UMA linha, de a trilha ganhar do ritual, e de os motores virem por import()
   // dinâmico). `null` = não há motivo de voltar hoje, e aí não se desenha nada.
@@ -1134,6 +1179,52 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* O CÉU NOS PRÓXIMOS DIAS — countdown REAL do próximo evento do
+            Calendário Cósmico ("Faltam 2 dias · Lua Cheia"). O card é VITRINE,
+            não ficha: diz só O QUE acontece e QUANDO — os dois são dado medido
+            do motor —; parágrafo, fonte e século moram na tela do Calendário,
+            que é pra onde o CTA leva. Nenhum selo de "impacto" ou afim:
+            impacto não é efeméride, e o que não é medido não entra.
+            POSIÇÃO: colado no Céu de Hoje de propósito — o hoje em cima, os
+            próximos dias logo abaixo, uma narrativa só de céu — e ABAIXO da
+            primeira dobra (hero, diário, sequência, pensamento e missões
+            intocados), porque card novo na dobra de cima é exatamente o "fica
+            perdido no meio" que o dono mandou tirar em 31/07. Quando o motor
+            devolve null (sem efeméride, sem evento pela frente), o card NEM
+            MONTA — sem estado vazio, sem estado de erro. */}
+        {Array.isArray(proximosCeu) && proximosCeu.length > 0 && (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.proximosCard}
+            onPress={() => navigation.navigate(ROUTES.CALENDARIO_COSMICO)}
+            testID="home-proximos-eventos"
+          >
+            <LinearGradient colors={gradients.card} style={styles.proximosInner}>
+              <View style={styles.peekHead}>
+                <Ionicons name="calendar" size={16} color={colors.gold} />
+                <Text style={[styles.peekLabel, { color: colors.gold }]}>{t('home.eventos.label')}</Text>
+              </View>
+              {/* O mais próximo em destaque: a contagem abre (é o quente) e o
+                  título do evento vem em corpo grande logo abaixo. */}
+              <Text style={styles.proximosQuando}>{rotuloFaltamDias(proximosCeu[0].faltamDias)}</Text>
+              <Text style={styles.proximosTitulo} numberOfLines={2}>
+                {proximosCeu[0].emoji} {proximosCeu[0].titulo}
+              </Text>
+              {/* Os 1-2 seguintes, menores — o suficiente pra dizer que o mês
+                  continua, sem competir com o destaque. Chave por índice: a
+                  lista é recomputada inteira a cada foco, nunca reordenada in
+                  loco, e tipo+dia não são únicos (dois aspectos exatos podem
+                  cair no mesmo dia). */}
+              {proximosCeu.slice(1).map((ev, i) => (
+                <Text key={i} style={styles.proximosItem} numberOfLines={1}>
+                  {rotuloFaltamDias(ev.faltamDias)} · {ev.emoji} {ev.titulo}
+                </Text>
+              ))}
+              <Text style={styles.proximosCta}>{t('home.eventos.cta')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* Frase do dia de amor — feita pra compartilhar de verdade com o
             par, não só ler (ver handleShareLovePhrase acima). */}
         <View style={styles.lovePhraseCard}>
@@ -1412,6 +1503,18 @@ const styles = StyleSheet.create({
   peekBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   peekBtnText: { color: colors.purple, fontSize: 13, fontWeight: '800' },
   skyInviteLink: { color: colors.teal, fontSize: 13, fontWeight: '800', marginTop: 10 },
+  // O céu nos próximos dias — mesmo DNA visual dos cards de gradiente da Home
+  // (gradients.card + borda padrão, como o cartão do casal), nada de fundo
+  // chapado novo. Hierarquia em três degraus: a contagem dourada abre, o
+  // título do evento é o corpo de destaque, os eventos seguintes são linhas
+  // de apoio e o CTA fecha como texto-link (a seta é do próprio texto — sem
+  // Ionicons ao lado, mesma convenção do link do convite do Céu de Hoje).
+  proximosCard: { marginHorizontal: 16, marginBottom: 14, borderRadius: 16, overflow: 'hidden' },
+  proximosInner: { padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 16 },
+  proximosQuando: { color: colors.gold, fontSize: 13, fontWeight: '800' },
+  proximosTitulo: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 2 },
+  proximosItem: { color: colors.textSecondary, fontSize: 13, marginTop: 8 },
+  proximosCta: { color: colors.gold, fontSize: 13, fontWeight: '800', marginTop: 12 },
   wrappedBar: { marginHorizontal: 16, marginBottom: 14, borderRadius: 16, overflow: 'hidden' },
   wrappedBarInner: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
   wrappedBarEmoji: { fontSize: 24 },

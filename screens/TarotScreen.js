@@ -33,6 +33,10 @@ import { avaliarPergunta, preparoDaTiragem, progressoDoPreparo } from '../lib/wa
 import { PACK as PACK_WAITE_PT } from '../lib/traducoes/waiteRegras.pt.js';
 import { PACK as PACK_WAITE_ES } from '../lib/traducoes/waiteRegras.es.js';
 import { PACK as PACK_WAITE_EN } from '../lib/traducoes/waiteRegras.en.js';
+// O MODO HISTÓRIA (08/08/2026) — a mesma leitura, um trecho por tela, como
+// stories. paraSlides só REFORMATA: nenhum byte da prosa muda de lugar.
+import StoriesReader from '../components/StoriesReader';
+import { paraSlides } from '../lib/storySlides';
 
 const FEATURE_KEY = 'tarot';
 
@@ -144,6 +148,27 @@ export default function TarotScreen() {
     });
   }, []);
   const progressoDoWaite = useMemo(() => progressoDoPreparo(preparoFeitas, lang), [preparoFeitas, lang]);
+
+  // ---- O MODO HISTÓRIA ----
+  // O corpo é o MESMO que drawCards() grava no Diário (casa por casa + a
+  // leitura transversal da tiragem), remontado aqui porque a tela guarda a
+  // tiragem em estado, não o texto pronto. São as mesmas funções do motor com
+  // os mesmos argumentos — o modo história só reformata a exibição. Vazio
+  // enquanto houver carta fechada: o leitor não entrega o desfecho de uma
+  // carta que a pessoa ainda não abriu.
+  const [historiaAberta, setHistoriaAberta] = useState(false);
+  const slidesDaTiragem = useMemo(() => {
+    if (!drawn || !revealed.every(Boolean)) return [];
+    const readings = drawn.map((card, i) => {
+      const orientationTag = orientations[i] ? t('tarot.reversedTag') : '';
+      const casa = t(`tarot.position.${POSITIONS[i]}`);
+      return `${casa} — ${getCardName(card, lang)}${orientationTag}: ${getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i], lang)}`;
+    });
+    const body = [...readings, getElementalDignity(drawn, lang), getSpreadPattern(drawn, lang)]
+      .filter(Boolean)
+      .join('\n\n');
+    return paraSlides(body);
+  }, [drawn, revealed, orientations, theme.key, lang, t]);
 
   // Todo tema libera só 1 tiragem por dia (ver lib/tarotDailyLimit) — recheca
   // sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
@@ -446,6 +471,23 @@ export default function TarotScreen() {
               ))}
             </View>
 
+            {/* O MODO HISTÓRIA — acima do texto da leitura, e só com as três
+                cartas viradas: o botão abre a MESMA leitura que está logo
+                abaixo, um trecho por tela. Nenhum gate muda: quem chegou aqui
+                já tem a tiragem na tela. */}
+            {revealed.every(Boolean) && (
+              <TouchableOpacity
+                style={styles.historiaBtn}
+                activeOpacity={0.85}
+                onPress={() => setHistoriaAberta(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('stories.ver')}
+              >
+                <Ionicons name="sparkles" size={16} color={colors.gold} />
+                <Text style={styles.historiaBtnText}>{t('stories.ver')}</Text>
+              </TouchableOpacity>
+            )}
+
             {drawn.map((card, i) => {
               if (!revealed[i]) return null;
               // Waite, 1911, verbatim — só nas cartas em que a citação está
@@ -648,6 +690,13 @@ export default function TarotScreen() {
           </>
         )}
       </ScrollView>
+
+      <StoriesReader
+        visible={historiaAberta}
+        slides={slidesDaTiragem}
+        titulo={t('tarot.title')}
+        onClose={() => setHistoriaAberta(false)}
+      />
     </View>
   );
 }
@@ -988,6 +1037,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 18, marginTop: 4,
   },
   bonusStoreText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
+  // O botão do modo história — a mesma gramática do bonusStoreBtn (contorno
+  // dourado, sem fundo): é porta, não call-to-action de venda.
+  historiaBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.gold + '66',
+    paddingVertical: 12, paddingHorizontal: 18, marginBottom: 14,
+  },
+  historiaBtnText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
   btnWrap: { borderRadius: 12, overflow: 'hidden', width: '100%' },
   btn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, gap: 8 },
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },

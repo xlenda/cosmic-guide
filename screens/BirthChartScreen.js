@@ -61,6 +61,9 @@ import { PACK as SEITA_PACK_EN } from '../lib/traducoes/seita.en.js';
 // data de nascimento (fica melhor com hora), entao entrega valor pra quem so
 // preencheu o minimo — ao contrario da Seita, que exige hora e cidade.
 import { profeccaoAnual } from '../lib/profeccoes';
+// Elementos com % — aritmética pura sobre planetPositions (10 planetas, % =
+// contagem × 10, soma sempre 100). Null sem data/motor → a seção nem aparece.
+import { distribuicaoDeElementos } from '../lib/elementos';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { saveSoloBirthMirror, readSecureItemWithMirror, writeSecureItemWithMirror } from '../lib/birthData';
@@ -423,6 +426,80 @@ function SeitaSection({ seita, lang }) {
   );
 }
 
+// Os 4 elementos na ordem clássica (a mesma de lib/elementos.js). Cores da
+// paleta do próprio theme.js: Fogo pega o laranja de Leão/gradients.gold,
+// Terra o verde, Ar o teal claro e Água o azul — nada de cor nova no app.
+const ELEMENTOS_META = [
+  { key: 'fogo', emoji: '🔥', labelKey: 'birthchart.elements.fire', color: '#FF8C5C' },
+  { key: 'terra', emoji: '🌱', labelKey: 'birthchart.elements.earth', color: colors.green },
+  { key: 'ar', emoji: '💨', labelKey: 'birthchart.elements.air', color: colors.teal },
+  { key: 'agua', emoji: '💧', labelKey: 'birthchart.elements.water', color: colors.blue },
+];
+
+// A leitura do dominante mora no i18n ([BLOCO-ELEMENTOS]); o sufixo é o
+// identificador do motor. Mapa literal (não template) pra varredura estática
+// de test/i18nKeysExist.test.js enxergar cada chave uma a uma.
+const ELEMENTOS_READING_KEY = {
+  fogo: 'birthchart.elements.reading.fogo',
+  terra: 'birthchart.elements.reading.terra',
+  ar: 'birthchart.elements.reading.ar',
+  agua: 'birthchart.elements.reading.agua',
+};
+
+// SEUS ELEMENTOS — os 4 círculos com % que o concorrente mostra, só que com a
+// conta na cara. A % daqui é a única que a doutrina permite: contagem real
+// (lib/elementos.js) — nenhum número nasce nesta tela.
+//
+// ORDEM DENTRO DA SEÇÃO: os 4 círculos ABREM porque eles são o conteúdo da
+// feature (o retrato, não a ficha) — % de elemento é a leitura em forma de
+// desenho. Embaixo, a linha de leitura do dominante (convite, "repare se..."),
+// e por último o recibo: de onde saiu o número, e a nota de meio-dia quando
+// não há hora de nascimento. Empate no topo (dominante vem como array do
+// motor) → texto neutro de equilíbrio, sem inventar desempate.
+function ElementosSection({ elementos, temHora }) {
+  const { t } = useLanguage();
+  if (!elementos) return null;
+  const empate = Array.isArray(elementos.dominante);
+  // No empate o recibo exemplifica com o PRIMEIRO empatado (ordem fixa do
+  // motor) — o número continua sendo a contagem real dele, nunca um ajuste.
+  const exemploKey = empate ? elementos.dominante[0] : elementos.dominante;
+  const exemploMeta = ELEMENTOS_META.find((e) => e.key === exemploKey);
+  return (
+    <View style={styles.elementosCard}>
+      <LinearGradient colors={gradients.card} style={styles.elementosInner}>
+        <Text style={styles.elementosTitulo}>{t('birthchart.elements.title')}</Text>
+        <View style={styles.elementosRow}>
+          {ELEMENTOS_META.map((e) => (
+            <View key={e.key} style={styles.elementoCol} testID={`elementos-${e.key}`}>
+              <View style={[styles.elementoCirculo, { backgroundColor: e.color + '22', borderColor: e.color + '55' }]}>
+                <Text style={styles.elementoEmoji}>{e.emoji}</Text>
+              </View>
+              <Text style={styles.elementoNome}>{t(e.labelKey)}</Text>
+              <View style={[styles.elementoChip, { backgroundColor: e.color + '33' }]}>
+                <Text style={[styles.elementoChipTexto, { color: e.color }]}>{elementos.pct[e.key]}%</Text>
+              </View>
+              <View style={styles.elementoTrack}>
+                <View style={[styles.elementoFill, { width: `${elementos.pct[e.key]}%`, backgroundColor: e.color }]} />
+              </View>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.elementosLeitura}>
+          {empate ? t('birthchart.elements.reading.equilibrio') : t(ELEMENTOS_READING_KEY[elementos.dominante])}
+        </Text>
+        <Text style={styles.elementosRecibo}>
+          {t('birthchart.elements.receipt', {
+            n: elementos.contagem[exemploKey],
+            elemento: t(exemploMeta.labelKey),
+            pct: elementos.pct[exemploKey],
+          })}
+          {!temHora ? ` ${t('birthchart.elements.receiptNoTime')}` : ''}
+        </Text>
+      </LinearGradient>
+    </View>
+  );
+}
+
 function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
   // `lang` alimenta linhaDeSeita nas linhas do Sol e da Lua — sem ele a seita
   // falaria portugues no meio de uma tela em espanhol.
@@ -432,6 +509,15 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
     { ...ROWS_META[1], sign: chart.moon },
     { ...ROWS_META[2], sign: chart.asc },
   ];
+  // Mesma convenção de buildChart: a cidade INTEIRA como 3º argumento, pra
+  // conta usar o fuso IANA (e o horário de verão) do instante de nascimento.
+  // Null (sem data/motor) → a seção não renderiza, sem estado de erro.
+  // useMemo porque esta tela tem TextInputs: sem ele, cada tecla digitada
+  // re-renderiza o ChartResult e roda astronomy-engine pros 10 planetas de novo.
+  const elementos = React.useMemo(
+    () => distribuicaoDeElementos(chart.date, chart.time, chart.city || undefined),
+    [chart.date, chart.time, chart.city]
+  );
   return (
     <>
       {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — este cartão abria pela
@@ -446,13 +532,23 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
       <View style={styles.summaryCard}>
         <LinearGradient colors={gradients.card} style={styles.summaryInner}>
           <View style={styles.trio}>
-            {rows.map((r) => (
-              <View key={r.key} style={styles.trioItem}>
-                <Text style={styles.trioLabel}>{t(r.labelKey)}</Text>
-                <Text style={[styles.trioGlyph, { color: r.sign ? r.sign.color : colors.textMuted }]}>{r.sign ? r.sign.glyph : '—'}</Text>
-                <Text style={styles.trioSign}>{r.sign ? r.sign.name : '?'}</Text>
-              </View>
-            ))}
+            {rows.map((r) => {
+              // UPGRADE VISUAL (08/08/2026): o glifo ganhou um círculo com halo
+              // na cor do próprio signo (fundo na cor + '22', borda + '44') —
+              // o desenho de "medalhão" dos apps grandes. A ORDEM dos filhos
+              // (label → glifo → nome do signo) não mudou: é a mesma que
+              // test/quentePrimeiroNasTelas.test.js trava dentro deste cartão.
+              const cor = r.sign ? r.sign.color : colors.textMuted;
+              return (
+                <View key={r.key} style={styles.trioItem}>
+                  <Text style={styles.trioLabel}>{t(r.labelKey)}</Text>
+                  <View style={[styles.trioHalo, { backgroundColor: cor + '22', borderColor: cor + '44' }]}>
+                    <Text style={[styles.trioGlyph, { color: cor }]}>{r.sign ? r.sign.glyph : '—'}</Text>
+                  </View>
+                  <Text style={styles.trioSign}>{r.sign ? r.sign.name : '?'}</Text>
+                </View>
+              );
+            })}
           </View>
           <Text style={[styles.summaryMeta, styles.summaryMetaRecibo]}>
             {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
@@ -461,6 +557,12 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
           </Text>
         </LinearGradient>
       </View>
+
+      {/* SEUS ELEMENTOS — logo depois do trio e antes das Posições, de
+          propósito: é o resumo do céu inteiro (os 10 planetas) e prepara a
+          lista detalhada que vem embaixo. Null (sem data ou sem motor) →
+          nada renderiza, nunca um número inventado. */}
+      {!!elementos && <ElementosSection elementos={elementos} temHora={!!chart.time} />}
 
       <Text style={styles.sub}>{t('birthchart.positions')}</Text>
       {rows.map((r) => {
@@ -1195,8 +1297,47 @@ const styles = StyleSheet.create({
   trio: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 0 },
   trioItem: { alignItems: 'center' },
   trioLabel: { color: colors.textMuted, fontSize: 12 },
-  trioGlyph: { fontSize: 30, marginVertical: 6 },
+  // O medalhão do glifo (08/08/2026): círculo com o fundo na cor do signo a
+  // ~13% de opacidade (+ '22') e borda a ~27% (+ '44') — a cor vem inline do
+  // próprio r.sign.color, aqui fica só a geometria. lineHeight = fontSize
+  // pra centralizar o glifo unicode no círculo nas duas plataformas.
+  trioHalo: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 6,
+  },
+  trioGlyph: { fontSize: 38, lineHeight: 44 },
   trioSign: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  // --- Seus elementos (08/08/2026) ---
+  // Mesmo desenho de cartão do summaryCard (gradients.card + borda), 4 colunas
+  // flex iguais. As cores por elemento chegam inline de ELEMENTOS_META (são 4,
+  // variam por coluna); aqui, como sempre, só a geometria e o texto neutro.
+  elementosCard: { marginTop: 12, borderRadius: 18, overflow: 'hidden' },
+  elementosInner: { padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
+  elementosTitulo: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 12 },
+  elementosRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  elementoCol: { flex: 1, alignItems: 'center', marginHorizontal: 3 },
+  elementoCirculo: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  elementoEmoji: { fontSize: 24 },
+  elementoNome: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  elementoChip: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, marginBottom: 6 },
+  elementoChipTexto: { fontSize: 13, fontWeight: '800' },
+  elementoTrack: { alignSelf: 'stretch', height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden' },
+  elementoFill: { height: 6, borderRadius: 3 },
+  elementosLeitura: { color: colors.text, fontSize: 14, lineHeight: 21, marginTop: 14 },
+  elementosRecibo: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 8 },
   sub: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 24, marginBottom: 12 },
   planetRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
   planetIcon: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },

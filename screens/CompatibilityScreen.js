@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -15,6 +15,10 @@ import { recordReadingCompletion } from '../lib/readingCompletion';
 import OneTimeLock from '../components/OneTimeLock';
 import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
+// O MODO HISTÓRIA (08/08/2026) — a leitura do bloco 1, um trecho por tela,
+// como stories. paraSlides só REFORMATA: nenhum texto do motor muda.
+import StoriesReader from '../components/StoriesReader';
+import { paraSlides } from '../lib/storySlides';
 
 const FEATURE_KEY = 'compatibility';
 const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
@@ -162,6 +166,20 @@ export default function CompatibilityScreen() {
   // empolgação — uma única oferta contextual, UMA vez na vida (AsyncStorage),
   // nunca insistindo. Tom honesto: sem contador falso, sem urgência inventada.
   const [highCompatOffer, setHighCompatOffer] = useState(false);
+  // O MODO HISTÓRIA — o corpo é o MESMO que compute() grava no Diário
+  // (chamada + as cinco dimensões, cada uma com o título do dicionário na
+  // linha de cima), juntado com '\n\n' sem alterar um texto. A leitura desta
+  // tela é estruturada em blocos, e são exatamente esses blocos que viram
+  // slides — um por dimensão, como a pessoa já lê no card.
+  const [historiaAberta, setHistoriaAberta] = useState(false);
+  const slidesDaLeitura = useMemo(() => {
+    if (!result) return [];
+    const corpo = [
+      result.chamada,
+      ...DIMENSOES_VIDA_REAL.map((d) => `${t(d.chaveTitulo)}\n${result.vidaReal[d.id]}`),
+    ].join('\n\n');
+    return paraSlides(corpo);
+  }, [result, t]);
 
   useEffect(() => {
     if (hasAccess || !accessConfirmed) return;
@@ -226,6 +244,7 @@ export default function CompatibilityScreen() {
     setPicking(null);
     setResult(null);
     setShowSource(false);
+    setHistoriaAberta(false);
     pedidoDeEco.current = false;
     caminhoY.current = null;
   };
@@ -325,6 +344,20 @@ export default function CompatibilityScreen() {
             <View style={styles.realCard}>
               <Text style={styles.realKicker}>{t('compat.real.kicker')}</Text>
               <Text style={styles.realTitle}>{t('compat.real.title')}</Text>
+              {/* O MODO HISTÓRIA — acima do texto: abre a MESMA leitura do
+                  bloco 1 (chamada + cinco dimensões), um trecho por tela.
+                  Nenhum gate muda: o botão só existe onde a leitura já está
+                  inteira na tela. */}
+              <TouchableOpacity
+                style={styles.historiaBtn}
+                activeOpacity={0.85}
+                onPress={() => setHistoriaAberta(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('stories.ver')}
+              >
+                <Ionicons name="sparkles" size={16} color={colors.pink} />
+                <Text style={styles.historiaBtnText}>{t('stories.ver')}</Text>
+              </TouchableOpacity>
               <Text style={styles.realHook}>{result.chamada}</Text>
               {DIMENSOES_VIDA_REAL.map((d) => (
                 <View key={d.id} style={styles.dimBlock}>
@@ -548,6 +581,13 @@ export default function CompatibilityScreen() {
           </View>
         )}
       </ScrollView>
+
+      <StoriesReader
+        visible={historiaAberta}
+        slides={slidesDaLeitura}
+        titulo={`${signA.pt} + ${signB.pt}`}
+        onClose={() => setHistoriaAberta(false)}
+      />
     </View>
   );
 }
@@ -600,6 +640,14 @@ const styles = StyleSheet.create({
   realKicker: { color: colors.pink, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
   realTitle: { color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 4 },
   realHook: { color: colors.text, fontSize: 16, lineHeight: 24, fontWeight: '600', marginTop: 10 },
+  // O botão do modo história — contorno no rosa do bloco quente, sem fundo:
+  // porta pra mesma leitura, não call-to-action.
+  historiaBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.pink + '66',
+    paddingVertical: 12, paddingHorizontal: 18, marginTop: 12,
+  },
+  historiaBtnText: { color: colors.pink, fontSize: 13, fontWeight: '700' },
   dimBlock: { marginTop: 18 },
   dimHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dimIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: colors.pink + '22', justifyContent: 'center', alignItems: 'center' },

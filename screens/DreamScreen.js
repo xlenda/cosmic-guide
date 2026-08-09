@@ -73,6 +73,10 @@ import {
 import { PACK as ARTEMIDORO_PT } from '../lib/traducoes/artemidoro.pt.js';
 import { PACK as ARTEMIDORO_ES } from '../lib/traducoes/artemidoro.es.js';
 import { PACK as ARTEMIDORO_EN } from '../lib/traducoes/artemidoro.en.js';
+// O MODO HISTÓRIA (08/08/2026) — a mesma leitura, um trecho por tela, como
+// stories. paraSlides só REFORMATA: nenhum byte de reading.body muda.
+import StoriesReader from '../components/StoriesReader';
+import { paraSlides } from '../lib/storySlides';
 
 // O chrome do bloco de Artemidoro mora no pack de cada idioma (bloco `chrome`),
 // que é onde nasce toda prosa desta feature. Este seletor é o MESMO
@@ -131,6 +135,10 @@ export default function DreamScreen() {
   // cobra é a conta, não o ponteiro guardado no aparelho.
   const [serverBlock, setServerBlock] = useState(null);
   const [journalEntryId, setJournalEntryId] = useState(null);
+  // O MODO HISTÓRIA — só estado de tela; os slides saem de reading.body no
+  // useMemo abaixo, sem tocar no texto.
+  const [historiaAberta, setHistoriaAberta] = useState(false);
+  const slidesDoSonho = useMemo(() => (reading ? paraSlides(reading.body) : []), [reading]);
 
   // ---------------------------------------------------------------------
   // O BLOCO DE ARTEMIDORO — estado só de tela, nada persistido
@@ -160,6 +168,7 @@ export default function DreamScreen() {
     setDreamText('');
     setReading(null);
     setJournalEntryId(null);
+    setHistoriaAberta(false);
     // Sonho novo, relato novo: as respostas do sonho anterior não podem
     // classificar o próximo.
     setArtRespostas({});
@@ -568,6 +577,20 @@ export default function DreamScreen() {
             <View style={styles.section}>
               {renderArtemidoro()}
 
+              {/* O MODO HISTÓRIA — acima do texto da leitura, no ponto em que
+                  o texto liberado já está inteiro na tela (nenhum gate muda:
+                  este bloco só renderiza com a leitura entregue). */}
+              <TouchableOpacity
+                style={styles.historiaBtn}
+                activeOpacity={0.85}
+                onPress={() => setHistoriaAberta(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('stories.ver')}
+              >
+                <Ionicons name="sparkles" size={16} color={colors.teal} />
+                <Text style={styles.historiaBtnText}>{t('stories.ver')}</Text>
+              </TouchableOpacity>
+
               <View style={styles.resultCard}>
                 <Text style={styles.resultTitle}>{reading.title}</Text>
                 <Text style={styles.resultBody}>{reading.body}</Text>
@@ -622,6 +645,13 @@ export default function DreamScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <StoriesReader
+        visible={historiaAberta}
+        slides={slidesDoSonho}
+        titulo={reading ? reading.title : ''}
+        onClose={() => setHistoriaAberta(false)}
+      />
     </View>
   );
 }
@@ -677,6 +707,14 @@ const styles = StyleSheet.create({
   resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   resultBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
   genericNote: { color: colors.gold, fontSize: 12, lineHeight: 17, marginTop: 10, fontStyle: 'italic' },
+  // O botão do modo história — contorno no teal da tela, sem fundo: porta
+  // pra mesma leitura, não call-to-action.
+  historiaBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.teal + '66',
+    paddingVertical: 12, paddingHorizontal: 18,
+  },
+  historiaBtnText: { color: colors.teal, fontSize: 13, fontWeight: '700' },
   upsellCard: {
     backgroundColor: colors.card,
     borderRadius: 16,

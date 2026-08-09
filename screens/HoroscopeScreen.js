@@ -186,7 +186,7 @@ export default function HoroscopeScreen() {
           </TouchableOpacity>
         }
       />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         {showPicker && (
           <View style={styles.pickerCard}>
             <Text style={styles.pickerTitle}>{t('horoscope.pickerTitle')}</Text>
@@ -408,16 +408,20 @@ const styles = StyleSheet.create({
   elementRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },
   element: { fontSize: 12, fontWeight: '700' },
   unavailable: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, padding: 18, paddingTop: 4 },
-  sub: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 24, marginBottom: 12 },
+  // Respiro (08/08/2026): a leitura é o produto — fonte maior, entrelinha
+  // generosa (~1.6) e mais ar entre seções. Padrão medido no concorrente:
+  // texto de leitura grande com MUITO espaço vazio é o que faz a tela parecer
+  // cara. Nada de conteúdo mudou — só a roupa.
+  sub: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 28, marginBottom: 12 },
   factsRow: { flexDirection: 'row', gap: 12 },
   factItem: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   factIcon: { width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   factLabel: { color: colors.textMuted, fontSize: 11, textAlign: 'center' },
   factValue: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 2, textAlign: 'center' },
   factHint: { color: colors.textMuted, fontSize: 10, marginTop: 2, textAlign: 'center' },
-  blockCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border },
-  line: { color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
-  lineSpaced: { marginTop: 10 },
+  blockCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: colors.border },
+  line: { color: colors.textSecondary, fontSize: 15, lineHeight: 25 },
+  lineSpaced: { marginTop: 12 },
   // O método é discreto de propósito — menor, apagado, atrás de um toque —, e
   // discreto NÃO é escondido: fica no mesmo cartão do bloco a que se refere,
   // com rótulo próprio, e a ressalva que enquadra a leitura nunca é removida.
