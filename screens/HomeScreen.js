@@ -10,6 +10,14 @@ import HeroSection from '../components/HeroSection';
 // O CENÁRIO CÓSMICO — céu gradiente + estrelas + ondas de silhueta. Entra como
 // PRIMEIRO filho do root (uso documentado no cabeçalho do próprio arquivo).
 import CosmicScene from '../components/CosmicScene';
+// A ONDA DIVISÓRIA — a colina EM FLUXO que separa os GRUPOS do rolo (Onda
+// Cenográfica, 08/08/2026). O concorrente premium não separa seção com vão
+// entre cards: separa com paisagem. Quatro ondas entram neste arquivo, uma em
+// cada virada narrativa do rolo — ver o comentário de cada uma no JSX e o
+// cabeçalho de components/WaveDivider.js. Decoração ENTRE blocos, nunca
+// reordenação: test/quentePrimeiroNasTelas.test.js fatia esta fonte por
+// âncoras e nenhuma âncora se move.
+import WaveDivider from '../components/WaveDivider';
 import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import DailyMissionsCard from '../components/DailyMissionsCard';
@@ -1114,6 +1122,17 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
+        {/* ONDA 1 [AUTO-DECISION] — fecha o grupo do DIA e abre o grupo do
+            CÉU. Tudo acima daqui é "o seu hoje" (diário, sequência, pensamento,
+            missões, linha de hoje, som do céu, retrospectiva do mês); tudo
+            abaixo até a onda 2 é "o céu sobre você" (céu de hoje + próximos
+            dias). É o corte mais nítido do rolo — a pessoa deixa de olhar pra
+            si e passa a olhar pra cima — e era exatamente onde a Home lia como
+            "acabou uma lista de caixas, começou outra". Nenhuma compensação de
+            margem: os cards seguintes não têm marginTop (só marginBottom 14 no
+            anterior), e esse respiro é o céu de onde a colina sobe. */}
+        <WaveDivider />
+
         {/* As "Temporadas do Céu" saíram da Home em 31/07/2026 — decisão do
             dono, olhando a tela em produção: "fica perdido no meio". Ele está
             certo, e o motivo é de hierarquia: era um card de LEITURA (conteúdo
@@ -1240,6 +1259,15 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
+        {/* ONDA 2 [AUTO-DECISION] — fecha o grupo do CÉU e abre o grupo do
+            AMOR/CASAL (frase do dia de amor + cartão de compatibilidade).
+            Céu de hoje e próximos dias são uma narrativa só de efeméride
+            (o comentário do card de cima já diz "colado no Céu de Hoje de
+            propósito"), e a frase do amor muda de assunto por completo — de
+            trânsito pra relacionamento. Sem a colina, o gradiente rosa da
+            frase chegava sem aviso no meio das caixas de céu. */}
+        <WaveDivider />
+
         {/* Frase do dia de amor — feita pra compartilhar de verdade com o
             par, não só ler (ver handleShareLovePhrase acima). */}
         <View style={styles.lovePhraseCard}>
@@ -1324,10 +1352,22 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
+        {/* ONDA 3 [AUTO-DECISION] — fecha os cards editoriais e abre o GRID
+            de features. Daqui pra baixo o rolo muda de natureza: deixa de ser
+            conteúdo do dia (calculado pra hoje) e vira o catálogo do app
+            (Explore/Práticas/Datas/Curiosidades/Casal). É a virada que mais
+            precisava de cenário — oito e tantas fileiras de cards — e é o
+            ponto que a missão citou nominalmente ("antes do grid"). Os quatro
+            subgrupos do grid NÃO ganham onda entre si: são capítulos do mesmo
+            catálogo, e quatro colinas em sequência virariam papel de parede.
+            O título logo abaixo perde os 28 de marginTop (sectionTitleAposOnda):
+            somados aos 64 da onda viravam um buraco, e a colina já é o respiro. */}
+        <WaveDivider />
+
         {/* Feature grid — individual (solo ou casal, assina direto), em quatro
             grupos: Leituras, Práticas, Datas e Curiosidades. Ver o porquê
             acima, onde as listas são montadas. */}
-        <Text style={styles.sectionTitle}>{t('home.sectionExplore')}</Text>
+        <Text style={[styles.sectionTitle, styles.sectionTitleAposOnda]}>{t('home.sectionExplore')}</Text>
         <Text style={styles.sectionSubtitle}>{t('home.sectionExploreSubtitle')}</Text>
         {/* As linhas do CardGrid trazem marginHorizontal 16 interno; o wrapper
             soma 4 pro gutter 20 da reforma (mesma jogada do NotifPromptCard). */}
@@ -1376,6 +1416,15 @@ export default function HomeScreen() {
           </>
         )}
 
+        {/* ONDA 4 [AUTO-DECISION] — fecha o catálogo e abre o EPÍLOGO. O
+            Evento cósmico é o único bloco depois dos grids: uma nota de céu
+            que encerra o rolo. A colina separa o fim do catálogo (que termina
+            em fileiras de cards) dessa nota final — e, com o de-box logo
+            abaixo, o texto do evento flutua sobre a própria colina, que é a
+            imagem mais literal de "conteúdo no cenário" que a Home tem. Mesma
+            compensação da onda 3 no título (sectionTitleAposOnda). */}
+        <WaveDivider />
+
         {/* Cosmic event */}
         {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o cartão abria com
             "Marte em quadratura com Saturno" e só embaixo dizia, em língua de
@@ -1385,9 +1434,14 @@ export default function HomeScreen() {
             descrição sobe, o título com os dois planetas e o ângulo desce e vira
             recibo, junto da data. Nenhuma palavra mudou — nem aqui, nem no
             dicionário. test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
-        <Text style={styles.sectionTitle}>{t('home.sectionCosmicEvent')}</Text>
+        <Text style={[styles.sectionTitle, styles.sectionTitleAposOnda]}>{t('home.sectionCosmicEvent')}</Text>
+        {/* DE-BOX (Onda Cenográfica, 08/08/2026): este bloco é informativo e
+            NÃO clicável — no concorrente premium só o clicável é caixa. O
+            gradiente '#2A1D52'→'#3A1F6B' e a borda saíram (ver eventCard/
+            eventInner nos styles); ícone, textos e a ordem quente→recibo→data
+            ficam exatamente como estavam. */}
         <View style={styles.eventCard}>
-          <LinearGradient colors={['#2A1D52', '#3A1F6B']} style={styles.eventInner}>
+          <View style={styles.eventInner}>
             <View style={styles.eventIcon}>
               <Ionicons name="star" size={22} color={colors.gold} />
             </View>
@@ -1404,7 +1458,7 @@ export default function HomeScreen() {
               </Text>
               <Text style={styles.eventDate}>{t('home.cosmicEventDate', { date: dateStr })}</Text>
             </View>
-          </LinearGradient>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -1573,9 +1627,17 @@ const styles = StyleSheet.create({
   horoText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
   horoLink: { color: colors.accent, fontSize: 13, fontWeight: '700', marginTop: 12 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 28, marginBottom: 12, marginHorizontal: 20 },
+  // Título de seção que vem logo DEPOIS de uma WaveDivider (ondas 3 e 4): a
+  // colina já é o respiro da virada, e os 28 de marginTop somados aos 64 da
+  // onda viravam um buraco — a onda substitui o vão, não soma com ele.
+  sectionTitleAposOnda: { marginTop: 6 },
   sectionSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: -8, marginBottom: 12, marginHorizontal: 20 },
-  eventCard: { marginHorizontal: 20, borderRadius: 18, overflow: 'hidden' },
-  eventInner: { flexDirection: 'row', padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 18, alignItems: 'flex-start' },
+  // DE-BOX da Onda Cenográfica (08/08/2026): o Evento cósmico não navega pra
+  // lugar nenhum — era a única caixa da Home sem toque. O gradiente e a borda
+  // saíram e o bloco flutua sobre a colina da onda 4; o padding interno saiu
+  // junto pro ícone alinhar no gutter 20 como os títulos de seção.
+  eventCard: { marginHorizontal: 20 },
+  eventInner: { flexDirection: 'row', alignItems: 'flex-start' },
   eventIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(255,200,92,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   // O título com os dois planetas e o ângulo virou recibo (a descrição subiu):
   // um degrau menor, apagado, com respiro em cima. Continua na tela inteiro.

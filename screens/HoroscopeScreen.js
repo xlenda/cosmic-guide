@@ -41,6 +41,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients, zodiacSigns } from '../theme';
 import CosmicScene from '../components/CosmicScene';
 import GradientHeader from '../components/GradientHeader';
+import WaveDivider from '../components/WaveDivider';
 import OneTimeLock from '../components/OneTimeLock';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
@@ -179,7 +180,9 @@ export default function HoroscopeScreen() {
     <View style={styles.root} testID="horoscope-reading">
       {/* O cenário em camadas (céu + estrelas + ondas) atrás de tudo — o root
           mantém colors.background por baixo, como o contrato do CosmicScene
-          pede. Cards continuam com surface própria: legibilidade não negocia. */}
+          pede. Onda Cenográfica (08/08/2026): o TEXTO DE LEITURA flutua direto
+          no cenário, como no concorrente premium — caixa é só pro interativo
+          (seletor de signo, tabs) e pro recibo (FichaDoCeu, footer). */}
       <CosmicScene />
       <GradientHeader
         title={t('home.card.horoscope.title')}
@@ -276,6 +279,12 @@ export default function HoroscopeScreen() {
               const aberto = !!metodoAberto[bloco.id];
               return (
                 <View key={bloco.id}>
+                  {/* A colina entre "o seu dia" e o próximo capítulo: UMA onda,
+                      logo depois da FichaDoCeu (que fecha o primeiro bloco como
+                      recibo) e antes do título do bloco seguinte. Renderizada
+                      aqui — e não colada na ficha — para só existir quando
+                      existe próximo capítulo. */}
+                  {indice === 1 && <WaveDivider />}
                   <Text style={styles.sub}>{t(bloco.titleKey)}</Text>
                   <View style={styles.blockCard} testID={`horoscope-block-${bloco.id}`}>
                     {leituraLinhas.map((line, i) => (
@@ -404,7 +413,11 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: colors.accent },
   tabText: { color: colors.textMuted, fontWeight: '700', fontSize: 14 },
   tabTextActive: { color: '#fff' },
-  mainCard: { backgroundColor: colors.surface, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  // Onda Cenográfica (08/08/2026): o card do signo perdeu a moldura — o glifo
+  // grande e o degradê na cor do signo flutuam no cenário. borderRadius +
+  // overflow ficam só para o degradê manter cantos suaves, lendo como mancha
+  // de luz e não como caixa.
+  mainCard: { borderRadius: 18, overflow: 'hidden' },
   signHeader: { flexDirection: 'row', alignItems: 'center', padding: 18 },
   bigGlyph: { width: 60, height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   bigGlyphText: { fontSize: 30 },
@@ -424,7 +437,11 @@ const styles = StyleSheet.create({
   factLabel: { color: colors.textMuted, fontSize: 11, textAlign: 'center' },
   factValue: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 2, textAlign: 'center' },
   factHint: { color: colors.textMuted, fontSize: 10, marginTop: 2, textAlign: 'center' },
-  blockCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: colors.border },
+  // Onda Cenográfica (08/08/2026): a leitura SOLTA no cenário — sem fundo nem
+  // borda, como no concorrente premium (caixa é só pro interativo e pro
+  // recibo). O paddingHorizontal preserva o alinhamento que o texto tinha
+  // dentro do card; a única linha que resta é o borderTop do methodToggle.
+  blockCard: { paddingHorizontal: 18 },
   line: { color: colors.textSecondary, fontSize: 15, lineHeight: 25 },
   lineSpaced: { marginTop: 12 },
   // O método é discreto de propósito — menor, apagado, atrás de um toque —, e

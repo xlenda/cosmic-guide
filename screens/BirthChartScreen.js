@@ -9,6 +9,9 @@ import GradientHeader from '../components/GradientHeader';
 // O CENÁRIO CÓSMICO (08/08/2026) — primeiro filho do root, atrás de tudo; o
 // root mantém colors.background por baixo (ver o cabeçalho do componente).
 import CosmicScene from '../components/CosmicScene';
+// A colina que separa o bloco FLUTUANTE (trio + elementos, sem caixa) da
+// terra dos cards (posições, seita, casas...) — ver o cabeçalho do componente.
+import WaveDivider from '../components/WaveDivider';
 import DatePickerModal from '../components/DatePickerModal';
 import CityPickerModal from '../components/CityPickerModal';
 import { signoFromDate, moonSign, ascendantSign, houses, aspects, astrocartographyCities } from '../lib/signs';
@@ -467,38 +470,41 @@ function ElementosSection({ elementos, temHora }) {
   // motor) — o número continua sendo a contagem real dele, nunca um ajuste.
   const exemploKey = empate ? elementos.dominante[0] : elementos.dominante;
   const exemploMeta = ELEMENTOS_META.find((e) => e.key === exemploKey);
+  // ONDA CENOGRÁFICA (08/08/2026): a caixa externa (LinearGradient + borda)
+  // saiu — os 4 círculos flutuam direto no cenário, maiores, e a % virou CHIP
+  // SOBREPOSTO no canto superior direito de cada círculo (pill escura com
+  // borda na cor do elemento), o desenho exato do concorrente. As barrinhas
+  // proporcionais saíram: círculo + chip já contam a história, e a barra era
+  // a mesma informação pela terceira vez. Nenhum texto/testID mudou.
   return (
     <View style={styles.elementosCard}>
-      <LinearGradient colors={gradients.card} style={styles.elementosInner}>
-        <Text style={styles.elementosTitulo}>{t('birthchart.elements.title')}</Text>
-        <View style={styles.elementosRow}>
-          {ELEMENTOS_META.map((e) => (
-            <View key={e.key} style={styles.elementoCol} testID={`elementos-${e.key}`}>
+      <Text style={styles.elementosTitulo}>{t('birthchart.elements.title')}</Text>
+      <View style={styles.elementosRow}>
+        {ELEMENTOS_META.map((e) => (
+          <View key={e.key} style={styles.elementoCol} testID={`elementos-${e.key}`}>
+            <View style={styles.elementoCirculoWrap}>
               <View style={[styles.elementoCirculo, { backgroundColor: e.color + '22', borderColor: e.color + '55' }]}>
                 <Text style={styles.elementoEmoji}>{e.emoji}</Text>
               </View>
-              <Text style={styles.elementoNome}>{t(e.labelKey)}</Text>
-              <View style={[styles.elementoChip, { backgroundColor: e.color + '33' }]}>
+              <View style={[styles.elementoChip, { borderColor: e.color + '66' }]}>
                 <Text style={[styles.elementoChipTexto, { color: e.color }]}>{elementos.pct[e.key]}%</Text>
               </View>
-              <View style={styles.elementoTrack}>
-                <View style={[styles.elementoFill, { width: `${elementos.pct[e.key]}%`, backgroundColor: e.color }]} />
-              </View>
             </View>
-          ))}
-        </View>
-        <Text style={styles.elementosLeitura}>
-          {empate ? t('birthchart.elements.reading.equilibrio') : t(ELEMENTOS_READING_KEY[elementos.dominante])}
-        </Text>
-        <Text style={styles.elementosRecibo}>
-          {t('birthchart.elements.receipt', {
-            n: elementos.contagem[exemploKey],
-            elemento: t(exemploMeta.labelKey),
-            pct: elementos.pct[exemploKey],
-          })}
-          {!temHora ? ` ${t('birthchart.elements.receiptNoTime')}` : ''}
-        </Text>
-      </LinearGradient>
+            <Text style={styles.elementoNome}>{t(e.labelKey)}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={styles.elementosLeitura}>
+        {empate ? t('birthchart.elements.reading.equilibrio') : t(ELEMENTOS_READING_KEY[elementos.dominante])}
+      </Text>
+      <Text style={styles.elementosRecibo}>
+        {t('birthchart.elements.receipt', {
+          n: elementos.contagem[exemploKey],
+          elemento: t(exemploMeta.labelKey),
+          pct: elementos.pct[exemploKey],
+        })}
+        {!temHora ? ` ${t('birthchart.elements.receiptNoTime')}` : ''}
+      </Text>
     </View>
   );
 }
@@ -532,33 +538,35 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
           continuam na tela, e continuam sendo a prova de que a conta usou o
           instante certo (é por isso que existem — ver o cabeçalho deste
           arquivo). test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
+      {/* ONDA CENOGRÁFICA (08/08/2026): o trio perdeu a MOLDURA. Antes era um
+          card (LinearGradient + borda); agora os três medalhões flutuam direto
+          no cenário do CosmicScene, maiores — o desenho de "céu com medalhões"
+          do concorrente premium. O nome styles.summaryCard fica: é a âncora
+          que test/quentePrimeiroNasTelas.test.js usa pra recortar este bloco. */}
       <View style={styles.summaryCard}>
-        <LinearGradient colors={gradients.card} style={styles.summaryInner}>
-          <View style={styles.trio}>
-            {rows.map((r) => {
-              // UPGRADE VISUAL (08/08/2026): o glifo ganhou um círculo com halo
-              // na cor do próprio signo (fundo na cor + '22', borda + '44') —
-              // o desenho de "medalhão" dos apps grandes. A ORDEM dos filhos
-              // (label → glifo → nome do signo) não mudou: é a mesma que
-              // test/quentePrimeiroNasTelas.test.js trava dentro deste cartão.
-              const cor = r.sign ? r.sign.color : colors.textMuted;
-              return (
-                <View key={r.key} style={styles.trioItem}>
-                  <Text style={styles.trioLabel}>{t(r.labelKey)}</Text>
-                  <View style={[styles.trioHalo, { backgroundColor: cor + '22', borderColor: cor + '44' }]}>
-                    <Text style={[styles.trioGlyph, { color: cor }]}>{r.sign ? r.sign.glyph : '—'}</Text>
-                  </View>
-                  <Text style={styles.trioSign}>{r.sign ? r.sign.name : '?'}</Text>
+        <View style={styles.trio}>
+          {rows.map((r) => {
+            // O medalhão: círculo com halo na cor do próprio signo (fundo na
+            // cor + '22', borda + '44'). A ORDEM dos filhos (label → glifo →
+            // nome do signo) não mudou: é a mesma que
+            // test/quentePrimeiroNasTelas.test.js trava dentro deste bloco.
+            const cor = r.sign ? r.sign.color : colors.textMuted;
+            return (
+              <View key={r.key} style={styles.trioItem}>
+                <Text style={styles.trioLabel}>{t(r.labelKey)}</Text>
+                <View style={[styles.trioHalo, { backgroundColor: cor + '22', borderColor: cor + '44' }]}>
+                  <Text style={[styles.trioGlyph, { color: cor }]}>{r.sign ? r.sign.glyph : '—'}</Text>
                 </View>
-              );
-            })}
-          </View>
-          <Text style={[styles.summaryMeta, styles.summaryMetaRecibo]}>
-            {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
-            {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
-            {chart.zone && chart.zone.dst ? ' · horário de verão' : ''}
-          </Text>
-        </LinearGradient>
+                <Text style={styles.trioSign}>{r.sign ? r.sign.name : '?'}</Text>
+              </View>
+            );
+          })}
+        </View>
+        <Text style={[styles.summaryMeta, styles.summaryMetaRecibo]}>
+          {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
+          {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
+          {chart.zone && chart.zone.dst ? ' · horário de verão' : ''}
+        </Text>
       </View>
 
       {/* SEUS ELEMENTOS — logo depois do trio e antes das Posições, de
@@ -566,6 +574,12 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
           lista detalhada que vem embaixo. Null (sem data ou sem motor) →
           nada renderiza, nunca um número inventado. */}
       {!!elementos && <ElementosSection elementos={elementos} temHora={!!chart.time} />}
+
+      {/* A ONDA: fecha o bloco cenográfico (trio + elementos flutuando) e abre
+          a parte de cards da tela. Uma só, de propósito — divisória, não
+          papel de parede. Fica fora do condicional dos elementos porque o trio
+          flutua sempre, com ou sem motor de elementos. */}
+      <WaveDivider />
 
       <Text style={styles.sub}>{t('birthchart.positions')}</Text>
       {rows.map((r) => {
@@ -1285,65 +1299,79 @@ const styles = StyleSheet.create({
   personBtnActive: { backgroundColor: colors.accent + '22', borderColor: colors.accent },
   personBtnText: { color: colors.textSecondary, fontWeight: '700', fontSize: 14 },
   personBtnTextActive: { color: colors.text },
-  summaryCard: { marginTop: 20, borderRadius: 18, overflow: 'hidden' },
-  summaryInner: { padding: 20, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
-  summaryMeta: { color: colors.textMuted, fontSize: 13 },
-  // A mesma linha de sempre, agora embaixo do trio: separada por um fio, como
-  // toda ficha que virou recibo neste app.
+  // ONDA CENOGRÁFICA (08/08/2026): summaryCard deixou de ser card — sem fundo,
+  // sem borda, sem overflow. O nome fica porque é a âncora do teste de ordem
+  // (test/quentePrimeiroNasTelas.test.js recorta o bloco pela âncora summaryCard
+  // — citada aqui sem aspas de propósito: string com pontos entre aspas é o que
+  // o vigia de i18nKeysExist trata como chave de tradução).
+  summaryCard: { marginTop: 24 },
+  summaryMeta: { color: colors.textMuted, fontSize: 12 },
+  // A mesma linha de sempre, embaixo do trio — agora flutuando também: sem o
+  // fio de cima (não há mais card pra costurar), só menor e central.
   summaryMetaRecibo: {
-    marginTop: 18,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    marginTop: 14,
     textAlign: 'center',
   },
-  // marginTop 0 desde 04/08/2026: o trio virou o PRIMEIRO filho do cartão (a
+  // marginTop 0 desde 04/08/2026: o trio virou o PRIMEIRO filho do bloco (a
   // linha de data/hora/UTC desceu), e os 18px de respiro que existiam para
-  // separá-lo dela agora só empurrariam o cartão inteiro para baixo.
+  // separá-lo dela agora só empurrariam o bloco inteiro para baixo.
   trio: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 0 },
   trioItem: { alignItems: 'center' },
-  trioLabel: { color: colors.textMuted, fontSize: 12 },
-  // O medalhão do glifo (08/08/2026): círculo com o fundo na cor do signo a
-  // ~13% de opacidade (+ '22') e borda a ~27% (+ '44') — a cor vem inline do
-  // próprio r.sign.color, aqui fica só a geometria. lineHeight = fontSize
-  // pra centralizar o glifo unicode no círculo nas duas plataformas.
+  trioLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  // O medalhão do glifo (08/08/2026, crescido na Onda Cenográfica): círculo com
+  // o fundo na cor do signo a ~13% de opacidade (+ '22') e borda a ~27%
+  // (+ '44') — a cor vem inline do próprio r.sign.color, aqui fica só a
+  // geometria. Sem card em volta, o medalhão É a superfície: 80px de halo e
+  // glifo de 44, tamanho de protagonista. lineHeight ~fontSize pra centralizar
+  // o glifo unicode no círculo nas duas plataformas.
   trioHalo: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 6,
+    marginVertical: 8,
   },
-  trioGlyph: { fontSize: 38, lineHeight: 44 },
-  trioSign: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  // --- Seus elementos (08/08/2026) ---
-  // Mesmo desenho de cartão do summaryCard (gradients.card + borda), 4 colunas
-  // flex iguais. As cores por elemento chegam inline de ELEMENTOS_META (são 4,
+  trioGlyph: { fontSize: 44, lineHeight: 50 },
+  trioSign: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  // --- Seus elementos (08/08/2026, flutuante desde a Onda Cenográfica) ---
+  // Sem caixa externa: os 4 círculos flutuam no cenário, 4 colunas flex
+  // iguais. As cores por elemento chegam inline de ELEMENTOS_META (são 4,
   // variam por coluna); aqui, como sempre, só a geometria e o texto neutro.
-  elementosCard: { marginTop: 14, borderRadius: 18, overflow: 'hidden' },
-  elementosInner: { padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
-  elementosTitulo: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 12 },
+  elementosCard: { marginTop: 28 },
+  elementosTitulo: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 },
   elementosRow: { flexDirection: 'row', justifyContent: 'space-between' },
   elementoCol: { flex: 1, alignItems: 'center', marginHorizontal: 3 },
+  // O wrap existe SÓ pra ancorar o chip absoluto no canto do círculo — ele
+  // mede exatamente o círculo, e o chip vaza um pouco pra fora, de propósito.
+  elementoCirculoWrap: { marginBottom: 8 },
   elementoCirculo: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
   },
-  elementoEmoji: { fontSize: 24 },
-  elementoNome: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 4 },
-  elementoChip: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, marginBottom: 6 },
-  elementoChipTexto: { fontSize: 13, fontWeight: '800' },
-  elementoTrack: { alignSelf: 'stretch', height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden' },
-  elementoFill: { height: 6, borderRadius: 3 },
-  elementosLeitura: { color: colors.text, fontSize: 15, lineHeight: 24, marginTop: 14 },
-  elementosRecibo: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 8 },
+  elementoEmoji: { fontSize: 30 },
+  elementoNome: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  // O chip de %: pill pequena SOBREPOSTA no canto superior direito do círculo
+  // (o desenho do concorrente) — fundo escuro do cenário + borda na cor do
+  // elemento (inline), pra % ler como etiqueta pendurada, não como botão.
+  elementoChip: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  elementoChipTexto: { fontSize: 12, fontWeight: '800' },
+  elementosLeitura: { color: colors.text, fontSize: 15, lineHeight: 24, marginTop: 16 },
+  elementosRecibo: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 8 },
   // Título de seção em corpo de display (18/800) e com respiro de verdade em
   // cima — é o que separa "lista" de "capítulo" nos prints do concorrente.
   sub: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 28, marginBottom: 14, letterSpacing: 0.2 },
