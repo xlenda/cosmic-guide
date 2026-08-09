@@ -17,6 +17,11 @@ import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
+// O onboarding-recompensa (09/08/2026): perguntas uma por tela com devolução
+// visual. NÃO é rota — é componente de tela cheia renderizado aqui quando a
+// pessoa escolhe "Pra mim" (menos fiação em App.js/routes.js = menos
+// superfície de regressão no Gate). Ver o cabeçalho dele pra gravação/funil.
+import OnboardingPerguntasScreen from './OnboardingPerguntasScreen';
 
 export default function OnboardingChoiceScreen() {
   const navigation = useNavigation();
@@ -24,6 +29,11 @@ export default function OnboardingChoiceScreen() {
   const { saveSolo } = useCouple();
   const { t } = useLanguage();
   const [showSignPicker, setShowSignPicker] = useState(false);
+  // 'choice' | 'perguntas' — o caminho solo agora abre o fluxo de perguntas;
+  // o grid de 12 signos de sempre continua NESTE arquivo, alcançável pelo
+  // atalho "já sei meu signo" dentro do fluxo (nenhum beco: voltar do passo 1
+  // devolve pra cá, e fechar/reabrir o app cai no início limpo).
+  const [fase, setFase] = useState('choice');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -39,9 +49,25 @@ export default function OnboardingChoiceScreen() {
   // aqui e desistia diante do grid de 12 signos era invisível no relatório.
   // Com a chave por variação em funnel.js, este disparo convive com o
   // 'choice' do mount em vez de ser engolido por ele.
+  // O MESMO evento no MESMO lugar de sempre — só o destino mudou: em vez do
+  // grid seco de 12 signos, o fluxo de perguntas com recompensa visual.
   function escolherSolo() {
     funnel.onboardingStart('solo');
-    setShowSignPicker(true);
+    setFase('perguntas');
+  }
+
+  if (fase === 'perguntas') {
+    return (
+      <OnboardingPerguntasScreen
+        onVoltar={() => setFase('choice')}
+        onAtalhoSigno={() => {
+          // O atalho "já sei meu signo": devolve pra esta tela já com o grid
+          // de sempre aberto — o fluxo antigo continua acessível, intocado.
+          setFase('choice');
+          setShowSignPicker(true);
+        }}
+      />
+    );
   }
 
   async function pickSign(z) {
