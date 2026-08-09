@@ -85,7 +85,12 @@ async function gerarUma(prompt) {
     body: JSON.stringify({
       model: MODELO,
       input: [{ type: "text", text: prompt }],
-      response_format: { type: "image", mime_type: "image/png", aspect_ratio: "9:16", image_size: "1K" },
+      // image/jpeg OBRIGATÓRIO (09/08/2026): a API passou a rejeitar
+      // image/png ("Supported values: 'image/jpeg'"). Os arquivos continuam
+      // com o NOME .png (a allowlist da rota e o manifesto não mudam) — os
+      // bytes são JPEG e todo navegador carrega imagem pelo conteúdo, não
+      // pela extensão.
+      response_format: { type: "image", mime_type: "image/jpeg", aspect_ratio: "9:16", image_size: "1K" },
     }),
   });
   if (!resp.ok) {
