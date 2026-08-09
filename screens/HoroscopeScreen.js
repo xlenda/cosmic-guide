@@ -43,6 +43,10 @@ import CosmicScene from '../components/CosmicScene';
 import GradientHeader from '../components/GradientHeader';
 import WaveDivider from '../components/WaveDivider';
 import OneTimeLock from '../components/OneTimeLock';
+// AS SUB-ABAS PÍLULA (09/08/2026, Onda Diagramação Espelho) — Ontem/Hoje/Amanhã
+// saíram da fileira no topo do rolo e flutuam na pílula em cima do dock, como
+// no concorrente. Mesmos ids internos, mesmas chaves de label — só o lugar.
+import PillTabs from '../components/PillTabs';
 // O BOTÃO "OUVIR" (08/08/2026) — a leitura do bloco em voz alta, com a voz do
 // aparelho (Web Speech API, lib/voz.js). Em plataforma sem a API ele devolve
 // null sozinho — nenhum gate aqui.
@@ -205,7 +209,10 @@ export default function HoroscopeScreen() {
           </TouchableOpacity>
         }
       />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+      {/* paddingBottom 120: a pílula de abas flutua sobre o fim do rolo — sem
+          esse respiro ela cobriria o footerCard (contrato do PillTabs: ≥96;
+          120 dá folga pro card de duas linhas). */}
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         {showPicker && (
           <View style={styles.pickerCard}>
             <Text style={styles.pickerTitle}>{t('horoscope.pickerTitle')}</Text>
@@ -232,18 +239,6 @@ export default function HoroscopeScreen() {
             </View>
           </View>
         )}
-
-        <View style={styles.tabs}>
-          {TABS.map((tabName) => (
-            <TouchableOpacity
-              key={tabName}
-              style={[styles.tab, tab === tabName && styles.tabActive]}
-              onPress={() => { Haptics.selectionAsync(); setTab(tabName); }}
-            >
-              <Text style={[styles.tabText, tab === tabName && styles.tabTextActive]}>{t(TAB_LABEL_KEYS[tabName])}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
         <View style={styles.mainCard}>
           <LinearGradient colors={[sign.color + '44', 'transparent']} style={styles.signHeader}>
@@ -377,6 +372,16 @@ export default function HoroscopeScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* As sub-abas de período, flutuando em cima do dock — DEPOIS do
+          ScrollView na árvore, como o contrato do PillTabs pede. Os ids
+          seguem sendo as strings internas de TABS ('Ontem'/'Hoje'/'Amanhã'),
+          que dateForTab compara; só o label passa pelo t(). */}
+      <PillTabs
+        items={TABS.map((tabName) => ({ id: tabName, label: t(TAB_LABEL_KEYS[tabName]) }))}
+        activeId={tab}
+        onSelect={(id) => { Haptics.selectionAsync(); setTab(id); }}
+      />
     </View>
   );
 }
@@ -445,11 +450,6 @@ const styles = StyleSheet.create({
   pickerItem: { width: '31%', backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   pickerGlyph: { fontSize: 22 },
   pickerName: { color: colors.textSecondary, fontSize: 11, marginTop: 4, fontWeight: '600' },
-  tabs: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 12, padding: 4, marginBottom: 16 },
-  tab: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
-  tabActive: { backgroundColor: colors.accent },
-  tabText: { color: colors.textMuted, fontWeight: '700', fontSize: 14 },
-  tabTextActive: { color: '#fff' },
   // Onda Cenográfica (08/08/2026): o card do signo perdeu a moldura — o glifo
   // grande e o degradê na cor do signo flutuam no cenário. borderRadius +
   // overflow ficam só para o degradê manter cantos suaves, lendo como mancha

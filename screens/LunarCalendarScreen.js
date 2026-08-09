@@ -93,6 +93,27 @@ function chromeDaLuaForaDeCurso(lang) {
 const FEATURE_KEY = 'lunarCalendar';
 const DIARY_RECORDED_KEY = 'cosmic-lunar-diary-date';
 
+// A GRADE DO MÊS (09/08/2026) — o mês deixou de ser lista vertical de 31
+// linhas e virou calendário de verdade: 7 colunas, segunda a domingo, cada
+// célula com o número do dia e o glifo da fase DAQUELE dia. O glifo é o
+// emoji que lib/lunarCalendar.js devolve por dia (getMoonPhaseForCurrentMonth,
+// ancorado no meio-dia local — a âncora única do app), nunca desenhado aqui.
+// Nome da fase e % de iluminação de cada dia não sumiram: viraram o rótulo de
+// acessibilidade da célula (era o que a lista mostrava, com os mesmos dados do
+// motor).
+//
+// O cabeçalho seg–dom usa as chaves i18n JÁ EXISTENTES do Calendário Cósmico
+// ('calendario.weekday.0'..'6', abreviadas, nas três línguas) — nenhuma chave
+// nova, lib/i18n.js intocado. Em ARRAY LITERAL, como exige o cabeçalho de
+// test/i18nKeysExist.test.js (chave montada em runtime é invisível pro teste).
+// A ordem aqui é seg→dom (índice 0 do i18n é domingo, por isso ele fecha a
+// lista), diferente da grade do Calendário Cósmico, que abre no domingo.
+const SEMANA_KEYS = [
+  'calendario.weekday.1', 'calendario.weekday.2', 'calendario.weekday.3',
+  'calendario.weekday.4', 'calendario.weekday.5', 'calendario.weekday.6',
+  'calendario.weekday.0',
+];
+
 function todayISO() {
   const d = new Date();
   const p = (n) => String(n).padStart(2, '0');
@@ -144,7 +165,9 @@ export default function LunarCalendarScreen() {
   // fora de curso) sai dos motores já no idioma do app. O chrome antigo desta
   // tela (título, disclaimer) ainda é PT cravado — segundo passe, junto com o
   // resto do chrome antigo.
-  const { lang } = useLanguage() || {};
+  // `t` entra SÓ pro cabeçalho seg–dom da grade (chaves existentes do
+  // Calendário Cósmico); todo o resto do chrome segue como estava.
+  const { lang, t } = useLanguage() || {};
   const [refreshTick, setRefreshTick] = useState(0);
   const [locked, setLocked] = useState(false);
 
@@ -201,6 +224,22 @@ export default function LunarCalendarScreen() {
     [refreshTick, lang]
   );
   const todayNumber = new Date().getDate();
+
+  // As semanas da grade, linha a linha. Os dias vêm INTEIROS de monthDays (o
+  // motor já entregou dia + fase); aqui só se calcula quantas células vazias a
+  // primeira linha precisa pra alinhar o dia 1 na coluna certa — segunda é a
+  // coluna 0, então o getDay() de domingo-primeiro gira 6: (getDay()+6)%7.
+  const semanasDoMes = useMemo(() => {
+    if (!monthDays.length) return [];
+    const vazias = (monthDays[0].date.getDay() + 6) % 7;
+    const celulas = [];
+    for (let i = 0; i < vazias; i++) celulas.push(null);
+    for (const dia of monthDays) celulas.push(dia);
+    while (celulas.length % 7 !== 0) celulas.push(null);
+    const linhas = [];
+    for (let i = 0; i < celulas.length; i += 7) linhas.push(celulas.slice(i, i + 7));
+    return linhas;
+  }, [monthDays]);
 
   // -------------------------------------------------------------------------
   // LUA FORA DE CURSO — as duas contas
@@ -610,22 +649,47 @@ export default function LunarCalendarScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>{monthLabel}</Text>
-        <View style={styles.monthList}>
-          {monthDays.map(({ day, phase }) => {
-            const isToday = day === todayNumber;
-            return (
-              <View key={day} style={[styles.dayRow, isToday && styles.dayRowToday]}>
-                <Text style={[styles.dayNumber, isToday && styles.dayNumberToday]}>{day}</Text>
-                <Text style={styles.dayEmoji}>{phase ? phase.emoji : '—'}</Text>
-                <Text style={styles.dayPhaseName} numberOfLines={1}>
-                  {phase ? phase.name : 'Indisponível'}
+        {/* A grade: cada dia com a SUA luinha, desenhada pelo motor (o emoji
+            de lib/lunarCalendar.js pra aquele dia — nunca inventada aqui). O
+            dia de hoje ganha o leito arredondado; sem fase (motor ausente),
+            a célula mostra o traço honesto de sempre em vez de um glifo
+            chutado. */}
+        <View style={styles.grade} testID="lunar-grade">
+          {typeof t === 'function' ? (
+            <View style={styles.gradeSemana}>
+              {SEMANA_KEYS.map((chave) => (
+                <Text key={chave} style={styles.gradeDiaSemana}>
+                  {t(chave)}
                 </Text>
-                {phase && phase.illumination !== null ? (
-                  <Text style={styles.dayIllum}>{phase.illumination}%</Text>
-                ) : null}
-              </View>
-            );
-          })}
+              ))}
+            </View>
+          ) : null}
+          {semanasDoMes.map((linha, i) => (
+            <View key={`semana-${i}`} style={styles.gradeSemana}>
+              {linha.map((celula, j) => {
+                if (!celula) return <View key={`vazia-${j}`} style={styles.gradeCelula} />;
+                const isToday = celula.day === todayNumber;
+                const rotulo = celula.phase
+                  ? `${celula.day} · ${celula.phase.name}` +
+                    (celula.phase.illumination !== null ? ` · ${celula.phase.illumination}%` : '')
+                  : String(celula.day);
+                return (
+                  <View
+                    key={celula.day}
+                    style={[styles.gradeCelula, isToday && styles.gradeCelulaHoje]}
+                    accessible
+                    accessibilityLabel={rotulo}
+                    testID={isToday ? 'lunar-dia-hoje' : undefined}
+                  >
+                    <Text style={[styles.gradeDia, isToday && styles.gradeDiaHoje]}>
+                      {celula.day}
+                    </Text>
+                    <Text style={styles.gradeFase}>{celula.phase ? celula.phase.emoji : '—'}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
         </View>
       </ScrollView>
     </View>
@@ -818,26 +882,40 @@ const styles = StyleSheet.create({
   // COMPOSIÇÃO CENTRADA (08/08/2026): título de seção grande e centrado, com
   // muito ar em cima — o padrão do concorrente premium (22/800, simétrico).
   sectionTitle: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
-  monthList: {
+  // A grade mensal — moldura e ritmo da grade do Calendário Cósmico (surface,
+  // raio 18, gap 4), célula flex:1 em linha de 7 (~13% de largura cada).
+  grade: {
     backgroundColor: colors.surface,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: 'hidden',
+    padding: 8,
+    gap: 4,
   },
-  dayRow: {
-    flexDirection: 'row',
+  gradeSemana: { flexDirection: 'row', gap: 4 },
+  gradeDiaSemana: {
+    flex: 1,
+    textAlign: 'center',
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    paddingVertical: 4,
+  },
+  gradeCelula: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 10,
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: 12,
+    justifyContent: 'center',
+    paddingVertical: 2,
+    gap: 1,
   },
-  dayRowToday: { backgroundColor: 'rgba(92,224,216,0.12)' },
-  dayNumber: { color: colors.textMuted, fontSize: 14, fontWeight: '700', width: 22 },
-  dayNumberToday: { color: colors.teal },
-  dayEmoji: { fontSize: 20, width: 28 },
-  dayPhaseName: { color: colors.text, fontSize: 14, flex: 1 },
-  dayIllum: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
+  // O leito de hoje: accent com alpha 0x33, arredondado pela própria célula.
+  gradeCelulaHoje: { backgroundColor: colors.accent + '33' },
+  gradeDia: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  gradeDiaHoje: { color: colors.text, fontWeight: '800' },
+  // O glifo da fase — pequeno (15), abaixo do número, um por dia.
+  gradeFase: { fontSize: 15, lineHeight: 18 },
 });

@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import FeatureCard from './FeatureCard';
+import { tileArte } from '../lib/ilustracoes';
 
 export default function CardGrid({ items, columns = 2 }) {
   const rows = [];
@@ -23,6 +24,7 @@ export default function CardGrid({ items, columns = 2 }) {
               subtitle={item.subtitle}
               icon={item.icon}
               gradient={item.gradient}
+              arte={item.arte !== undefined ? item.arte : tileArte(item.key)}
               onPress={item.onPress}
               locked={item.locked}
               testID={`card-${item.key}`}
