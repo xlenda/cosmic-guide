@@ -56,6 +56,9 @@ import { useNavigation } from '@react-navigation/native';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+// O CENÁRIO CÓSMICO (08/08/2026) — primeiro filho do root, atrás de tudo; o
+// root mantém colors.background por baixo (ver o cabeçalho do componente).
+import CosmicScene from '../components/CosmicScene';
 import OneTimeLock from '../components/OneTimeLock';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
@@ -521,6 +524,7 @@ export default function DreamScreen() {
 
   return (
     <View style={styles.root}>
+      <CosmicScene />
       <GradientHeader title="Sonhos" subtitle="Interpretação simbólica" gradient={gradients.teal} />
 
       <KeyboardAvoidingView
@@ -668,19 +672,19 @@ const styles = StyleSheet.create({
   section: { gap: 14, alignItems: 'stretch' },
   instructions: {
     color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
   },
   input: {
     minHeight: 140,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     color: colors.text,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     padding: 14,
   },
   primaryBtn: {
@@ -705,7 +709,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  resultBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  resultBody: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
   genericNote: { color: colors.gold, fontSize: 12, lineHeight: 17, marginTop: 10, fontStyle: 'italic' },
   // O botão do modo história — contorno no teal da tela, sem fundo: porta
   // pra mesma leitura, não call-to-action.
@@ -717,7 +721,7 @@ const styles = StyleSheet.create({
   historiaBtnText: { color: colors.teal, fontSize: 13, fontWeight: '700' },
   upsellCard: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 14,
     borderWidth: 1,
     borderColor: colors.border,
@@ -740,15 +744,15 @@ const styles = StyleSheet.create({
   artTopo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   artTopoTexto: { flex: 1, gap: 3 },
   artKicker: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
-  artTitulo: { color: colors.text, fontSize: 16, lineHeight: 22, fontWeight: '800' },
-  artChamada: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  artTitulo: { color: colors.text, fontSize: 17, lineHeight: 23, fontWeight: '800' },
+  artChamada: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
   artDica: { color: colors.teal, fontSize: 12, fontWeight: '700' },
 
   artCorpo: { gap: 10, marginTop: 2 },
 
   artRotulo: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1, marginTop: 4 },
-  artValor: { color: colors.text, fontSize: 14, lineHeight: 21, fontWeight: '700' },
-  artTexto: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  artValor: { color: colors.text, fontSize: 15, lineHeight: 22, fontWeight: '700' },
+  artTexto: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
   artNota: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
   artRecibo: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
   artLink: { color: colors.teal, fontSize: 13, fontWeight: '700', marginTop: 4 },
@@ -763,7 +767,7 @@ const styles = StyleSheet.create({
   },
   artTag: { color: colors.textMuted, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   artTagApp: { color: colors.pink },
-  artPerguntaTexto: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  artPerguntaTexto: { color: colors.text, fontSize: 15, lineHeight: 22 },
   artChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   artChip: {
     borderRadius: 999,

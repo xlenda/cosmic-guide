@@ -39,6 +39,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients, zodiacSigns } from '../theme';
+import CosmicScene from '../components/CosmicScene';
 import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
@@ -176,6 +177,10 @@ export default function HoroscopeScreen() {
 
   return (
     <View style={styles.root} testID="horoscope-reading">
+      {/* O cenário em camadas (céu + estrelas + ondas) atrás de tudo — o root
+          mantém colors.background por baixo, como o contrato do CosmicScene
+          pede. Cards continuam com surface própria: legibilidade não negocia. */}
+      <CosmicScene />
       <GradientHeader
         title={t('home.card.horoscope.title')}
         subtitle={sign.pt}
@@ -388,7 +393,7 @@ function FactItem({ icon, color, label, value, hint }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  pickerCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border },
+  pickerCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border },
   pickerTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 12 },
   pickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pickerItem: { width: '31%', backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
@@ -407,19 +412,19 @@ const styles = StyleSheet.create({
   bigDates: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   elementRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },
   element: { fontSize: 12, fontWeight: '700' },
-  unavailable: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, padding: 18, paddingTop: 4 },
+  unavailable: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, padding: 18, paddingTop: 4 },
   // Respiro (08/08/2026): a leitura é o produto — fonte maior, entrelinha
   // generosa (~1.6) e mais ar entre seções. Padrão medido no concorrente:
   // texto de leitura grande com MUITO espaço vazio é o que faz a tela parecer
   // cara. Nada de conteúdo mudou — só a roupa.
-  sub: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 28, marginBottom: 12 },
-  factsRow: { flexDirection: 'row', gap: 12 },
-  factItem: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  sub: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 28, marginBottom: 12 },
+  factsRow: { flexDirection: 'row', gap: 14 },
+  factItem: { flex: 1, backgroundColor: colors.surface, borderRadius: 18, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   factIcon: { width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   factLabel: { color: colors.textMuted, fontSize: 11, textAlign: 'center' },
   factValue: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 2, textAlign: 'center' },
   factHint: { color: colors.textMuted, fontSize: 10, marginTop: 2, textAlign: 'center' },
-  blockCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: colors.border },
+  blockCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: colors.border },
   line: { color: colors.textSecondary, fontSize: 15, lineHeight: 25 },
   lineSpaced: { marginTop: 12 },
   // O método é discreto de propósito — menor, apagado, atrás de um toque —, e
@@ -436,6 +441,6 @@ const styles = StyleSheet.create({
   },
   methodToggleText: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   methodLine: { color: colors.textMuted, fontSize: 12, lineHeight: 19, marginTop: 8 },
-  footerCard: { backgroundColor: colors.surfaceElevated, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, marginTop: 24 },
+  footerCard: { backgroundColor: colors.surfaceElevated, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: colors.border, marginTop: 24 },
   footerText: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
 });

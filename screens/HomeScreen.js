@@ -7,6 +7,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import HeroSection from '../components/HeroSection';
+// O CENÁRIO CÓSMICO — céu gradiente + estrelas + ondas de silhueta. Entra como
+// PRIMEIRO filho do root (uso documentado no cabeçalho do próprio arquivo).
+import CosmicScene from '../components/CosmicScene';
 import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import DailyMissionsCard from '../components/DailyMissionsCard';
@@ -840,6 +843,10 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
+      {/* O cenário cobre o fundo chapado por cima; o root MANTÉM
+          colors.background por baixo, pra área além do cenário nunca piscar.
+          pointerEvents="none" lá dentro — decoração nunca rouba toque. */}
+      <CosmicScene />
       {milestone && (
         <Modal transparent animationType="fade" visible onRequestClose={() => setMilestone(null)}>
           <View style={styles.milestoneBackdrop}>
@@ -877,8 +884,12 @@ export default function HomeScreen() {
             a pill dizia "Comecem hoje a sequência de vocês" enquanto o card na
             mesma dobra dizia "4 dias seguidos". Continua exclusiva de casal
             (undefined para solo esconde a pill, como sempre foi). */}
+        {/* Saudação em corpo display (reforma 08/08/2026): HeroSection está
+            fora do escopo desta reforma (só HomeScreen.js muda), então o
+            upgrade entra por Text ANINHADO — no RN o estilo do Text interno
+            vence o do externo, e o texto é o MESMO `greeting` de sempre. */}
         <HeroSection
-          greeting={greeting}
+          greeting={<Text style={styles.greetingDisplay}>{greeting}</Text>}
           dateStr={dateStr}
           sign={sign}
           streak={coupleData ? { count: streakInfo.currentStreak } : undefined}
@@ -935,7 +946,11 @@ export default function HomeScreen() {
 
         {/* Opt-in de notificação no momento certo: só depois da 1ª atividade
             real, uma vez só (ver components/NotifPromptCard.js). */}
-        <NotifPromptCard sign={sign} hasActivity={streakInfo.totalActiveDays > 0} />
+        {/* O card traz marginHorizontal 16 interno; o wrapper soma 4 pra bater
+            no gutter 20 da reforma sem tocar no componente. */}
+        <View style={styles.gutterWrap}>
+          <NotifPromptCard sign={sign} hasActivity={streakInfo.totalActiveDays > 0} />
+        </View>
 
         {/* Meta da semana (já existe dentro de Agir, só ganhou visibilidade
             aqui) — só pra casal com acesso à feature. */}
@@ -1019,7 +1034,7 @@ export default function HomeScreen() {
             mas solo nunca chega lá (SoloTeaser na borda da rota, App.js) e
             ficaria sem o loop missão→token→Loja pedido pelo dono. */}
         {!isCouple && (
-          <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+          <View style={{ marginHorizontal: 20, marginBottom: 14 }}>
             <DailyMissionsCard />
           </View>
         )}
@@ -1078,7 +1093,7 @@ export default function HomeScreen() {
             propósito: o uso que o card sugere é "deixa tocando enquanto você
             lê", e a leitura do dia acabou de acontecer dois blocos acima.
             Devolve null sozinho onde a Web Audio API não existe. */}
-        <CosmicSoundPlayer variant="inline" style={{ marginHorizontal: 16, marginBottom: 14 }} />
+        <CosmicSoundPlayer variant="inline" style={{ marginHorizontal: 20, marginBottom: 14 }} />
 
         {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
             só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}
@@ -1314,13 +1329,19 @@ export default function HomeScreen() {
             acima, onde as listas são montadas. */}
         <Text style={styles.sectionTitle}>{t('home.sectionExplore')}</Text>
         <Text style={styles.sectionSubtitle}>{t('home.sectionExploreSubtitle')}</Text>
-        <CardGrid items={leiturasCardItems} />
+        {/* As linhas do CardGrid trazem marginHorizontal 16 interno; o wrapper
+            soma 4 pro gutter 20 da reforma (mesma jogada do NotifPromptCard). */}
+        <View style={styles.gutterWrap}>
+          <CardGrid items={leiturasCardItems} />
+        </View>
 
         {praticasCardItems.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>{t('home.sectionPraticas')}</Text>
             <Text style={styles.sectionSubtitle}>{t('home.sectionPraticasSubtitle')}</Text>
-            <CardGrid items={praticasCardItems} />
+            <View style={styles.gutterWrap}>
+              <CardGrid items={praticasCardItems} />
+            </View>
           </>
         )}
 
@@ -1328,7 +1349,9 @@ export default function HomeScreen() {
           <>
             <Text style={styles.sectionTitle}>{t('home.sectionDatas')}</Text>
             <Text style={styles.sectionSubtitle}>{t('home.sectionDatasSubtitle')}</Text>
-            <CardGrid items={datasCardItems} />
+            <View style={styles.gutterWrap}>
+              <CardGrid items={datasCardItems} />
+            </View>
           </>
         )}
 
@@ -1336,7 +1359,9 @@ export default function HomeScreen() {
           <>
             <Text style={styles.sectionTitle}>{t('home.sectionCuriosidades')}</Text>
             <Text style={styles.sectionSubtitle}>{t('home.sectionCuriosidadesSubtitle')}</Text>
-            <CardGrid items={curiosidadesCardItems} />
+            <View style={styles.gutterWrap}>
+              <CardGrid items={curiosidadesCardItems} />
+            </View>
           </>
         )}
 
@@ -1345,7 +1370,9 @@ export default function HomeScreen() {
           <>
             <Text style={styles.sectionTitle}>{t('home.sectionCouple')}</Text>
             <Text style={styles.sectionSubtitle}>{t('home.sectionCoupleSubtitle')}</Text>
-            <CardGrid items={coupleCardItems} />
+            <View style={styles.gutterWrap}>
+              <CardGrid items={coupleCardItems} />
+            </View>
           </>
         )}
 
@@ -1386,8 +1413,16 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  // Tipografia display da primeira dobra — aplicada por Text aninhado no
+  // greeting do HeroSection (ver o comentário no JSX). Cor explícita porque a
+  // herança de estilo em Text aninhado no RN Web nem sempre carrega a do pai.
+  greetingDisplay: { color: '#fff', fontSize: 29, fontWeight: '800', lineHeight: 34 },
+  // Gutter 20 da reforma pra filhos que já trazem marginHorizontal 16 próprio
+  // (NotifPromptCard, linhas do CardGrid): 4 + 16 = 20, sem tocar nos
+  // componentes.
+  gutterWrap: { paddingHorizontal: 4 },
   loader: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
-  diaryBar: { marginHorizontal: 16, marginTop: -14, marginBottom: 14, borderRadius: 16, overflow: 'hidden' },
+  diaryBar: { marginHorizontal: 20, marginTop: -14, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   diaryBarInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   diaryBarIcon: {
     width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)',
@@ -1395,9 +1430,12 @@ const styles = StyleSheet.create({
   },
   diaryBarTitle: { color: '#fff', fontSize: 15, fontWeight: '800' },
   diaryBarSubtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
+  // O marginTop -14 saiu na reforma (08/08/2026): era do tempo em que este
+  // card abria a Home colado no hero. Com o diaryBar na frente (que fecha com
+  // marginBottom 14), o -14 zerava o vão e os dois cards se encostavam.
   streakCard: {
-    marginHorizontal: 16, marginTop: -14, marginBottom: 14, padding: 16,
-    backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+    marginHorizontal: 20, marginTop: 0, marginBottom: 14, padding: 16,
+    backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border,
   },
   streakCardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   streakCardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
@@ -1425,14 +1463,14 @@ const styles = StyleSheet.create({
   // papel. Antes ela encostava no card de Sequência, que é o bloco errado.
   todayLine: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: 16, marginTop: -6, marginBottom: 14, paddingVertical: 2,
+    marginHorizontal: 20, marginTop: -6, marginBottom: 14, paddingVertical: 2,
   },
   todayLineText: { color: colors.textSecondary, fontSize: 13, flex: 1 },
   todayLineCta: { color: colors.teal, fontSize: 13, fontWeight: '800' },
   goalCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginHorizontal: 16, marginBottom: 14, padding: 16,
-    backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+    marginHorizontal: 20, marginBottom: 14, padding: 16,
+    backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border,
   },
   goalIcon: {
     width: 36, height: 36, borderRadius: 11, backgroundColor: 'rgba(255,184,77,0.15)',
@@ -1443,8 +1481,8 @@ const styles = StyleSheet.create({
   goalTextEmpty: { color: colors.textSecondary, fontSize: 13, marginTop: 3 },
   thoughtCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    marginHorizontal: 16, marginTop: 0, marginBottom: 14, padding: 16,
-    backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+    marginHorizontal: 20, marginTop: 0, marginBottom: 14, padding: 16,
+    backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border,
   },
   thoughtIcon: {
     width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(255,200,92,0.15)',
@@ -1461,15 +1499,15 @@ const styles = StyleSheet.create({
   thoughtUnreadBadge: { color: colors.gold, fontSize: 11, fontWeight: '800' },
   thoughtReadBadge: { color: colors.teal, fontSize: 11, fontWeight: '800' },
   thoughtDate: { color: colors.textMuted, fontSize: 11, marginTop: 2, textTransform: 'capitalize' },
-  thoughtText: { color: colors.text, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  thoughtText: { color: colors.text, fontSize: 15, lineHeight: 24, marginTop: 4 },
   thoughtShareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, alignSelf: 'flex-start' },
   thoughtShareTxt: { color: colors.gold, fontSize: 12, fontWeight: '600' },
   thoughtToggle: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: 6 },
-  lovePhraseCard: { marginHorizontal: 16, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
+  lovePhraseCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   lovePhraseInner: { padding: 18 },
   lovePhraseHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   lovePhraseLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
-  lovePhraseText: { color: '#fff', fontSize: 15, lineHeight: 22, fontWeight: '600' },
+  lovePhraseText: { color: '#fff', fontSize: 15, lineHeight: 24, fontWeight: '600' },
   lovePhraseBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     backgroundColor: '#fff', borderRadius: 12, paddingVertical: 10, marginTop: 14, alignSelf: 'flex-start', paddingHorizontal: 18,
@@ -1482,18 +1520,18 @@ const styles = StyleSheet.create({
   //  saíram de lib/i18n.js na mesma passada. A decisão inteira continua
   //  preservada no comentário lá em cima, onde o card ficava.)
   skyCard: {
-    marginHorizontal: 16, marginBottom: 14, padding: 16,
-    backgroundColor: colors.surface, borderRadius: 16,
+    marginHorizontal: 20, marginBottom: 14, padding: 16,
+    backgroundColor: colors.surface, borderRadius: 18,
     borderWidth: 1, borderColor: colors.teal + '55',
   },
   peekHead: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
   peekLabel: { color: colors.purple, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
-  peekText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  peekText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
   // A ABERTURA do céu de hoje: a chamada da fase, em corpo de leitura e na cor
   // do texto. É a primeira coisa que a pessoa lê no card — a lei do dono é
   // quente primeiro, ficha depois, e a hierarquia visual tem que contar isso
   // sem precisar de rótulo.
-  skyChamada: { color: colors.text, fontSize: 15, lineHeight: 22, marginBottom: 6 },
+  skyChamada: { color: colors.text, fontSize: 15, lineHeight: 24, marginBottom: 6 },
   // A FICHA: qual planeta, sobre qual ponto do mapa. Recibo da abertura, então
   // menor e mais apagada que ela.
   skyFicha: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
@@ -1509,20 +1547,20 @@ const styles = StyleSheet.create({
   // título do evento é o corpo de destaque, os eventos seguintes são linhas
   // de apoio e o CTA fecha como texto-link (a seta é do próprio texto — sem
   // Ionicons ao lado, mesma convenção do link do convite do Céu de Hoje).
-  proximosCard: { marginHorizontal: 16, marginBottom: 14, borderRadius: 16, overflow: 'hidden' },
-  proximosInner: { padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 16 },
+  proximosCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
+  proximosInner: { padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   proximosQuando: { color: colors.gold, fontSize: 13, fontWeight: '800' },
   proximosTitulo: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 2 },
   proximosItem: { color: colors.textSecondary, fontSize: 13, marginTop: 8 },
   proximosCta: { color: colors.gold, fontSize: 13, fontWeight: '800', marginTop: 12 },
-  wrappedBar: { marginHorizontal: 16, marginBottom: 14, borderRadius: 16, overflow: 'hidden' },
+  wrappedBar: { marginHorizontal: 20, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   wrappedBarInner: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
   wrappedBarEmoji: { fontSize: 24 },
   wrappedBarTitle: { color: '#2A1D00', fontSize: 14, fontWeight: '800' },
   wrappedBarSubtitle: { color: 'rgba(42,29,0,0.75)', fontSize: 12, marginTop: 1 },
   // (os estilos season* saíram junto com o card das Temporadas do Céu —
   //  estilo órfão é como o arquivo chegou a 15 formatos de card diferentes)
-  horoCard: { marginHorizontal: 16, marginTop: 0, borderRadius: 18, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
+  horoCard: { marginHorizontal: 20, marginTop: 0, borderRadius: 18, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
   horoInner: { padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   horoHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   signChip: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
@@ -1532,17 +1570,17 @@ const styles = StyleSheet.create({
   // O mesmo rótulo, agora embaixo do resumo (a ficha desceu no cartão do
   // casal): só o respiro muda, o estilo continua sendo o de linha de apoio.
   horoDatesRecibo: { marginTop: 8 },
-  horoText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  horoText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
   horoLink: { color: colors.accent, fontSize: 13, fontWeight: '700', marginTop: 12 },
-  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 24, marginBottom: 12, marginHorizontal: 16 },
-  sectionSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: -8, marginBottom: 12, marginHorizontal: 16 },
-  eventCard: { marginHorizontal: 16, borderRadius: 16, overflow: 'hidden' },
-  eventInner: { flexDirection: 'row', padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 16, alignItems: 'flex-start' },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 28, marginBottom: 12, marginHorizontal: 20 },
+  sectionSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: -8, marginBottom: 12, marginHorizontal: 20 },
+  eventCard: { marginHorizontal: 20, borderRadius: 18, overflow: 'hidden' },
+  eventInner: { flexDirection: 'row', padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 18, alignItems: 'flex-start' },
   eventIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(255,200,92,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   // O título com os dois planetas e o ângulo virou recibo (a descrição subiu):
   // um degrau menor, apagado, com respiro em cima. Continua na tela inteiro.
   eventTitle: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginTop: 8 },
-  eventDesc: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  eventDesc: { color: colors.text, fontSize: 15, lineHeight: 24 },
   eventDate: { color: colors.gold, fontSize: 12, fontWeight: '700', marginTop: 8 },
 
   milestoneBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 28 },

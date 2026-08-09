@@ -7,6 +7,9 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+// O CENÁRIO CÓSMICO (08/08/2026) — primeiro filho do root, atrás de tudo; o
+// root mantém colors.background por baixo (ver o cabeçalho do componente).
+import CosmicScene from '../components/CosmicScene';
 import { compatibility } from '../lib/signs.js';
 import { DIMENSOES_VIDA_REAL, ecoDoCaminho, rotuloDoCaminho } from '../lib/synastry.js';
 import { useCouple } from '../context/CoupleContext';
@@ -277,13 +280,14 @@ export default function CompatibilityScreen() {
 
   return (
     <View style={styles.root}>
+      <CosmicScene />
       {/* O subtítulo descreve o que a tela FAZ, sem prometer desfecho. O
           anterior ("Encontre seu par celestial") era resquício da roda de
           porcentagem: prometia na manchete o que o rodapé desmente — a regra 2
           de lib/synastry.js vale pro header também, e test/synastry.test.js
           varre esta string junto com as MANCHETE. */}
       <GradientHeader title="Compatibilidade" subtitle="Como é na vida real — e de onde isso vem" onBack={() => navigation.goBack()} gradient={['#B5286B', '#7B3FB5']} />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={styles.pairRow}>
           <SignSlot sign={signA} onPress={() => setPicking(picking === 'A' ? null : 'A')} active={picking === 'A'} />
           <View style={styles.plusWrap}>
@@ -343,6 +347,13 @@ export default function CompatibilityScreen() {
                 ============================================================ */}
             <View style={styles.realCard}>
               <Text style={styles.realKicker}>{t('compat.real.kicker')}</Text>
+              {/* O PAR, em corpo de display (22/800) — é o resultado que a
+                  pessoa veio ver, e é o mesmo par que nomeia o Diário e o modo
+                  história. Só estado da tela (signA/signB), nenhum texto novo
+                  de i18n. O título da seção vira linha de apoio logo abaixo. */}
+              <Text style={styles.realPair}>
+                {signA.pt} + {signB.pt}
+              </Text>
               <Text style={styles.realTitle}>{t('compat.real.title')}</Text>
               {/* O MODO HISTÓRIA — acima do texto: abre a MESMA leitura do
                   bloco 1 (chamada + cinco dimensões), um trecho por tela.
@@ -613,7 +624,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   lockedNote: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 10, marginTop: 4 },
   pairRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  slot: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1.5, borderColor: colors.border },
+  slot: { flex: 1, backgroundColor: colors.surface, borderRadius: 18, padding: 16, alignItems: 'center', borderWidth: 1.5, borderColor: colors.border },
   slotGlyphWrap: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   slotGlyph: { fontSize: 30 },
   slotName: { color: colors.text, fontSize: 16, fontWeight: '800' },
@@ -630,7 +641,7 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   // ---------------------------------------------------------------------
   // BLOCO 1 — o que abre a tela. Hierarquia tipográfica invertida em relação
-  // ao que havia: o texto quente é o corpo de leitura (15/23, cor cheia) e a
+  // ao que havia: o texto quente é o corpo de leitura (15/24, cor cheia) e a
   // fonte, antes protagonista, passou para o padrão dos cards secundários.
   // ---------------------------------------------------------------------
   realCard: {
@@ -638,7 +649,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.pink + '55',
   },
   realKicker: { color: colors.pink, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
-  realTitle: { color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 4 },
+  // O par do resultado é o display do card; o título da seção, que dividia o
+  // topo com ele em 20/800, desce pra linha de apoio — um destaque só.
+  realPair: { color: colors.text, fontSize: 22, fontWeight: '800', letterSpacing: 0.3, marginTop: 6 },
+  realTitle: { color: colors.textSecondary, fontSize: 15, fontWeight: '700', marginTop: 2 },
   realHook: { color: colors.text, fontSize: 16, lineHeight: 24, fontWeight: '600', marginTop: 10 },
   // O botão do modo história — contorno no rosa do bloco quente, sem fundo:
   // porta pra mesma leitura, não call-to-action.
@@ -651,8 +665,8 @@ const styles = StyleSheet.create({
   dimBlock: { marginTop: 18 },
   dimHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dimIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: colors.pink + '22', justifyContent: 'center', alignItems: 'center' },
-  dimTitle: { color: colors.text, fontSize: 14, fontWeight: '800', letterSpacing: 0.2 },
-  dimText: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, marginTop: 7 },
+  dimTitle: { color: colors.text, fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
+  dimText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 7 },
   realFootnote: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 18, fontStyle: 'italic' },
   // O ECO. Card DENTRO do bloco 1, com o tom do accent (não do rosa das
   // dimensões): ele não é mais uma dimensão, é a virada de "como é" pra "o que
@@ -660,21 +674,21 @@ const styles = StyleSheet.create({
   // texto pra ler, não etiqueta —, e o chevron faz o trabalho do "toque aqui"
   // sem custar um rótulo novo em três idiomas.
   ecoCard: {
-    marginTop: 18, padding: 14, borderRadius: 14,
+    marginTop: 18, padding: 14, borderRadius: 16,
     backgroundColor: colors.accent + '12', borderWidth: 1, borderColor: colors.accent + '44',
   },
   ecoHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   ecoIcon: { width: 24, height: 24, borderRadius: 8, backgroundColor: colors.accent + '22', justifyContent: 'center', alignItems: 'center' },
   ecoTitle: { color: colors.text, fontSize: 14, fontWeight: '800', flex: 1 },
-  ecoText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginTop: 8 },
+  ecoText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 8 },
   sourceToggle: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12,
-    backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14,
+    backgroundColor: colors.surface, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14,
     borderWidth: 1, borderColor: colors.border,
   },
   sourceToggleTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
   sourceToggleMeta: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  resultCard: { marginTop: 12, borderRadius: 18, overflow: 'hidden' },
+  resultCard: { marginTop: 14, borderRadius: 18, overflow: 'hidden' },
   resultInner: { padding: 20, borderWidth: 1, borderColor: colors.border, borderRadius: 18, alignItems: 'center' },
   circleWrap: { marginBottom: 16 },
   circle: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
@@ -689,8 +703,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4, marginBottom: 10,
   },
   resultTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  resultDesc: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 8 },
-  sourceCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: colors.border },
+  resultDesc: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, textAlign: 'center', marginTop: 8 },
+  sourceCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginTop: 14, borderWidth: 1, borderColor: colors.border },
   sourceTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8 },
   sourceItem: { marginBottom: 10 },
   // A paráfrase lê ANTES e MAIOR que o inglês (14 vs 13, cor de texto cheia):
@@ -698,27 +712,27 @@ const styles = StyleSheet.create({
   // de passar por citação — sem ele, isto seria tradução, que a regra 1 de
   // lib/synastry.js proíbe.
   sourceParaphraseLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 2 },
-  sourceParaphrase: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 6 },
+  sourceParaphrase: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginBottom: 6 },
   sourceQuote: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, fontStyle: 'italic' },
   sourceLocus: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
   sourceDegree: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 2 },
   sourceDegreeNote: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 6, fontStyle: 'italic' },
-  noteCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: colors.border },
+  noteCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginTop: 14, borderWidth: 1, borderColor: colors.border },
   noteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8 },
   noteText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 8 },
-  traitCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
+  traitCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginTop: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
   traitIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   traitLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  traitText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  traitText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 3 },
   // O caminho lê como CONTINUAÇÃO da Atenção, não como card novo: mesmo corpo
   // de texto, um respiro acima e uma barra à esquerda pra separar o "o que
   // fazer" do "o que dói" sem quebrar a hierarquia do bloco 2.
   traitPath: {
-    color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 10,
+    color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 10,
     paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: colors.accent + '55',
   },
   offerCard: {
-    marginTop: 16, padding: 18, borderRadius: 16,
+    marginTop: 16, padding: 18, borderRadius: 18,
     backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.pink + '77',
   },
   offerTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },

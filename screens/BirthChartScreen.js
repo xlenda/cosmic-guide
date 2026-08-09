@@ -6,6 +6,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, gradients, zodiacSigns } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+// O CENÁRIO CÓSMICO (08/08/2026) — primeiro filho do root, atrás de tudo; o
+// root mantém colors.background por baixo (ver o cabeçalho do componente).
+import CosmicScene from '../components/CosmicScene';
 import DatePickerModal from '../components/DatePickerModal';
 import CityPickerModal from '../components/CityPickerModal';
 import { signoFromDate, moonSign, ascendantSign, houses, aspects, astrocartographyCities } from '../lib/signs';
@@ -1006,8 +1009,9 @@ export default function BirthChartScreen() {
 
   return (
     <View style={styles.root}>
+      <CosmicScene />
       <GradientHeader title="Mapa Astral" subtitle="Seu retrato cósmico" onBack={() => navigation.goBack()} gradient={['#3A4AB5', '#6C7BFF']} />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {coupleLoading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
         ) : isCouple ? (
@@ -1170,7 +1174,7 @@ const styles = StyleSheet.create({
   // alinhamento e o que faz a secao parecer parte do Mapa, e nao um encarte.
   seitaCard: {
     marginTop: 8, marginBottom: 14, padding: 16,
-    backgroundColor: colors.surface, borderRadius: 16,
+    backgroundColor: colors.surface, borderRadius: 18,
     borderWidth: 1, borderColor: colors.gold + '44',
   },
   seitaTitulo: {
@@ -1185,7 +1189,9 @@ const styles = StyleSheet.create({
   seitaDestaqueFrase: { textTransform: 'none', fontSize: 18 },
   // A ABERTURA de um card que segue a lei "quente primeiro": a leitura de vida
   // real vem em corpo maior que o resto do card, porque é ela que segura.
-  seitaAbertura: { fontSize: 15, lineHeight: 23 },
+  // (Reforma 08/08: o corpo subiu pra 15/24, então a abertura sobe junto —
+  // 16/25 — pra hierarquia entre as duas não sumir.)
+  seitaAbertura: { fontSize: 16, lineHeight: 25 },
   // A FICHA depois da abertura: o resultado técnico ("mapa diurno", "Ano 34 ·
   // casa 11 · Aquário") em tamanho de etiqueta. O dado continua na tela — ele
   // só deixou de ser porteiro da leitura.
@@ -1197,7 +1203,7 @@ const styles = StyleSheet.create({
     color: colors.gold, fontSize: 11, fontWeight: '800',
     textTransform: 'uppercase', letterSpacing: 1, marginTop: 14, marginBottom: 8,
   },
-  seitaTexto: { color: colors.text, fontSize: 14, lineHeight: 21, marginBottom: 8 },
+  seitaTexto: { color: colors.text, fontSize: 15, lineHeight: 24, marginBottom: 8 },
   seitaCorpo: { marginTop: 4 },
 
   // O aviso de chamada apertada: dourado, no corpo do card, fora do acordeao.
@@ -1260,7 +1266,7 @@ const styles = StyleSheet.create({
   seitaRecibo: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 2 },
   root: { flex: 1, backgroundColor: colors.background },
   formCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: colors.border },
-  formTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 14 },
+  formTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 },
   field: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceElevated, borderRadius: 12, paddingHorizontal: 14, marginBottom: 12, borderWidth: 1, borderColor: colors.border },
   input: { flex: 1, color: colors.text, fontSize: 15, paddingVertical: 14, marginLeft: 10 },
   horaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -1311,14 +1317,14 @@ const styles = StyleSheet.create({
     marginVertical: 6,
   },
   trioGlyph: { fontSize: 38, lineHeight: 44 },
-  trioSign: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  trioSign: { color: colors.text, fontSize: 15, fontWeight: '800' },
   // --- Seus elementos (08/08/2026) ---
   // Mesmo desenho de cartão do summaryCard (gradients.card + borda), 4 colunas
   // flex iguais. As cores por elemento chegam inline de ELEMENTOS_META (são 4,
   // variam por coluna); aqui, como sempre, só a geometria e o texto neutro.
-  elementosCard: { marginTop: 12, borderRadius: 18, overflow: 'hidden' },
+  elementosCard: { marginTop: 14, borderRadius: 18, overflow: 'hidden' },
   elementosInner: { padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
-  elementosTitulo: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 12 },
+  elementosTitulo: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 12 },
   elementosRow: { flexDirection: 'row', justifyContent: 'space-between' },
   elementoCol: { flex: 1, alignItems: 'center', marginHorizontal: 3 },
   elementoCirculo: {
@@ -1336,10 +1342,12 @@ const styles = StyleSheet.create({
   elementoChipTexto: { fontSize: 13, fontWeight: '800' },
   elementoTrack: { alignSelf: 'stretch', height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden' },
   elementoFill: { height: 6, borderRadius: 3 },
-  elementosLeitura: { color: colors.text, fontSize: 14, lineHeight: 21, marginTop: 14 },
+  elementosLeitura: { color: colors.text, fontSize: 15, lineHeight: 24, marginTop: 14 },
   elementosRecibo: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 8 },
-  sub: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 24, marginBottom: 12 },
-  planetRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
+  // Título de seção em corpo de display (18/800) e com respiro de verdade em
+  // cima — é o que separa "lista" de "capítulo" nos prints do concorrente.
+  sub: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 28, marginBottom: 14, letterSpacing: 0.2 },
+  planetRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.border },
   planetIcon: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   planetLabel: { color: colors.text, fontSize: 15, fontWeight: '700' },
   planetDesc: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
@@ -1352,10 +1360,10 @@ const styles = StyleSheet.create({
   },
   planetGlyph: { fontSize: 24 },
   housesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
-  houseCell: { width: '31%', backgroundColor: colors.surface, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  houseCell: { width: '31%', backgroundColor: colors.surface, borderRadius: 14, padding: 10, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   houseNumber: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
   houseSign: { fontSize: 13, fontWeight: '700', marginTop: 4, textAlign: 'center' },
-  aspectRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border },
+  aspectRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
   aspectText: { color: colors.text, fontSize: 14, flex: 1, marginRight: 8 },
   aspectOrb: { color: colors.textMuted, fontSize: 12 },
   // Os estilos do city picker local (modalOverlay/modalSheet/citySheet/

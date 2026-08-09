@@ -22,6 +22,7 @@ import { recordCardsSeen } from '../lib/tarotCollection';
 import { ROUTES } from '../routes';
 import { useLanguage } from '../context/LanguageContext';
 import OneTimeLock from '../components/OneTimeLock';
+import CosmicScene from '../components/CosmicScene';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
@@ -314,6 +315,10 @@ export default function TarotScreen() {
 
   return (
     <View style={styles.root}>
+      {/* O cenário em camadas (céu + estrelas + ondas) atrás de tudo — o root
+          mantém colors.background por baixo, como o contrato do CosmicScene
+          pede. Cards continuam com surface própria: legibilidade não negocia. */}
+      <CosmicScene />
       <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
@@ -334,7 +339,7 @@ export default function TarotScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionLabel}>{t('tarot.chooseTheme')}</Text>
         <View style={styles.themeRow}>
           {THEMES.map((t) => (
@@ -1022,14 +1027,17 @@ const styles = StyleSheet.create({
   albumBtnText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   title: { color: '#fff', fontSize: 24, fontWeight: '800' },
   subtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 4 },
-  sectionLabel: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 12 },
+  // Tipografia display no título de seção (17/800) + marginTop generoso: o vão
+  // entre o header e o primeiro título deixa o cenário aparecer — é o respiro
+  // que faz a tela ler como paisagem, não como lista.
+  sectionLabel: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 26, marginBottom: 12 },
   themeRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   themeChip: { flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border, gap: 6 },
   themeText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
   emptyWrap: { alignItems: 'center', marginTop: 20 },
   deckStack: { width: 120, height: 170, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
   deckCard: { position: 'absolute', width: 110, height: 160, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
-  emptyTitle: { color: colors.textSecondary, fontSize: 15, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20, lineHeight: 22 },
+  emptyTitle: { color: colors.textSecondary, fontSize: 15, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20, lineHeight: 24 },
   dailyLimitNote: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 16, lineHeight: 19, paddingHorizontal: 10 },
   bonusStoreBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
@@ -1056,13 +1064,16 @@ const styles = StyleSheet.create({
   },
   tarotImage: { width: '100%', height: '100%' },
   tarotBack: { width: '100%', height: 150, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border, gap: 8 },
-  tarotName: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 8, textAlign: 'center' },
+  // O nome da carta revelada é o momento da tela — tipografia display (20/800).
+  // numberOfLines={2} segue no JSX; a orientação também está na imagem girada e
+  // repetida em meaningPos, então nome longo truncado não esconde informação.
+  tarotName: { color: colors.text, fontSize: 20, fontWeight: '800', lineHeight: 24, marginTop: 10, textAlign: 'center' },
   tapText: { color: colors.textMuted, fontSize: 11 },
   posLabel: { color: colors.textMuted, fontSize: 12, marginTop: 8, fontWeight: '600' },
-  meaningCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
+  meaningCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
   meaningIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  meaningPos: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  meaningText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  meaningPos: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  meaningText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 6 },
   sourceBox: {
     marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border,
   },
@@ -1070,11 +1081,11 @@ const styles = StyleSheet.create({
   sourceQuote: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, fontStyle: 'italic', marginTop: 4 },
   sourceNote: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 6 },
   spreadCard: {
-    backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginTop: 4, marginBottom: 10,
+    backgroundColor: colors.surface, borderRadius: 18, padding: 16, marginTop: 4, marginBottom: 14,
     borderWidth: 1, borderColor: colors.border,
   },
-  spreadTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 6 },
-  spreadText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  spreadTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 8 },
+  spreadText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
   spreadFootnote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 10 },
 
   // ---- O PREPARO DE WAITE ----
@@ -1086,7 +1097,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 14,
@@ -1099,7 +1110,7 @@ const styles = StyleSheet.create({
   preparoPainel: {
     width: '100%',
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 14,

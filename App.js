@@ -499,21 +499,43 @@ function Gate() {
           inclusive das telas de leitura, onde o som acompanha o momento.
           A <View> existe pra dar um pai com flex aos dois filhos. */}
       <CosmicSoundProvider>
-        <View style={{ flex: 1 }}>
+        {/* backgroundColor aqui porque a barra de abas virou pílula flutuante
+            (margens + raio): o que aparece AO REDOR dela é este View — sem a
+            cor, na web o vão sairia branco. */}
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
+          // A PÍLULA FLUTUANTE (08/08/2026) — o dock do concorrente: barra
+          // solta das bordas, cantos totalmente redondos, sombra. EM FLUXO
+          // (margens), NUNCA position absolute: barra absoluta cobre o fim de
+          // toda tela — a mesma classe de bug do quiz no Safari que custou
+          // lead (ver mobile-web-real.md). Em fluxo, o conteúdo termina acima
+          // dela por construção, em qualquer viewport.
           tabBarStyle: {
             backgroundColor: colors.surface,
-            borderTopColor: colors.border,
-            borderTopWidth: 1,
-            height: 62,
+            borderTopWidth: 0,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 32,
+            marginHorizontal: 12,
+            marginBottom: 10,
+            height: 64,
             paddingBottom: 8,
             paddingTop: 6,
+            shadowColor: '#000',
+            shadowOpacity: 0.35,
+            shadowRadius: 16,
+            shadowOffset: { width: 0, height: 8 },
+            elevation: 12,
           },
-          tabBarActiveTintColor: colors.accent,
+          tabBarActiveTintColor: colors.purple,
           tabBarInactiveTintColor: colors.textMuted,
-          tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+          // A aba ativa ganha um leito arredondado próprio dentro da pílula —
+          // o realce que o dock do concorrente usa (tinta + fundo suave).
+          tabBarActiveBackgroundColor: colors.accent + '2E',
+          tabBarItemStyle: { borderRadius: 24, marginHorizontal: 5, marginVertical: 5 },
+          tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
           tabBarIcon: ({ color, size, focused }) => {
             let icon = 'planet';
             if (route.name === ROUTES.HOME_TAB) icon = focused ? 'planet' : 'planet-outline';
