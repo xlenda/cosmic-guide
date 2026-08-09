@@ -63,6 +63,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Platform, AppState, Image } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+// O fade cinematográfico da cena full-bleed (09/08/2026) — funde o terço
+// inferior da arte no colors.background da tela.
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 // A CENA ILUSTRADA (08/08/2026) — o hero desenhado do pack de arte
@@ -366,14 +369,19 @@ export default function LunarCalendarScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* A CENA DA LUA (08/08/2026) — hero (CENAS.lua) entre o header e o
-            cartão da fase, o slot "entre o header e o conteúdo": 160 de altura
-            deixa a reflexão de hoje (o que a pessoa veio ver) inteira na
-            primeira dobra. É <Image/>, pinta na primeira passada — não atrasa
-            a fase nem entra na conta adiada da Lua fora de curso.
+        {/* A CENA DA LUA (08/08/2026; full-bleed 09/08/2026) — hero
+            (CENAS.lua) entre o header e o cartão da fase, o slot "entre o
+            header e o conteúdo". Deixou de ser card emoldurado: a arte SANGRA
+            das bordas (margens negativas anulam o padding:20 do scroll), cola
+            no header sem raio de canto, e o LinearGradient funde o terço
+            inferior no fundo da tela — a lua é o horizonte da página, e o
+            cartão de hoje pousa sobre o fim da arte (marginBottom negativo no
+            wrap). É <Image/>, pinta na primeira passada — não atrasa a fase
+            nem entra na conta adiada da Lua fora de curso.
             accessible={false}: é cenário, não informação. */}
         <View style={styles.cenaWrap}>
           <Image source={CENAS.lua} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+          <LinearGradient colors={['transparent', colors.background]} style={styles.cenaFade} pointerEvents="none" />
         </View>
 
         {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o cartão abria com
@@ -704,9 +712,13 @@ export default function LunarCalendarScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   scrollContent: { padding: 20, paddingBottom: 40, gap: 16 },
-  // A cena ilustrada do topo — o gap:16 do scrollContent já dá o respiro.
-  cenaWrap: { borderRadius: 18, overflow: 'hidden' },
-  cenaImg: { width: '100%', height: 160 },
+  // A cena full-bleed do topo — margens negativas anulam o padding:20 do
+  // scrollContent (sangra até as bordas e cola no header, sem borderRadius);
+  // o marginBottom -44 vira -28 líquidos depois do gap:16, pousando o cartão
+  // de hoje na zona do fade.
+  cenaWrap: { marginTop: -20, marginHorizontal: -20, marginBottom: -44 },
+  cenaImg: { width: '100%', height: 220 },
+  cenaFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 72 },
   todayCard: {
     backgroundColor: colors.card,
     borderRadius: 20,

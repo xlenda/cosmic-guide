@@ -149,6 +149,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, AppState, Share, Platform, Image } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+// LinearGradient: só pro fallback do grid de arte (evento sem planeta único,
+// tipo aspectoExato) — a faixa em gradients.card com o emoji do motor.
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
@@ -291,8 +294,85 @@ const PLANETA_DO_EVENTO = Object.freeze({
 });
 
 // ---------------------------------------------------------------------------
-// O card de um evento
+// O grid de arte dos eventos (09/08/2026)
 // ---------------------------------------------------------------------------
+// A lista do mês virou um grid de DUAS colunas de cards ilustrados, no padrão
+// do concorrente: o planeta pintado domina o card (~104 de altura, cover), uma
+// pill discreta com a contagem por cima e o título numa faixa embaixo. O card
+// do grid é só a PORTA — mostra pouco de propósito. Tocar nele abre o
+// EventoCard completo (parágrafo, recibo, ficha — TODO o conteúdo de sempre,
+// na ordem de sempre), renderizado logo abaixo do PAR onde o card mora, pra
+// expansão acontecer perto do dedo e não no fim do grid. A lei do quente
+// primeiro segue valendo onde há leitura: o grid não mostra parágrafo nenhum,
+// e o detalhe que abre continua travado por test/quentePrimeiroNasTelas.test.js
+// (EventoCard não mudou uma linha).
+//
+// A contagem da pill compara a dataLocal do evento ('YYYY-MM-DD') com o dia
+// local de hoje, os dois em meia-noite LOCAL — o Math.round come qualquer
+// degrau de horário de verão no meio. Zero texto novo: 0/1/n usam as chaves
+// home.eventos.hoje/amanha/dias que a Home já usa no card de countdown, e
+// evento PASSADO do mês mostra a data curta (diaMesLocal, a mesma do card
+// completo) em vez de contagem — nenhuma chave nova foi criada.
+function diasAte(dataLocal, hojeISO) {
+  const [y1, m1, d1] = String(dataLocal).split('-').map(Number);
+  const [y2, m2, d2] = String(hojeISO).split('-').map(Number);
+  if (!y1 || !m1 || !d1 || !y2 || !m2 || !d2) return null;
+  return Math.round((new Date(y1, m1 - 1, d1) - new Date(y2, m2 - 1, d2)) / 86400000);
+}
+
+function EventoArteCard({ evento, hojeISO, selecionado, aberto, onPress }) {
+  const { t, lang } = useLanguage();
+  // O mesmo mapa honesto do card completo (PLANETA_DO_EVENTO): aspectoExato
+  // não tem planeta único, então cai na faixa em gradiente com o emoji grande
+  // do motor — a arte é upgrade, nunca dependência.
+  const arte = planetaImagem(PLANETA_DO_EVENTO[evento.tipo]);
+  const n = diasAte(evento.dataLocal, hojeISO);
+  const pill =
+    n === null || n < 0
+      ? diaMesLocal(evento.data, lang)
+      : n === 0
+        ? t('home.eventos.hoje')
+        : n === 1
+          ? t('home.eventos.amanha')
+          : t('home.eventos.dias', { n });
+
+  return (
+    <TouchableOpacity
+      style={[styles.arteCard, selecionado && styles.arteCardSelecionado]}
+      activeOpacity={0.85}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: aberto }}
+      accessibilityLabel={`${evento.titulo} — ${pill}`}
+      testID={`calendario-arte-${evento.tipo}-${evento.diaLocal}`}
+    >
+      <View style={styles.arteTopo}>
+        {arte ? (
+          <Image source={arte} style={styles.arteImg} resizeMode="cover" accessible={false} />
+        ) : (
+          <LinearGradient colors={gradients.card} style={styles.arteFallback}>
+            <Text style={styles.arteFallbackEmoji}>{evento.emoji}</Text>
+          </LinearGradient>
+        )}
+        <View style={styles.artePill}>
+          <Text style={styles.artePillTexto}>{pill}</Text>
+        </View>
+      </View>
+      <View style={styles.arteRodape}>
+        <Text style={styles.arteTitulo} numberOfLines={2}>
+          {evento.titulo}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// O card de um evento — desde 09/08/2026, o DETALHE do grid de arte
+// ---------------------------------------------------------------------------
+// Ele não fica mais sempre visível na lista: renderiza quando um card do grid
+// está aberto (eventoAberto), com o MESMO conteúdo na MESMA ordem de sempre —
+// test/quentePrimeiroNasTelas.test.js segue travando o quente primeiro aqui.
 // Tradição, fonte e aviso de idade ficam num bloco recolhido: um mês tem entre
 // 4 e 20 eventos (test/calendarioCosmico.test.js), e vinte fichas completas
 // abertas transformariam a lista num paredão que ninguém rola até o fim. O que
@@ -498,6 +578,10 @@ export default function CalendarioCosmicoScreen() {
   const [tique, setTique] = useState(0);
   const [offset, setOffset] = useState(0);
   const [diaSelecionado, setDiaSelecionado] = useState(null);
+  // O card do grid aberto em detalhe, chaveado por `${tipo}-${dataISO}` (a
+  // mesma chave da lista de sempre) — ver o bloco do grid de arte lá em cima.
+  // Navegar de mês fecha; trocar idioma preserva (a chave não tem idioma).
+  const [eventoAberto, setEventoAberto] = useState(null);
   const [passeioGasto, setPasseioGasto] = useState(false);
   const [ofertaVisivel, setOfertaVisivel] = useState(false);
 
@@ -602,6 +686,15 @@ export default function CalendarioCosmicoScreen() {
     return mapa;
   }, [eventos]);
 
+  // Os eventos do mês em PARES, pro grid de duas colunas (ver o bloco do grid
+  // de arte no topo). Mês com contagem ímpar fecha com um espaçador flex na
+  // última linha — o card solitário não estica a largura toda.
+  const paresDeEventos = useMemo(() => {
+    const pares = [];
+    for (let i = 0; i < eventos.length; i += 2) pares.push(eventos.slice(i, i + 2));
+    return pares;
+  }, [eventos]);
+
   const semanas = useMemo(() => {
     const total = diasNoMes(ano, mes);
     const vazias = new Date(ano, mes - 1, 1).getDay();
@@ -633,6 +726,7 @@ export default function CalendarioCosmicoScreen() {
 
       posicoesRef.current = {};
       setDiaSelecionado(null);
+      setEventoAberto(null);
       setOfertaVisivel(false);
       setOffset(destino);
     },
@@ -642,16 +736,21 @@ export default function CalendarioCosmicoScreen() {
   const voltarPraHoje = useCallback(() => {
     posicoesRef.current = {};
     setDiaSelecionado(null);
+    setEventoAberto(null);
     setOfertaVisivel(false);
     setOffset(0);
   }, []);
 
   // Tocar num dia marcado leva até o card dele. É o que faz a grade valer a
   // pena: a pessoa vê o 🌕 no dia 29 e quer saber o que é, sem rolar caçando.
+  // Com o grid de arte, rolar até um card que só repete título não responde
+  // "o que é" — então tocar no dia também ABRE o detalhe do primeiro evento
+  // dele, que renderiza colado no par.
   const abrirDia = useCallback(
     (iso) => {
       setDiaSelecionado(iso);
       const primeiro = (porDia.get(iso) || [])[0];
+      if (primeiro) setEventoAberto(`${primeiro.tipo}-${primeiro.dataISO}`);
       const y = primeiro ? posicoesRef.current[primeiro.dataISO] : undefined;
       if (typeof y === 'number' && scrollRef.current && scrollRef.current.scrollTo) {
         scrollRef.current.scrollTo({ y: Math.max(y - 12, 0), animated: true });
@@ -1140,18 +1239,44 @@ export default function CalendarioCosmicoScreen() {
                 ? t('calendario.list.count_one')
                 : t('calendario.list.count_other', { n: eventos.length })}
             </Text>
-            {eventos.map((evento) => (
-              <EventoCard
-                key={`${evento.tipo}-${evento.dataISO}`}
-                evento={evento}
-                selecionado={evento.dataLocal === diaSelecionado}
-                onLayout={(e) => {
-                  // y relativo ao contentContainer — os cards são filhos
-                  // diretos do ScrollView, então serve direto pro scrollTo.
-                  posicoesRef.current[evento.dataISO] = e.nativeEvent.layout.y;
-                }}
-              />
-            ))}
+            {paresDeEventos.map((par) => {
+              const abertoNoPar = par.find((e) => `${e.tipo}-${e.dataISO}` === eventoAberto) || null;
+              return (
+                <React.Fragment key={`${par[0].tipo}-${par[0].dataISO}`}>
+                  <View
+                    style={styles.arteLinha}
+                    onLayout={(e) => {
+                      // y relativo ao contentContainer — as LINHAS do grid são
+                      // filhas diretas do ScrollView, então serve direto pro
+                      // scrollTo; os dois eventos do par apontam pro mesmo y.
+                      const y = e.nativeEvent.layout.y;
+                      for (const ev of par) posicoesRef.current[ev.dataISO] = y;
+                    }}
+                  >
+                    {par.map((evento) => {
+                      const chave = `${evento.tipo}-${evento.dataISO}`;
+                      return (
+                        <EventoArteCard
+                          key={chave}
+                          evento={evento}
+                          hojeISO={hojeISO}
+                          selecionado={evento.dataLocal === diaSelecionado}
+                          aberto={chave === eventoAberto}
+                          onPress={() => setEventoAberto((atual) => (atual === chave ? null : chave))}
+                        />
+                      );
+                    })}
+                    {par.length === 1 ? <View style={styles.arteVazio} /> : null}
+                  </View>
+                  {/* O detalhe abre COLADO no par do card tocado, não no fim
+                      do grid. É o EventoCard de sempre — parágrafo, recibo e
+                      ficha, conteúdo e ordem interna intactos. */}
+                  {abertoNoPar ? (
+                    <EventoCard evento={abertoNoPar} selecionado={abertoNoPar.dataLocal === diaSelecionado} />
+                  ) : null}
+                </React.Fragment>
+              );
+            })}
           </>
         )}
       </ScrollView>
@@ -1278,6 +1403,37 @@ const styles = StyleSheet.create({
   // contagem acompanha o título centrado, como subtítulo da seção.
   listaTitulo: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
   listaContagem: { color: colors.textMuted, fontSize: 12, marginTop: -14, textAlign: 'center', alignSelf: 'center' },
+
+  // ---- O grid de arte dos eventos (09/08/2026) ----
+  // Linha = par de cards; align 'stretch' (default de row) iguala as alturas
+  // do par mesmo com títulos de 1 e 2 linhas.
+  arteLinha: { flexDirection: 'row', gap: 12 },
+  arteVazio: { flex: 1 },
+  arteCard: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  arteCardSelecionado: { borderColor: colors.purple },
+  arteTopo: { width: '100%', height: 104 },
+  arteImg: { width: '100%', height: '100%' },
+  arteFallback: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+  arteFallbackEmoji: { fontSize: 40 },
+  artePill: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(14,8,33,0.72)',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  artePillTexto: { color: colors.text, fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  arteRodape: { paddingHorizontal: 10, paddingVertical: 10, flexGrow: 1, justifyContent: 'center' },
+  arteTitulo: { color: colors.text, fontSize: 14, fontWeight: '800', lineHeight: 18 },
 
   evento: {
     backgroundColor: colors.card,

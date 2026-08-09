@@ -47,6 +47,7 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Share,
   Platform,
@@ -54,6 +55,9 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+// O fade cinematográfico da cena full-bleed (09/08/2026) — funde o terço
+// inferior da arte no colors.background da tela.
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
@@ -513,7 +517,21 @@ export default function DreamScreen() {
     setJournalEntryId(entryId);
 
     setIsAnalyzing(false);
+    // A ENTREGA EM STORIES (09/08/2026) — a leitura que acabou de CHEGAR abre
+    // direto no modo história, como no concorrente. O engate é AQUI, no fluxo
+    // do toque em "Interpretar" (o setReading de cima é o ato de criação), e
+    // não num useEffect sobre `reading`: reading não persiste e só nasce
+    // neste fluxo, então o leitor nunca auto-abre por restauração de estado.
+    // Dispara JUNTO do setStep(RESULT): o modal sobe no mesmo render em que o
+    // resultado renderiza, nunca durante o loading — e o caminho de 402/401 já
+    // retornou lá em cima sem leitura nenhuma. Fechável sempre: X e Concluir
+    // devolvem a página completa, e "Ver como história" continua pra reler.
+    // [AUTO-DECISION] Keyboard.dismiss() antes de abrir: a pessoa pode ter
+    // tocado "Interpretar" com o campo ainda focado, e no nativo o teclado
+    // sobreviveria à troca de passo — o Modal não pode subir por cima dele.
+    Keyboard.dismiss();
     setStep(STEP.RESULT);
+    setHistoriaAberta(true);
   };
 
   // `step !== STEP.RESULT` importa aqui: marcamos `locked=true` no instante em
@@ -543,15 +561,19 @@ export default function DreamScreen() {
 
           {step === STEP.INTRO && (
             <View style={styles.section}>
-              {/* A CENA DO SONHO (08/08/2026) — hero (CENAS.sonho) no topo da
-                  intro, ACIMA da instrução: 150 de altura pra o campo e o botão
-                  de interpretar continuarem na primeira dobra. Acima (e não ao
-                  lado) do input porque a imagem rola pra fora quando o teclado
-                  sobe — nunca briga com a digitação. Só na intro: o resultado
-                  já abre pelo bloco de Artemidoro. accessible={false}: é
-                  cenário, não informação. */}
+              {/* A CENA DO SONHO (08/08/2026; full-bleed 09/08/2026) — hero
+                  (CENAS.sonho) no topo da intro, ACIMA da instrução. Deixou de
+                  ser card emoldurado: a arte SANGRA das bordas (margens
+                  negativas anulam o padding:20 do scroll, sem borderRadius) e
+                  o LinearGradient funde o terço inferior no fundo — a
+                  instrução pousa sobre o fim da arte (marginBottom negativo no
+                  wrap). Acima (e não ao lado) do input porque a imagem rola
+                  pra fora quando o teclado sobe — nunca briga com a digitação.
+                  Só na intro: o resultado já abre pelo bloco de Artemidoro.
+                  accessible={false}: é cenário, não informação. */}
               <View style={styles.cenaWrap}>
                 <Image source={CENAS.sonho} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+                <LinearGradient colors={['transparent', colors.background]} style={styles.cenaFade} pointerEvents="none" />
               </View>
 
               <Text style={styles.instructions}>
@@ -693,9 +715,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   section: { gap: 14, alignItems: 'stretch' },
-  // A cena ilustrada da intro — o gap:14 da section já dá o respiro.
-  cenaWrap: { borderRadius: 18, overflow: 'hidden' },
-  cenaImg: { width: '100%', height: 150 },
+  // A cena full-bleed da intro — margens negativas anulam o padding:20 do
+  // scrollContent (sangra até as bordas, sem borderRadius); o marginBottom
+  // -38 vira -24 líquidos depois do gap:14 da section, pousando a instrução
+  // na zona do fade.
+  cenaWrap: { marginHorizontal: -20, marginBottom: -38 },
+  cenaImg: { width: '100%', height: 200 },
+  cenaFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 66 },
   instructions: {
     color: colors.textSecondary,
     fontSize: 15,

@@ -57,7 +57,10 @@ import { horoscopeFor, resumoDoDia } from '../lib/dailyHoroscope';
 // O MASCOTE (08/08/2026) — o signo vira personagem: lib/ilustracoes.js devolve
 // o asset 256px do pack de arte, ou null — e null cai no glifo de fonte de
 // sempre. A arte é upgrade, nunca dependência.
-import { mascoteDoSigno } from '../lib/ilustracoes';
+// planetaImagem (09/08/2026, Onda Arte Dominante): a arte 256px do planeta
+// regente do dia vira cabeçalho do primeiro bloco de leitura — mesmo contrato
+// (null → sem cabeçalho, layout de sempre).
+import { mascoteDoSigno, planetaImagem } from '../lib/ilustracoes';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -141,6 +144,12 @@ export default function HoroscopeScreen() {
   // O mascote do signo selecionado — null quando o pack não tem a arte, e aí
   // o glifo de fonte segue no posto (fallback obrigatório, nunca buraco).
   const mascote = mascoteDoSigno(sign.name);
+  // A ARTE DO REGENTE (09/08/2026, Onda Arte Dominante) — o cabeçalho de arte
+  // do primeiro bloco de leitura é o planeta REGENTE DO DIA: arte com dado
+  // real por trás (o mesmo fato que a FichaDoCeu reciba logo abaixo), nunca
+  // ilustração sorteada. f é null quando o motor não respondeu, e aí não há
+  // cabeçalho — o layout de sempre, sem buraco.
+  const arteRegente = f ? planetaImagem(f.regenteDoDia) : null;
 
   // Sem botão de ação aqui — o conteúdo já aparece ao montar a tela. Por isso
   // checagem e marcação acontecem juntas: só marca como usado quando a checagem
@@ -313,7 +322,21 @@ export default function HoroscopeScreen() {
                       aqui — e não colada na ficha — para só existir quando
                       existe próximo capítulo. */}
                   {indice === 1 && <WaveDivider />}
-                  <Text style={styles.sub}>{t(bloco.titleKey)}</Text>
+                  {/* O CABEÇALHO DE ARTE (09/08/2026, Onda Arte Dominante) —
+                      no concorrente os cards do horóscopo são 70% imagem; aqui
+                      a leitura flutuava sem uma. SÓ o primeiro bloco ganha o
+                      cabeçalho, e é a arte do regente do dia (dado que a
+                      FichaDoCeu reciba embaixo). Os blocos seguintes ficam sem
+                      arte de propósito: os ids reais (ruler/moon/quarter/day/
+                      retro/aspect) falam de astros DIFERENTES — repetir a Lua
+                      em cima de Mercúrio retrógrado seria decoração desmentindo
+                      o fato, e uma imagem forte vale mais que quatro iguais.
+                      Decoração pura: accessible={false}, nada de texto novo, e
+                      vem ANTES do título — não entre a leitura e a ficha. */}
+                  {indice === 0 && arteRegente && (
+                    <Image source={arteRegente} style={styles.arteBloco} resizeMode="cover" accessible={false} />
+                  )}
+                  <Text style={[styles.sub, indice === 0 && arteRegente && styles.subComArte]}>{t(bloco.titleKey)}</Text>
                   {/* Ouvir, entre o título e o texto — alinhado com a leitura
                       (o blockCard indenta 18). Um botão POR bloco: quem toca
                       ouve este capítulo, não a tela inteira. */}
@@ -482,6 +505,13 @@ const styles = StyleSheet.create({
   // muito ar em cima — o padrão medido no concorrente premium (22-26/800,
   // centrado, simétrico). Só a roupa muda; o conteúdo é o mesmo.
   sub: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
+  // Onda Arte Dominante (09/08/2026): o cabeçalho de arte do primeiro bloco —
+  // largura total, faixa de ~120 em cover (a arte 256px sobra), cantos 18 como
+  // todo card da tela. O marginTop 34 é o respiro que era do título…
+  arteBloco: { width: '100%', height: 120, borderRadius: 18, marginTop: 34 },
+  // …e o título que vem logo abaixo da arte devolve o respiro (34 → 14) pra
+  // colar na imagem como legenda dela, não como seção nova.
+  subComArte: { marginTop: 14 },
   factsRow: { flexDirection: 'row', gap: 14 },
   factItem: { flex: 1, backgroundColor: colors.surface, borderRadius: 18, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   factIcon: { width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },

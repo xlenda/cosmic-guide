@@ -219,6 +219,18 @@ export default function CompatibilityScreen() {
     if (!compat) { setResult(null); return; }
     setResult(compat);
     setShowSource(false);
+    // A ENTREGA EM STORIES (09/08/2026) — a leitura recém-nascida abre direto
+    // no modo história, como no concorrente. O engate é AQUI, no callback do
+    // toque em "Calcular", e não num useEffect sobre `result`: result não
+    // persiste e só nasce neste fluxo, então o leitor nunca auto-abre por
+    // restauração de estado ou por voltar pra tela. O gate do 1-uso-grátis já
+    // barrou lá em cima (locked retorna antes), então o auto-open só acontece
+    // no caminho em que o resultado é exibido de verdade. Fechável sempre: o
+    // X e o Concluir devolvem a página completa como sempre foi, e o botão
+    // "Ver como história" continua lá pra reler. Os slides são o MESMO
+    // corpoDaLeitura — setResult e este set batem no mesmo render, então o
+    // leitor já monta com a leitura nova.
+    setHistoriaAberta(true);
     // Leitura nova, medida velha: o card da Atenção do par anterior estava em
     // outra altura. Sem zerar, o primeiro toque no eco rolaria pro lugar errado.
     pedidoDeEco.current = false;
@@ -368,6 +380,10 @@ export default function CompatibilityScreen() {
         {!picking && !result && (
           <View style={styles.cenaCasalWrap}>
             <Image source={CENAS.casal} style={styles.cenaCasalImg} resizeMode="cover" accessible={false} />
+            {/* O fade cinematográfico (09/08/2026) — funde o terço inferior
+                da arte no colors.background: a cena pertence à página em vez
+                de flutuar emoldurada. */}
+            <LinearGradient colors={['transparent', colors.background]} style={styles.cenaCasalFade} pointerEvents="none" />
           </View>
         )}
 
@@ -741,9 +757,13 @@ const styles = StyleSheet.create({
   pickerName: { color: colors.textSecondary, fontSize: 11, marginTop: 4, fontWeight: '600' },
   btnWrap: { borderRadius: 12, overflow: 'hidden' },
   // A CENA DO CASAL — hero desenhado do estado pré-cálculo (ver o comentário
-  // no JSX). Mesmo DNA da cena do Tarô: full-width, cantos 18, sem borda.
-  cenaCasalWrap: { marginTop: 16, borderRadius: 18, overflow: 'hidden' },
-  cenaCasalImg: { width: '100%', height: 168 },
+  // no JSX). Full-bleed (09/08/2026): margens negativas anulam o padding:20
+  // do scroll (a arte sangra até as bordas, sem borderRadius) e o fade funde
+  // o terço inferior no fundo — a cena fecha a tela como horizonte, não como
+  // card emoldurado.
+  cenaCasalWrap: { marginTop: 16, marginHorizontal: -20 },
+  cenaCasalImg: { width: '100%', height: 210 },
+  cenaCasalFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 70 },
   btn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, gap: 8 },
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   // ---------------------------------------------------------------------

@@ -200,12 +200,16 @@ export default function LojaScreen() {
     <View style={styles.root}>
       <GradientHeader title={t('loja.header.title')} subtitle={t('loja.header.subtitle')} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Cena ilustrada do pack (lib/ilustracoes.js) — baú de tesouro no topo
-            da loja, acima do saldo e da grade. Decorativa (accessible=false):
-            altura 140 pra saldo + primeiro card de recompensa continuarem na
-            primeira dobra em telas de 667px. */}
+        {/* Cena do pack (lib/ilustracoes.js; full-bleed 09/08/2026) — baú de
+            tesouro no topo da loja, acima do saldo e da grade. Deixou de ser
+            card emoldurado: a arte SANGRA das bordas (margens negativas anulam
+            o padding:20 do content), cola no header sem raio de canto, e o
+            LinearGradient funde o terço inferior no fundo — o card de saldo
+            pousa sobre o fim da arte (marginTop negativo no balanceWrap).
+            Decorativa (accessible=false). */}
         <View style={styles.cenaWrap}>
           <Image source={CENAS.loja} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+          <LinearGradient colors={['transparent', colors.background]} style={styles.cenaFade} pointerEvents="none" />
         </View>
         <View style={styles.balanceWrap}>
           <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}>
@@ -327,9 +331,13 @@ export default function LojaScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 40 },
-  cenaWrap: { borderRadius: 18, overflow: 'hidden', marginBottom: 16 },
-  cenaImg: { width: '100%', height: 140 },
-  balanceWrap: { borderRadius: 20, overflow: 'hidden', marginBottom: 24 },
+  // A cena full-bleed do topo — margens negativas anulam o padding:20 do
+  // content (sangra até as bordas e cola no header, sem borderRadius); o
+  // saldo sobe -28 (marginTop do balanceWrap) e pousa na zona do fade.
+  cenaWrap: { marginTop: -20, marginHorizontal: -20 },
+  cenaImg: { width: '100%', height: 200 },
+  cenaFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 66 },
+  balanceWrap: { borderRadius: 20, overflow: 'hidden', marginTop: -28, marginBottom: 24 },
   balanceCard: { paddingVertical: 22, alignItems: 'center' },
   balanceValue: { color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 6 },
   balanceLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2, fontWeight: '600' },

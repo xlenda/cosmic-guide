@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,16 @@ import OneTimeLock from '../components/OneTimeLock';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
+// O MODO HISTÓRIA (09/08/2026) — a mesma leitura, um trecho por tela, como
+// stories. paraSlides só REFORMATA: nenhum byte de reading.body muda. E é a
+// entrega PADRÃO: o leitor abre sozinho quando a leitura da IA chega
+// (handleAnalyze), com a página completa esperando atrás do X. Vale pros 4
+// modos (Palma/Rosto/Pé/Pintas): todos entregam o mesmo shape {title, body}.
+import StoriesReader from '../components/StoriesReader';
+import { paraSlides } from '../lib/storySlides';
+// O BOTÃO "OUVIR" (09/08/2026) — reading.body em voz alta com a voz do
+// aparelho (Web Speech API, lib/voz.js). Sem a API ele devolve null sozinho.
+import BotaoOuvir from '../components/BotaoOuvir';
 
 // FEATURE_KEY único pra tela inteira (hub de 4 modos) — NÃO varia por modo.
 // O bloqueio de 1 uso grátis (lib/featureUsage.js) é vitalício por FEATURE_KEY,
@@ -174,6 +184,12 @@ export default function PalmScreen() {
   // desacordo quem manda é a conta, não o aparelho.
   const [serverBlock, setServerBlock] = useState(null);
   const [journalEntryId, setJournalEntryId] = useState(null);
+  // O MODO HISTÓRIA — só estado de tela; os slides saem de reading.body no
+  // useMemo abaixo, sem tocar no texto. Abre sozinho SÓ no instante em que a
+  // leitura chega (fim de handleAnalyze) — nunca ao voltar pra tela com
+  // resultado antigo, porque `reading` vive só em estado e morre com a tela.
+  const [historiaAberta, setHistoriaAberta] = useState(false);
+  const slidesDaLeitura = useMemo(() => (reading ? paraSlides(reading.body) : []), [reading]);
 
   const activeMode = MODES.find((m) => m.key === mode) || MODES[0];
 
@@ -189,6 +205,7 @@ export default function PalmScreen() {
     setReading(null);
     setPermissionError(null);
     setJournalEntryId(null); // nova leitura/troca de modo: solta o gravador de voz da entrada anterior
+    setHistoriaAberta(false); // leitura descartada: o leitor de stories não sobrevive a ela
   };
 
   // Troca de modo (Palma/Rosto/Pé/Pintas) só muda qual leitura será feita —
@@ -327,6 +344,10 @@ export default function PalmScreen() {
 
     setIsAnalyzing(false);
     setStep(STEP.RESULT);
+    // ENTREGA EM STORIES POR PADRÃO (09/08/2026): a leitura acabou de NASCER —
+    // este é o único lugar que abre o leitor sozinho. Fechar (X ou Concluir)
+    // deixa a página completa de sempre, e o botão "Ver como história" reabre.
+    setHistoriaAberta(true);
   };
 
   // `step !== STEP.RESULT` importa aqui: marcamos `locked=true` no instante em
@@ -417,6 +438,25 @@ export default function PalmScreen() {
               </View>
             )}
 
+            {/* O MODO HISTÓRIA — acima do texto da leitura, no ponto em que o
+                resultado já está inteiro na tela: reabre a MESMA leitura que o
+                auto-open acabou de mostrar, um trecho por tela. */}
+            <TouchableOpacity
+              style={styles.historiaBtn}
+              activeOpacity={0.85}
+              onPress={() => setHistoriaAberta(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('stories.ver')}
+            >
+              <Ionicons name="sparkles" size={16} color={colors.accent} />
+              <Text style={styles.historiaBtnText}>{t('stories.ver')}</Text>
+            </TouchableOpacity>
+
+            {/* O BOTÃO "OUVIR" — a leitura em voz alta (o mesmo reading.body
+                do card logo abaixo e do modo história), com a voz do aparelho.
+                Só fala no toque — voz nunca sai sozinha (regra de iOS). */}
+            <BotaoOuvir texto={reading.body} style={styles.ouvirBtn} />
+
             <View style={styles.resultCard}>
               <Text style={styles.resultTitle}>{reading.title}</Text>
               <Text style={styles.resultBody}>{reading.body}</Text>
@@ -470,6 +510,13 @@ export default function PalmScreen() {
           </View>
         )}
       </ScrollView>
+
+      <StoriesReader
+        visible={historiaAberta}
+        slides={slidesDaLeitura}
+        titulo={reading ? reading.title : ''}
+        onClose={() => setHistoriaAberta(false)}
+      />
     </View>
   );
 }
@@ -565,6 +612,17 @@ const styles = StyleSheet.create({
   resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   resultBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
   genericNote: { color: colors.gold, fontSize: 12, lineHeight: 17, marginTop: 10, fontStyle: 'italic' },
+  // O botão do modo história — contorno no accent da tela, sem fundo: porta
+  // pra mesma leitura, não call-to-action (mesmo desenho de DreamScreen.js).
+  historiaBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.accent + '66',
+    paddingVertical: 12, paddingHorizontal: 18,
+  },
+  historiaBtnText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+  // O Ouvir centrado entre o modo história e o card da leitura (a section já
+  // dá o respiro com o gap: 14).
+  ouvirBtn: { alignSelf: 'center' },
   upsellCard: {
     backgroundColor: colors.card,
     borderRadius: 16,

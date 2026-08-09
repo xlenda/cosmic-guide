@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -165,6 +165,14 @@ export default function TarotScreen() {
   // enquanto houver carta fechada: o leitor não entrega o desfecho de uma
   // carta que a pessoa ainda não abriu.
   const [historiaAberta, setHistoriaAberta] = useState(false);
+  // ENTREGA EM STORIES POR PADRÃO (09/08/2026) — o leitor abre SOZINHO no
+  // instante em que a tiragem fica inteira (a terceira carta virada), porque é
+  // assim que a leitura nasce agora: em slides, com a página completa esperando
+  // atrás do X. O ref garante UMA abertura por tiragem — fechou, só reabre pelo
+  // botão "Ver como história"; e como a tiragem vive só em estado (nada vem de
+  // AsyncStorage), não existe "voltar pra tela com resultado antigo" que
+  // dispare isto. drawCards() rearma o ref: tiragem nova é leitura nova.
+  const jaAbriuDestaTiragem = useRef(false);
   // O corpo vive num memo próprio porque agora tem DOIS consumidores com a
   // mesma exigência de fidelidade: os slides do modo história e o botão Ouvir
   // (components/BotaoOuvir.js), que fala a tiragem inteira em voz alta. Um
@@ -181,6 +189,20 @@ export default function TarotScreen() {
       .join('\n\n');
   }, [drawn, revealed, orientations, theme.key, lang, t]);
   const slidesDaTiragem = useMemo(() => paraSlides(corpoDaTiragem), [corpoDaTiragem]);
+
+  // O auto-open: dispara quando `revealed` vira [true, true, true] com uma
+  // tiragem na tela — o momento em que a revelação da terceira carta completa.
+  // [AUTO-DECISION] 650ms de respiro antes do Modal: a carta acabou de virar
+  // (haptic + face nova) e cobrir a tela no MESMO frame atropelaria o gesto;
+  // meio segundo e pouco deixa a pessoa VER a carta que pediu e ainda lê como
+  // continuação, não como interrupção. O cleanup cancela o timer se a tela
+  // desmontar ou a tiragem mudar antes de ele vencer.
+  useEffect(() => {
+    if (!drawn || !revealed.every(Boolean) || jaAbriuDestaTiragem.current) return undefined;
+    jaAbriuDestaTiragem.current = true;
+    const id = setTimeout(() => setHistoriaAberta(true), 650);
+    return () => clearTimeout(id);
+  }, [drawn, revealed]);
 
   // Todo tema libera só 1 tiragem por dia (ver lib/tarotDailyLimit) — recheca
   // sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
@@ -239,6 +261,9 @@ export default function TarotScreen() {
     setDrawn(shuffled);
     setRevealed([false, false, false]);
     setOrientations(newOrientations);
+    // Tiragem nova é leitura nova: rearma o auto-open do modo história pra
+    // quando ESTA tiragem completar as três cartas.
+    jaAbriuDestaTiragem.current = false;
     setJournalEntryId(null); // nova tiragem: solta o gravador de voz da entrada anterior
     recordDraw(theme.key);
     // Álbum das 78 Cartas (lib/tarotCollection.js) — toda carta tirada fica
