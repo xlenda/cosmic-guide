@@ -13,7 +13,7 @@ import HeroSection from '../components/HeroSection';
 // dependência.
 // planetaImagem (08/08/2026, última rodada): planeta pintado 256px ou null,
 // pras miniaturas do Céu de Hoje e do card de próximos eventos. Mesmo contrato.
-import { mascoteDoSigno, planetaImagem } from '../lib/ilustracoes';
+import { mascoteDoSigno, planetaImagem, CENAS } from '../lib/ilustracoes';
 // O CENÁRIO CÓSMICO — céu gradiente + estrelas + ondas de silhueta. Entra como
 // PRIMEIRO filho do root (uso documentado no cabeçalho do próprio arquivo).
 import CosmicScene from '../components/CosmicScene';
@@ -1375,6 +1375,10 @@ export default function HomeScreen() {
         {/* Frase do dia de amor — feita pra compartilhar de verdade com o
             par, não só ler (ver handleShareLovePhrase acima). */}
         <View style={styles.lovePhraseCard}>
+          {/* A CENA DO AMOR no topo do card (09/08/2026, "tem nada de
+              ilustração na Home") — os dois corações-planeta do pack, faixa
+              larga acima da frase. Decorativa: accessible false. */}
+          <Image source={CENAS.amor} style={styles.lovePhraseArte} resizeMode="cover" accessible={false} />
           <LinearGradient colors={['#FF6BA0', '#B57BFF']} style={styles.lovePhraseInner}>
             <View style={styles.lovePhraseHead}>
               <Ionicons name="heart" size={18} color="#fff" />
@@ -1411,9 +1415,19 @@ export default function HomeScreen() {
           >
             <LinearGradient colors={gradients.card} style={styles.horoInner}>
               <View style={styles.horoHead}>
-                <View style={[styles.signChip, { backgroundColor: sign.color + '33' }]}>
-                  <Text style={[styles.signChipGlyph, { color: sign.color }]}>{compat.emojiA}{compat.emojiB}</Text>
-                </View>
+                {/* Os DOIS mascotes do par no chip (09/08/2026) — com arte, o
+                    casal vira personagens sobrepostos; sem, os emojis de
+                    sempre. Mesmo contrato de fallback do resto do pack. */}
+                {mascoteDoSigno(coupleData.sa) && mascoteDoSigno(coupleData.sb) ? (
+                  <View style={styles.parMascotes}>
+                    <Image source={mascoteDoSigno(coupleData.sa)} style={styles.parMascote} resizeMode="cover" accessible={false} />
+                    <Image source={mascoteDoSigno(coupleData.sb)} style={[styles.parMascote, styles.parMascoteB]} resizeMode="cover" accessible={false} />
+                  </View>
+                ) : (
+                  <View style={[styles.signChip, { backgroundColor: sign.color + '33' }]}>
+                    <Text style={[styles.signChipGlyph, { color: sign.color }]}>{compat.emojiA}{compat.emojiB}</Text>
+                  </View>
+                )}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.horoSign}>{coupleData.sa} + {coupleData.sb}</Text>
                 </View>
@@ -1675,6 +1689,7 @@ const styles = StyleSheet.create({
   thoughtShareTxt: { color: colors.gold, fontSize: 12, fontWeight: '600' },
   thoughtToggle: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: 6 },
   lovePhraseCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
+  lovePhraseArte: { width: '100%', height: 96 },
   lovePhraseInner: { padding: 18 },
   lovePhraseHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   lovePhraseLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
@@ -1748,6 +1763,11 @@ const styles = StyleSheet.create({
   horoInner: { padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   horoHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   signChip: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  // O par de mascotes sobrepostos do card de compatibilidade: o segundo entra
+  // por cima com leve deslocamento, desenho clássico de "dupla".
+  parMascotes: { flexDirection: 'row', marginRight: 12, width: 62, height: 40 },
+  parMascote: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.surface },
+  parMascoteB: { marginLeft: -18 },
   signChipGlyph: { fontSize: 18 },
   horoSign: { color: colors.text, fontSize: 17, fontWeight: '800' },
   horoDates: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
