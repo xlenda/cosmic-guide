@@ -56,6 +56,7 @@ import { LanguageProvider, useLanguage } from './context/LanguageContext';
 // meio, que é o oposto do que esta feature existe pra fazer.
 import { CosmicSoundProvider } from './context/CosmicSoundContext';
 import CosmicSoundPlayer from './components/CosmicSoundPlayer';
+import PillPremium from './components/PillPremium';
 import HomeScreen from './screens/HomeScreen';
 import TarotScreen from './screens/TarotScreen';
 import ChatScreen from './screens/ChatScreen';
@@ -482,7 +483,10 @@ function useRetomarCheckout(navRef, navPronta) {
 // solo/casal. Qualquer um dos dois sinais presentes já libera o Tab.Navigator
 // normal — HomeScreen trata os dois casos.
 function Gate() {
-  const { coupleData, soloSign, loading, hasAccess } = useCouple();
+  // accessConfirmed entrou junto com a PillPremium (09/08/2026): a pill de
+  // assinar só aparece quando a checagem CONFIRMOU que não há assinatura —
+  // em dúvida de rede, nada de piscar "assine" pra quem paga.
+  const { coupleData, soloSign, loading, hasAccess, accessConfirmed } = useCouple();
   // Rótulo das abas: sem tabBarLabel o React Navigation usa o `name` da rota,
   // e o name é o literal de ROUTES ('Início', 'Tarô'...). O rodapé fica na
   // tela o tempo todo, em qualquer idioma — era o texto mais visto do app e
@@ -509,6 +513,11 @@ function Gate() {
     relerTarotNovidade();
   }, [relerTarotNovidade]);
 
+  // Rota atual pro esconde-esconde da PillPremium: na tela de Planos a pill
+  // some (oferta em cima de oferta é ruído). Alimentada pelos MESMOS
+  // onReady/onStateChange que a bolinha do Tarô já usa — sem listener novo.
+  const [rotaAtual, setRotaAtual] = useState(null);
+
   if (loading || !bootstrapped) {
     return (
       <View style={styles.loader}>
@@ -534,10 +543,17 @@ function Gate() {
     <NavigationContainer
       ref={navRef}
       linking={linking}
-      onReady={() => setNavPronta(true)}
+      onReady={() => {
+        setNavPronta(true);
+        setRotaAtual(navRef.getCurrentRoute()?.name || null);
+      }}
       // Toda navegação (troca de aba, push de tela) relê a novidade do Tarô —
-      // é o único gatilho de atualização da bolinha, ver comentário no estado.
-      onStateChange={relerTarotNovidade}
+      // é o único gatilho de atualização da bolinha, ver comentário no estado
+      // — e atualiza a rota atual pro esconde-esconde da PillPremium.
+      onStateChange={() => {
+        relerTarotNovidade();
+        setRotaAtual(navRef.getCurrentRoute()?.name || null);
+      }}
     >
       {/* O provider do Som do céu envolve o Tab.Navigator inteiro e o dock é
           IRMÃO dele, não filho de nenhuma tela: é o que garante que o áudio
@@ -655,6 +671,13 @@ function Gate() {
               Web Audio API existe (na web) e some sozinha quando a Home está
               mostrando o card do som — ver components/CosmicSoundPlayer.js. */}
           <CosmicSoundPlayer />
+          {/* A pill de assinar do concorrente, na versão honesta: SÓ para
+              quem comprovadamente não assina (accessConfirmed && !hasAccess),
+              e some na própria tela de Planos. Ver PillPremium.js. */}
+          <PillPremium
+            visivel={accessConfirmed && !hasAccess && rotaAtual !== ROUTES.PLANOS}
+            onPress={() => navRef.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
+          />
         </View>
       </CosmicSoundProvider>
     </NavigationContainer>
