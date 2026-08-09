@@ -55,10 +55,8 @@ export default function CosmicScene({ waves = true, style }) {
       {/* O céu: do roxo profundo do topo ao quase-preto do rodapé — mesma
           família do colors.background, então a transição pro que estiver
           além do cenário é invisível. */}
-      {/* Família azul-índigo (08/08/2026, "azul" do dono — o céu do
-          concorrente é marinho): do índigo do topo ao quase-preto azulado. */}
       <LinearGradient
-        colors={['#1E2560', '#121740', '#0A0D2E']}
+        colors={['#241448', '#140C2E', '#0E0821']}
         style={StyleSheet.absoluteFill}
       />
       {ESTRELAS.map((e, i) => (
@@ -98,29 +96,24 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 999,
     borderTopRightRadius: 999,
   },
-  // NUVENS PÉROLA (08/08/2026, direção do dono): as colinas deixaram o roxo
-  // escuro e viraram nuvens peroladas — tons claros de lavanda em opacidade
-  // baixa sobre o índigo, o brilho de nuvem à luz da lua do concorrente.
-  // Opacidade baixa de propósito: conteúdo continua legível por cima.
   ondaFundo: {
     left: '-40%',
     bottom: -200,
-    backgroundColor: '#C9CFF2',
-    opacity: 0.10,
+    backgroundColor: '#2E2352',
+    opacity: 0.55,
     transform: [{ rotate: '-3deg' }],
   },
   ondaMeio: {
     left: '-15%',
     bottom: -230,
-    backgroundColor: '#9AA5E8',
-    opacity: 0.16,
+    backgroundColor: '#251A46',
+    opacity: 0.85,
     transform: [{ rotate: '2.5deg' }],
   },
   ondaFrente: {
     left: '-30%',
     bottom: -258,
-    backgroundColor: '#7C86D8',
-    opacity: 0.22,
+    backgroundColor: '#1C1240',
     transform: [{ rotate: '-1.5deg' }],
   },
 });

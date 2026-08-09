@@ -1,13 +1,9 @@
-// PALETA AZUL-ÍNDIGO (08/08/2026, pedido do dono: "azul", base 100% no
-// concorrente premium): o céu de lá é MARINHO profundo, não roxo — o fundo
-// inteiro migrou da família #0E0821 (roxo-preto) pra #0A0D2E (índigo-noite).
-// Acentos (purple/pink/gold) ficam: são a nossa marca em cima do céu deles.
 export const colors = {
-  background: '#0A0D2E',
-  surface: '#171C4A',
-  surfaceElevated: '#202659',
-  card: '#1B2150',
-  border: '#2B3268',
+  background: '#0E0821',
+  surface: '#1A1235',
+  surfaceElevated: '#251A46',
+  card: '#1F1640',
+  border: '#2E2352',
   text: '#F3EEFF',
   textSecondary: '#C4B8E6',
   textMuted: '#8A7CB0',
@@ -24,13 +20,13 @@ export const colors = {
 };
 
 export const gradients = {
-  hero: ['#3A2F9A', '#5B4FD8', '#28246B'],
+  hero: ['#4A2A8A', '#7B3FB5', '#3A1F6B'],
   purple: ['#7B3FB5', '#A66CFF'],
   pink: ['#FF6BA0', '#B57BFF'],
   gold: ['#FFB84D', '#FF8C5C'],
   teal: ['#5CE0D8', '#5CA8FF'],
-  night: ['#171C4A', '#0A0D2E'],
-  card: ['#232A5E', '#171C4A'],
+  night: ['#1A1235', '#0E0821'],
+  card: ['#2A1D52', '#1A1235'],
 };
 
 // ---- Tema Dourado (recompensa da Loja, ver lib/cosmeticRewards.js) ----
