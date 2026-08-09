@@ -57,11 +57,14 @@
 // nunca, regra da casa (o registro do Diário usava o AsyncStorage direto e
 // passou pelos wrappers seguros no mesmo passe).
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Platform, AppState } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Platform, AppState, Image } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+// A CENA ILUSTRADA (08/08/2026) — o hero desenhado do pack de arte
+// (lib/ilustracoes.js, 640px), entre o header e o cartão da fase de hoje.
+import { CENAS } from '../lib/ilustracoes';
 import OneTimeLock from '../components/OneTimeLock';
 import { getMoonPhaseToday, getMoonPhaseForCurrentMonth } from '../lib/lunarCalendar';
 import { luaForaDeCurso, janelasForaDeCurso, DEFINICOES } from '../lib/luaForaDeCurso';
@@ -317,6 +320,16 @@ export default function LunarCalendarScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* A CENA DA LUA (08/08/2026) — hero (CENAS.lua) entre o header e o
+            cartão da fase, o slot "entre o header e o conteúdo": 160 de altura
+            deixa a reflexão de hoje (o que a pessoa veio ver) inteira na
+            primeira dobra. É <Image/>, pinta na primeira passada — não atrasa
+            a fase nem entra na conta adiada da Lua fora de curso.
+            accessible={false}: é cenário, não informação. */}
+        <View style={styles.cenaWrap}>
+          <Image source={CENAS.lua} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+        </View>
+
         {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o cartão abria com
             "Lua Cheia" em corpo 22 e "97% iluminada hoje" logo abaixo, e só
             então a reflexão. Nome de fase e porcentagem são medida: dizem o que
@@ -622,6 +635,9 @@ export default function LunarCalendarScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   scrollContent: { padding: 20, paddingBottom: 40, gap: 16 },
+  // A cena ilustrada do topo — o gap:16 do scrollContent já dá o respiro.
+  cenaWrap: { borderRadius: 18, overflow: 'hidden' },
+  cenaImg: { width: '100%', height: 160 },
   todayCard: {
     backgroundColor: colors.card,
     borderRadius: 20,

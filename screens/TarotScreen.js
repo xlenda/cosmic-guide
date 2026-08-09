@@ -41,6 +41,10 @@ import { paraSlides } from '../lib/storySlides';
 // O BOTÃO "OUVIR" (08/08/2026) — a tiragem em voz alta com a voz do aparelho
 // (Web Speech API, lib/voz.js). Sem a API ele devolve null sozinho.
 import BotaoOuvir from '../components/BotaoOuvir';
+// A CENA ILUSTRADA (08/08/2026) — o hero desenhado do pack de arte
+// (lib/ilustracoes.js, 640px). Entra no topo do estado vazio, no LUGAR do
+// maço de cartas feito de dois gradientes — mesmo slot, nada funcional desce.
+import { CENAS } from '../lib/ilustracoes';
 
 const FEATURE_KEY = 'tarot';
 
@@ -363,11 +367,14 @@ export default function TarotScreen() {
 
         {!drawn ? (
           <View style={styles.emptyWrap}>
-            <View style={styles.deckStack}>
-              <LinearGradient colors={theme.grad} style={[styles.deckCard, { transform: [{ rotate: '-8deg' }] }]} />
-              <LinearGradient colors={theme.grad} style={[styles.deckCard, { transform: [{ rotate: '4deg' }] }]}>
-                <Ionicons name="sparkles" size={40} color="rgba(255,255,255,0.6)" />
-              </LinearGradient>
+            {/* A CENA DO TARÔ (08/08/2026) — o hero desenhado (CENAS.taro) no
+                slot que era do maço de dois gradientes. Trocar em vez de somar
+                é o que respeita a primeira dobra: o maço media 170+24 de altura
+                e a cena mede 160+20 — o botão de tirar fica onde estava.
+                accessible={false}: é cenário, não informação; todo o conteúdo
+                da tela segue em texto. */}
+            <View style={styles.cenaWrap}>
+              <Image source={CENAS.taro} style={styles.cenaImg} resizeMode="cover" accessible={false} />
             </View>
             {limiteDiarioReal || soPodeUsarBonus ? (
               <>
@@ -1049,8 +1056,10 @@ const styles = StyleSheet.create({
   themeChip: { flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border, gap: 6 },
   themeText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
   emptyWrap: { alignItems: 'center', marginTop: 20 },
-  deckStack: { width: 120, height: 170, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
-  deckCard: { position: 'absolute', width: 110, height: 160, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
+  // A cena ilustrada do topo do estado vazio (substituiu deckStack/deckCard,
+  // o maço de gradientes que fazia as vezes de arte antes do pack existir).
+  cenaWrap: { width: '100%', borderRadius: 18, overflow: 'hidden', marginBottom: 20 },
+  cenaImg: { width: '100%', height: 160 },
   emptyTitle: { color: colors.textSecondary, fontSize: 15, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20, lineHeight: 24 },
   dailyLimitNote: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 16, lineHeight: 19, paddingHorizontal: 10 },
   bonusStoreBtn: {

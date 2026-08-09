@@ -19,6 +19,7 @@ import {
 } from '../lib/cosmeticRewards';
 import { addPinCredit } from '../lib/journal';
 import { getBrindesDisponiveis, BRINDE_CONTEUDO } from '../lib/brindes';
+import { CENAS } from '../lib/ilustracoes';
 import { ROUTES } from '../routes';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -199,6 +200,13 @@ export default function LojaScreen() {
     <View style={styles.root}>
       <GradientHeader title={t('loja.header.title')} subtitle={t('loja.header.subtitle')} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Cena ilustrada do pack (lib/ilustracoes.js) — baú de tesouro no topo
+            da loja, acima do saldo e da grade. Decorativa (accessible=false):
+            altura 140 pra saldo + primeiro card de recompensa continuarem na
+            primeira dobra em telas de 667px. */}
+        <View style={styles.cenaWrap}>
+          <Image source={CENAS.loja} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+        </View>
         <View style={styles.balanceWrap}>
           <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}>
             <Ionicons name="sparkles" size={26} color="#fff" />
@@ -319,6 +327,8 @@ export default function LojaScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 40 },
+  cenaWrap: { borderRadius: 18, overflow: 'hidden', marginBottom: 16 },
+  cenaImg: { width: '100%', height: 140 },
   balanceWrap: { borderRadius: 20, overflow: 'hidden', marginBottom: 24 },
   balanceCard: { paddingVertical: 22, alignItems: 'center' },
   balanceValue: { color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 6 },

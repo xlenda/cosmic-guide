@@ -32,7 +32,7 @@
 // da prévia grátis e a marcação de uso — tests/e2e/paywall/one-time-lock.spec.js
 // depende dos três, e o funil de assinatura depende do teste.
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -50,6 +50,10 @@ import BotaoOuvir from '../components/BotaoOuvir';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { horoscopeFor, resumoDoDia } from '../lib/dailyHoroscope';
+// O MASCOTE (08/08/2026) — o signo vira personagem: lib/ilustracoes.js devolve
+// o asset 256px do pack de arte, ou null — e null cai no glifo de fonte de
+// sempre. A arte é upgrade, nunca dependência.
+import { mascoteDoSigno } from '../lib/ilustracoes';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -130,6 +134,9 @@ export default function HoroscopeScreen() {
   // re-renderiza no toque do seletor de signo e na troca de aba.
   const leitura = useMemo(() => horoscopeFor(sign.name, dateForTab(tab)), [sign.name, tab]);
   const f = leitura.facts;
+  // O mascote do signo selecionado — null quando o pack não tem a arte, e aí
+  // o glifo de fonte segue no posto (fallback obrigatório, nunca buraco).
+  const mascote = mascoteDoSigno(sign.name);
 
   // Sem botão de ação aqui — o conteúdo já aparece ao montar a tela. Por isso
   // checagem e marcação acontecem juntas: só marca como usado quando a checagem
@@ -203,16 +210,25 @@ export default function HoroscopeScreen() {
           <View style={styles.pickerCard}>
             <Text style={styles.pickerTitle}>{t('horoscope.pickerTitle')}</Text>
             <View style={styles.pickerGrid}>
-              {zodiacSigns.map((z) => (
-                <TouchableOpacity
-                  key={z.name}
-                  style={[styles.pickerItem, sign.name === z.name && { backgroundColor: z.color + '33', borderColor: z.color }]}
-                  onPress={() => pickSign(z)}
-                >
-                  <Text style={[styles.pickerGlyph, { color: z.color }]}>{z.icon}</Text>
-                  <Text style={styles.pickerName}>{z.pt}</Text>
-                </TouchableOpacity>
-              ))}
+              {zodiacSigns.map((z) => {
+                // Cada casinha do seletor mostra o mascote pequeno quando o
+                // pack tem a arte; sem arte, o glifo de fonte de sempre.
+                const mascoteZ = mascoteDoSigno(z.name);
+                return (
+                  <TouchableOpacity
+                    key={z.name}
+                    style={[styles.pickerItem, sign.name === z.name && { backgroundColor: z.color + '33', borderColor: z.color }]}
+                    onPress={() => pickSign(z)}
+                  >
+                    {mascoteZ ? (
+                      <Image source={mascoteZ} style={styles.mascotePequeno} resizeMode="cover" accessible={false} />
+                    ) : (
+                      <Text style={[styles.pickerGlyph, { color: z.color }]}>{z.icon}</Text>
+                    )}
+                    <Text style={styles.pickerName}>{z.pt}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         )}
@@ -231,8 +247,15 @@ export default function HoroscopeScreen() {
 
         <View style={styles.mainCard}>
           <LinearGradient colors={[sign.color + '44', 'transparent']} style={styles.signHeader}>
-            <View style={[styles.bigGlyph, { backgroundColor: sign.color + '33' }]}>
-              <Text style={[styles.bigGlyphText, { color: sign.color }]}>{sign.icon}</Text>
+            {/* O signo como PERSONAGEM: quando o pack tem o mascote, ele toma o
+                lugar do glifo de fonte — e o fundo na cor do signo continua,
+                agora como moldura da arte. Sem mascote, tudo como sempre foi. */}
+            <View style={[styles.bigGlyph, { backgroundColor: sign.color + '33' }, mascote && styles.bigGlyphComMascote]}>
+              {mascote ? (
+                <Image source={mascote} style={styles.mascoteGrande} resizeMode="cover" accessible={false} />
+              ) : (
+                <Text style={[styles.bigGlyphText, { color: sign.color }]}>{sign.icon}</Text>
+              )}
             </View>
             <View>
               <Text style={styles.bigName}>{sign.pt}</Text>
@@ -435,6 +458,11 @@ const styles = StyleSheet.create({
   signHeader: { flexDirection: 'row', alignItems: 'center', padding: 18 },
   bigGlyph: { width: 60, height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   bigGlyphText: { fontSize: 30 },
+  // O MASCOTE (08/08/2026): a moldura cresce 4px em volta da arte de 64 para o
+  // fundo sign.color+'33' aparecer como aro, em vez de sumir atrás do JPG.
+  bigGlyphComMascote: { width: 72, height: 72, borderRadius: 20 },
+  mascoteGrande: { width: 64, height: 64, borderRadius: 18 },
+  mascotePequeno: { width: 36, height: 36, borderRadius: 12 },
   bigName: { color: colors.text, fontSize: 20, fontWeight: '800' },
   bigDates: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   elementRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },

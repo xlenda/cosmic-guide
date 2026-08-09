@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -25,6 +25,11 @@ import { paraSlides } from '../lib/storySlides';
 // O BOTÃO "OUVIR" (08/08/2026) — a leitura em voz alta com a voz do aparelho
 // (Web Speech API, lib/voz.js). Sem a API ele devolve null sozinho.
 import BotaoOuvir from '../components/BotaoOuvir';
+// A ARTE (08/08/2026) — o pack de ilustração (lib/ilustracoes.js):
+// mascoteDoSigno devolve o personagem 256px do signo ou null (null cai no
+// glifo de fonte de sempre — a arte é upgrade, nunca dependência), e
+// CENAS.casal é o hero desenhado 640px do casal abraçado sob a lua.
+import { CENAS, mascoteDoSigno } from '../lib/ilustracoes';
 
 const FEATURE_KEY = 'compatibility';
 const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
@@ -344,6 +349,21 @@ export default function CompatibilityScreen() {
           </TouchableOpacity>
         )}
 
+        {/* A CENA DO CASAL [AUTO-DECISION] (08/08/2026) — o hero ilustrado
+            (CENAS.casal, o casal abraçado sob a lua) entra SÓ no estado antes
+            de calcular, e DEPOIS do botão: seletor e "Calcular" ficam
+            exatamente onde estavam (primeira dobra intocada) e a cena preenche
+            o vazio que essa tela sempre teve antes do resultado. Com resultado
+            na tela ela sai — o lugar é da leitura, e empilhar a cena em cima
+            empurraria o bloco quente pra baixo da dobra. Durante a escolha de
+            signo (picking) também sai, pra grade de signos não descer.
+            accessible={false}: é cenário, não informação. */}
+        {!picking && !result && (
+          <View style={styles.cenaCasalWrap}>
+            <Image source={CENAS.casal} style={styles.cenaCasalImg} resizeMode="cover" accessible={false} />
+          </View>
+        )}
+
         {result && (
           <>
             {/* ============================================================
@@ -616,11 +636,21 @@ export default function CompatibilityScreen() {
 
 function SignSlot({ sign, onPress, active }) {
   const { t } = useLanguage();
+  // O signo como PERSONAGEM (08/08/2026): quando o pack tem o mascote, ele
+  // toma o lugar do glifo de fonte no slot — redondo, com o fundo na cor do
+  // signo virando aro da arte. Sem mascote (null), o glifo de sempre.
+  const mascote = mascoteDoSigno(sign.name);
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.slot, active && { borderColor: sign.color }]}>
-      <View style={[styles.slotGlyphWrap, { backgroundColor: sign.color + '22' }]}>
-        <Text style={[styles.slotGlyph, { color: sign.color }]}>{sign.icon}</Text>
-      </View>
+      {mascote ? (
+        <View style={[styles.slotMascoteWrap, { backgroundColor: sign.color + '22' }]}>
+          <Image source={mascote} style={styles.slotMascote} resizeMode="cover" accessible={false} />
+        </View>
+      ) : (
+        <View style={[styles.slotGlyphWrap, { backgroundColor: sign.color + '22' }]}>
+          <Text style={[styles.slotGlyph, { color: sign.color }]}>{sign.icon}</Text>
+        </View>
+      )}
       <Text style={styles.slotName}>{sign.pt}</Text>
       <Text style={styles.slotDates}>{sign.dates}</Text>
       <View style={styles.changeRow}>
@@ -638,6 +668,11 @@ const styles = StyleSheet.create({
   slot: { flex: 1, backgroundColor: colors.surface, borderRadius: 18, padding: 16, alignItems: 'center', borderWidth: 1.5, borderColor: colors.border },
   slotGlyphWrap: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   slotGlyph: { fontSize: 30 },
+  // O MASCOTE do slot (08/08/2026): 60 de moldura redonda com a arte de 56
+  // dentro — o fundo sign.color+'22' (inline) aparece como aro de 2px em volta
+  // do JPG, mesma jogada do bigGlyphComMascote do Horóscopo.
+  slotMascoteWrap: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  slotMascote: { width: 56, height: 56, borderRadius: 28 },
   slotName: { color: colors.text, fontSize: 16, fontWeight: '800' },
   slotDates: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
   changeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 3 },
@@ -648,6 +683,10 @@ const styles = StyleSheet.create({
   pickerGlyph: { fontSize: 22 },
   pickerName: { color: colors.textSecondary, fontSize: 11, marginTop: 4, fontWeight: '600' },
   btnWrap: { borderRadius: 12, overflow: 'hidden' },
+  // A CENA DO CASAL — hero desenhado do estado pré-cálculo (ver o comentário
+  // no JSX). Mesmo DNA da cena do Tarô: full-width, cantos 18, sem borda.
+  cenaCasalWrap: { marginTop: 16, borderRadius: 18, overflow: 'hidden' },
+  cenaCasalImg: { width: '100%', height: 168 },
   btn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, gap: 8 },
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   // ---------------------------------------------------------------------

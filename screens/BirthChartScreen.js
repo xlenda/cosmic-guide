@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Share, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Share, Platform, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -15,6 +15,13 @@ import WaveDivider from '../components/WaveDivider';
 import DatePickerModal from '../components/DatePickerModal';
 import CityPickerModal from '../components/CityPickerModal';
 import { signoFromDate, moonSign, ascendantSign, houses, aspects, astrocartographyCities } from '../lib/signs';
+// MASCOTES (08/08/2026) — o pack de ilustração (ver lib/ilustracoes.js): os
+// medalhões do trio trocam o glifo de fonte pelo personagem do signo. A regra
+// do registro vale aqui: mascoteDoSigno() devolve o asset ou null, e null →
+// glifo de sempre. A arte é upgrade, nunca dependência.
+// elementoImagem (08/08/2026, última rodada): mesmo contrato pros 4 círculos
+// de elemento — espírito pintado ou o emoji de sempre.
+import { mascoteDoSigno, elementoImagem } from '../lib/ilustracoes';
 import { cityLabel, upgradeCityTimezone } from '../lib/cities';
 import { offsetHoursFor, formatOffset } from '../lib/timezone';
 import { getBirthData } from '../lib/coupleData';
@@ -480,19 +487,36 @@ function ElementosSection({ elementos, temHora }) {
     <View style={styles.elementosCard}>
       <Text style={styles.elementosTitulo}>{t('birthchart.elements.title')}</Text>
       <View style={styles.elementosRow}>
-        {ELEMENTOS_META.map((e) => (
-          <View key={e.key} style={styles.elementoCol} testID={`elementos-${e.key}`}>
-            <View style={styles.elementoCirculoWrap}>
-              <View style={[styles.elementoCirculo, { backgroundColor: e.color + '22', borderColor: e.color + '55' }]}>
-                <Text style={styles.elementoEmoji}>{e.emoji}</Text>
+        {ELEMENTOS_META.map((e) => {
+          // ESPÍRITO DO ELEMENTO (08/08/2026, última rodada de arte): mesmo
+          // contrato dos mascotes do trio — elementoImagem(chave) devolve o
+          // asset pintado ou null, e null mantém o emoji exatamente como era.
+          // O círculo vira MOLDURA: overflow hidden (no style) recorta o JPG
+          // por dentro da borda colorida, igual ao trioHalo. O chip de % NÃO
+          // muda de lugar: ele é irmão POSTERIOR do círculo dentro do wrap,
+          // então pinta POR CIMA da imagem por ordem natural de render (RN
+          // desenha o último filho em cima; nenhum zIndex necessário).
+          // accessible={false}: decorativa — o nome do elemento está escrito
+          // logo embaixo, no elementoNome.
+          const arte = elementoImagem(e.key);
+          return (
+            <View key={e.key} style={styles.elementoCol} testID={`elementos-${e.key}`}>
+              <View style={styles.elementoCirculoWrap}>
+                <View style={[styles.elementoCirculo, { backgroundColor: e.color + '22', borderColor: e.color + '55' }]}>
+                  {arte ? (
+                    <Image source={arte} style={styles.elementoArte} resizeMode="cover" accessible={false} />
+                  ) : (
+                    <Text style={styles.elementoEmoji}>{e.emoji}</Text>
+                  )}
+                </View>
+                <View style={[styles.elementoChip, { borderColor: e.color + '66' }]}>
+                  <Text style={[styles.elementoChipTexto, { color: e.color }]}>{elementos.pct[e.key]}%</Text>
+                </View>
               </View>
-              <View style={[styles.elementoChip, { borderColor: e.color + '66' }]}>
-                <Text style={[styles.elementoChipTexto, { color: e.color }]}>{elementos.pct[e.key]}%</Text>
-              </View>
+              <Text style={styles.elementoNome}>{t(e.labelKey)}</Text>
             </View>
-            <Text style={styles.elementoNome}>{t(e.labelKey)}</Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
       <Text style={styles.elementosLeitura}>
         {empate ? t('birthchart.elements.reading.equilibrio') : t(ELEMENTOS_READING_KEY[elementos.dominante])}
@@ -547,15 +571,28 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity }) {
         <View style={styles.trio}>
           {rows.map((r) => {
             // O medalhão: círculo com halo na cor do próprio signo (fundo na
-            // cor + '22', borda + '44'). A ORDEM dos filhos (label → glifo →
+            // cor + '22', borda + '44'). A ORDEM dos filhos (label → medalhão →
             // nome do signo) não mudou: é a mesma que
             // test/quentePrimeiroNasTelas.test.js trava dentro deste bloco.
+            //
+            // MASCOTE NO MEDALHÃO (08/08/2026): dentro do halo entra o
+            // personagem ilustrado do signo — o halo vira MOLDURA (a borda
+            // colorida fica por cima, o fundo cor+'22' fica atrás da imagem).
+            // Sem asset no registro, ou sem signo calculado, o glifo de fonte
+            // continua exatamente como era: a arte é upgrade, não dependência.
+            // accessible={false} porque a imagem é decorativa — o nome do
+            // signo está escrito logo embaixo, no trioSign.
             const cor = r.sign ? r.sign.color : colors.textMuted;
+            const mascote = r.sign ? mascoteDoSigno(r.sign.name) : null;
             return (
               <View key={r.key} style={styles.trioItem}>
                 <Text style={styles.trioLabel}>{t(r.labelKey)}</Text>
                 <View style={[styles.trioHalo, { backgroundColor: cor + '22', borderColor: cor + '44' }]}>
-                  <Text style={[styles.trioGlyph, { color: cor }]}>{r.sign ? r.sign.glyph : '—'}</Text>
+                  {mascote ? (
+                    <Image source={mascote} style={styles.trioMascote} resizeMode="cover" accessible={false} />
+                  ) : (
+                    <Text style={[styles.trioGlyph, { color: cor }]}>{r.sign ? r.sign.glyph : '—'}</Text>
+                  )}
                 </View>
                 <Text style={styles.trioSign}>{r.sign ? r.sign.name : '?'}</Text>
               </View>
@@ -1332,8 +1369,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 8,
+    // overflow hidden desde os mascotes (08/08/2026): recorta a imagem no
+    // círculo POR DENTRO da borda — sem isso o JPG de 80px cobriria o fio de
+    // 1px (border-box: área útil de 78px) e a moldura colorida sumiria. Para
+    // o glifo de fonte não muda nada.
+    overflow: 'hidden',
   },
   trioGlyph: { fontSize: 44, lineHeight: 50 },
+  // O mascote ilustrado dentro do medalhão — mesmo diâmetro do halo, o próprio
+  // borderRadius garante o círculo também onde overflow se comportar diferente
+  // (RN web x nativo). 'cover' porque o asset é quadrado de 256px: preenche
+  // sem distorcer.
+  trioMascote: { width: 80, height: 80, borderRadius: 40 },
   trioSign: { color: colors.text, fontSize: 16, fontWeight: '800' },
   // --- Seus elementos (08/08/2026, flutuante desde a Onda Cenográfica) ---
   // Sem caixa externa: os 4 círculos flutuam no cenário, 4 colunas flex
@@ -1353,8 +1400,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    // overflow hidden desde o espírito pintado (08/08/2026): recorta o JPG no
+    // círculo POR DENTRO da borda colorida — mesma razão do trioHalo. O chip
+    // de % não é afetado: ele mora no WRAP (irmão do círculo), não aqui dentro.
+    overflow: 'hidden',
   },
   elementoEmoji: { fontSize: 30 },
+  // O espírito do elemento preenche o círculo inteiro; o recorte redondo vem
+  // do overflow do círculo, o borderRadius aqui é só cinto-e-suspensório pro
+  // RN Web antigo que não recorta filho em raio.
+  elementoArte: { width: 68, height: 68, borderRadius: 34 },
   elementoNome: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
   // O chip de %: pill pequena SOBREPOSTA no canto superior direito do círculo
   // (o desenho do concorrente) — fundo escuro do cenário + borda na cor do

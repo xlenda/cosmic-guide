@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -7,6 +7,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import HeroSection from '../components/HeroSection';
+// O MASCOTE DO HERO (08/08/2026) — o signo do usuário como personagem do pack
+// de arte (lib/ilustracoes.js). Devolve o asset 256px ou null — e null cai no
+// badge de glifo que o HeroSection sempre desenhou. A arte é upgrade, nunca
+// dependência.
+// planetaImagem (08/08/2026, última rodada): planeta pintado 256px ou null,
+// pras miniaturas do Céu de Hoje e do card de próximos eventos. Mesmo contrato.
+import { mascoteDoSigno, planetaImagem } from '../lib/ilustracoes';
 // O CENÁRIO CÓSMICO — céu gradiente + estrelas + ondas de silhueta. Entra como
 // PRIMEIRO filho do root (uso documentado no cabeçalho do próprio arquivo).
 import CosmicScene from '../components/CosmicScene';
@@ -84,6 +91,28 @@ const WEEK_LABEL_KEYS = [
 // sobrescrita a cada leitura, em vez de uma chave por data (não acumula lixo
 // no AsyncStorage; só interessa saber se o de HOJE já foi lido).
 const THOUGHT_READ_KEY = 'cosmic-daily-thought-last-read';
+
+// TIPO DE EVENTO → PLANETA PINTADO (08/08/2026, última rodada de arte) — só
+// onde a ligação é HONESTA: as quatro luas SÃO a Lua no céu, o ingresso solar
+// É o Sol mudando de signo, o retrógrado É Mercúrio. `aspectoExato` fica de
+// FORA de propósito: um aspecto envolve DOIS planetas, e ilustrar com um só
+// seria mentir a metade — o emoji do motor continua contando essa história.
+// As chaves são os `tipo` de lib/calendarioCosmico.js (via proximosEventos) —
+// dado INTERNO do motor, nunca input de cliente. [AUTO-DECISION] Por isso um
+// Object.freeze normal serve, sem Object.create(null): nenhum texto digitado
+// consulta este mapa, e planetaImagem() já filtra por hasOwnProperty do lado
+// de lá — um `tipo` desconhecido (ou herdado) devolve undefined → null → sem
+// imagem, layout de sempre. O MESMO mapa existe em CalendarioCosmicoScreen.js
+// (a missão travou as mudanças nestes 3 arquivos de tela; mudou lá, muda cá).
+const PLANETA_DO_EVENTO = Object.freeze({
+  luaNova: 'Lua',
+  quartoCrescente: 'Lua',
+  luaCheia: 'Lua',
+  quartoMinguante: 'Lua',
+  ingressoSolar: 'Sol',
+  mercurioRetrogradoInicio: 'Mercúrio',
+  mercurioRetrogradoFim: 'Mercúrio',
+});
 
 // ---------------------------------------------------------------------------
 // A LINHA DE HOJE — a única coisa das três telas novas que sobe pra cima
@@ -398,6 +427,15 @@ export default function HomeScreen() {
   const rotuloFaltamDias = (n) =>
     n === 0 ? t('home.eventos.hoje') : n === 1 ? t('home.eventos.amanha') : t('home.eventos.dias', { n });
 
+  // A MINIATURA DO DESTAQUE (08/08/2026, última rodada de arte): o planeta
+  // pintado do PRIMEIRO evento do card de próximos dias, quando o tipo tem
+  // planeta honesto (PLANETA_DO_EVENTO, no topo do arquivo). Tipo sem planeta
+  // (aspectoExato) ou asset faltando → null → o título fica como sempre foi.
+  const arteProximoDestaque =
+    Array.isArray(proximosCeu) && proximosCeu.length > 0
+      ? planetaImagem(PLANETA_DO_EVENTO[proximosCeu[0].tipo])
+      : null;
+
   // A linha de hoje (ver o bloco grande no topo do arquivo pro porquê de ser
   // UMA linha, de a trilha ganhar do ritual, e de os motores virem por import()
   // dinâmico). `null` = não há motivo de voltar hoje, e aí não se desenha nada.
@@ -541,6 +579,11 @@ export default function HomeScreen() {
   // Signo usado no badge do topo e na navegação do grid (Horóscopo) — usa o signo real
   // do casal quando existir, senão o signo solo, com o mesmo fallback de antes.
   const sign = (coupleData?.sa && zodiacSigns.find((z) => z.name === coupleData.sa)) || soloSign || zodiacSigns[0];
+
+  // O mascote do signo do usuário (pack de arte). null = pack sem a arte, e aí
+  // NADA extra renderiza no hero — o badge de glifo do HeroSection fica como
+  // sempre foi, sem quadrado vazio no lugar.
+  const mascoteHero = mascoteDoSigno(sign.name);
 
   // Sinastria por aspecto (lib/signs.js → lib/synastry.js) — null enquanto não
   // houver os dois signos salvos. O cartão mostrava "{pct}% de compatibilidade";
@@ -896,13 +939,33 @@ export default function HomeScreen() {
             fora do escopo desta reforma (só HomeScreen.js muda), então o
             upgrade entra por Text ANINHADO — no RN o estilo do Text interno
             vence o do externo, e o texto é o MESMO `greeting` de sempre. */}
-        <HeroSection
-          greeting={<Text style={styles.greetingDisplay}>{greeting}</Text>}
-          dateStr={dateStr}
-          sign={sign}
-          streak={coupleData ? { count: streakInfo.currentStreak } : undefined}
-          insetTop={insets.top}
-        />
+        {/* O MASCOTE NO HERO [AUTO-DECISION] (08/08/2026): HeroSection.js está
+            fora do escopo desta frente, então o avatar entra por SOBREPOSIÇÃO —
+            um wrapper relativo em volta do hero e o mascote absoluto no canto
+            direito da saudação, exatamente onde o signBadge de glifo vive. O
+            mascote de 72px cobre o badge de 44px (top = insets.top + 8 casa com
+            o paddingTop insetTop+14 do hero em qualquer altura de saudação):
+            visualmente o glifo vira personagem do pack. Sem arte (mascoteHero
+            null) NADA disto monta e o badge segue no posto — nunca um quadrado
+            vazio. pointerEvents="none": decoração não rouba toque;
+            accessible={false}: o signo já está dito em texto na saudação. */}
+        <View style={styles.heroWrap}>
+          <HeroSection
+            greeting={<Text style={styles.greetingDisplay}>{greeting}</Text>}
+            dateStr={dateStr}
+            sign={sign}
+            streak={coupleData ? { count: streakInfo.currentStreak } : undefined}
+            insetTop={insets.top}
+          />
+          {mascoteHero && (
+            <View
+              pointerEvents="none"
+              style={[styles.heroMascoteWrap, { top: insets.top + 8, borderColor: sign.color + '88' }]}
+            >
+              <Image source={mascoteHero} style={styles.heroMascoteImg} resizeMode="cover" accessible={false} />
+            </View>
+          )}
+        </View>
 
         {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
             explícito: não ficar escondido junto dos outros cards do grid). */}
@@ -1183,8 +1246,15 @@ export default function HomeScreen() {
               // efeméride, ou trânsito parado demais pra ter direção — some a
               // linha, nunca se inventa um verbo.
               const { aspecto, fase } = b;
-              return (
-                <View key={i} style={i > 0 ? { marginTop: 12 } : null}>
+              // A MINIATURA DO PLANETA EM TRÂNSITO (08/08/2026, última rodada
+              // de arte): `transitPlanet` é a chave PT do motor (lib/
+              // personalSky.js) e casa direto com o registro. Os textos moram
+              // numa variável ÚNICA usada nos dois ramos — a ordem quente →
+              // ficha → fase é uma só no fonte, que é o que
+              // test/quentePrimeiroNasTelas.test.js mede.
+              const artePlaneta = planetaImagem(aspecto.transitPlanet);
+              const conteudo = (
+                <>
                   {/* A ABERTURA: vida real, primeiro. Ver personalSkyBlocos. */}
                   {b.chamada ? <Text style={styles.skyChamada}>{b.chamada}</Text> : null}
                   {/* A FICHA: qual planeta, sobre qual ponto do mapa. Só encolhe
@@ -1195,6 +1265,22 @@ export default function HomeScreen() {
                       escrevi `fase.texto` aqui em 01/08 e, como undefined é
                       falsy, a linha sumia calada em vez de quebrar. */}
                   {fase && fase.linhaCurta ? <Text style={styles.skyFaseText}>{fase.linhaCurta}</Text> : null}
+                </>
+              );
+              return (
+                <View key={i} style={i > 0 ? { marginTop: 12 } : null}>
+                  {artePlaneta ? (
+                    // Planeta pintado à esquerda, textos à direita. Sem asset
+                    // (registro incompleto, chave nova no motor) → o bloco de
+                    // sempre, sem wrapper de linha. accessible={false}: o nome
+                    // do planeta já está escrito em aspecto.text.
+                    <View style={styles.skyTransitoRow}>
+                      <Image source={artePlaneta} style={styles.skyPlanetaMini} resizeMode="cover" accessible={false} />
+                      <View style={styles.skyTransitoTextos}>{conteudo}</View>
+                    </View>
+                  ) : (
+                    conteudo
+                  )}
                 </View>
               );
             })}
@@ -1241,9 +1327,27 @@ export default function HomeScreen() {
               {/* O mais próximo em destaque: a contagem abre (é o quente) e o
                   título do evento vem em corpo grande logo abaixo. */}
               <Text style={styles.proximosQuando}>{rotuloFaltamDias(proximosCeu[0].faltamDias)}</Text>
-              <Text style={styles.proximosTitulo} numberOfLines={2}>
-                {proximosCeu[0].emoji} {proximosCeu[0].titulo}
-              </Text>
+              {/* [AUTO-DECISION] A miniatura só no DESTAQUE: os 1-2 itens
+                  menores são linha única de 13px — um planeta de 24px ali
+                  brigaria com o destaque e quebraria o alinhamento da lista.
+                  Eles ficam com o emoji do motor, que já conta a história. */}
+              {arteProximoDestaque ? (
+                <View style={styles.proximosDestaqueRow}>
+                  <Image
+                    source={arteProximoDestaque}
+                    style={styles.proximosPlanetaMini}
+                    resizeMode="cover"
+                    accessible={false}
+                  />
+                  <Text style={[styles.proximosTitulo, styles.proximosTituloNaLinha]} numberOfLines={2}>
+                    {proximosCeu[0].emoji} {proximosCeu[0].titulo}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.proximosTitulo} numberOfLines={2}>
+                  {proximosCeu[0].emoji} {proximosCeu[0].titulo}
+                </Text>
+              )}
               {/* Os 1-2 seguintes, menores — o suficiente pra dizer que o mês
                   continua, sem competir com o destaque. Chave por índice: a
                   lista é recomputada inteira a cada foco, nunca reordenada in
@@ -1471,6 +1575,19 @@ const styles = StyleSheet.create({
   // greeting do HeroSection (ver o comentário no JSX). Cor explícita porque a
   // herança de estilo em Text aninhado no RN Web nem sempre carrega a do pai.
   greetingDisplay: { color: '#fff', fontSize: 29, fontWeight: '800', lineHeight: 34 },
+  // O MASCOTE NO HERO (08/08/2026) — wrapper relativo só pra ancorar o avatar
+  // absoluto sobre o canto direito da saudação (ver o comentário no JSX).
+  // Redondo de verdade (borderRadius = metade), borda sutil na cor do signo
+  // (sign.color + '88' entra inline), overflow hidden pro JPG respeitar o
+  // círculo. right 12 < gutter 20 de propósito: o mascote é maior que o badge
+  // de 44 que ele cobre, e o excedente cresce pra fora, mantendo os centros
+  // próximos.
+  heroWrap: { position: 'relative' },
+  heroMascoteWrap: {
+    position: 'absolute', right: 12, width: 72, height: 72, borderRadius: 36,
+    borderWidth: 1.5, overflow: 'hidden',
+  },
+  heroMascoteImg: { width: '100%', height: '100%' },
   // Gutter 20 da reforma pra filhos que já trazem marginHorizontal 16 próprio
   // (NotifPromptCard, linhas do CardGrid): 4 + 16 = 20, sem tocar nos
   // componentes.
@@ -1592,6 +1709,12 @@ const styles = StyleSheet.create({
   // A direção do trânsito (chegando/indo embora) vem menor e em teal: é
   // qualificação da linha de cima, não uma segunda leitura.
   skyFaseText: { color: colors.teal, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  // A linha do trânsito com planeta pintado (08/08/2026, última rodada de
+  // arte): imagem à esquerda, textos à direita. Só monta quando o registro
+  // devolve asset — sem ele, o bloco de textos fica solto como sempre foi.
+  skyTransitoRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  skyPlanetaMini: { width: 28, height: 28, borderRadius: 14, marginRight: 10, marginTop: 2 },
+  skyTransitoTextos: { flex: 1 },
   peekBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   peekBtnText: { color: colors.purple, fontSize: 13, fontWeight: '800' },
   skyInviteLink: { color: colors.teal, fontSize: 13, fontWeight: '800', marginTop: 10 },
@@ -1605,6 +1728,13 @@ const styles = StyleSheet.create({
   proximosInner: { padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   proximosQuando: { color: colors.gold, fontSize: 13, fontWeight: '800' },
   proximosTitulo: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 2 },
+  // O destaque com planeta pintado (08/08/2026): linha imagem + título. O
+  // respiro de cima sobe pra LINHA e sai do título (proximosTituloNaLinha
+  // zera o marginTop pra não somar duas vezes); flex: 1 deixa o
+  // numberOfLines={2} quebrar dentro da linha em vez de estourar o card.
+  proximosDestaqueRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  proximosPlanetaMini: { width: 26, height: 26, borderRadius: 13, marginRight: 8 },
+  proximosTituloNaLinha: { flex: 1, marginTop: 0 },
   proximosItem: { color: colors.textSecondary, fontSize: 13, marginTop: 8 },
   proximosCta: { color: colors.gold, fontSize: 13, fontWeight: '800', marginTop: 12 },
   wrappedBar: { marginHorizontal: 20, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },

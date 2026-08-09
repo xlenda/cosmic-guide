@@ -146,12 +146,17 @@
 // STORAGE: zero. Este bloco não guarda nada; a data de nascimento vem de
 // lib/birthData.js, que já é quem fala com o disco.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, AppState, Share, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, AppState, Share, Platform, Image } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+// A CENA ILUSTRADA (08/08/2026) — o hero desenhado do pack de arte
+// (lib/ilustracoes.js, 640px), primeiro item do rolo, acima da intro.
+// planetaImagem (08/08/2026, última rodada): planeta pintado 256px ou null,
+// pra miniatura do card de evento — a cena-hero do topo fica intocada.
+import { CENAS, planetaImagem } from '../lib/ilustracoes';
 import { useLanguage } from '../context/LanguageContext';
 // Lua Fora de Curso (kenodromia) — a utilidade diaria que o concorrente
 // "Ajuda do Ceu" anuncia como produto principal. Aqui ela entra COM a
@@ -263,6 +268,28 @@ function partesDoParagrafo(paragrafo) {
   };
 }
 
+// TIPO DE EVENTO → PLANETA PINTADO (08/08/2026, última rodada de arte) — só
+// onde a ligação é HONESTA: as quatro luas SÃO a Lua no céu, o ingresso solar
+// É o Sol mudando de signo, o retrógrado É Mercúrio. `aspectoExato` fica de
+// FORA de propósito: um aspecto envolve DOIS planetas, e ilustrar com um só
+// seria mentir a metade — o emoji do motor continua contando essa história.
+// As chaves são os `tipo` de lib/calendarioCosmico.js — dado INTERNO do motor,
+// nunca input de cliente. [AUTO-DECISION] Por isso um Object.freeze normal
+// serve, sem Object.create(null): nenhum texto digitado consulta este mapa, e
+// planetaImagem() já filtra por hasOwnProperty — tipo desconhecido devolve
+// undefined → null → sem imagem, card de sempre. O MESMO mapa existe em
+// HomeScreen.js (a missão travou as mudanças nos 3 arquivos de tela; mudou lá,
+// muda cá).
+const PLANETA_DO_EVENTO = Object.freeze({
+  luaNova: 'Lua',
+  quartoCrescente: 'Lua',
+  luaCheia: 'Lua',
+  quartoMinguante: 'Lua',
+  ingressoSolar: 'Sol',
+  mercurioRetrogradoInicio: 'Mercúrio',
+  mercurioRetrogradoFim: 'Mercúrio',
+});
+
 // ---------------------------------------------------------------------------
 // O card de um evento
 // ---------------------------------------------------------------------------
@@ -278,6 +305,10 @@ function EventoCard({ evento, selecionado, onLayout }) {
   const ehInstante = evento.precisao === 'instante';
   const data = diaMesLocal(evento.data, lang);
   const temFicha = Boolean(evento.tradicao || evento.avisoDeIdade || evento.fonte);
+  // O planeta pintado do evento, quando o tipo tem planeta honesto (mapa
+  // acima). Null → a linha de identificação fica como sempre foi: só emoji,
+  // nome e data. accessible={false}: decorativa — o título já nomeia o evento.
+  const artePlaneta = planetaImagem(PLANETA_DO_EVENTO[evento.tipo]);
 
   return (
     <View
@@ -302,6 +333,9 @@ function EventoCard({ evento, selecionado, onLayout }) {
       ) : null}
 
       <View style={styles.eventoTopo}>
+        {artePlaneta ? (
+          <Image source={artePlaneta} style={styles.eventoPlaneta} resizeMode="cover" accessible={false} />
+        ) : null}
         <Text style={styles.eventoEmoji}>{evento.emoji}</Text>
         <Text style={styles.eventoTitulo}>{evento.titulo}</Text>
         <Text style={styles.eventoQuando}>
@@ -748,6 +782,15 @@ export default function CalendarioCosmicoScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
+        {/* A CENA DO PLANETA (08/08/2026) — hero (CENAS.planeta) no topo do
+            rolo, acima da intro: 150 de altura (o piso do padrão) porque a
+            grade do mês é o conteúdo funcional mais próximo da dobra e não
+            pode descer mais que isso. accessible={false}: é cenário, não
+            informação. */}
+        <View style={styles.cenaWrap}>
+          <Image source={CENAS.planeta} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+        </View>
+
         <Text style={styles.intro}>{t('calendario.intro')}</Text>
 
         {/* ---- Navegação de mês ---- */}
@@ -1120,6 +1163,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 20, paddingBottom: 48, gap: 12 },
 
+  // A cena ilustrada do topo — o gap:12 do scroll já dá o respiro.
+  cenaWrap: { borderRadius: 18, overflow: 'hidden' },
+  cenaImg: { width: '100%', height: 150 },
+
   intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
 
   navRow: {
@@ -1247,6 +1294,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   eventoEmoji: { fontSize: 20 },
+  // O planeta pintado da linha de identificação (08/08/2026): entra ANTES do
+  // emoji quando o tipo tem planeta honesto; o gap do eventoTopo já espaça.
+  eventoPlaneta: { width: 30, height: 30, borderRadius: 15 },
   eventoTitulo: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
   eventoQuando: { color: colors.teal, fontSize: 12, fontWeight: '700' },
 

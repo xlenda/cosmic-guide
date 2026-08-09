@@ -5,13 +5,14 @@
 // saveSolo() do CoupleContext. "Eu e meu par" manda para o QuizScreen do
 // casal, sem alterar nada do fluxo do quiz.
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, gradients, zodiacSigns } from '../theme';
+import { CENAS } from '../lib/ilustracoes';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -79,6 +80,16 @@ export default function OnboardingChoiceScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {!showSignPicker ? (
           <>
+            {/* Cena ilustrada do pack (lib/ilustracoes.js) — casal sob o pôr do
+                sol, acima das duas escolhas. Esta é a primeira tela de ~92% dos
+                visitantes: altura 120 (não os 140-170 padrão) pra os DOIS cards
+                de escolha continuarem alcançáveis na primeira dobra de um
+                iPhone SE (667px). Só no estado de escolha — o grid de 12 signos
+                já é o ponto onde a pessoa some, não perde espaço pra decoração.
+                Decorativa: accessible=false. */}
+            <View style={styles.cenaWrap}>
+              <Image source={CENAS.onboarding} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+            </View>
             <TouchableOpacity activeOpacity={0.9} style={styles.card} onPress={escolherSolo}>
               <LinearGradient colors={gradients.purple} style={styles.cardIcon}>
                 <Ionicons name="person" size={26} color="#fff" />
@@ -162,6 +173,8 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#fff', fontSize: 26, fontWeight: '800', textAlign: 'center', marginTop: 10, lineHeight: 32 },
   headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20 },
   scrollContent: { padding: 20, paddingBottom: 40 },
+  cenaWrap: { borderRadius: 18, overflow: 'hidden' },
+  cenaImg: { width: '100%', height: 120 },
   card: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     borderRadius: 20, padding: 20, marginTop: 16,

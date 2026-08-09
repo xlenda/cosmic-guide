@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -16,6 +17,7 @@ import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
 import { PERSONAS, ACTIVE_PERSONA_ID } from '../lib/chatPersonas';
+import { CENAS } from '../lib/ilustracoes';
 import { getMockReply } from '../lib/chatResponses';
 import { fetchAiChatReply, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { recordReadingCompletion } from '../lib/readingCompletion';
@@ -300,6 +302,19 @@ export default function ChatScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+        // Cena ilustrada do pack (lib/ilustracoes.js) — guia místico como
+        // boas-vindas visual, só enquanto a conversa está "vazia" (a lista tem
+        // apenas a intro da persona, nenhuma mensagem trocada). Vive no header
+        // da FlatList (abaixo do seletor de persona e do disclaimer) e some no
+        // primeiro envio. Decorativa (accessible=false); a input row é ancorada
+        // pelo flex, então a cena não empurra o campo de digitar pra fora.
+        ListHeaderComponent={
+          messages.length <= 1 ? (
+            <View style={styles.cenaWrap}>
+              <Image source={CENAS.guia} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+            </View>
+          ) : null
+        }
         ListFooterComponent={
           isTyping ? (
             <View style={[styles.bubbleRow, styles.bubbleRowPersona]}>
@@ -369,6 +384,8 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   listContent: { padding: 16, paddingBottom: 8, gap: 10 },
+  cenaWrap: { borderRadius: 18, overflow: 'hidden' },
+  cenaImg: { width: '100%', height: 150 },
   bubbleRow: { flexDirection: 'row' },
   bubbleRowPersona: { justifyContent: 'flex-start' },
   bubbleRowUser: { justifyContent: 'flex-end' },

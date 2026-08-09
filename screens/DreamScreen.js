@@ -50,6 +50,7 @@ import {
   KeyboardAvoidingView,
   Share,
   Platform,
+  Image,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -83,6 +84,9 @@ import { paraSlides } from '../lib/storySlides';
 // O BOTÃO "OUVIR" (08/08/2026) — reading.body em voz alta com a voz do
 // aparelho (Web Speech API, lib/voz.js). Sem a API ele devolve null sozinho.
 import BotaoOuvir from '../components/BotaoOuvir';
+// A CENA ILUSTRADA (08/08/2026) — o hero desenhado do pack de arte
+// (lib/ilustracoes.js, 640px), só na INTRO: abre a tela de contar o sonho.
+import { CENAS } from '../lib/ilustracoes';
 
 // O chrome do bloco de Artemidoro mora no pack de cada idioma (bloco `chrome`),
 // que é onde nasce toda prosa desta feature. Este seletor é o MESMO
@@ -539,6 +543,17 @@ export default function DreamScreen() {
 
           {step === STEP.INTRO && (
             <View style={styles.section}>
+              {/* A CENA DO SONHO (08/08/2026) — hero (CENAS.sonho) no topo da
+                  intro, ACIMA da instrução: 150 de altura pra o campo e o botão
+                  de interpretar continuarem na primeira dobra. Acima (e não ao
+                  lado) do input porque a imagem rola pra fora quando o teclado
+                  sobe — nunca briga com a digitação. Só na intro: o resultado
+                  já abre pelo bloco de Artemidoro. accessible={false}: é
+                  cenário, não informação. */}
+              <View style={styles.cenaWrap}>
+                <Image source={CENAS.sonho} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+              </View>
+
               <Text style={styles.instructions}>
                 Descreva o sonho que você teve com o máximo de detalhes que lembrar — lugares, pessoas,
                 sensações, o que aconteceu.
@@ -678,6 +693,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   section: { gap: 14, alignItems: 'stretch' },
+  // A cena ilustrada da intro — o gap:14 da section já dá o respiro.
+  cenaWrap: { borderRadius: 18, overflow: 'hidden' },
+  cenaImg: { width: '100%', height: 150 },
   instructions: {
     color: colors.textSecondary,
     fontSize: 15,
