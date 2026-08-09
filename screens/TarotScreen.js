@@ -38,6 +38,9 @@ import { PACK as PACK_WAITE_EN } from '../lib/traducoes/waiteRegras.en.js';
 // stories. paraSlides só REFORMATA: nenhum byte da prosa muda de lugar.
 import StoriesReader from '../components/StoriesReader';
 import { paraSlides } from '../lib/storySlides';
+// O BOTÃO "OUVIR" (08/08/2026) — a tiragem em voz alta com a voz do aparelho
+// (Web Speech API, lib/voz.js). Sem a API ele devolve null sozinho.
+import BotaoOuvir from '../components/BotaoOuvir';
 
 const FEATURE_KEY = 'tarot';
 
@@ -158,18 +161,22 @@ export default function TarotScreen() {
   // enquanto houver carta fechada: o leitor não entrega o desfecho de uma
   // carta que a pessoa ainda não abriu.
   const [historiaAberta, setHistoriaAberta] = useState(false);
-  const slidesDaTiragem = useMemo(() => {
-    if (!drawn || !revealed.every(Boolean)) return [];
+  // O corpo vive num memo próprio porque agora tem DOIS consumidores com a
+  // mesma exigência de fidelidade: os slides do modo história e o botão Ouvir
+  // (components/BotaoOuvir.js), que fala a tiragem inteira em voz alta. Um
+  // texto só, dois formatos — nenhum deles reescreve uma palavra.
+  const corpoDaTiragem = useMemo(() => {
+    if (!drawn || !revealed.every(Boolean)) return '';
     const readings = drawn.map((card, i) => {
       const orientationTag = orientations[i] ? t('tarot.reversedTag') : '';
       const casa = t(`tarot.position.${POSITIONS[i]}`);
       return `${casa} — ${getCardName(card, lang)}${orientationTag}: ${getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i], lang)}`;
     });
-    const body = [...readings, getElementalDignity(drawn, lang), getSpreadPattern(drawn, lang)]
+    return [...readings, getElementalDignity(drawn, lang), getSpreadPattern(drawn, lang)]
       .filter(Boolean)
       .join('\n\n');
-    return paraSlides(body);
   }, [drawn, revealed, orientations, theme.key, lang, t]);
+  const slidesDaTiragem = useMemo(() => paraSlides(corpoDaTiragem), [corpoDaTiragem]);
 
   // Todo tema libera só 1 tiragem por dia (ver lib/tarotDailyLimit) — recheca
   // sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
@@ -491,6 +498,13 @@ export default function TarotScreen() {
                 <Ionicons name="sparkles" size={16} color={colors.gold} />
                 <Text style={styles.historiaBtnText}>{t('stories.ver')}</Text>
               </TouchableOpacity>
+            )}
+
+            {/* O BOTÃO "OUVIR" — a tiragem inteira em voz alta (o MESMO corpo
+                do modo história e do Diário), com a voz do aparelho. Mesma
+                condição do modo história: só com as três cartas viradas. */}
+            {revealed.every(Boolean) && (
+              <BotaoOuvir texto={corpoDaTiragem} style={styles.ouvirBtn} />
             )}
 
             {drawn.map((card, i) => {
@@ -1053,6 +1067,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 18, marginBottom: 14,
   },
   historiaBtnText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
+  // O Ouvir abaixo do modo história, com o mesmo respiro que ele tem do texto.
+  ouvirBtn: { alignSelf: 'center', marginBottom: 14 },
   btnWrap: { borderRadius: 12, overflow: 'hidden', width: '100%' },
   btn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, gap: 8 },
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },

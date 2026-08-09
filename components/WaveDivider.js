@@ -36,16 +36,18 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 999,
     borderTopRightRadius: 999,
   },
+  // NUVENS PÉROLA (08/08/2026): a divisória acompanha o cenário — lavanda
+  // clara em opacidade baixa, nuvem e não muro. Ver CosmicScene.js.
   ondaTras: {
     top: 18,
-    backgroundColor: '#251A46',
-    opacity: 0.5,
+    backgroundColor: '#C9CFF2',
+    opacity: 0.10,
     transform: [{ rotate: '1.6deg' }],
   },
   ondaFrente: {
     top: 34,
-    backgroundColor: '#1A1235',
-    opacity: 0.85,
+    backgroundColor: '#8F9AE5',
+    opacity: 0.18,
     transform: [{ rotate: '-1.2deg' }],
   },
 });

@@ -43,6 +43,10 @@ import CosmicScene from '../components/CosmicScene';
 import GradientHeader from '../components/GradientHeader';
 import WaveDivider from '../components/WaveDivider';
 import OneTimeLock from '../components/OneTimeLock';
+// O BOTÃO "OUVIR" (08/08/2026) — a leitura do bloco em voz alta, com a voz do
+// aparelho (Web Speech API, lib/voz.js). Em plataforma sem a API ele devolve
+// null sozinho — nenhum gate aqui.
+import BotaoOuvir from '../components/BotaoOuvir';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { horoscopeFor, resumoDoDia } from '../lib/dailyHoroscope';
@@ -277,6 +281,12 @@ export default function HoroscopeScreen() {
               const leituraLinhas = bloco.lines.filter((l) => l.role !== 'metodo');
               const metodoLinhas = bloco.lines.filter((l) => l.role === 'metodo');
               const aberto = !!metodoAberto[bloco.id];
+              // O que o botão Ouvir fala é EXATAMENTE o que o bloco mostra: as
+              // mesmas linhas de leitura, resolvidas pelo mesmo t() — o método
+              // (recolhido) fica fora da fala como fica fora da primeira vista.
+              const textoFalado = leituraLinhas
+                .map((line) => t(line.key, resolveVars(line.vars, t)))
+                .join(' ');
               return (
                 <View key={bloco.id}>
                   {/* A colina entre "o seu dia" e o próximo capítulo: UMA onda,
@@ -286,6 +296,10 @@ export default function HoroscopeScreen() {
                       existe próximo capítulo. */}
                   {indice === 1 && <WaveDivider />}
                   <Text style={styles.sub}>{t(bloco.titleKey)}</Text>
+                  {/* Ouvir, entre o título e o texto — alinhado com a leitura
+                      (o blockCard indenta 18). Um botão POR bloco: quem toca
+                      ouve este capítulo, não a tela inteira. */}
+                  <BotaoOuvir texto={textoFalado} style={styles.ouvirBtn} />
                   <View style={styles.blockCard} testID={`horoscope-block-${bloco.id}`}>
                     {leituraLinhas.map((line, i) => (
                       <Text key={line.key + i} style={[styles.line, i > 0 && styles.lineSpaced]}>
@@ -442,6 +456,9 @@ const styles = StyleSheet.create({
   // recibo). O paddingHorizontal preserva o alinhamento que o texto tinha
   // dentro do card; a única linha que resta é o borderTop do methodToggle.
   blockCard: { paddingHorizontal: 18 },
+  // O Ouvir acompanha a indentação da leitura solta (blockCard = 18) e cola
+  // no texto que vai falar.
+  ouvirBtn: { marginLeft: 18, marginBottom: 12 },
   line: { color: colors.textSecondary, fontSize: 15, lineHeight: 25 },
   lineSpaced: { marginTop: 12 },
   // O método é discreto de propósito — menor, apagado, atrás de um toque —, e

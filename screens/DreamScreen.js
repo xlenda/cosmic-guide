@@ -80,6 +80,9 @@ import { PACK as ARTEMIDORO_EN } from '../lib/traducoes/artemidoro.en.js';
 // stories. paraSlides só REFORMATA: nenhum byte de reading.body muda.
 import StoriesReader from '../components/StoriesReader';
 import { paraSlides } from '../lib/storySlides';
+// O BOTÃO "OUVIR" (08/08/2026) — reading.body em voz alta com a voz do
+// aparelho (Web Speech API, lib/voz.js). Sem a API ele devolve null sozinho.
+import BotaoOuvir from '../components/BotaoOuvir';
 
 // O chrome do bloco de Artemidoro mora no pack de cada idioma (bloco `chrome`),
 // que é onde nasce toda prosa desta feature. Este seletor é o MESMO
@@ -595,6 +598,11 @@ export default function DreamScreen() {
                 <Text style={styles.historiaBtnText}>{t('stories.ver')}</Text>
               </TouchableOpacity>
 
+              {/* O BOTÃO "OUVIR" — a leitura do sonho em voz alta (o mesmo
+                  reading.body do card logo abaixo e do modo história), com a
+                  voz do aparelho. */}
+              <BotaoOuvir texto={reading.body} style={styles.ouvirBtn} />
+
               <View style={styles.resultCard}>
                 <Text style={styles.resultTitle}>{reading.title}</Text>
                 <Text style={styles.resultBody}>{reading.body}</Text>
@@ -719,6 +727,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 18,
   },
   historiaBtnText: { color: colors.teal, fontSize: 13, fontWeight: '700' },
+  // O Ouvir centrado entre o modo história e o card da leitura (a section já
+  // dá o respiro com o gap: 14).
+  ouvirBtn: { alignSelf: 'center' },
   upsellCard: {
     backgroundColor: colors.card,
     borderRadius: 18,

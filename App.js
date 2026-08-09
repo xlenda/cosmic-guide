@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useRef, useState, Suspense, lazy } from 'react';
+import React, { useCallback, useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -24,6 +24,7 @@ import { initConversionTracking } from './lib/conversionTracking';
 // conversionTracking acima, que continua no lugar mas segue inerte enquanto
 // EXPO_PUBLIC_FB_PIXEL_ID/EXPO_PUBLIC_GA_ID não forem configurados.
 import { funnel } from './lib/funnel';
+import { temNovidadeDeTaroHoje } from './lib/tarotNovidade';
 import { acceptInvite } from './lib/coupleInvite';
 import { saveCorrelationCode } from './lib/coupleData';
 // Analytics de visitas da própria Vercel (hospeda o app) — não depende de
@@ -457,7 +458,7 @@ function useRetomarCheckout(navRef, navPronta) {
 // solo/casal. Qualquer um dos dois sinais presentes já libera o Tab.Navigator
 // normal — HomeScreen trata os dois casos.
 function Gate() {
-  const { coupleData, soloSign, loading } = useCouple();
+  const { coupleData, soloSign, loading, hasAccess } = useCouple();
   // Rótulo das abas: sem tabBarLabel o React Navigation usa o `name` da rota,
   // e o name é o literal de ROUTES ('Início', 'Tarô'...). O rodapé fica na
   // tela o tempo todo, em qualquer idioma — era o texto mais visto do app e
@@ -468,6 +469,21 @@ function Gate() {
   const navRef = useNavigationContainerRef();
   const [navPronta, setNavPronta] = useState(false);
   useRetomarCheckout(navRef, navPronta);
+
+  // Bolinha de novidade HONESTA na aba Tarô (lib/tarotNovidade.js decide; na
+  // dúvida/erro fica apagada — por isso o estado NASCE false e só o storage
+  // acende). Começa apagada, relê no mount, quando a assinatura resolve
+  // (hasAccess muda) e a cada navegação — o onStateChange do
+  // NavigationContainer abaixo. É assim que ela some depois da tiragem:
+  // drawCards() grava o dia no storage e o próximo toque de aba relê. Sem
+  // timer e sem polling de propósito.
+  const [tarotNovidade, setTarotNovidade] = useState(false);
+  const relerTarotNovidade = useCallback(() => {
+    temNovidadeDeTaroHoje(hasAccess).then(setTarotNovidade);
+  }, [hasAccess]);
+  useEffect(() => {
+    relerTarotNovidade();
+  }, [relerTarotNovidade]);
 
   if (loading || !bootstrapped) {
     return (
@@ -491,7 +507,14 @@ function Gate() {
   }
 
   return (
-    <NavigationContainer ref={navRef} linking={linking} onReady={() => setNavPronta(true)}>
+    <NavigationContainer
+      ref={navRef}
+      linking={linking}
+      onReady={() => setNavPronta(true)}
+      // Toda navegação (troca de aba, push de tela) relê a novidade do Tarô —
+      // é o único gatilho de atualização da bolinha, ver comentário no estado.
+      onStateChange={relerTarotNovidade}
+    >
       {/* O provider do Som do céu envolve o Tab.Navigator inteiro e o dock é
           IRMÃO dele, não filho de nenhuma tela: é o que garante que o áudio
           continue tocando ao trocar de aba (a tela desmonta, o dock não) e que
@@ -555,7 +578,22 @@ function Gate() {
         <Tab.Screen
           name={ROUTES.TAROT_TAB}
           component={TarotStack}
-          options={{ tabBarLabel: t('tab.tarot') }}
+          options={{
+            tabBarLabel: t('tab.tarot'),
+            // A bolinha de novidade honesta: badge VAZIO (sinal visual, sem
+            // número e sem i18n) só enquanto a tiragem de hoje existe de
+            // verdade e ainda não foi feita — lib/tarotNovidade.js decide.
+            // undefined (não '') quando não há novidade: é o que remove o
+            // badge por completo no bottom-tabs v6.
+            tabBarBadge: tarotNovidade ? '' : undefined,
+            tabBarBadgeStyle: {
+              minWidth: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: colors.pink,
+              top: 4,
+            },
+          }}
           listeners={{ tabPress: () => funnel.readingStart('tarot', 'tab') }}
         />
         <Tab.Screen

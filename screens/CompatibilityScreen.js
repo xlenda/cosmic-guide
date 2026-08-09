@@ -22,6 +22,9 @@ import { ROUTES } from '../routes';
 // como stories. paraSlides só REFORMATA: nenhum texto do motor muda.
 import StoriesReader from '../components/StoriesReader';
 import { paraSlides } from '../lib/storySlides';
+// O BOTÃO "OUVIR" (08/08/2026) — a leitura em voz alta com a voz do aparelho
+// (Web Speech API, lib/voz.js). Sem a API ele devolve null sozinho.
+import BotaoOuvir from '../components/BotaoOuvir';
 
 const FEATURE_KEY = 'compatibility';
 const HIGH_COMPAT_OFFER_KEY = 'offer-shown-compat-high';
@@ -175,14 +178,18 @@ export default function CompatibilityScreen() {
   // tela é estruturada em blocos, e são exatamente esses blocos que viram
   // slides — um por dimensão, como a pessoa já lê no card.
   const [historiaAberta, setHistoriaAberta] = useState(false);
-  const slidesDaLeitura = useMemo(() => {
-    if (!result) return [];
-    const corpo = [
+  // O corpo vive num memo próprio porque agora tem DOIS consumidores com a
+  // mesma exigência de fidelidade: os slides do modo história e o botão Ouvir
+  // (components/BotaoOuvir.js), que fala a leitura em voz alta. Um texto só,
+  // dois formatos — nenhum deles reescreve uma palavra.
+  const corpoDaLeitura = useMemo(() => {
+    if (!result) return '';
+    return [
       result.chamada,
       ...DIMENSOES_VIDA_REAL.map((d) => `${t(d.chaveTitulo)}\n${result.vidaReal[d.id]}`),
     ].join('\n\n');
-    return paraSlides(corpo);
   }, [result, t]);
+  const slidesDaLeitura = useMemo(() => paraSlides(corpoDaLeitura), [corpoDaLeitura]);
 
   useEffect(() => {
     if (hasAccess || !accessConfirmed) return;
@@ -369,6 +376,10 @@ export default function CompatibilityScreen() {
                 <Ionicons name="sparkles" size={16} color={colors.pink} />
                 <Text style={styles.historiaBtnText}>{t('stories.ver')}</Text>
               </TouchableOpacity>
+              {/* O BOTÃO "OUVIR" — a mesma leitura do bloco 1 (chamada + cinco
+                  dimensões, o corpo do modo história) em voz alta, com a voz
+                  do aparelho. */}
+              <BotaoOuvir texto={corpoDaLeitura} style={styles.ouvirBtn} />
               <Text style={styles.realHook}>{result.chamada}</Text>
               {DIMENSOES_VIDA_REAL.map((d) => (
                 <View key={d.id} style={styles.dimBlock}>
@@ -662,6 +673,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 18, marginTop: 12,
   },
   historiaBtnText: { color: colors.pink, fontSize: 13, fontWeight: '700' },
+  // O Ouvir centrado logo abaixo do modo história, antes da chamada.
+  ouvirBtn: { alignSelf: 'center', marginTop: 12 },
   dimBlock: { marginTop: 18 },
   dimHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dimIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: colors.pink + '22', justifyContent: 'center', alignItems: 'center' },
