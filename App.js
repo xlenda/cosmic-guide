@@ -232,7 +232,16 @@ const GESTO_STACK = { gestureEnabled: Platform.OS !== 'web' };
 const TRANSICAO_STACK = {
   ...TransitionPresets.SlideFromRightIOS,
   animationEnabled: true,
-  cardStyle: { backgroundColor: colors.background },
+  // `flex: 1` OBRIGATÓRIO junto do backgroundColor (09/08/2026 — bug de
+  // funil, relato de usuária real: "não consigo mexer na página, não dá
+  // scroll"). O container do card que recebe este estilo NÃO tem flex
+  // próprio na web: com só o backgroundColor ele vira ALTURA DE CONTEÚDO
+  // (medido: 930px numa tela de 667), o ScrollView de dentro herda 702px,
+  // conclui que não precisa rolar — e como o body é overflow:hidden, tudo
+  // que passa da dobra fica INALCANÇÁVEL. Atingia só quem NÃO tem perfil
+  // (todo lead novo cai no stack do onboarding; quem já tem perfil entra
+  // pelo Tab.Navigator, que constrange a altura e nunca quebrou).
+  cardStyle: { flex: 1, backgroundColor: colors.background },
 };
 
 
