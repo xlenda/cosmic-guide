@@ -34,6 +34,25 @@ const DIR_POOL = path.join(DIR_CARDS, "pool");
 // brinde (../../forja.sqlite).
 const NOMES = new Set(["solo.png", "casal.png"]);
 
+// O POOL LIDO DO DISCO NO MÁXIMO 1x POR MINUTO (09/08/2026, achado de review).
+// `escolherDoPool(agora, poolDisponivel(DIR_POOL))` é argumento — avaliado
+// SEMPRE, inclusive no caminho saudável em que o card de hoje existe e a
+// escolha do pool é descartada. Era um readdirSync por requisição da Home de
+// todo mundo. O conteúdo do pool só muda quando alguém sobe arquivo no
+// servidor, então um minuto de cache é generoso e o `poolDisponivel` puro
+// continua exatamente como está (e testado como está).
+const POOL_TTL_MS = 60 * 1000;
+let _poolCache = null;
+let _poolLidoEm = 0;
+
+function poolDisponivelComCache(agoraMs) {
+  if (!_poolCache || agoraMs - _poolLidoEm > POOL_TTL_MS) {
+    _poolCache = poolDisponivel(DIR_POOL);
+    _poolLidoEm = agoraMs;
+  }
+  return _poolCache;
+}
+
 const dailyCardsRouter = express.Router();
 
 dailyCardsRouter.get("/", (_req, res) => {
@@ -49,7 +68,7 @@ dailyCardsRouter.get("/", (_req, res) => {
   const decisao = decidirCardDoDia({
     manifesto,
     hoje: hojeLocal(agora),
-    escolha: escolherDoPool(agora, poolDisponivel(DIR_POOL)),
+    escolha: escolherDoPool(agora, poolDisponivelComCache(agora.getTime())),
   });
 
   if (decisao.tipo === "sem_cards") {

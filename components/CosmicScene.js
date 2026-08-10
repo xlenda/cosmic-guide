@@ -51,7 +51,13 @@ const ESTRELAS = Array.from({ length: 44 }, (_, i) => {
 
 export default function CosmicScene({ waves = true, style }) {
   return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
+    // overflow:hidden OBRIGATÓRIO (09/08/2026): as ondas têm width 170% com
+    // `left` negativo — sem clipe elas VAZAM pra fora da tela, o documento
+    // fica mais largo que o viewport e o navegador mobile responde dando
+    // ZOOM OUT na página inteira (medido no fluxo de perguntas: innerWidth
+    // saltou de 375 pra 588, ou seja, tudo encolheu). O cenário é fundo:
+    // tem que ser recortado pela tela, nunca esticá-la.
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.recorte, style]}>
       {/* O céu: do roxo profundo do topo ao quase-preto do rodapé — mesma
           família do colors.background, então a transição pro que estiver
           além do cenário é invisível. */}
@@ -89,6 +95,9 @@ export default function CosmicScene({ waves = true, style }) {
 }
 
 const styles = StyleSheet.create({
+  // Ver o comentário no JSX: sem isto as ondas alargam o documento e o
+  // navegador dá zoom out na página toda.
+  recorte: { overflow: 'hidden' },
   onda: {
     position: 'absolute',
     width: '170%',

@@ -11,16 +11,22 @@
 // Decorativa no toque não é: navega pra PlanosScreen. Área ≥44px.
 import React from 'react';
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function PillPremium({ visivel, onPress }) {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   if (!visivel) return null;
   return (
     <TouchableOpacity
-      style={styles.pill}
+      // ACIMA DO DOCK DO SOM (09/08/2026, achado de review): o dock mora em
+      // `bottom: 70 + insets` com ~44 de altura, então ocupa até ~114+insets
+      // — a pill a 86 cobria o play/pause. 124+insets a empilha em cima dele,
+      // e continua colada no rodapé quando o dock não está na tela.
+      style={[styles.pill, { bottom: 124 + insets.bottom }]}
       activeOpacity={0.85}
       onPress={onPress}
       accessibilityRole="button"
@@ -42,9 +48,7 @@ const styles = StyleSheet.create({
   pill: {
     position: 'absolute',
     right: 12,
-    // O dock pílula (64 de altura + 10 de margem) mora logo abaixo; 86 pousa
-    // a pill imediatamente acima dele sem cobrir conteúdo útil.
-    bottom: 86,
+    // `bottom` vem do componente (124 + safe area) — ver o comentário no JSX.
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,

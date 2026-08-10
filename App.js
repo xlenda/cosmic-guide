@@ -229,6 +229,15 @@ const GESTO_STACK = { gestureEnabled: Platform.OS !== 'web' };
 // da tela durante o slide seria o cinza-claro do DefaultTheme do
 // react-navigation (CardContainer.js usa colors.background do theme, e o
 // NavigationContainer daqui não recebe theme nenhum).
+// TELAS ONDE A PILL DE ASSINAR NÃO APARECE (09/08/2026, achado de review).
+// A pill é absoluta no canto inferior direito; nestas três o rodapé JÁ é área
+// de ação e ela cobriria o toque:
+//   · Planos — oferta em cima de oferta (e é pra lá que ela leva)
+//   · Chat   — a linha de digitar mora colada no pé, com o botão de enviar
+//              exatamente no canto direito
+//   · Quiz   — a barra Voltar/Continuar fecha o rolo no mesmo lugar
+const ROTAS_SEM_PILL = new Set([ROUTES.PLANOS, ROUTES.CHAT_TAB, ROUTES.QUIZ]);
+
 const TRANSICAO_STACK = {
   ...TransitionPresets.SlideFromRightIOS,
   animationEnabled: true,
@@ -495,7 +504,7 @@ function Gate() {
   // accessConfirmed entrou junto com a PillPremium (09/08/2026): a pill de
   // assinar só aparece quando a checagem CONFIRMOU que não há assinatura —
   // em dúvida de rede, nada de piscar "assine" pra quem paga.
-  const { coupleData, soloSign, loading, hasAccess, accessConfirmed } = useCouple();
+  const { coupleData, soloSign, loading, hasAccess, accessConfirmed, isOwnerAccount } = useCouple();
   // Rótulo das abas: sem tabBarLabel o React Navigation usa o `name` da rota,
   // e o name é o literal de ROUTES ('Início', 'Tarô'...). O rodapé fica na
   // tela o tempo todo, em qualquer idioma — era o texto mais visto do app e
@@ -516,8 +525,15 @@ function Gate() {
   // timer e sem polling de propósito.
   const [tarotNovidade, setTarotNovidade] = useState(false);
   const relerTarotNovidade = useCallback(() => {
-    temNovidadeDeTaroHoje(hasAccess).then(setTarotNovidade);
-  }, [hasAccess]);
+    // `hasAccess && accessConfirmed` (09/08/2026, achado de review): o
+    // contexto nasce OTIMISTA (hasAccess = true antes de a checagem voltar),
+    // e a primeira leitura acendia a bolinha pra quem já gastou a prévia
+    // vitalícia — prometendo carta nova onde só há paywall, exatamente a
+    // mentira que lib/tarotNovidade.js existe pra não cometer. Enquanto a
+    // checagem não confirma, tratamos como NÃO-assinante: na dúvida a
+    // bolinha fica apagada, nunca acesa à toa.
+    temNovidadeDeTaroHoje(hasAccess && accessConfirmed).then(setTarotNovidade);
+  }, [hasAccess, accessConfirmed]);
   useEffect(() => {
     relerTarotNovidade();
   }, [relerTarotNovidade]);
@@ -684,7 +700,16 @@ function Gate() {
               quem comprovadamente não assina (accessConfirmed && !hasAccess),
               e some na própria tela de Planos. Ver PillPremium.js. */}
           <PillPremium
-            visivel={accessConfirmed && !hasAccess && rotaAtual !== ROUTES.PLANOS}
+            visivel={
+              accessConfirmed &&
+              !hasAccess &&
+              // O DONO nunca vê oferta (09/08/2026, achado de review): a conta
+              // dele tem acesso por allowlist, não por assinatura — sem isto
+              // ele seria perseguido por "assine" em toda tela. Mesmo guarda
+              // de HomeScreen/FeatureGate/CalendarioCosmico.
+              !isOwnerAccount &&
+              !ROTAS_SEM_PILL.has(rotaAtual)
+            }
             onPress={() => navRef.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
           />
         </View>
