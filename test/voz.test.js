@@ -42,3 +42,60 @@ test('texto que não casa com o regex (só pontuação) sai inteiro em vez de su
 test('em node não há Web Speech API — vozDisponivel() é false e nada explode', () => {
   assert.equal(vozDisponivel(), false);
 });
+
+// ---------------------------------------------------------------------------
+// A ESCOLHA DA VOZ (09/08/2026) — o conserto do "voz robótica" relatado pelo
+// dono. escolherVoz() é pura de propósito: recebe a lista (que no browser vem
+// de getVoices()) e devolve a melhor pro idioma. É o placar que decide se a
+// pessoa ouve a voz NEURAL instalada ou a sintética velha do sistema.
+// ---------------------------------------------------------------------------
+const { escolherVoz } = require('../lib/voz.js');
+
+// Retratos fiéis do que getVoices() devolve em cada plataforma real.
+const V = {
+  edgeNatural: { name: 'Microsoft Francisca Online (Natural) - Portuguese (Brazil)', lang: 'pt-BR' },
+  windowsVelha: { name: 'Microsoft Maria Desktop - Portuguese(Brazil)', lang: 'pt-BR', default: true },
+  googleBr: { name: 'Google português do Brasil', lang: 'pt-BR' },
+  iosLuciana: { name: 'Luciana', lang: 'pt-BR' },
+  iosCompacta: { name: 'Luciana (compact)', lang: 'pt-BR' },
+  ptPortugal: { name: 'Joana', lang: 'pt-PT' },
+  espanhola: { name: 'Mónica', lang: 'es-ES' },
+  ingles: { name: 'Samantha', lang: 'en-US' },
+  macBrincadeira: { name: 'Zarvox', lang: 'en-US', default: true },
+};
+
+test('a voz NEURAL ganha da voz padrão velha do sistema (o bug do robótico)', () => {
+  // A padrão do Windows tem `default: true` e ainda assim perde — era
+  // exatamente ela que o navegador escolhia sozinho antes deste placar.
+  const escolhida = escolherVoz([V.windowsVelha, V.edgeNatural], 'pt-BR');
+  assert.equal(escolhida, V.edgeNatural);
+});
+
+test('Google/nuvem ganha da compacta, e a compacta ganha de nada', () => {
+  assert.equal(escolherVoz([V.iosCompacta, V.googleBr], 'pt-BR'), V.googleBr);
+  assert.equal(escolherVoz([V.iosCompacta], 'pt-BR'), V.iosCompacta);
+});
+
+test('voz de brincadeira do macOS nunca é escolhida quando há voz séria', () => {
+  const escolhida = escolherVoz([V.macBrincadeira, V.ingles], 'en-US');
+  assert.equal(escolhida, V.ingles);
+});
+
+test('idioma exato ganha do mesmo idioma em outro país', () => {
+  assert.equal(escolherVoz([V.ptPortugal, V.iosLuciana], 'pt-BR'), V.iosLuciana);
+});
+
+test('sem voz do idioma pedido, devolve null — a tela cai no lang puro', () => {
+  assert.equal(escolherVoz([V.espanhola, V.ingles], 'pt-BR'), null);
+});
+
+test('lista vazia, nula ou com buraco não explode', () => {
+  assert.equal(escolherVoz([], 'pt-BR'), null);
+  assert.equal(escolherVoz(null, 'pt-BR'), null);
+  assert.equal(escolherVoz([null, V.iosLuciana], 'pt-BR'), V.iosLuciana);
+  assert.equal(escolherVoz([V.iosLuciana], ''), null);
+});
+
+test('pt-PT serve pra quem pede pt-BR quando é a única do idioma', () => {
+  assert.equal(escolherVoz([V.ptPortugal, V.ingles], 'pt-BR'), V.ptPortugal);
+});

@@ -23,7 +23,7 @@ import { NavigationContext } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
-import { vozDisponivel, falar, parar } from '../lib/voz';
+import { vozDisponivel, falar, parar, aquecerVozes } from '../lib/voz';
 
 export default function BotaoOuvir({ texto, style }) {
   const { t, lang } = useLanguage();
@@ -35,6 +35,11 @@ export default function BotaoOuvir({ texto, style }) {
 
   useEffect(() => {
     vivo.current = true;
+    // AQUECE A LISTA DE VOZES no mount (09/08/2026): a escolha da voz boa
+    // precisa acontecer DENTRO do onPress (iOS exige speak() no gesto), e no
+    // Chrome a lista só chega assíncrona — aquecendo aqui, quando a pessoa
+    // toca a voz neural já está escolhida. Idempotente.
+    aquecerVozes();
     return () => {
       vivo.current = false;
       parar();
