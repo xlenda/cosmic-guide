@@ -629,7 +629,13 @@ const styles = StyleSheet.create({
     height: ITEM_ALTURA * 4,
     marginTop: 14,
   },
-  coluna: { width: 76, flexGrow: 0 },
+  // ALTURA EXPLÍCITA, não herdada (12/08/2026 — bug real: os números da hora
+  // se espalhavam por cima do título, do botão e da tela inteira). O pai
+  // `relogio` tem height fixa, MAS usa alignItems:'center' — e no flexbox
+  // isso faz o filho medir pelo CONTEÚDO em vez de esticar até a caixa: cada
+  // lista virava 24×44 = 1056px centrada, vazando pros dois lados. O
+  // DatePickerModal nunca sofreu disso porque não centraliza a linha.
+  coluna: { width: 76, height: ITEM_ALTURA * 4, flexGrow: 0 },
   colunaItem: { height: ITEM_ALTURA, justifyContent: 'center', alignItems: 'center' },
   colunaItemSel: { backgroundColor: colors.accent + '22', borderRadius: 10 },
   colunaTexto: { color: colors.textSecondary, fontSize: 18 },
