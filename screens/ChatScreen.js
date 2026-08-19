@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
+import ReportarIA from '../components/ReportarIA';
 import { PERSONAS, ACTIVE_PERSONA_ID } from '../lib/chatPersonas';
 import { CENAS } from '../lib/ilustracoes';
 import { getMockReply } from '../lib/chatResponses';
@@ -239,20 +240,30 @@ export default function ChatScreen() {
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item, index }) => {
     const isUser = item.from === 'user';
+    // Denúncia embaixo de TODA resposta da persona. Antes só a última tinha a
+    // bandeirinha: bastava mandar mais uma mensagem pra resposta ofensiva ficar
+    // sem canal de denúncia — e, como a denúncia agora carrega o texto
+    // (components/ReportarIA.js), cada bolha denuncia a si mesma. index > 0
+    // tira a intro da persona, que é texto local de lib/chatPersonas.js e não
+    // saída de IA.
+    const mostrarDenuncia = !isUser && index > 0;
     return (
-      <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowPersona]}>
-        <View
-          style={[
-            styles.bubble,
-            isUser
-              ? [styles.bubbleUser, { backgroundColor: colors.accent }]
-              : [styles.bubblePersona, { backgroundColor: persona.bubbleColor }],
-          ]}
-        >
-          <Text style={styles.bubbleText}>{item.text}</Text>
+      <View>
+        <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowPersona]}>
+          <View
+            style={[
+              styles.bubble,
+              isUser
+                ? [styles.bubbleUser, { backgroundColor: colors.accent }]
+                : [styles.bubblePersona, { backgroundColor: persona.bubbleColor }],
+            ]}
+          >
+            <Text style={styles.bubbleText}>{item.text}</Text>
+          </View>
         </View>
+        {mostrarDenuncia && <ReportarIA kind="chat" texto={item.text} />}
       </View>
     );
   };

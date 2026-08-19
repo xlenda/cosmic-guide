@@ -168,6 +168,20 @@ const purgeAnonStmt = db.prepare(`
   DELETE FROM ai_free_quota WHERE subject_type = 'ip' AND period < ?
 `);
 
+// Exclusão de conta (DELETE /api/subscription/account). A cota grátis é a única
+// coisa que esta tabela guarda por CONTA, e ela morre junto com a conta — sem
+// isso sobraria um contador órfão amarrado a um `sub` que não existe mais.
+// Só o balde 'account': as linhas 'ip' são hash salgado, não identificam conta
+// nenhuma e já têm a própria limpeza por retenção (purgeOldAnonRows).
+const forgetAccountStmt = db.prepare(`
+  DELETE FROM ai_free_quota WHERE subject_type = 'account' AND subject_id = ?
+`);
+
+function forgetAccount(userId) {
+  if (!userId) return 0;
+  return forgetAccountStmt.run(userId).changes;
+}
+
 // Erro de controle de fluxo: é ele que aborta (e faz o SQLite reverter) a
 // transação que consome balde + total, pra nunca sobrar meia cobrança.
 class QuotaBlocked extends Error {
@@ -456,6 +470,7 @@ function buildAiQuota({ getAccountSubscription, isExempt = () => false } = {}) {
 
 module.exports = {
   buildAiQuota,
+  forgetAccount,
   ROUTE_CONFIG,
   TOTAL_BUCKET,
   ANON_BUCKET,

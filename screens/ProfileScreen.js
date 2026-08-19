@@ -28,7 +28,7 @@ import { hasSeloCosmico, hasGoldTheme } from '../lib/cosmeticRewards';
 import { isGoldThemeActive, setGoldThemeActive } from '../theme';
 import { shareInvite } from '../lib/coupleInvite';
 import { getCorrelationCode, getSoloCorrelationCode } from '../lib/coupleData';
-import { recoverSubscriptionFromDevice } from '../lib/accountSubscription';
+import { recoverSubscriptionFromDevice, deleteAccountData, getAuthToken } from '../lib/accountSubscription';
 import {
   isDailyThoughtEnabled,
   requestNotificationPermission,
@@ -165,6 +165,11 @@ export default function ProfileScreen() {
   const [goldOwned, setGoldOwned] = useState(false);
   const [goldActive, setGoldActive] = useState(isGoldThemeActive());
   const [recuperando, setRecuperando] = useState(false);
+  // Trava do duplo toque na exclusão: o botão fica desabilitado enquanto as
+  // duas chamadas de rede correm. Sem isso, o segundo toque dispararia um
+  // DELETE com um token de conta já apagada e a pessoa veria um erro no fim de
+  // uma exclusão que deu certo.
+  const [deletingAccount, setDeletingAccount] = useState(false);
   // user==null NÃO garante que não existe sessão pra sair: o supabase guarda
   // os tokens em AsyncStorage (chave sb-<ref>-auth-token) e, quando o refresh
   // falha (offline, refresh token expirado), getSession devolve null MAS o
@@ -236,17 +241,90 @@ export default function ProfileScreen() {
     setEditingName(false);
   }
 
+  // Só limpa o aparelho — caminho de quem NÃO tem sessão (nunca logou, ou a
+  // sessão expirou e sobrou resíduo). Não existe conta pra apagar no servidor,
+  // e prometer isso pra essa pessoa seria mentira.
+  async function wipeLocalData() {
+    await clearAll();
+    await signOut();
+    navigation.popToTop();
+  }
+
+  // Só chega aqui ANTES de qualquer destruição (o passo irreversível é o
+  // primeiro — ver deleteAccountForReal): a conta continua de pé e o texto diz
+  // isso. Mas apagar os dados DESTE aparelho nunca dependeu de rede, e era o
+  // que o botão vermelho sempre fez — sem esta saída, quem está offline (ou com
+  // a sessão expirada, que faz o RPC voltar 401) ficaria sem nenhuma forma de
+  // limpar o aparelho. O botão promete só o local, que é tudo o que ele faz.
+  function falhouApagar() {
+    Alert.alert(t('profile.delete.failTitle'), t('profile.delete.failText'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('profile.delete.failWipeLocal'), style: 'destructive', onPress: wipeLocalData },
+    ]);
+  }
+
+  // PASSO 2 do duplo passo. Diálogo separado de propósito: exclusão de conta é
+  // irreversível e o primeiro toque acontece a um dedo de distância do botão de
+  // sair. Quem chegou aqui já leu o que some e escolheu o botão vermelho uma vez.
+  function confirmDeleteStep2() {
+    Alert.alert(t('profile.delete.finalTitle'), t('profile.delete.finalText'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('profile.delete.finalConfirm'), style: 'destructive', onPress: deleteAccountForReal },
+    ]);
+  }
+
+  // A EXCLUSÃO DE VERDADE. Até 19/08/2026 isto só fazia clearAll()+signOut() — a
+  // conta continuava viva no Supabase e a assinatura continuava ligada a ela,
+  // mas a tela dizia que tinha apagado.
+  //
+  // ORDEM: o IRREVERSÍVEL VEM PRIMEIRO. Apagar o login é o passo com mais chance
+  // de falhar por conta própria (a função SQL é aplicada À MÃO no Supabase; se o
+  // build subir antes dela, TODA tentativa falha) — e enquanto ele não passa,
+  // nada foi destruído e dá pra tentar de novo com os dados no lugar. Na ordem
+  // inversa a falha era DESTRUTIVA: a assinatura já desvinculada e a cota de IA
+  // já apagada, embaixo de uma tela dizendo "não apagamos nada". Depois que o
+  // RPC passa não existe mais "tentar de novo" — backend e aparelho são limpos
+  // de qualquer jeito, e o que sobrar é dito na cara da pessoa.
+  async function deleteAccountForReal() {
+    if (deletingAccount) return;
+    setDeletingAccount(true);
+    let contaApagada = false;
+    try {
+      // Token capturado ANTES: com a conta morta o refresh falha e getSession
+      // pode devolver null, mas o JWT já emitido continua valendo no backend
+      // (jwtVerify contra o JWKS, sem consulta de usuário) até expirar.
+      const token = await getAuthToken();
+      // 1) A conta de login. Função SECURITY DEFINER no Supabase, chamada com o
+      //    JWT da própria pessoa — sem service_role key no app (ver
+      //    server-patches/supabase/001_delete_own_account.sql).
+      const { error } = await supabase.rpc('delete_own_account');
+      if (error) return falhouApagar();
+      contaApagada = true;
+      // 2) Dados no backend próprio (assinatura desvinculada, cota de IA zerada).
+      const backend = await deleteAccountData(token);
+      // 3) O aparelho.
+      await wipeLocalData();
+      if (!backend.ok) Alert.alert(t('profile.delete.partialTitle'), t('profile.delete.partialText'));
+    } catch {
+      // Depois do RPC a conta JÁ foi apagada — falhouApagar() diria que nada foi
+      // apagado, que seria mentira.
+      if (!contaApagada) falhouApagar();
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
+
   function confirmDeleteAccount() {
+    if (deletingAccount) return;
+    // Com sessão, o botão vermelho apaga a CONTA (passo 1 de 2). Sem sessão,
+    // ele continua sendo o que sempre foi: limpar este aparelho.
+    const temConta = Boolean(user);
     const botoes = [
       { text: t('common.cancel'), style: 'cancel' },
       {
-        text: t('profile.delete.confirmWipe'),
+        text: temConta ? t('profile.delete.confirmAccount') : t('profile.delete.confirmWipe'),
         style: 'destructive',
-        onPress: async () => {
-          await clearAll();
-          await signOut();
-          navigation.popToTop();
-        },
+        onPress: temConta ? confirmDeleteStep2 : wipeLocalData,
       },
     ];
     // Pedido do dono (26/07/2026): quem só quer TROCAR de conta acabava
@@ -264,7 +342,7 @@ export default function ProfileScreen() {
         },
       });
     }
-    Alert.alert(t('profile.delete.title'), t('profile.delete.text'), botoes);
+    Alert.alert(t('profile.delete.title'), temConta ? t('profile.delete.text') : t('profile.delete.localText'), botoes);
   }
 
   // Mesmo "meu signo" já calculado em HomeScreen.js (casal usa coupleData.sa,
@@ -606,9 +684,16 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={styles.dangerBtn} onPress={confirmDeleteAccount} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={[styles.dangerBtn, deletingAccount && styles.dangerBtnBusy]}
+          onPress={confirmDeleteAccount}
+          disabled={deletingAccount}
+          activeOpacity={0.85}
+        >
           <Ionicons name="trash" size={18} color="#fff" />
-          <Text style={styles.dangerBtnText}>{t('profile.delete.title')}</Text>
+          <Text style={styles.dangerBtnText}>
+            {deletingAccount ? t('profile.delete.deleting') : t('profile.delete.title')}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -695,6 +780,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: colors.red, borderRadius: 14, paddingVertical: 14, marginTop: 4,
   },
+  dangerBtnBusy: { opacity: 0.6 },
   dangerBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 24,

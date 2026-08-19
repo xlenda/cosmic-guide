@@ -62,6 +62,12 @@ EOF
 # oddpro.pro/cosmic-guide/ (redirect de topo, não iframe), então não precisa
 # ser mais restrito que isso.
 #
+# O primeiro rewrite (/excluir-conta) vem ANTES do coringa de propósito: é a
+# URL pública de solicitação de exclusão de conta declarada no formulário de
+# Segurança de Dados do Google Play, e ela precisa cair na página estática
+# (public/excluir-conta.html, copiada pro dist/ pelo expo export) e não no app.
+# Rewrite em vez de redirect pra URL curta continuar sendo a que aparece.
+#
 # rewrites (SPA fallback): as rotas do React Navigation viram paths reais na
 # URL (/Planos, /Loja, /Tarô…) que NÃO existem como arquivo — sem o
 # fallback, apertar F5 (ou abrir um link direto) em qualquer tela interna
@@ -77,6 +83,7 @@ cat > deploy-vercel/vercel.json << 'EOF'
     { "source": "/cosmicguide/:path+", "destination": "/cosmic-guide/:path+", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/excluir-conta", "destination": "/cosmic-guide/excluir-conta.html" },
     { "source": "/:path*", "destination": "/cosmic-guide/index.html" }
   ],
   "headers": [

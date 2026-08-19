@@ -343,6 +343,37 @@ class SubscriptionRepository {
     return result.changes > 0;
   }
 
+  // EXCLUSÃO DE CONTA (política do Google Play) — chamado pelo
+  // DELETE /api/subscription/account, sempre com o `sub` do token verificado.
+  //
+  // DESVINCULA em vez de DELETAR, e isso é decisão consciente, não preguiça:
+  // esta linha é o registro do PAGAMENTO (correlation_code, valor, provedor,
+  // customer_email do checkout da Hotmart). Apagá-la levaria junto a
+  // conciliação de estorno/chargeback e a receita do dono no relatório —
+  // documento fiscal não é dado de perfil. O que some é tudo que liga a linha à
+  // CONTA que está sendo apagada: supabase_user_id, account_email e a marca do
+  // vínculo. Depois disto a linha não aponta mais pra pessoa nenhuma.
+  //
+  // A retenção do recibo é declarada na página pública de exclusão
+  // (public/excluir-conta.html) — a política do Google aceita reter o que a lei
+  // exige, DESDE QUE esteja escrito lá.
+  forgetAccount({ supabaseUserId }) {
+    const userId = typeof supabaseUserId === "string" ? supabaseUserId.trim() : "";
+    if (!userId) return 0;
+    const result = db
+      .prepare(`
+        UPDATE subscriptions
+           SET supabase_user_id = NULL,
+               account_email = NULL,
+               linked_at = NULL,
+               linked_by = 'account_deleted',
+               updated_at = @now
+         WHERE supabase_user_id = @userId
+      `)
+      .run({ userId, now: new Date().toISOString() });
+    return result.changes;
+  }
+
   save(subscription) {
     db.prepare(`
       UPDATE subscriptions

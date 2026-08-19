@@ -15,6 +15,7 @@ import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import { attachVoiceInsight } from '../lib/journal';
 import { fetchAiEnhancedInsight, isAiAccessError, isLoginRequired } from '../lib/aiClient';
+import ReportarIA from './ReportarIA';
 import { useLanguage } from '../context/LanguageContext';
 
 function getSpeechRecognitionCtor() {
@@ -148,6 +149,11 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
         {enhanced && <Text style={styles.enhancedText}>{enhanced}</Text>}
         {!enhanced && <Text style={styles.transcriptText}>{transcript}</Text>}
         {error && <Text style={styles.errorText}>{error}</Text>}
+        {/* Só quando existe texto de IA na tela: `transcript` é a fala da
+            própria pessoa, não tem o que denunciar. Este componente é
+            importado por Palma, Café, Sonhos e Tarô — cobrir aqui cobre a
+            lapidação das quatro de uma vez. */}
+        {enhanced && <ReportarIA kind={`insight_${readingType}`} />}
         {/* "Guardado no Diário" sem o caminho pro Diário era um beco: o
             testador salvou insights e ficou procurando onde tinham ido parar
             ("preciso descobrir aonde estão os insights salvos", 29/07/2026).

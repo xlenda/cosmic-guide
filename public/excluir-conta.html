@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Excluir conta — Cosmic Guide</title>
+<meta name="robots" content="index, follow" />
+<meta name="description" content="Como excluir sua conta do Cosmic Guide e o que acontece com os seus dados." />
+<!--
+  PÁGINA PÚBLICA DE SOLICITAÇÃO DE EXCLUSÃO DE CONTA.
+
+  É a URL que vai no formulário de Segurança de Dados do Google Play, campo
+  "URL de exclusão de conta". A política (obrigatória desde 2024 pra todo app
+  que permite criar conta) exige DUAS coisas, e uma não substitui a outra:
+  um caminho de exclusão DENTRO do app (Perfil → Deletar conta, que desde
+  19/08/2026 apaga a conta de verdade) e esta página, alcançável de fora,
+  sem instalar nada e sem logar.
+
+  Ela é servida a partir de public/ — o `expo export` copia essa pasta pra
+  dentro do dist/, que o scripts/deploy-vercel.sh publica em
+  cosmicguide.cloud/cosmic-guide/. O redirect /excluir-conta -> este arquivo
+  está no vercel.json gerado pelo mesmo script.
+
+  Página estática e sozinha de propósito: sem bundle, sem fonte externa, sem
+  script. Se o app quebrar, ela continua no ar — e é justamente pra quem não
+  consegue entrar no app que ela precisa existir.
+
+  As três línguas do app (PT/ES/EN) na mesma página: o revisor do Google
+  costuma ler em inglês, e o app é vendido nas três.
+-->
+<style>
+  :root {
+    --bg: #0E0821; --card: #1F1640; --border: #2E2352;
+    --text: #F3EEFF; --muted: #C4B8E6; --accent: #B57BFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px 64px;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  main { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 40px 0 12px; }
+  h3 { font-size: 15px; margin: 22px 0 8px; color: var(--accent); }
+  p, li { color: var(--muted); font-size: 15px; }
+  ol, ul { padding-left: 22px; }
+  a { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 8px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px 22px; margin: 18px 0;
+  }
+  .lang { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #8A7CB0; margin: 0 0 6px; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 48px 0; }
+  footer { color: #8A7CB0; font-size: 13px; margin-top: 40px; }
+</style>
+</head>
+<body>
+<main>
+
+  <h1>Cosmic Guide — excluir sua conta</h1>
+  <p class="sub">Delete your account · Eliminar tu cuenta</p>
+
+  <!-- ================= PORTUGUÊS ================= -->
+  <div class="card">
+    <p class="lang">Português</p>
+
+    <h3>Como excluir pelo app (jeito mais rápido)</h3>
+    <ol>
+      <li>Abra o Cosmic Guide e entre na sua conta.</li>
+      <li>Vá em <strong>Perfil</strong>.</li>
+      <li>Role até o fim e toque em <strong>Deletar conta</strong>.</li>
+      <li>Confirme nas duas telas de aviso. A exclusão é imediata e não tem volta.</li>
+    </ol>
+    <p>
+      Esqueceu a senha? Na tela de login toque em <strong>Esqueci minha senha</strong>,
+      recupere o acesso e siga os passos acima.
+    </p>
+
+    <h3>Não consegue entrar no app?</h3>
+    <p>
+      Escreva para <a href="mailto:contato@cosmicguide.cloud">contato@cosmicguide.cloud</a>
+      do <strong>mesmo e-mail cadastrado na conta</strong>, com o assunto
+      "Excluir minha conta". Pedidos vindos de outro endereço não são atendidos —
+      é o que impede alguém de apagar a conta de outra pessoa. O prazo é de até
+      30 dias.
+    </p>
+
+    <h3>O que é apagado</h3>
+    <ul>
+      <li>Sua conta de login (e-mail e senha) e todas as sessões abertas.</li>
+      <li>O vínculo entre a sua conta e qualquer assinatura.</li>
+      <li>A contagem de uso das leituras com IA.</li>
+      <li>Tudo que ficava salvo no aparelho: nomes, signos, datas de nascimento,
+        diário, check-ins e a sequência do casal.</li>
+    </ul>
+
+    <h3>O que continua guardado, e por quê</h3>
+    <ul>
+      <li><strong>Registro de pagamento</strong> (data, valor, meio de pagamento e o
+        e-mail usado na compra): mantido por obrigação fiscal e para lidar com
+        estorno ou contestação. Ele deixa de estar ligado à sua conta, que não
+        existe mais.</li>
+      <li><strong>Estatísticas de navegação anônimas</strong>: nunca tiveram nome,
+        e-mail ou endereço de IP — não há como ligá-las a você.</li>
+    </ul>
+
+    <h3>Assinatura ativa</h3>
+    <p>
+      Apagar a conta <strong>não cancela a cobrança</strong>: quem processa a
+      recorrência é a Hotmart. Cancele antes em
+      <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">consumidor.hotmart.com</a>,
+      com o mesmo e-mail da compra.
+    </p>
+  </div>
+
+  <hr />
+
+  <!-- ================= ESPAÑOL ================= -->
+  <div class="card">
+    <p class="lang">Español</p>
+
+    <h3>Cómo eliminarla desde la app</h3>
+    <ol>
+      <li>Abre Cosmic Guide e inicia sesión.</li>
+      <li>Entra en <strong>Perfil</strong>.</li>
+      <li>Baja hasta el final y toca <strong>Eliminar cuenta</strong>.</li>
+      <li>Confirma en las dos pantallas de aviso. Es inmediato y no se puede deshacer.</li>
+    </ol>
+
+    <h3>¿No puedes entrar en la app?</h3>
+    <p>
+      Escribe a <a href="mailto:contato@cosmicguide.cloud">contato@cosmicguide.cloud</a>
+      desde el <strong>mismo correo de la cuenta</strong>, con el asunto
+      "Eliminar mi cuenta". Plazo: hasta 30 días.
+    </p>
+
+    <h3>Qué se borra</h3>
+    <ul>
+      <li>Tu cuenta de acceso (correo y contraseña) y todas las sesiones.</li>
+      <li>El vínculo entre tu cuenta y cualquier suscripción.</li>
+      <li>El conteo de uso de las lecturas con IA.</li>
+      <li>Los datos guardados en el dispositivo: nombres, signos, fechas de
+        nacimiento, diario, check-ins y la racha de la pareja.</li>
+    </ul>
+
+    <h3>Qué se conserva, y por qué</h3>
+    <ul>
+      <li><strong>El registro de pago</strong> (fecha, importe y correo de la compra),
+        por obligación fiscal y para gestionar reembolsos. Deja de estar ligado a
+        tu cuenta.</li>
+      <li><strong>Estadísticas de navegación anónimas</strong>, sin nombre, correo ni IP.</li>
+    </ul>
+
+    <h3>Suscripción activa</h3>
+    <p>
+      Eliminar la cuenta <strong>no cancela el cobro</strong>: la recurrencia la
+      procesa Hotmart. Cancélala antes en
+      <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">consumidor.hotmart.com</a>.
+    </p>
+  </div>
+
+  <hr />
+
+  <!-- ================= ENGLISH ================= -->
+  <div class="card">
+    <p class="lang">English</p>
+
+    <h3>Delete your account from the app</h3>
+    <ol>
+      <li>Open Cosmic Guide and sign in.</li>
+      <li>Go to <strong>Profile</strong>.</li>
+      <li>Scroll to the bottom and tap <strong>Delete account</strong>.</li>
+      <li>Confirm on both warning screens. Deletion is immediate and permanent.</li>
+    </ol>
+
+    <h3>Can't access the app?</h3>
+    <p>
+      Email <a href="mailto:contato@cosmicguide.cloud">contato@cosmicguide.cloud</a>
+      from the <strong>same address registered on the account</strong>, subject
+      "Delete my account". Requests from any other address are refused — that is
+      what stops someone from deleting another person's account. Handled within 30 days.
+    </p>
+
+    <h3>What is deleted</h3>
+    <ul>
+      <li>Your login account (email and password) and every active session.</li>
+      <li>The link between your account and any subscription.</li>
+      <li>The usage counter for AI readings.</li>
+      <li>Everything stored on the device: names, signs, birth dates, journal,
+        check-ins and the couple streak.</li>
+    </ul>
+
+    <h3>What is kept, and why</h3>
+    <ul>
+      <li><strong>Payment records</strong> (date, amount, payment method and the email
+        used at checkout) are kept to meet tax obligations and to handle refunds
+        or chargebacks. They are no longer linked to your account.</li>
+      <li><strong>Anonymous usage statistics</strong>, which never contained a name,
+        email or IP address.</li>
+    </ul>
+
+    <h3>Active subscription</h3>
+    <p>
+      Deleting the account <strong>does not cancel billing</strong> — recurring
+      charges are processed by Hotmart. Cancel first at
+      <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">consumidor.hotmart.com</a>,
+      using the email you paid with.
+    </p>
+  </div>
+
+  <footer>
+    Cosmic Guide · <a href="/cosmic-guide/">cosmicguide.cloud</a>
+  </footer>
+
+</main>
+</body>
+</html>

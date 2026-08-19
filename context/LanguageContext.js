@@ -1,12 +1,13 @@
 // context/LanguageContext.js
-// Idioma do app — detectado uma vez, na primeira visita, a partir do parâmetro
-// ?lang= da URL de handoff (o funil web em espanhol já vai passar lang=es no
-// redirect final, ver gilfforever/web quiz page.js). Depois disso, persiste no
-// AsyncStorage — trocar de idioma não é algo que a pessoa vai querer refazer
-// toda vez que abrir o app.
+// Idioma do app, em ordem: ?lang= da URL de handoff (o funil web em espanhol
+// já passa lang=es no redirect final, ver gilfforever/web quiz page.js) >
+// preferência salva no AsyncStorage > idioma do aparelho. Só o ?lang= e a
+// escolha explícita no Perfil gravam — trocar de idioma não é algo que a
+// pessoa vai querer refazer toda vez que abrir o app.
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { getLocales } from 'expo-localization';
 import { translate, DEFAULT_LANGUAGE, LANGUAGES } from '../lib/i18n';
 import { setLanguageProvider } from '../lib/aiClient';
 
@@ -29,16 +30,22 @@ function readUrlLang() {
   return LANGUAGES.includes(lang) ? lang : null;
 }
 
-// Idioma real do navegador/aparelho — só usado quando não há nem link
-// explícito (?lang=) nem preferência já salva. Não tenta adivinhar por IP/
-// região (não temos esse dado, e localização geográfica não é o mesmo que
-// idioma preferido) — usa o idioma que o próprio navegador já expõe.
+// Idioma real do aparelho — só usado quando não há nem link explícito
+// (?lang=) nem preferência já salva. Não tenta adivinhar por IP/região (não
+// temos esse dado, e localização geográfica não é o mesmo que idioma
+// preferido) — usa o idioma que o próprio sistema já expõe. getLocales() do
+// expo-localization vale pra Android/iOS e pra web, uma implementação só.
+// Não é persistido: quem trocar o idioma do aparelho é acompanhado até
+// escolher explicitamente no Perfil.
 function detectDeviceLanguage() {
-  if (Platform.OS !== 'web' || typeof navigator === 'undefined') return DEFAULT_LANGUAGE;
-  const locale = navigator.language || (navigator.languages && navigator.languages[0]) || '';
-  const lower = locale.toLowerCase();
-  if (lower.startsWith('es')) return 'es';
-  if (lower.startsWith('en')) return 'en';
+  // getLocales() e modulo nativo: se ele falhar no primeiro frame do Android, o
+  // app NAO pode ficar preso no splash — cai no idioma padrao e segue.
+  let code = '';
+  try {
+    code = (getLocales()?.[0]?.languageCode || '').toLowerCase();
+  } catch {}
+  if (code.startsWith('es')) return 'es';
+  if (code.startsWith('en')) return 'en';
   return DEFAULT_LANGUAGE;
 }
 
@@ -58,13 +65,13 @@ export function LanguageProvider({ children }) {
         setReady(true);
         return;
       }
+      let saved = null;
       try {
-        const saved = await AsyncStorage.getItem(LANGUAGE_KEY);
-        if (saved && LANGUAGES.includes(saved)) {
-          langVigente = saved;
-          setLang(saved);
-        }
+        saved = await AsyncStorage.getItem(LANGUAGE_KEY);
       } catch {}
+      const escolha = LANGUAGES.includes(saved) ? saved : detectDeviceLanguage();
+      langVigente = escolha;
+      setLang(escolha);
       setReady(true);
     })();
   }, []);

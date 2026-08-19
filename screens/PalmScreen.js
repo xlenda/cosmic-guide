@@ -38,6 +38,8 @@ import OneTimeLock from '../components/OneTimeLock';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
+import ReportarIA from '../components/ReportarIA';
+import { Alert } from '../lib/webAlert';
 // O MODO HISTÓRIA (09/08/2026) — a mesma leitura, um trecho por tela, como
 // stories. paraSlides só REFORMATA: nenhum byte de reading.body muda. E é a
 // entrega PADRÃO: o leitor abre sozinho quando a leitura da IA chega
@@ -247,6 +249,9 @@ export default function PalmScreen() {
   // leitura chega (fim de handleAnalyze) — nunca ao voltar pra tela com
   // resultado antigo, porque `reading` vive só em estado e morre com a tela.
   const [historiaAberta, setHistoriaAberta] = useState(false);
+  // Uma confirmação por passagem pela tela — quem já leu o aviso não precisa
+  // relê-lo a cada foto refeita.
+  const [pintasCiente, setPintasCiente] = useState(false);
   const slidesDaLeitura = useMemo(() => (reading ? paraSlides(reading.body) : []), [reading]);
 
   const activeMode = MODES.find((m) => m.key === mode) || MODES[0];
@@ -274,6 +279,26 @@ export default function PalmScreen() {
     Haptics.selectionAsync();
     setMode(key);
     resetToIntro();
+  };
+
+  // AVISO BLOQUEANTE DA LEITURA DE PINTAS (19/08/2026). O modo "Pintas" é o
+  // único que faz a pessoa fotografar uma marca real da pele dela, e a leitura
+  // é simbólica: não olha, não avalia e não rastreia pinta nenhuma. Um aviso
+  // que dá pra ignorar rolando a tela (o `disclaimer` do MODES) não basta —
+  // aqui a câmera/galeria só abre depois de um toque explícito em "Entendi".
+  // Vale pros DOIS caminhos (câmera e galeria): a foto vira a mesma leitura.
+  const confirmarAvisoDePintas = (seguir) => {
+    if (mode !== 'pintas' || pintasCiente) return seguir();
+    Alert.alert(t('palm.moles.warnTitle'), t('palm.moles.warnBody'), [
+      {
+        text: t('palm.moles.warnOk'),
+        onPress: () => {
+          setPintasCiente(true);
+          seguir();
+        },
+      },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
   };
 
   const handlePickedResult = async (result) => {
@@ -451,12 +476,20 @@ export default function PalmScreen() {
           <View style={styles.section}>
             <Text style={styles.instructions}>{activeMode.instructions}</Text>
 
-            <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleTakePhoto}>
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              activeOpacity={0.85}
+              onPress={() => confirmarAvisoDePintas(handleTakePhoto)}
+            >
               <Ionicons name="camera" size={20} color="#fff" />
               <Text style={styles.primaryBtnText}>{t('palm.takePhoto')}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.85} onPress={handlePickFromGallery}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              activeOpacity={0.85}
+              onPress={() => confirmarAvisoDePintas(handlePickFromGallery)}
+            >
               <Ionicons name="images" size={20} color={colors.accent} />
               <Text style={styles.secondaryBtnText}>{t('palm.pickPhoto')}</Text>
             </TouchableOpacity>
@@ -528,6 +561,12 @@ export default function PalmScreen() {
                                 <Text style={styles.genericNote}>{t('reading.genericNote')}</Text>
                               )}
             </View>
+
+            {/* Canal de denúncia da saída de IA. Esta tela sozinha gera QUATRO
+                leituras (palma/rosto/pé/pintas) e era a superfície de IA mais
+                visível do app sem nenhum canal — a bandeirinha do
+                VoiceInsightRecorder abaixo só aparece pra quem gravou voz. */}
+            <ReportarIA kind={`palm_${mode}`} texto={reading.body} />
 
             {journalEntryId && (
               <VoiceInsightRecorder

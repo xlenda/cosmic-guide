@@ -264,6 +264,12 @@ const TRANSICAO_STACK = {
 // adição é puramente aditiva: nenhuma rota existente muda de path, e o estado
 // de navegação já salvo continua válido.
 const linking = {
+  // 'cosmicguide://' NÃO entra aqui de propósito. O deep link de volta do login
+  // (cosmicguide://?code=...) não é uma tela: quem trata é lib/supabaseClient.js.
+  // Com o prefixo na lista, extractPathFromURL devolve '?code=...' e o
+  // getStateFromPath casa isso com a rota de path '' (Home) — o React Navigation
+  // navega pra Home, DESEMPILHA a tela de login (ela vive no HomeStack) e ainda
+  // grava o código PKCE nos params da rota. Sem o prefixo a URL é ignorada.
   prefixes: ['https://cosmicguide.cloud/cosmic-guide', 'https://oddpro.pro/cosmic-guide'],
   config: {
     screens: {

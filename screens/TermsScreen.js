@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../theme';
 import GradientHeader from '../components/GradientHeader';
@@ -51,7 +51,17 @@ export default function TermsScreen() {
               que vira reclamação — e, no Brasil, infração ao CDC. Passa pelo
               dicionário porque é texto novo: quem lê em espanhol/inglês precisa
               da informação certa no idioma dele. */}
-          <TermsSection title="Pagamentos e assinatura">{t('terms.payments.body')}</TermsSection>
+          {/* ATUALIZADO em 19/08/2026 pra loja. Na web a cobrança continua
+              sendo só da Hotmart; no app publicado a assinatura passa a ser
+              comprada por Google Play Billing (ver lib/purchases.js), e aí o
+              cancelamento é em Play Store > Assinaturas. Como o mesmo binário
+              atende quem assinou pelo site e depois entrou com a conta, o
+              texto nativo cobre os DOIS caminhos em vez de escolher um — dizer
+              "cancele na Hotmart" pra quem pagou na Play é mandar a pessoa
+              procurar um botão que não existe. */}
+          <TermsSection title="Pagamentos e assinatura">
+            {t(Platform.OS === 'web' ? 'terms.payments.body' : 'terms.payments.bodyStore')}
+          </TermsSection>
           <TermsSection
             title="Uso aceitável"
             last

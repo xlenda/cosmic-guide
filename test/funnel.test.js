@@ -436,15 +436,31 @@ test('evento fora da allowlist é descartado no aparelho, sem contaminar o lote'
   );
 });
 
-test('a allowlist local é exatamente a do servidor (13 eventos)', () => {
+test('a allowlist local é exatamente a do servidor (14 eventos)', () => {
   assert.deepStrictEqual(
     [...FUNNEL_EVENTS].sort(),
     [
       'app_open', 'checkout_click', 'checkout_open', 'home_view', 'login_done', 'login_view',
       'onboarding_done', 'onboarding_start', 'paywall_view', 'plan_select', 'reading_done', 'reading_start',
-      'today_line_tap',
+      'today_line_tap', 'ai_report',
     ].sort()
   );
+});
+
+// A denúncia de IA (components/ReportarIA.js) é o único evento que usa a chave
+// `reason`. Se ela não estiver espelhada em PROPS_KEYS aqui, o prop some em
+// silêncio no aparelho e o dono recebe denúncia sem motivo nenhum — e duas
+// denúncias seguidas na mesma sessão têm que virar DUAS linhas (once:false).
+test('denúncia de IA: kind e reason chegam inteiros, e não são deduplicadas', async () => {
+  reset();
+  track('ai_report', { kind: 'chat', reason: 'ofensivo' }, { once: false });
+  track('ai_report', { kind: 'dream', reason: 'impreciso' }, { once: false });
+  await flushFunnel();
+
+  assert.deepStrictEqual(requisicoes[0].body.events, [
+    { event: 'ai_report', props: { kind: 'chat', reason: 'ofensivo' } },
+    { event: 'ai_report', props: { kind: 'dream', reason: 'impreciso' } },
+  ]);
 });
 
 // ---------------------------------------------------------------------------

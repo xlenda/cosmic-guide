@@ -38,3 +38,15 @@ test/zz*.js
 # Scripts de medição que agentes deixam pra trás
 scratch_*.js
 server-patches/ADMIN_TOKEN.local.txt
+
+# Chave da service account do Google Play (eas submit) — credencial, NUNCA
+# no git. O eas.json aponta pra este nome em submit.production.android.
+google-play-service-account*.json
+
+# Scripts .mjs temporários que agentes deixam pra trás (diag10, quiz-webkit...)
+*.tmp.mjs
+
+# "nul" é nome de dispositivo RESERVADO no Windows: agente que erra o redirect
+# (`> nul` em vez de `2>nul`) cria um arquivo com esse nome, e um repo que o
+# contenha quebra o `git clone` de qualquer um no Windows.
+nul

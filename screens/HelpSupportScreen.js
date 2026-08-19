@@ -18,24 +18,29 @@ export { SUPPORT_EMAIL };
 // casal") ganha o toque que faz a coisa acontecer, em vez de descrever o
 // trajeto. Sem `action` a resposta continua sendo só texto.
 //
-// `answerKey` (em vez de `answer` solto) existe pras respostas que mudaram
-// depois da primeira escrita: elas passam pelo dicionário, então quem lê o app
-// em espanhol/inglês recebe a informação certa no idioma dele — e não uma
-// instrução errada em português.
+// TUDO passa pelo dicionário (19/08/2026). Pergunta e resposta eram literais em
+// português dentro de um app de três idiomas: quem lia em espanhol/inglês abria
+// "Help and support" e recebia o FAQ inteiro em PT.
+//
+// A resposta de "Minhas leituras são salvas?" era a MESMA promessa falsa que a
+// tela de Privacidade acabou de perder ("os dados ficam só neste aparelho",
+// citando 4 leituras de IA como se fossem todas). Duas superfícies com a mesma
+// mentira é pior que uma: o revisor do Google compara justamente estas duas.
+// Agora ela descreve o que o código faz — Diário no aparelho, leituras de IA
+// passando pelo servidor e pela Anthropic só na hora, feed social público — e
+// manda pra tela de Privacidade, que é a lista completa.
 const FAQ = [
   {
-    question: 'Como funciona o modo casal?',
-    answer:
-      'Vocês dois preenchem nomes, signos e datas de nascimento uma única vez no quiz do casal. A partir daí o app calcula a sinastria (compatibilidade astrológica) e gera horóscopos e leituras pensados pra dupla, não só individualmente.',
+    questionKey: 'help.faq.couple.q',
+    answerKey: 'help.faq.couple.answer',
     actionKey: 'help.faq.couple.cta',
     actionIcon: 'heart',
     // ProfileStack -> HomeStack: getParent() sobe pro Tab.Navigator.
     actionTarget: { tab: ROUTES.HOME_TAB, screen: ROUTES.QUIZ },
   },
   {
-    question: 'Minhas leituras são salvas?',
-    answer:
-      'Os dados do casal (nomes, datas, signos) ficam guardados só neste aparelho. Fotos e textos enviados pra Leitura de Palma, Ritual do Café, Sonhos ou Chat Espiritual são processados na hora e não ficam guardados depois que a resposta é gerada.',
+    questionKey: 'help.faq.readings.q',
+    answerKey: 'help.faq.readings.answer',
   },
   // CORRIGIDO em 29/07/2026. A resposta antiga mandava a pessoa cancelar
   // "em Perfil → Gerenciar assinatura" ou "pela App Store/Google Play" — e
@@ -46,16 +51,15 @@ const FAQ = [
   // várias voltas, não achava botão nenhum e concluía que não dava pra
   // cancelar — que é exatamente a suspeita que faz alguém não assinar.
   {
-    question: 'Como cancelo minha assinatura?',
+    questionKey: 'help.faq.cancel.q',
     answerKey: 'help.faq.cancel.answer',
     actionKey: 'help.faq.cancel.cta',
     actionIcon: 'open-outline',
     actionUrl: HOTMART_BUYER_AREA_URL,
   },
   {
-    question: 'Preciso criar uma conta pra usar o app?',
-    answer:
-      'Não. O app funciona sem login. A conta só é necessária na hora de assinar, pra sincronizar o acesso entre aparelhos e permitir recuperá-lo se precisar.',
+    questionKey: 'help.faq.account.q',
+    answerKey: 'help.faq.account.answer',
   },
 ];
 
@@ -93,15 +97,15 @@ export default function HelpSupportScreen() {
 
   return (
     <View style={styles.root}>
-      <GradientHeader title="Ajuda e suporte" onBack={() => navigation.goBack()} />
+      <GradientHeader title={t('help.header.title')} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>Perguntas frequentes</Text>
+        <Text style={styles.sectionTitle}>{t('help.faq.title')}</Text>
         <View style={styles.card}>
           {FAQ.map((item, i) => (
             <FaqItem
-              key={item.question}
-              question={item.question}
-              answer={item.answerKey ? t(item.answerKey) : item.answer}
+              key={item.questionKey}
+              question={t(item.questionKey)}
+              answer={t(item.answerKey)}
               last={i === FAQ.length - 1}
               actionLabel={item.actionKey ? t(item.actionKey) : null}
               actionIcon={item.actionIcon}
@@ -116,12 +120,11 @@ export default function HelpSupportScreen() {
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>Fale conosco</Text>
+        <Text style={styles.sectionTitle}>{t('help.contact.title')}</Text>
         <View style={styles.card}>
           <View style={styles.cardPad}>
             <Text style={styles.paragraph}>
-              Não achou o que precisava? Manda sua dúvida, sugestão ou problema pra{' '}
-              <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text> que a gente responde o quanto antes.
+              {t('help.contact.intro')} <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text>
             </Text>
             {/* O e-mail acima é pintado de cor de link mas nunca foi tocável —
                 parecia botão e não era. Este abre o app de e-mail de verdade. */}

@@ -9,6 +9,7 @@ const { AnthropicChatProvider } = require("../infrastructure/AnthropicChatProvid
 const { PushSubscriptionRepository } = require("../infrastructure/PushSubscriptionRepository");
 const { ConversionTrackingProvider } = require("../infrastructure/ConversionTrackingProvider");
 const { socialRouter } = require("./socialRoutes");
+const { moderationRouter } = require("./moderationRoutes");
 const { buildAdminRouter } = require("./adminRoutes");
 const { buildAccountRouter } = require("./accountRoutes");
 const { requireAuth, requireVerifiedEmail, optionalAuth } = require("./accountAuth");
@@ -257,7 +258,7 @@ function ehCanary(req) {
 // ehCanary entra como isenção: o canary chama /api/chat de verdade, sem token,
 // 4x por hora — sem isenção ele mesmo estouraria a cota anônima do servidor e
 // o monitoramento morreria em silêncio.
-const { buildAiQuota } = require("./aiQuota");
+const { buildAiQuota, forgetAccount: forgetAiQuotaDaConta } = require("./aiQuota");
 const aiQuota = buildAiQuota({ getAccountSubscription, isExempt: ehCanary });
 
 const checkoutLimiter = rateLimit({
@@ -338,9 +339,28 @@ const publicReadLimiter = rateLimit({
 // A rota por código continua exatamente como estava (pública, mesmo limiter,
 // mesma resposta): ela é a rede de segurança de quem está deslogado, de quem já
 // tem código salvo no aparelho e das 14 pendências legadas sem e-mail.
+// EXCLUSÃO DE CONTA (Google Play) — o que este backend guarda ligado à CONTA e
+// some quando ela é apagada. A lista saiu de uma varredura tabela por tabela
+// das migrações, não de chute:
+//
+//   subscriptions   → supabase_user_id/account_email. Desvinculado (o recibo do
+//                     pagamento fica; ver o comentário em forgetAccount).
+//   ai_free_quota   → subject_type 'account'. Apagado.
+//
+// As outras tabelas NÃO conhecem a conta e por isso não entram aqui:
+// funnel_events é session_id anônimo (e já tem POST /api/track/forget),
+// flame_checkins é couple_key+device_id, couple_invites e push_daily_reminder
+// são chaveadas pelo endpoint do push. Não existe caminho de userId pra elas.
+function deleteAccountData({ userId }) {
+  return {
+    unlinkedSubscriptions: repository.forgetAccount({ supabaseUserId: userId }),
+    clearedAiQuota: forgetAiQuotaDaConta(userId),
+  };
+}
+
 app.use(
   "/api/subscription",
-  buildAccountRouter({ getAccountSubscription, claimSubscription, requireAuth, requireVerifiedEmail })
+  buildAccountRouter({ getAccountSubscription, claimSubscription, requireAuth, requireVerifiedEmail, deleteAccountData })
 );
 
 app.get("/api/subscription/:correlationCode", publicReadLimiter, (req, res) => {
@@ -509,6 +529,12 @@ app.post("/api/enhance-insight", aiLimiter, optionalAuth, aiQuota.gate("enhance-
 // app); Reconectar/Agir e o resto do conteúdo de casal nunca passam por aqui.
 // Cada rota exige um JWT válido do Supabase (ver socialAuth.js).
 app.use("/api/social", socialRouter);
+
+// Denúncia e bloqueio — o que a política de Conteúdo Gerado pelo Usuário do
+// Google Play exige pra um feed social poder existir na loja. Router SEPARADO
+// do /api/social de propósito: aquele exige JWT em TODA rota (router.use
+// (requireAuth)), e denunciar uma saída de IA acontece antes de existir login.
+app.use("/api/moderation", moderationRouter);
 
 // Os fundos do card de compartilhar a Frase do Dia/do Amor — público e só
 // leitura (quem escreve é o cron de scripts/gerar-cards-do-dia.js). Sem rate

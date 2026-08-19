@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0E0821"
       },
-      "package": "cloud.cosmicguide.app"
+      "package": "cloud.cosmicguide.app",
+      "blockedPermissions": ["android.permission.SYSTEM_ALERT_WINDOW"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,7 +41,8 @@
           "photosPermission": "Permitir acesso às fotos para escolher uma imagem da palma da mão ou da borra do café para a leitura simbólica.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-localization"
     ]
   }
 }

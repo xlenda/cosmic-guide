@@ -8,11 +8,12 @@
 // montagem: RN's View não aceita `id`, então usamos `nativeID`, que o
 // react-native-web repassa como o atributo `id` do <div> real no DOM.
 //
-// No nativo (Platform.OS !== 'web'), o checkout embutido via Elements não é
-// viável (é um script/DOM), então abrirCheckoutNativo abre o fallback Hotmart
-// num navegador in-app (expo-web-browser) e anexa o xcod do correlationCode já
-// criado por initiateCheckout(), pra manter a mesma correlação que o webhook
-// (HotmartPaymentProvider.parseWebhookEvent) já sabe ler em data.purchase.origin.xcod.
+// No nativo (loja) NÃO existe checkout externo: a política de Pagamentos do
+// Google exige Google Play Billing pra conteúdo digital consumido no app.
+// Até 19/08/2026 esta tela abria a Hotmart num navegador in-app — foi
+// substituído por lib/purchases.js (RevenueCat). Enquanto a chave/produtos não
+// estiverem configurados (LOJA_ATIVA=false), o nativo não mostra botão de
+// assinar nenhum: o app entra grátis na loja e a venda liga por configuração.
 //
 // ORDEM DOS TOQUES — mudou em 29/07/2026. Antes, quem estava deslogado batia
 // num cartão de cadeado (LoginRequiredCard) e NÃO VIA PREÇO NENHUM: criar
@@ -32,7 +33,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Linking, ScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../theme';
 import { CENAS } from '../lib/ilustracoes';
@@ -52,19 +52,27 @@ import { funnel } from '../lib/funnel';
 // confirmação de e-mail) — quem devolve a pessoa pra cá é o App.js.
 import { saveCheckoutIntent, clearCheckoutIntent } from '../lib/checkoutIntent';
 import GradientHeader from '../components/GradientHeader';
+// Compra pela loja (Google Play Billing via RevenueCat) + o gate de
+// configuração que decide se existe botão de assinar no nativo.
+import { LOJA_ATIVA, carregarLoja, comprarPlano, restaurarCompras } from '../lib/purchases';
 
 const HOTMART_CHECKOUT_ELEMENTS_SRC = 'https://checkout.hotmart.com/lib/hotmart-checkout-elements.js';
 // Link avulso de checkout por oferta (confirmado real pelo Lenda, 25/07/2026)
-// — usado no fallback da web (quando o Checkout Elements embutido falha) e no
-// fluxo nativo inteiro (que nunca usa Elements, é sempre um browser in-app).
-// Antes só existia 1 link fixo (?bid=...) pro plano mensal; agora os 3 planos
-// abrem o checkout certo em qualquer um dos dois casos.
+// — SÓ na web, e só como fallback de quando o Checkout Elements embutido
+// falha. O nativo não toca nisto: app de loja não manda ninguém pagar fora
+// (ver PlanosScreenNative e lib/purchases.js).
 const HOTMART_PAY_URLS = {
   trial: 'https://pay.hotmart.com/W105128423R?off=aqwv9uci',
   quarterly: 'https://pay.hotmart.com/W105128423R?off=7b1wqipw',
   annual: 'https://pay.hotmart.com/W105128423R?off=lb6plj87',
 };
 const MOUNT_ID = 'hotmart-checkout-mount';
+
+// Quem cobra muda por plataforma, e o texto tem que dizer a verdade nas duas:
+// na web é a Hotmart (área de compras); no app de loja pode ser a Google Play
+// (assinou por aqui) OU a Hotmart (assinou pelo site e entrou com a conta) —
+// por isso o texto nativo cobre os dois casos em vez de escolher um.
+const NATIVO = Platform.OS !== 'web';
 
 function loadHotmartScript() {
   return new Promise((resolve, reject) => {
@@ -268,15 +276,24 @@ function pedirLogin(navigation, plan) {
 // selo "MELHOR VALOR"; a pílula de economia reusa o texto real de
 // planos.plan.*.badge e só aparece quando economiaPct() > 0. Comportamento
 // intacto: mesmo funnel.planSelect, mesma seleção, mesmas chaves i18n.
-function PlanPicker({ selected, onSelect }) {
+// `precos` (só no nativo) troca o preço do site pelo priceString que a Google
+// Play devolve — moeda e valor locais, exatamente o que vai ser cobrado. Com
+// ele, DUAS coisas mudam por honestidade, não por estilo:
+//   · a lista mostra só os planos que a loja realmente oferece (um produto
+//     ainda não publicado sumiria do checkout e viraria toque no vazio);
+//   · os selos de economia somem, porque a aritmética de economiaPct é feita
+//     sobre os preços do site (PRECO_NUM) e não sobre o que a Play cobra —
+//     manter "Economize 67%" ali seria número forjado, que é justamente o que
+//     a doutrina desta tela proíbe.
+function PlanPicker({ selected, onSelect, precos }) {
   const { t } = useLanguage();
   return (
     <View style={styles.planStack}>
-      {PLANS.map((plan) => {
+      {(precos ? PLANS.filter((p) => precos[p.id]) : PLANS).map((plan) => {
         const isSelected = plan.id === selected;
-        const destaque = plan.id === MELHOR_VALOR_ID;
+        const destaque = !precos && plan.id === MELHOR_VALOR_ID;
         const badge = t(`planos.plan.${plan.id}.badge`);
-        const hasBadge = badge && badge !== `planos.plan.${plan.id}.badge` && economiaPct(plan.id) > 0;
+        const hasBadge = !precos && badge && badge !== `planos.plan.${plan.id}.badge` && economiaPct(plan.id) > 0;
         return (
           <TouchableOpacity
             key={plan.id}
@@ -309,7 +326,7 @@ function PlanPicker({ selected, onSelect }) {
               <Text style={styles.planDetail}>{t(`planos.plan.${plan.id}.detail`)}</Text>
             </View>
             <View style={styles.planPriceCol}>
-              <Text style={[styles.planPrice, isSelected && styles.planLabelSelected]}>{plan.price}</Text>
+              <Text style={[styles.planPrice, isSelected && styles.planLabelSelected]}>{precos?.[plan.id]?.preco || plan.price}</Text>
               <Text style={styles.planCycle}>{t(`planos.plan.${plan.id}.cycle`)}</Text>
             </View>
           </TouchableOpacity>
@@ -384,7 +401,7 @@ function LegalFooter() {
   const abrir = (screen) => navigation.getParent()?.navigate(ROUTES.PROFILE_TAB, { screen });
   return (
     <View style={styles.legalFooter}>
-      <Text style={styles.legalNote}>{t('planos.legal.billingNote')}</Text>
+      <Text style={styles.legalNote}>{t(NATIVO ? 'planos.legal.billingNoteStore' : 'planos.legal.billingNote')}</Text>
       <View style={styles.legalLinks}>
         <TouchableOpacity onPress={() => abrir(ROUTES.TERMS)} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
           <Text style={styles.legalLink}>{t('planos.legal.terms')}</Text>
@@ -650,15 +667,21 @@ function PlanosScreenWeb() {
   );
 }
 
-// Fluxo nativo (iOS/Android da loja): o Hotmart Checkout Elements é um script
-// carregado no DOM, então não roda aqui — em vez disso abrimos o link avulso
-// da oferta escolhida (HOTMART_PAY_URLS[selectedPlan]) num navegador in-app
-// via expo-web-browser, com o xcod do correlationCode já criado por
-// initiateCheckout() anexado à URL, pra o webhook
-// (HotmartPaymentProvider.parseWebhookEvent) conseguir correlacionar a compra
-// a este casal do mesmo jeito que faz no funil web. Antes os 3 planos abriam
-// o mesmo link fixo do mensal — corrigido com os links reais de cada oferta
-// (confirmados pelo Lenda, 25/07/2026).
+// Fluxo nativo (app de loja). NENHUM caminho daqui leva a pagamento externo:
+// o checkout da Hotmart (Elements na web, navegador in-app no nativo até
+// 19/08/2026) é conteúdo digital consumido dentro do app, e a política de
+// Pagamentos do Google exige Google Play Billing pra isso. A compra agora é
+// lib/purchases.js (RevenueCat sobre o Play Billing).
+//
+// UM caminho de código só, decidido por configuração:
+//   · sem chave/produtos (LOJA_ATIVA=false) OU sem offering utilizável →
+//     nenhum botão de assinar, nenhum preço, e um cartão que diz o que a
+//     pessoa tem hoje (o app grátis continua inteiro; quem já assinou pelo
+//     site entra com a conta e mantém o acesso, porque quem concede acesso é
+//     o GET /api/subscription/me da conta — ver lib/accountSubscription.js,
+//     que não tem nada de específico de plataforma).
+//   · com configuração → o MESMO botão, agora comprando na Play, com o preço
+//     que a própria Play devolve.
 function PlanosScreenNative() {
   const navigation = useNavigation();
   const { coupleData, hasAccess, hasCoupleAccess, subscriptionStatus, currentPeriodEnd, refreshAccess } = useCouple();
@@ -673,6 +696,11 @@ function PlanosScreenNative() {
   const [selectedPlan, setSelectedPlan] = usePlanoDaRota(route);
   // Ver comentário do mesmo estado em PlanosScreenWeb.
   const [jaAssinante, setJaAssinante] = useState(null);
+  // Ofertas reais da loja: null = não há o que vender aqui (gate desligado,
+  // produto ainda não publicado, ou a Play não respondeu). `lojaPronta` evita
+  // o piscar entre "carregando" e o cartão de indisponível.
+  const [loja, setLoja] = useState(null);
+  const [lojaPronta, setLojaPronta] = useState(!LOJA_ATIVA);
 
   useFocusEffect(
     useCallback(() => {
@@ -680,12 +708,42 @@ function PlanosScreenNative() {
     }, [refreshAccess])
   );
 
-  const abrirCheckoutNativo = useCallback(async () => {
+  useEffect(() => {
+    if (!LOJA_ATIVA) return undefined;
+    let vivo = true;
+    carregarLoja(user?.id)
+      .then((p) => {
+        if (!vivo) return;
+        setLoja(p);
+        // O plano padrão ('trial') pode não estar publicado na loja — cair no
+        // primeiro que existe evita CTA apontando pra oferta inexistente.
+        if (p) setSelectedPlan((atual) => (p[atual] ? atual : Object.keys(p)[0]));
+      })
+      // Falhar aqui não vira mensagem de erro: sem preço da loja a tela cai no
+      // mesmo cartão de "ainda não dá pra assinar por aqui", que é verdade e
+      // não é beco sem saída.
+      .catch(() => {})
+      .finally(() => vivo && setLojaPronta(true));
+    return () => {
+      vivo = false;
+    };
+  }, [user?.id]);
+
+  const comprarNaLoja = useCallback(async () => {
     // Mesma regra da web: o token é a fonte da verdade sobre estar logado, e
-    // sem ele a pessoa vai pro login levando o plano escolhido.
+    // sem ele a pessoa vai pro login levando o plano escolhido. Aqui ele vale
+    // dobrado — é o `sub` da conta que vira o app_user_id do RevenueCat, e é
+    // por ele que o backend liga a compra da Play a esta pessoa.
     const authToken = await getAuthToken();
     if (!authToken) {
       pedirLogin(navigation, selectedPlan);
+      return;
+    }
+    // Plano vindo da rota (retomada do login) pode não existir na loja —
+    // comprar "o primeiro disponível" seria vender uma coisa e cobrar outra.
+    const oferta = loja?.[selectedPlan];
+    if (!oferta) {
+      setErro(t('planos.errorGeneric'));
       return;
     }
     clearCheckoutIntent();
@@ -699,49 +757,52 @@ function PlanosScreenNative() {
     setErro('');
     setCarregando(true);
     try {
-      const data = isCouple
-        ? await initiateCheckout(coupleData?.voce, coupleData?.amor, user?.email, selectedPlan, authToken)
-        : await initiateSoloCheckout(user?.email, selectedPlan, authToken);
-
-      // Já assina: não abre navegador nenhum, não cobra de novo e o ponteiro
-      // local fica onde está (ver initiateCheckout).
-      if (data?.alreadyActive === true) {
-        setCarregando(false);
-        setJaAssinante({ status: data.status || 'active', currentPeriodEnd: data.currentPeriodEnd || null });
-        refreshAccess();
-        return;
-      }
-
-      const xcod = data?.checkoutConfig?.xcod;
-      const baseUrl = HOTMART_PAY_URLS[selectedPlan] || HOTMART_PAY_URLS.trial;
-      const url = xcod ? `${baseUrl}&xcod=${encodeURIComponent(xcod)}` : baseUrl;
-      // Último degrau, equivalente nativo do .mount() da web: o navegador
-      // in-app com a oferta vai abrir. Enfileirado ANTES do await porque
-      // openBrowserAsync só resolve quando a pessoa FECHA o navegador — medir
-      // depois transformaria "abriu o checkout" em "desistiu e voltou".
+      // Último degrau, equivalente nativo do .mount() da web: a folha de
+      // pagamento da Play vai abrir. Antes do await pelo mesmo motivo de
+      // sempre — o await só resolve quando a pessoa fecha a folha.
       funnel.checkoutOpen(selectedPlan);
-      await WebBrowser.openBrowserAsync(url);
+      const compra = await comprarPlano(oferta.pkg);
       setCarregando(false);
-      // A ativação real só chega pelo webhook (assíncrono) — isso só reflete o
-      // que já processou até agora, igual ao refreshAccess-no-foco da web.
+      // Desistiu na folha da Play: não é erro, não mostra nada em vermelho.
+      if (!compra) return;
+      if (compra.ativo) setJaAssinante({ status: 'active', currentPeriodEnd: compra.expiraEm });
+      // O acesso das telas continua vindo da conta (webhook do RevenueCat ->
+      // backend), então reconsulta em vez de assumir.
       refreshAccess();
     } catch (err) {
       setErro(t('planos.errorGeneric'));
       setCarregando(false);
       refreshAccess();
     }
-  }, [coupleData, isCouple, navigation, refreshAccess, user, selectedPlan, t]);
+  }, [loja, navigation, refreshAccess, selectedPlan, t]);
 
-  // Ver o mesmo bloco em PlanosScreenWeb — retomar o checkout de quem acabou
-  // de logar, sem repetir o toque, e sem retomar nada pra quem já assina.
+  // Reinstalou o app, trocou de aparelho ou limpou os dados: a Play guarda a
+  // compra e sem isto a pessoa fica pagando sem acesso.
+  const restaurar = useCallback(async () => {
+    setErro('');
+    setCarregando(true);
+    try {
+      const r = await restaurarCompras();
+      if (r.ativo) setJaAssinante({ status: 'active', currentPeriodEnd: r.expiraEm });
+      else setErro(t('planos.store.restoreNone'));
+      refreshAccess();
+    } catch (err) {
+      setErro(t('planos.errorGeneric'));
+    }
+    setCarregando(false);
+  }, [refreshAccess, t]);
+
+  // Ver o mesmo bloco em PlanosScreenWeb — retomar a compra de quem acabou
+  // de logar, sem repetir o toque, e sem retomar nada pra quem já assina nem
+  // enquanto a loja não tiver oferta pra vender.
   const mostrandoAssinatura = !!jaAssinante || (relevantAccess && !!subscriptionStatus && subscriptionStatus !== 'pending');
   const jaRetomou = useRef(false);
   useEffect(() => {
     if (jaRetomou.current || !route.params?.resume) return;
-    if (authLoading || !user || mostrandoAssinatura) return;
+    if (authLoading || !user || mostrandoAssinatura || !loja) return;
     jaRetomou.current = true;
-    abrirCheckoutNativo();
-  }, [route.params?.resume, authLoading, user, mostrandoAssinatura, abrirCheckoutNativo]);
+    comprarNaLoja();
+  }, [route.params?.resume, authLoading, user, mostrandoAssinatura, loja, comprarNaLoja]);
 
   if (jaAssinante) {
     return (
@@ -762,6 +823,9 @@ function PlanosScreenNative() {
     );
   }
 
+  // Só existe vitrine quando existe preço REAL da loja pra mostrar.
+  const vendendo = LOJA_ATIVA && !!loja;
+
   return (
     <View style={styles.root}>
       <GradientHeader
@@ -770,30 +834,56 @@ function PlanosScreenNative() {
         onBack={() => navigation.goBack()}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Mesmo topo cênico da web — no nativo o checkout abre num navegador
-            in-app, então a cena nunca disputa espaço com formulário. */}
+        {/* Mesmo topo cênico da web — no nativo a compra abre na folha da
+            Play, então a cena nunca disputa espaço com formulário. */}
         <HeroCena isCouple={isCouple} title={t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')} />
         <View style={styles.card}>
-          <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
-          <BenefitsList isCouple={isCouple} />
-          {carregando || authLoading ? (
+          {!lojaPronta ? (
             <ActivityIndicator color={colors.accent} size="large" style={styles.nativeLoader} />
+          ) : vendendo ? (
+            <>
+              <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} precos={loja} />
+              <BenefitsList isCouple={isCouple} />
+              {carregando || authLoading ? (
+                <ActivityIndicator color={colors.accent} size="large" style={styles.nativeLoader} />
+              ) : (
+                <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={comprarNaLoja}>
+                  <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
+                </TouchableOpacity>
+              )}
+              {/* Cancelamento e cobrança do jeito que valem numa loja. */}
+              <Text style={styles.trustNote}>{t('planos.trustStore')}</Text>
+              {/* Mesma nota da web: a conta é o passo seguinte, e a pessoa sabe
+                  disso antes de tocar — depois de já ter visto preço e benefício. */}
+              {!user && !authLoading && !carregando && (
+                <Text style={styles.loginNote}>{t('planos.loginRequired.text')}</Text>
+              )}
+              {!carregando && (
+                <TouchableOpacity onPress={restaurar} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
+                  <Text style={styles.restoreLink}>{t('planos.store.restore')}</Text>
+                </TouchableOpacity>
+              )}
+            </>
           ) : (
-            <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={abrirCheckoutNativo}>
-              <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
-            </TouchableOpacity>
-          )}
-          {/* Mesmo rodapé de confiança da web — só o que os Termos garantem. */}
-          <Text style={styles.trustNote}>{t('planos.trust')}</Text>
-          {/* Mesma nota da web: a conta é o passo seguinte, e a pessoa sabe
-              disso antes de tocar — depois de já ter visto preço e benefício. */}
-          {!user && !authLoading && !carregando && (
-            <Text style={styles.loginNote}>{t('planos.loginRequired.text')}</Text>
+            // GATE: sem venda configurada, a tela não some nem vira beco — ela
+            // diz o que a pessoa tem hoje e o caminho de quem já assinou.
+            <>
+              <Ionicons name="sparkles" size={36} color={colors.accent} />
+              <Text style={styles.cardTitle}>{t('planos.store.soonTitle')}</Text>
+              <Text style={styles.cardText}>{t('planos.store.soonText')}</Text>
+              {!user && !authLoading && (
+                <TouchableOpacity
+                  style={styles.btn}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate(ROUTES.LOGIN, { returnTo: ROUTES.PLANOS })}
+                >
+                  <Text style={styles.btnText}>{t('planos.store.loginCta')}</Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
           {erro !== '' && <Text style={[styles.errorText, styles.nativeErrorSpacing]}>{erro}</Text>}
         </View>
-        {/* Mesmo rodapé da web — no nativo o checkout abre num navegador
-            in-app, então esta é a última tela do app antes do cartão. */}
         <LegalFooter />
       </ScrollView>
     </View>
@@ -917,4 +1007,7 @@ const styles = StyleSheet.create({
   // Rodapé de confiança do CTA: menor e mais quieto que o botão, como a
   // loginNote — informa, não compete.
   trustNote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 10 },
+  // "Restaurar compras" — obrigatório num app de loja (reinstalou/trocou de
+  // aparelho), e discreto de propósito: quem procura já sabe o que procura.
+  restoreLink: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', textDecorationLine: 'underline', marginTop: 14 },
 });

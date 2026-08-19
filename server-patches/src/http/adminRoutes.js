@@ -59,6 +59,46 @@ function buildAdminRouter({ repository, adminToken }) {
     res.json({ rows, totalPorDia, totalHumanoPorDia, totalCanaryPorDia });
   });
 
+  // MODERAÇÃO — a ponta "acionável" da fila de denúncias (migração 016 e
+  // src/http/moderationRoutes.js). A fila em si o dono VÊ no Painel
+  // (GET /painel, que já lê /api/admin/metrics); aqui fica o verbo que
+  // resolve cada linha, atrás do mesmo ADMIN_TOKEN. Sem isto a denúncia
+  // chegaria e não teria o que fazer com ela, que é metade do que a política
+  // de Conteúdo Gerado pelo Usuário do Google Play cobra.
+  //
+  //   action 'remove'   → apaga o post/comentário denunciado e fecha a linha
+  //   action 'dismiss'  → fecha a linha sem apagar nada (denúncia sem razão)
+  router.post("/reports/:id", (req, res) => {
+    const { db } = require("../infrastructure/db");
+    const { action } = req.body || {};
+    if (action !== "remove" && action !== "dismiss") {
+      return res.status(400).json({ error: "action deve ser 'remove' ou 'dismiss'" });
+    }
+    const denuncia = db.prepare("SELECT id, kind, target_id, status FROM moderation_reports WHERE id = ?").get(req.params.id);
+    if (!denuncia) return res.status(404).json({ error: "denúncia não encontrada" });
+    if (denuncia.status !== "open") return res.status(409).json({ error: `denúncia já resolvida (${denuncia.status})` });
+
+    if (action === "remove") {
+      if (denuncia.kind === "post") {
+        // Mesmo conjunto de DELETEs de DELETE /api/social/posts/:id — apagar
+        // só o post deixaria curtida e comentário órfãos no banco.
+        db.prepare("DELETE FROM social_posts WHERE id = ?").run(denuncia.target_id);
+        db.prepare("DELETE FROM social_likes WHERE post_id = ?").run(denuncia.target_id);
+        db.prepare("DELETE FROM social_comments WHERE post_id = ?").run(denuncia.target_id);
+      } else if (denuncia.kind === "comment") {
+        db.prepare("DELETE FROM social_comments WHERE id = ?").run(denuncia.target_id);
+      } else {
+        return res.status(400).json({ error: "só denúncia de post ou comentário tem conteúdo pra remover" });
+      }
+    }
+    db.prepare("UPDATE moderation_reports SET status = ?, reviewed_at = ? WHERE id = ?").run(
+      action === "remove" ? "removed" : "dismissed",
+      new Date().toISOString(),
+      req.params.id
+    );
+    res.json({ ok: true });
+  });
+
   // Suporte sem correlationCode em mãos — só o e-mail que o cliente lembra.
   // Por padrão devolve só o essencial pro atendimento decidir o que fazer
   // (status/plano/renovação) — histórico financeiro completo (valor pago,

@@ -20,6 +20,23 @@ function PrivacyRow({ icon, text, last }) {
   );
 }
 
+// TELA DE POLÍTICA — toda frase daqui é conferida contra o código antes de
+// entrar, e vale nos três idiomas (o revisor do Google lê em inglês; até
+// 19/08/2026 esta tela inteira era só português, dentro de um app traduzido).
+// Os recibos de cada afirmação:
+//   · Diário: deleteAllCoupleData (lib/coupleData.js) NÃO apaga cosmic-journal,
+//     de propósito — então o alerta diz, com todas as letras, que ele FICA.
+//   · Cidade: CityPickerModal recebe birthDate/birthTime nas TRÊS telas que o
+//     abrem (OnboardingPerguntasScreen, QuizScreen, BirthChartScreen), então a
+//     data e a hora saem no `at` da busca em todas elas — não só no Mapa Astral.
+//   · Login: existem DOIS caminhos, e-mail/senha e Google (signInWithGoogle em
+//     lib/supabaseClient.js, botão em LoginScreen.js).
+//   · Feed social: lib/socialClient.js publica em api.cosmicguide.cloud/api/social
+//     com o token da conta — conteúdo público e ligado ao login.
+//   · Push: lib/webPush.js manda endpoint + signo + sequência + a DATA do último
+//     registro do Diário (nunca o texto).
+// Sem contagem no texto ("existem duas exceções"): número em política de
+// privacidade desmente sozinho na primeira feature nova — a lista fala por si.
 export default function PrivacyScreen() {
   const navigation = useNavigation();
   const { clearAll } = useCouple();
@@ -31,41 +48,44 @@ export default function PrivacyScreen() {
   const abrirEmail = () => Linking.openURL(SUPPORT_MAILTO);
 
   function confirmDelete() {
-    Alert.alert(
-      'Apagar todos os dados do casal',
-      'Isso apaga para sempre, neste aparelho, os nomes, signos, datas e horas de nascimento e a sequência salva de vocês dois — e apaga também, no nosso servidor, o histórico anônimo de passos deste aparelho. Essa ação não pode ser desfeita.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Apagar tudo',
-          style: 'destructive',
-          onPress: async () => {
-            await clearAll();
-            navigation.popToTop();
-          },
+    Alert.alert(t('privacy.delete.title'), t('privacy.delete.message'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('privacy.delete.confirm'),
+        style: 'destructive',
+        onPress: async () => {
+          await clearAll();
+          navigation.popToTop();
         },
-      ]
-    );
+      },
+    ]);
   }
 
   return (
     <View style={styles.root}>
-      <GradientHeader title="Privacidade" onBack={() => navigation.goBack()} />
+      <GradientHeader title={t('privacy.header.title')} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>O que guardamos neste aparelho</Text>
+        <Text style={styles.sectionTitle}>{t('privacy.local.title')}</Text>
         <View style={styles.card}>
-          <PrivacyRow icon="people" text="Nomes de vocês dois" />
-          <PrivacyRow icon="calendar" text="Datas de nascimento" />
-          <PrivacyRow icon="time" text="Horários de nascimento (quando informados)" />
-          <PrivacyRow icon="planet" text="Signos derivados das datas" last />
+          <PrivacyRow icon="people" text={t('privacy.local.names')} />
+          <PrivacyRow icon="calendar" text={t('privacy.local.dates')} />
+          <PrivacyRow icon="time" text={t('privacy.local.times')} />
+          <PrivacyRow icon="location" text={t('privacy.local.city')} />
+          <PrivacyRow icon="planet" text={t('privacy.local.signs')} />
+          <PrivacyRow icon="journal" text={t('privacy.local.journal')} last />
         </View>
 
-        <Text style={styles.sectionTitle}>O que enviamos para gerar leituras de IA</Text>
+        <Text style={styles.sectionTitle}>{t('privacy.ai.title')}</Text>
         <View style={styles.card}>
-          <PrivacyRow icon="hand-left" text="Foto da palma da mão (Leitura de Palma)" />
-          <PrivacyRow icon="cafe" text="Foto da borra de café (Ritual do Café)" />
-          <PrivacyRow icon="moon" text="Texto do sonho que você descreve (Sonhos)" />
-          <PrivacyRow icon="chatbubbles" text="Mensagens da conversa (Chat Espiritual)" last />
+          <PrivacyRow icon="hand-left" text={t('privacy.ai.palm')} />
+          <PrivacyRow icon="person" text={t('privacy.ai.face')} />
+          <PrivacyRow icon="walk" text={t('privacy.ai.foot')} />
+          <PrivacyRow icon="scan" text={t('privacy.ai.moles')} />
+          <PrivacyRow icon="cafe" text={t('privacy.ai.coffee')} />
+          <PrivacyRow icon="moon" text={t('privacy.ai.dream')} />
+          <PrivacyRow icon="chatbubbles" text={t('privacy.ai.chat')} />
+          <PrivacyRow icon="sparkles" text={t('privacy.ai.weekly')} />
+          <PrivacyRow icon="mic" text={t('privacy.ai.voice')} last />
         </View>
 
         {/* Rastreamento próprio de funil (lib/funnel.js → POST /api/track).
@@ -75,56 +95,47 @@ export default function PrivacyScreen() {
             (abriu, viu o paywall, clicou em assinar), sem nada do que a pessoa
             escreve ou informa. Medir sem contar que mede é justamente o que a
             LGPD chama de tratamento sem transparência. */}
-        <Text style={styles.sectionTitle}>O que medimos para melhorar o app</Text>
+        <Text style={styles.sectionTitle}>{t('privacy.track.title')}</Text>
         <View style={styles.card}>
-          <PrivacyRow icon="footsteps" text="Que passos você deu no app (abriu, viu uma leitura, chegou nos planos)" />
-          <PrivacyRow icon="shuffle" text="Um código aleatório do aparelho, criado aqui e sem ligação com você, sua conta ou seu e-mail" />
-          <PrivacyRow icon="eye-off" text="Nunca o conteúdo: nada de nomes, datas de nascimento, leituras, diário ou conversas" last />
+          <PrivacyRow icon="footsteps" text={t('privacy.track.steps')} />
+          <PrivacyRow icon="shuffle" text={t('privacy.track.code')} />
+          <PrivacyRow icon="globe" text={t('privacy.track.country')} />
+          <PrivacyRow icon="eye-off" text={t('privacy.track.noContent')} last />
         </View>
         <View style={[styles.card, { marginTop: -14 }]}>
           <View style={styles.cardPad}>
-            <Text style={[styles.paragraph, { marginBottom: 0 }]}>
-              Isso fica só no nosso servidor (não vai para Google, Meta nem nenhuma outra empresa), serve para
-              descobrir onde o app está confuso e é apagado sozinho depois de 90 dias. Apagar seus dados aqui embaixo
-              apaga também esse código e esse histórico de passos, no aparelho e no servidor.
-            </Text>
+            <Text style={[styles.paragraph, { marginBottom: 0 }]}>{t('privacy.track.note')}</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Como usamos</Text>
+        <Text style={styles.sectionTitle}>{t('privacy.use.title')}</Text>
         <View style={styles.card}>
           <View style={styles.cardPad}>
-            <Text style={styles.paragraph}>
-              Nomes, datas, horários e signos servem só para calcular a sinastria (compatibilidade astrológica) e o
-              horóscopo diário de vocês dois — ficam guardados só neste aparelho, nunca são enviados para nenhum servidor.
-            </Text>
-            <Text style={[styles.paragraph, { marginBottom: 0 }]}>
-              Já a foto ou o texto que você envia para uma leitura de Palma, Café, Sonhos ou Chat é enviado para o
-              nosso servidor e processado por um serviço de IA de terceiros (Anthropic) só na hora de gerar aquela
-              interpretação — não fica guardado depois que a resposta é gerada.
-            </Text>
+            <Text style={styles.paragraph}>{t('privacy.use.localFirst')}</Text>
+            <Text style={styles.paragraph}>{t('privacy.use.exceptionCheckout')}</Text>
+            <Text style={styles.paragraph}>{t('privacy.use.exceptionCity')}</Text>
+            <Text style={styles.paragraph}>{t('privacy.use.account')}</Text>
+            <Text style={styles.paragraph}>{t('privacy.use.ai')}</Text>
+            <Text style={styles.paragraph}>{t('privacy.use.social')}</Text>
+            <Text style={[styles.paragraph, { marginBottom: 0 }]}>{t('privacy.use.push')}</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Seus direitos (LGPD)</Text>
+        <Text style={styles.sectionTitle}>{t('privacy.rights.title')}</Text>
         <View style={styles.card}>
-          <PrivacyRow icon="eye" text="Confirmar se tratamos algum dado seu e acessá-lo" />
-          <PrivacyRow icon="create" text="Corrigir dados incompletos, inexatos ou desatualizados" />
-          <PrivacyRow icon="trash-bin" text="Pedir a eliminação dos dados tratados com seu consentimento" />
-          <PrivacyRow icon="information-circle" text="Saber com quem compartilhamos seus dados (hoje, só a Anthropic, e só na hora de gerar uma leitura — a medição de uso não sai daqui)" last />
+          <PrivacyRow icon="eye" text={t('privacy.rights.access')} />
+          <PrivacyRow icon="create" text={t('privacy.rights.fix')} />
+          <PrivacyRow icon="trash-bin" text={t('privacy.rights.erase')} />
+          <PrivacyRow icon="information-circle" text={t('privacy.rights.sharing')} last />
         </View>
 
-        <Text style={styles.sectionTitle}>Fale conosco</Text>
+        <Text style={styles.sectionTitle}>{t('privacy.contact.title')}</Text>
         <View style={styles.card}>
           <View style={styles.cardPad}>
             <Text style={styles.paragraph}>
-              Para exercer qualquer um desses direitos, ou tirar dúvidas sobre como tratamos seus dados, escreva para{' '}
-              <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text>.
+              {t('privacy.contact.intro')} <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text>
             </Text>
-            <Text style={[styles.paragraph, { marginBottom: 0 }]}>
-              Nomes, datas e signos ficam só no seu aparelho enquanto você usa o app — apagá-los aqui embaixo remove
-              tudo de vez. Fotos e textos enviados para leituras de IA não ficam guardados depois da resposta gerada.
-            </Text>
+            <Text style={[styles.paragraph, { marginBottom: 0 }]}>{t('privacy.contact.retention')}</Text>
             <TouchableOpacity style={styles.contactBtn} activeOpacity={0.8} onPress={abrirEmail}>
               <Ionicons name="mail" size={16} color="#fff" />
               <Text style={styles.contactBtnText}>{t('support.emailCta')}</Text>
@@ -134,7 +145,7 @@ export default function PrivacyScreen() {
 
         <TouchableOpacity style={styles.dangerBtn} onPress={confirmDelete} activeOpacity={0.85}>
           <Ionicons name="trash" size={18} color="#fff" />
-          <Text style={styles.dangerBtnText}>Apagar todos os dados do casal</Text>
+          <Text style={styles.dangerBtnText}>{t('privacy.delete.cta')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

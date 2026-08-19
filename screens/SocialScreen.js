@@ -23,6 +23,7 @@ import {
   getMySocialProfile, upsertSocialProfile, getSocialFeed, deleteSocialPost,
   likeSocialPost, unlikeSocialPost, getSocialComments, addSocialComment,
   searchSocialUsers, followSocialUser, unfollowSocialUser, getSocialUserProfile,
+  reportContent, blockSocialUser, unblockSocialUser,
 } from '../lib/socialClient';
 
 const AVATAR_OPTIONS = ['🌙', '✨', '🔮', '🌟', '☀️', '🪐', '🦋', '🌊'];
@@ -109,7 +110,8 @@ function ProfileSetup({ onCreated }) {
   );
 }
 
-function PostCard({ post, myUserId, onToggleLike, onOpenComments, onOpenProfile, onDeletePost }) {
+function PostCard({ post, myUserId, onToggleLike, onOpenComments, onOpenProfile, onDeletePost, onModerate }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.postCard}>
       <View style={styles.postHeader}>
@@ -120,9 +122,18 @@ function PostCard({ post, myUserId, onToggleLike, onOpenComments, onOpenProfile,
             <Text style={styles.postMeta} numberOfLines={1}>@{post.username} · {timeAgo(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
-        {post.user_id === myUserId && (
-          <TouchableOpacity onPress={() => onDeletePost(post)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        {post.user_id === myUserId ? (
+          <TouchableOpacity style={styles.iconBtn} onPress={() => onDeletePost(post)}>
             <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => onModerate('post', post.id, post.user_id)}
+            accessibilityRole="button"
+            accessibilityLabel={t('social.mod.cta')}
+          >
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         )}
       </View>
@@ -229,7 +240,7 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
   );
 }
 
-function CommentsPanel({ post, onClose }) {
+function CommentsPanel({ post, myUserId, onClose, onModerate }) {
   const { t } = useLanguage();
   const [comments, setComments] = useState(null);
   const [text, setText] = useState('');
@@ -279,6 +290,16 @@ function CommentsPanel({ post, onClose }) {
                   <Text style={styles.commentAuthor} numberOfLines={1}>{item.display_name}</Text>
                   <Text style={styles.commentBody}>{item.body}</Text>
                 </View>
+                {item.user_id !== myUserId && (
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => onModerate('comment', item.id, item.user_id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('social.mod.cta')}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={16} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           />
@@ -468,6 +489,63 @@ export default function SocialScreen() {
     ]);
   };
 
+  // MODERAÇÃO (política de Conteúdo Gerado pelo Usuário do Google Play): o
+  // mesmo menu serve post e comentário — denunciar manda o conteúdo pra fila
+  // do servidor, bloquear tira a pessoa do feed no SERVIDOR (o filtro local
+  // abaixo é só pra tela não esperar o próximo carregamento).
+  //
+  // ponytail: o único desfazer é o botão do diálogo logo depois de bloquear —
+  // não existe tela de "bloqueados". Vale criar quando alguém pedir pra
+  // desbloquear depois do fato (DELETE /api/moderation/block já atende).
+  const moderar = useCallback(
+    (kind, targetId, targetUserId) => {
+      const denunciar = () => {
+        const enviar = (reason) =>
+          reportContent({ kind, targetId, reason })
+            .then(() => Alert.alert(t('report.thanks.title'), t('report.thanks.body')))
+            .catch((e) => Alert.alert(t('social.mod.failed'), e.message));
+        Alert.alert(t('social.mod.report'), t('social.mod.reportBody'), [
+          { text: t('report.reason.offensive'), onPress: () => enviar('ofensivo') },
+          { text: t('social.mod.reasonSpam'), onPress: () => enviar('spam') },
+          { text: t('common.cancel'), style: 'cancel' },
+        ]);
+      };
+
+      const bloquear = () => {
+        Alert.alert(t('social.mod.block'), t('social.mod.blockBody'), [
+          {
+            text: t('social.mod.block'),
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await blockSocialUser(targetUserId);
+                setActiveComments(null);
+                setActiveProfileUserId(null);
+                setPosts((prev) => prev.filter((p) => p.user_id !== targetUserId));
+                // Desfazer no mesmo diálogo: bloquear por engano no meio de um
+                // feed é fácil, e sem isto não haveria caminho nenhum de volta.
+                Alert.alert(t('social.mod.blockedTitle'), t('social.mod.blockedBody'), [
+                  { text: t('social.mod.undo'), onPress: () => unblockSocialUser(targetUserId).then(load).catch(() => {}) },
+                  { text: t('common.ok'), style: 'cancel' },
+                ]);
+              } catch (e) {
+                Alert.alert(t('social.mod.failed'), e.message);
+              }
+            },
+          },
+          { text: t('common.cancel'), style: 'cancel' },
+        ]);
+      };
+
+      Alert.alert(t('social.mod.cta'), t('social.mod.menuBody'), [
+        { text: t('social.mod.report'), onPress: denunciar },
+        { text: t('social.mod.block'), style: 'destructive', onPress: bloquear },
+        { text: t('common.cancel'), style: 'cancel' },
+      ]);
+    },
+    [t, load]
+  );
+
   if (!user) {
     return (
       <View style={styles.root}>
@@ -549,12 +627,20 @@ export default function SocialScreen() {
               onOpenComments={setActiveComments}
               onOpenProfile={(p) => setActiveProfileUserId(p.user_id)}
               onDeletePost={handleDeletePost}
+              onModerate={moderar}
             />
           )}
         />
       )}
 
-      {activeComments && <CommentsPanel post={activeComments} onClose={() => setActiveComments(null)} />}
+      {activeComments && (
+        <CommentsPanel
+          post={activeComments}
+          myUserId={profile?.user_id}
+          onClose={() => setActiveComments(null)}
+          onModerate={moderar}
+        />
+      )}
       {activeProfileUserId && (
         <UserProfilePanel
           userId={activeProfileUserId}
@@ -598,6 +684,10 @@ const styles = StyleSheet.create({
   postCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 },
   postHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   postHeaderTouchable: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  // 48x48 é o mínimo de alvo de toque que o pre-launch report do Google Play
+  // cobra — e são justamente os controles que a política de moderação exige
+  // que a pessoa ache e consiga apertar (denunciar/bloquear/apagar).
+  iconBtn: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   postAvatar: { fontSize: 24 },
   profilePanelHeader: { alignItems: 'center', paddingBottom: 14, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   profilePanelAvatar: { fontSize: 40, marginBottom: 6 },

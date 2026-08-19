@@ -63,18 +63,25 @@ export default function LoginScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // O navegador inteiro sai da página nesse redirect (é assim que OAuth
-  // funciona na web) — então não tem "voltar" pra tratar aqui: se der erro
-  // ANTES de sair da página (ex.: provedor Google desativado no painel do
-  // Supabase), mostramos; se der certo, a página inteira troca de URL e essa
-  // tela nem existe mais quando a pessoa volta já logada.
+  // Na WEB o navegador inteiro sai da página nesse redirect (é assim que OAuth
+  // funciona) — então não tem "voltar" pra tratar: se der erro ANTES de sair da
+  // página (ex.: provedor Google desativado no painel do Supabase), mostramos;
+  // se der certo, a página troca de URL e essa tela nem existe mais quando a
+  // pessoa volta já logada.
+  // No NATIVO a aba de login fecha e a execução continua bem aqui, com a sessão
+  // já pronta: sem o concluirLogin() abaixo a pessoa aprovava o Google e ficava
+  // parada nesta mesma tela — e, vindo do checkout, perdia o plano escolhido.
   async function handleGoogle() {
     setError('');
     setInfo('');
     setGoogleLoading(true);
     const result = await signInWithGoogle();
     setGoogleLoading(false);
-    if (result.error) setError(result.error);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    if (result.concluido) concluirLogin();
   }
 
   // "Esqueci minha senha" — antes não existia caminho NENHUM aqui, e como o
@@ -138,19 +145,24 @@ export default function LoginScreen() {
       setInfo(t('login.infoConfirmEmail'));
       return;
     }
-    // 10º degrau: entrou na conta. Só o caminho de e-mail/senha passa por
-    // aqui; o botão do Google sai da página inteira (redirect de OAuth) e
+    // 10º degrau: entrou na conta. Na WEB só o caminho de e-mail/senha passa
+    // por aqui; o botão do Google sai da página inteira (redirect de OAuth) e
     // volta com a sessão já pronta, sem esta tela existir — esse caso fica
-    // como buraco conhecido, e o jeito de fechá-lo seria medir no
+    // como buraco conhecido na web, e o jeito de fechá-lo seria medir no
     // AuthContext, que hoje não distingue "acabou de logar" de "sessão
     // restaurada no arranque" (todo assinante recorrente viraria login_done
-    // toda manhã e o degrau perderia o sentido).
+    // toda manhã e o degrau perderia o sentido). No nativo o Google volta pra
+    // esta tela e passa pelo mesmo concluirLogin(), então lá o degrau é medido.
+    concluirLogin();
+  }
+
+  // Voltar pra ONDE a compra parou, com o plano escolhido junto — um goBack()
+  // cego devolveria a pessoa pra tela de Planos sem o plano selecionado (e,
+  // pior, pra Home nos caminhos em que a pilha mudou). navigate() com o nome
+  // da rota reaproveita a tela que já está na pilha e só funde os params
+  // novos, então não empilha uma segunda cópia.
+  function concluirLogin() {
     funnel.loginDone();
-    // Voltar pra ONDE a compra parou, com o plano escolhido junto — um
-    // goBack() cego devolveria a pessoa pra tela de Planos sem o plano
-    // selecionado (e, pior, pra Home nos caminhos em que a pilha mudou).
-    // navigate() com o nome da rota reaproveita a tela que já está na pilha e
-    // só funde os params novos, então não empilha uma segunda cópia.
     if (returnTo) {
       navigation.navigate(returnTo, returnParams);
       return;

@@ -27,7 +27,7 @@ function keyByUserOrIp(req) {
   return req.userId ? `u:${req.userId}` : ipKeyGenerator(req.ip);
 }
 
-function buildAccountRouter({ getAccountSubscription, claimSubscription, requireAuth, requireVerifiedEmail }) {
+function buildAccountRouter({ getAccountSubscription, claimSubscription, requireAuth, requireVerifiedEmail, deleteAccountData }) {
   const router = express.Router();
 
   // Limite por IP ANTES da autenticação: sem ele, token inválido nunca chegaria
@@ -115,6 +115,41 @@ function buildAccountRouter({ getAccountSubscription, claimSubscription, require
     } catch (err) {
       console.error("[api/subscription/claim] erro:", err && err.message);
       res.status(500).json({ error: "falha ao vincular assinatura" });
+    }
+  });
+
+  // EXCLUSÃO DE CONTA — a metade "backend próprio" do que o Google Play exige
+  // desde 2024. A outra metade (apagar o login) é a função delete_own_account()
+  // do Supabase, chamada pelo app DEPOIS desta rota (ver supabase/
+  // 001_delete_own_account.sql e screens/ProfileScreen.js): nesta ordem porque
+  // o JWT que autentica AQUI é emitido pela conta que vai morrer — invertida, a
+  // conta sumiria antes de o app conseguir apagar os dados dela por aqui.
+  //
+  // Mora no router de assinatura (URL /api/subscription/account) porque é aqui
+  // que requireAuth + requireVerifiedEmail já estão costurados e rodando em
+  // produção. Mesma regra de ouro do resto do arquivo: o alvo é SEMPRE
+  // req.userId, nunca body/query — não existe forma de pedir a exclusão da
+  // conta de outra pessoa.
+  //
+  // meLimiter (120/15min por conta) e não o claimLimiter (10/15min): o /claim
+  // é disparado sozinho pelo auto-vínculo do app, e um balde compartilhado
+  // faria a exclusão tomar 429 por causa de tentativa automática — 429 aqui
+  // vira "não conseguimos apagar" na cara de quem pediu.
+  router.delete("/account", preAuthLimiter, requireAuth, requireVerifiedEmail, meLimiter, (req, res) => {
+    // server-patches é espelho PARCIAL do que roda na VPS: já aconteceu de uma
+    // rota subir sem a linha de mount (/api/track, 03/08). Sem esta guarda, a
+    // dependência faltando viraria TypeError 500 sem explicação; com ela, o log
+    // diz exatamente o que não foi ligado.
+    if (typeof deleteAccountData !== "function") {
+      console.error("[api/subscription/account] deleteAccountData não foi injetado no buildAccountRouter");
+      return res.status(500).json({ error: "falha ao apagar dados da conta" });
+    }
+    try {
+      const result = deleteAccountData({ userId: req.userId });
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      console.error("[api/subscription/account] erro:", err && err.message);
+      res.status(500).json({ error: "falha ao apagar dados da conta" });
     }
   });
 

@@ -38,6 +38,7 @@ import { recordReadingCompletion } from '../lib/readingCompletion';
 import OneTimeLock from '../components/OneTimeLock';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
+import ReportarIA from '../components/ReportarIA';
 // O MODO HISTÓRIA (09/08/2026) — a mesma leitura, um trecho por tela, como
 // stories. paraSlides só REFORMATA: nenhum byte de reading.body muda. E é a
 // entrega PADRÃO: o leitor abre sozinho quando a leitura da IA chega
@@ -375,6 +376,7 @@ export default function CoffeeScreen() {
             <Ionicons name="calendar" size={22} color={colors.gold} />
             <Text style={styles.weeklyTitle}>{weeklySummary.title}</Text>
             <Text style={styles.weeklyText}>{weeklySummary.body}</Text>
+            <ReportarIA kind="coffee_weekly" />
             <TouchableOpacity onPress={() => setWeeklySummary(null)}>
               <Text style={styles.linkText}>{t('coffee.close')}</Text>
             </TouchableOpacity>
@@ -465,6 +467,10 @@ export default function CoffeeScreen() {
                                 <Text style={styles.genericNote}>{t('reading.genericNote')}</Text>
                               )}
             </View>
+
+            {/* Denúncia da saída de IA — rodapé do resultado, exigido pela
+                política de Conteúdo Gerado por IA do Google Play. */}
+            <ReportarIA kind="coffee" />
 
             {journalEntryId && (
               <VoiceInsightRecorder

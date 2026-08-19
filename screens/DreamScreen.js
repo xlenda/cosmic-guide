@@ -69,6 +69,7 @@ import CosmicScene from '../components/CosmicScene';
 import OneTimeLock from '../components/OneTimeLock';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
+import ReportarIA from '../components/ReportarIA';
 import { getMockDreamReading } from '../lib/dreamReadings';
 import { fetchAiDreamReading, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
@@ -707,6 +708,10 @@ export default function DreamScreen() {
                                   <Text style={styles.genericNote}>{t('reading.genericNote')}</Text>
                                 )}
               </View>
+
+              {/* Denúncia da saída de IA — rodapé do resultado, exigido pela
+                  política de Conteúdo Gerado por IA do Google Play. */}
+              <ReportarIA kind="dream" />
 
               {journalEntryId && (
                 <VoiceInsightRecorder

@@ -155,6 +155,22 @@ function coletarMetricas() {
                 GROUP BY pais`).all(diaISO(6))
   );
 
+  // A FILA DE MODERAÇÃO (migração 016). É aqui que a denúncia "chega em
+  // alguém": o dono já abre este painel no celular, então a fila mora onde ele
+  // olha, em vez de virar uma rota que só existe pra um curl que ninguém dá.
+  // O trecho vem de `content` (instantâneo do post/comentário) e cai pra
+  // `detail` quando é denúncia de saída de IA, que não tem linha em tabela.
+  const denuncias = bloco("denuncias", () => ({
+    abertas: db.prepare(`SELECT COUNT(*) AS n FROM moderation_reports WHERE status = 'open'`).get().n,
+    fila: db
+      .prepare(
+        `SELECT id, kind, reason, target_id, substr(created_at, 1, 16) AS quando,
+                substr(COALESCE(content, detail, ''), 1, 280) AS trecho
+         FROM moderation_reports WHERE status = 'open' ORDER BY id DESC LIMIT 30`
+      )
+      .all(),
+  }));
+
   const cards = bloco("cards", () => {
     const manifesto = JSON.parse(
       fs.readFileSync(path.join(__dirname, "..", "..", "data", "daily-cards", "latest.json"), "utf8")
@@ -162,7 +178,7 @@ function coletarMetricas() {
     return manifesto.date;
   });
 
-  return { geradoEm: new Date().toISOString(), hoje, funil, assinaturas, ia, push, chama, paises, receita, planosClicados, horas, paisesLeram, cardsDoDia: cards };
+  return { geradoEm: new Date().toISOString(), hoje, funil, assinaturas, ia, push, chama, paises, receita, planosClicados, horas, paisesLeram, denuncias, cardsDoDia: cards };
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +217,12 @@ const HTML = `<!DOCTYPE html>
   #login button { margin-top:10px; padding:11px 26px; border:0; border-radius:10px; background:var(--ouro); color:#241a04; font-weight:700; font-size:14px; }
   #erro { color:#ff9d9d; font-size:13px; margin-top:10px; min-height:18px; }
   #sair { background:none; border:0; color:var(--mudo); font-size:11px; text-decoration:underline; }
+  .den { border-top:1px solid rgba(255,255,255,.06); padding:10px 0; }
+  .den:first-child { border-top:0; padding-top:0; }
+  .dencab { font-size:11px; color:var(--mudo); letter-spacing:.04em; }
+  .dentrecho { font-size:13px; margin:5px 0 8px; white-space:pre-wrap; word-break:break-word; }
+  .denbtns button { border:0; border-radius:8px; padding:9px 14px; font-size:12px; font-weight:700; margin-right:8px; background:#c0392b; color:#fff; }
+  .denbtns button.alt { background:rgba(255,255,255,.10); color:var(--texto); }
   .rodape { color:var(--mudo); font-size:11px; text-align:center; margin:24px 0 8px; }
 </style></head><body>
 <div id="login"><h1 style="justify-content:center">✦ Painel do Cosmic Guide</h1>
@@ -217,6 +239,22 @@ if (u.searchParams.get('t')) { localStorage.setItem(CHAVE, u.searchParams.get('t
 function entrar() { localStorage.setItem(CHAVE, document.getElementById('tok').value.trim()); carregar(); }
 function sair() { localStorage.removeItem(CHAVE); location.reload(); }
 
+// Texto denunciado é conteúdo de usuário indo pra innerHTML — escapar aqui é
+// o que impede uma denúncia virar XSS na tela de quem modera.
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+// remover=1 apaga o conteúdo, 0 arquiva. Número em vez de string por um motivo
+// bobo e real: o HTML desta página é uma template literal do Node, e aspas
+// escapadas dentro do onclick viram o inferno de escape errado.
+async function moderar(id, remover) {
+  if (remover && !confirm('Remover este conteúdo de vez?')) return;
+  const r = await fetch('/api/admin/reports/'+id, {
+    method:'POST',
+    headers:{ 'X-Admin-Token': localStorage.getItem(CHAVE), 'Content-Type':'application/json' },
+    body: JSON.stringify({ action: remover ? 'remove' : 'dismiss' })
+  });
+  if (!r.ok) { alert('falhou: '+r.status); return; }
+  carregar();
+}
 function soma(linhas, filtro) { return (linhas||[]).filter(filtro).reduce((a,r)=>a+r.n,0); }
 function porDia(linhas, filtro, dias) {
   const mapa = {}; (linhas||[]).filter(filtro).forEach(r => { mapa[r.dia]=(mapa[r.dia]||0)+r.n; });
@@ -251,6 +289,20 @@ async function carregar() {
     + '<div class="tile"><b>'+soma((m.ia||[]),r=>r.dia===hoje)+'</b><span>leituras de IA hoje</span></div>'
     + '<div class="tile"><b>US$ '+(((m.receita||0)/100).toFixed(0))+'</b><span>receita ativa</span></div>' 
     + '</div>';
+
+  // Fila de moderação PRIMEIRO quando tem coisa aberta: é a única parte deste
+  // painel que espera uma decisão, e denúncia parada é o que reprova o app.
+  const den = m.denuncias || {};
+  if ((den.fila||[]).length) {
+    html += '<h2>Denúncias abertas · '+den.abertas+'</h2><div class="card">';
+    den.fila.forEach(function(d){
+      html += '<div class="den"><div class="dencab">#'+d.id+' · '+esc(d.kind)+' · '+esc(d.reason)+' · '+String(d.quando||'').replace('T',' ')+'</div>'
+        + '<div class="dentrecho">'+esc(d.trecho||'(conteúdo não disponível — apagado antes da análise)')+'</div>'
+        + '<div class="denbtns"><button onclick="moderar('+d.id+',1)">Remover</button>'
+        + '<button class="alt" onclick="moderar('+d.id+',0)">Arquivar</button></div></div>';
+    });
+    html += '</div>';
+  }
 
   html += '<h2>Funil de hoje (sessões)</h2><div class="card">';
   degraus.forEach(([nome,ev])=>{ const n=evHoje(ev); html+='<div class="linha"><span class="nome">'+nome+'</span><span class="barra"><i style="width:'+Math.round(n/topo*100)+'%"></i></span><span class="n">'+n+'</span></div>'; });

@@ -460,3 +460,55 @@ test('401 de servidor antigo (sem code) também não desloga', async () => {
 
   assert.strictEqual(signOuts.length, 0, 'sem o code novo, o comportamento é o de antes: não mexer na sessão');
 });
+
+
+// === 5) EXCLUSÃO DE CONTA: deleteAccountData nunca é otimista ================
+// Segundo passo da exclusão (o primeiro é supabase.rpc('delete_own_account'),
+// ver ProfileScreen.deleteAccountForReal). Se esta função mentir um "ok", a tela
+// limpa o aparelho anunciando que apagou do servidor dados que continuam lá —
+// exatamente o que a política de exclusão de conta do Google Play proíbe.
+
+test('exclusão: sem sessão nem tenta a rede', async () => {
+  reset();
+  sessao = null;
+  const r = await accountSubscription.deleteAccountData();
+  assert.deepStrictEqual(r, { ok: false, reason: 'no-session' });
+  assert.strictEqual(chamadas.length, 0, 'sem token não existe conta pra apagar — nem tentativa');
+});
+
+test('exclusão: 200 devolve ok e usa o token PRÉ-CAPTURADO (a conta já morreu)', async () => {
+  reset();
+  // A conta foi apagada no passo 1: getSession já não devolve nada, e só o JWT
+  // guardado antes ainda autentica a rota (o backend valida por assinatura).
+  sessao = null;
+  rotas = { '/api/subscription/account': async () => ({ status: 200, body: { ok: true } }) };
+
+  const r = await accountSubscription.deleteAccountData('jwt-da-conta-morta');
+
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(chamadas[0].options.method, 'DELETE');
+  assert.strictEqual(chamadas[0].options.headers.Authorization, 'Bearer jwt-da-conta-morta');
+});
+
+test('exclusão: 404 de backend sem a rota volta ok:false', async () => {
+  reset();
+  rotas = { '/api/subscription/account': async () => ({ status: 404, body: {} }) };
+
+  const r = await accountSubscription.deleteAccountData();
+
+  assert.strictEqual(r.ok, false, 'dizer "apagamos" sem ter apagado é o defeito que isto existe pra evitar');
+  assert.strictEqual(r.reason, 'http-404');
+});
+
+test('exclusão: rede fora volta ok:false (a tela oferece limpar só o aparelho)', async () => {
+  reset();
+  rotas = {
+    '/api/subscription/account': async () => {
+      throw new Error('offline');
+    },
+  };
+
+  const r = await accountSubscription.deleteAccountData();
+
+  assert.deepStrictEqual(r, { ok: false, reason: 'network' });
+});

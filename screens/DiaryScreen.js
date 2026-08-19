@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import ReportarIA from '../components/ReportarIA';
 import {
   getJournalEntries,
   deleteJournalEntry,
@@ -394,6 +395,10 @@ export default function DiaryScreen() {
               que tem mais coisas escritas" — relato real do testador,
               29/07/2026). O ornamento diz visualmente "terminou aqui". */}
           <Text style={styles.weeklyCardEnd}>✦ ✦ ✦</Text>
+          {/* Denúncia da saída de IA — o Insight da Semana é gerado por IA
+              (fetchAiWeeklyInsight), e a política do Google Play exige o canal
+              dentro do app. */}
+          <ReportarIA kind="weekly_insight" />
           <TouchableOpacity onPress={() => setWeeklyInsight(null)} style={{ marginTop: 10 }}>
             <Text style={styles.weeklyCardClose}>{t('diary.close')}</Text>
           </TouchableOpacity>

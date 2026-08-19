@@ -88,6 +88,16 @@ const EVENTS = [
   "checkout_click", //   clicou em assinar
   "checkout_open", //    o checkout da Hotmart abriu de fato na tela
   "today_line_tap", //   tocou na "linha de hoje" da Home (kind: jornada|ritual)
+  // Denúncia de saída de IA (components/ReportarIA.js no app). NÃO é degrau de
+  // funil: é o canal de sinalização que a política de Conteúdo Gerado por IA do
+  // Google Play exige DENTRO do app. Entra aqui em vez de virar rota própria
+  // porque esta já tem rate-limit, parser de 16kb, tabela, retenção e a mesma
+  // validação de props — e porque a denúncia não carrega conteúdo nenhum, só
+  // `kind` (qual superfície) e `reason` (ofensivo|impreciso). O texto gerado
+  // NÃO vem junto de propósito: a FAQ (HelpSupportScreen) promete que ele não
+  // fica guardado, e o contrato lá em cima diz "o que ACONTECEU, nunca o que a
+  // pessoa ESCREVEU".
+  "ai_report",
 ];
 const EVENT_SET = new Set(EVENTS);
 
@@ -106,6 +116,7 @@ const PROPS_KEYS = new Set([
   "source", //   de onde veio o clique — ex.: "home_card", "gate"
   "lang", //     "pt" | "en" | "es"
   "platform", // "web" | "ios" | "android"
+  "reason", //   motivo da denúncia de IA — "ofensivo" | "impreciso" (ai_report)
 ]);
 
 const MAX_BATCH = 30; //        eventos por requisição
