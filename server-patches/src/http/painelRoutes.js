@@ -360,7 +360,7 @@ async function carregar() {
   html += '<h2>Assinaturas novas · 14 dias</h2><div class="card">'+barras(porDia(((m.assinaturas||{}).novasPorDia||[]),()=>true,dias14))+'</div>';
 
   html += '<h2>Últimas assinaturas</h2><div class="card"><table>';
-  (((m.assinaturas||{}).ultimas)||[]).forEach(r=>{ html+='<tr><td>'+r.email+'</td><td>'+r.plan+'</td><td>'+r.status+'</td><td>'+r.quando.replace('T',' ')+'</td></tr>'; });
+  (((m.assinaturas||{}).ultimas)||[]).forEach(r=>{ html+='<tr><td>'+esc(r.email)+'</td><td>'+esc(r.plan)+'</td><td>'+esc(r.status)+'</td><td>'+esc(String(r.quando||'').replace('T',' '))+'</td></tr>'; });
   html += '</table></div>';
 
   html += '<div class="tiles" style="margin-top:22px">'

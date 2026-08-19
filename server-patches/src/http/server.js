@@ -258,7 +258,7 @@ function ehCanary(req) {
 // ehCanary entra como isenção: o canary chama /api/chat de verdade, sem token,
 // 4x por hora — sem isenção ele mesmo estouraria a cota anônima do servidor e
 // o monitoramento morreria em silêncio.
-const { buildAiQuota, forgetAccount: forgetAiQuotaDaConta } = require("./aiQuota");
+const { buildAiQuota } = require("./aiQuota");
 const aiQuota = buildAiQuota({ getAccountSubscription, isExempt: ehCanary });
 
 const checkoutLimiter = rateLimit({
@@ -345,7 +345,13 @@ const publicReadLimiter = rateLimit({
 //
 //   subscriptions   → supabase_user_id/account_email. Desvinculado (o recibo do
 //                     pagamento fica; ver o comentário em forgetAccount).
-//   ai_free_quota   → subject_type 'account'. Apagado.
+//   ai_free_quota   → subject_type 'account'. NAO apagado, de proposito: a cota
+//                     de conta e VITALICIA (ver o comentario de ANON_RETENTION_DAYS
+//                     em aiQuota.js), e apagar a linha devolveria as leituras
+//                     gratis. Esta rota so exige um token valido — ela nao tem como
+//                     provar que a conta morreu de fato —, entao apagar aqui virava
+//                     reset infinito do paywall por curl. Sobra um uuid opaco de
+//                     conta inexistente, sem dado pessoal.
 //
 // As outras tabelas NÃO conhecem a conta e por isso não entram aqui:
 // funnel_events é session_id anônimo (e já tem POST /api/track/forget),
@@ -354,7 +360,6 @@ const publicReadLimiter = rateLimit({
 function deleteAccountData({ userId }) {
   return {
     unlinkedSubscriptions: repository.forgetAccount({ supabaseUserId: userId }),
-    clearedAiQuota: forgetAiQuotaDaConta(userId),
   };
 }
 
