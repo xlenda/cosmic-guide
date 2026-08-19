@@ -512,3 +512,54 @@ test('exclusão: rede fora volta ok:false (a tela oferece limpar só o aparelho)
 
   assert.deepStrictEqual(r, { ok: false, reason: 'network' });
 });
+
+// Quando esta chamada roda a conta JÁ morreu: não existe "tentar de novo mais
+// tarde" (não há mais sessão), e desistir na primeira instabilidade deixa a
+// assinatura amarrada a um uuid que não existe mais.
+test('exclusão: 5xx passageiro não vira lixo órfão — tenta de novo', async () => {
+  reset();
+  let n = 0;
+  rotas = {
+    '/api/subscription/account': async () => (++n < 2 ? { status: 500, body: {} } : { status: 200, body: { ok: true } }),
+  };
+
+  const r = await accountSubscription.deleteAccountData('jwt-da-conta-morta');
+
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(chamadas.length, 2, 'a segunda tentativa é o que salva a assinatura');
+});
+
+test('exclusão: 403 não é repetido (determinístico, e a pessoa está esperando)', async () => {
+  reset();
+  rotas = { '/api/subscription/account': async () => ({ status: 403, body: {} }) };
+
+  const r = await accountSubscription.deleteAccountData('jwt-da-conta-morta');
+
+  assert.strictEqual(r.reason, 'http-403');
+  assert.strictEqual(chamadas.length, 1, 'e-mail não verificado não melhora tentando de novo — avisar é melhor que travar');
+});
+
+// A ORDEM das 3 chamadas é a decisão de política deste fluxo, não detalhe de
+// implementação: a política do Google Play exige que a CONTA seja apagada, então
+// o RPC vem primeiro; o que pode sobrar (assinatura desvinculada, cota de IA) é
+// lixo órfão no nosso backend, recuperável pelo suporte. Duas revisões já
+// tentaram inverter isso.
+// ponytail: confere a ordem NO FONTE, não em execução — deleteAccountForReal
+// mora dentro do componente e não é exportada. Trava a reinversão, que é o risco
+// real; se um dia a função sair da tela, trocar por um teste de execução.
+test('exclusão: a conta de login morre ANTES do backend e do aparelho', () => {
+  const fonte = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', 'screens', 'ProfileScreen.js'),
+    'utf8'
+  );
+  const corpo = fonte.slice(fonte.indexOf('async function deleteAccountForReal'));
+  const captura = corpo.indexOf('await getAuthToken()');
+  const rpc = corpo.indexOf("supabase.rpc('delete_own_account')");
+  const backend = corpo.indexOf('deleteAccountData(token)');
+  const local = corpo.indexOf('wipeLocalData()');
+
+  assert.ok(captura > -1 && rpc > -1 && backend > -1 && local > -1, 'os 4 passos precisam existir em deleteAccountForReal');
+  assert.ok(captura < rpc, 'o token é capturado ANTES de a conta morrer — depois não há mais sessão pra pegar');
+  assert.ok(rpc < backend, 'conta que sobrevive é violação frontal da política; lixo órfão no nosso backend, não');
+  assert.ok(backend < local, 'o aparelho é o último: limpar antes apagaria o que a pessoa ainda pode precisar mostrar');
+});

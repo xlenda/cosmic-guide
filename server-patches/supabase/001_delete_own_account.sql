@@ -34,9 +34,21 @@
 -- ON DELETE CASCADE e some na mesma transação. O app não tem NENHUMA tabela
 -- própria no Supabase — não existe `supabase.from(...)` em lugar nenhum do
 -- código (Supabase aqui é só login). Os dados que vivem na API própria são
--- apagados pelo DELETE /api/subscription/account, chamado ANTES desta função
--- (ver screens/ProfileScreen.js): depois que a conta morre, o JWT dela não
--- serve mais pra autenticar nada.
+-- apagados pelo DELETE /api/subscription/account, chamado DEPOIS desta função
+-- (ver screens/ProfileScreen.js — esta é a chamada 1 de 3).
+--
+-- POR QUE ESTA VEM PRIMEIRO (19/08/2026, decisão registrada porque duas
+-- revisões discordaram): a política do Google Play exige que a CONTA seja
+-- apagada — conta que sobrevive é violação frontal. O que pode sobrar do outro
+-- lado é lixo órfão no nosso backend (uma assinatura desvinculada, uma cota de
+-- IA), recuperável pelo suporte com o e-mail da pessoa. Risco de política vs.
+-- risco de faxina.
+--
+-- O JWT continua autenticando o passo seguinte mesmo com a conta já apagada: o
+-- backend próprio valida a ASSINATURA do token contra o JWKS
+-- (server-patches/src/http/socialAuth.js) e usa só o `sub` do payload — nenhuma
+-- consulta ao usuário — então o token vale até o `exp`. É por isso que o app
+-- captura o token ANTES de chamar esta função.
 
 create or replace function public.delete_own_account()
 returns void

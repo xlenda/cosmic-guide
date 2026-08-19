@@ -11,6 +11,12 @@
 # COMO RODAR (uma linha, funciona no PowerShell e no Git Bash):
 #   bash "C:/Users/XuXa/Downloads/Cosmic Guide/server-patches/deploy.sh"
 #
+# ORDEM: ESTE SCRIPT VEM ANTES DA WEB. O app chama POST /api/moderation/*
+# (Denunciar e Bloquear, exigência de UGC da Play Store), que só existe aqui —
+# publicar a Vercel primeiro deixa esses botões devolvendo 404 pra quem já usa
+# o app. scripts/deploy-vercel.sh tem um portão que aborta se esta rota não
+# estiver no ar, então a ordem errada trava sozinha em vez de vazar pro usuário.
+#
 # ROLLBACK (se algo quebrar — o caminho exato é impresso no fim):
 #   ssh servidor "cd /root/forja-backend; rm -rf src; mv src.bak-<TS> src; cp data/backups/forja-pre-deploy-<TS>.sqlite data/forja.sqlite; pm2 restart forja-backend"
 
@@ -103,6 +109,9 @@ ssh -o ConnectTimeout=25 "$REMOTE" "
 echo ""
 echo "=============================================="
 echo " Deploy concluído."
+echo ""
+echo " Backend no ar. AGORA sim dá pra publicar a web:"
+echo "   bash scripts/deploy-vercel.sh"
 echo ""
 echo " Se precisar reverter:"
 echo "   ssh servidor \"cd $APP_DIR; rm -rf src; mv src.bak-$TS src; cp data/backups/forja-pre-deploy-$TS.sqlite data/forja.sqlite; pm2 restart forja-backend\""

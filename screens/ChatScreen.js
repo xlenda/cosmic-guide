@@ -240,15 +240,20 @@ export default function ChatScreen() {
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
   };
 
-  const renderItem = ({ item, index }) => {
+  const renderItem = ({ item }) => {
     const isUser = item.from === 'user';
     // Denúncia embaixo de TODA resposta da persona. Antes só a última tinha a
     // bandeirinha: bastava mandar mais uma mensagem pra resposta ofensiva ficar
     // sem canal de denúncia — e, como a denúncia agora carrega o texto
-    // (components/ReportarIA.js), cada bolha denuncia a si mesma. index > 0
-    // tira a intro da persona, que é texto local de lib/chatPersonas.js e não
-    // saída de IA.
-    const mostrarDenuncia = !isUser && index > 0;
+    // (components/ReportarIA.js), cada bolha denuncia a si mesma. A única que
+    // fica de fora é a intro da persona, que é texto local de
+    // lib/chatPersonas.js e não saída de IA.
+    //
+    // O critério é o TEXTO, não o índice: o histórico salvo é cortado nas
+    // últimas HISTORY_MAX_MESSAGES (60), então passando disso a intro sai pela
+    // frente da lista e o item 0 vira uma resposta real da IA — que com
+    // `index > 0` perdia o canal de denúncia pra sempre, em todo reload.
+    const mostrarDenuncia = !isUser && item.text !== persona.introMessage;
     return (
       <View>
         <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowPersona]}>
@@ -263,7 +268,17 @@ export default function ChatScreen() {
             <Text style={styles.bubbleText}>{item.text}</Text>
           </View>
         </View>
-        {mostrarDenuncia && <ReportarIA kind="chat" texto={item.text} />}
+        {/* A célula da FlatList ocupa a largura toda e o link vem com
+            alignSelf 'center' (as outras seis telas que usam ReportarIA são
+            painéis full-width, onde centralizado é o certo). Sem esta caixa
+            ele aparecia CENTRALIZADO embaixo de uma bolha alinhada à
+            esquerda; encolhida ao conteúdo e ancorada em flex-start, o link
+            nasce junto da bolha que ele denuncia. */}
+        {mostrarDenuncia && (
+          <View style={styles.reportRow}>
+            <ReportarIA kind="chat" texto={item.text} />
+          </View>
+        )}
       </View>
     );
   };
@@ -404,6 +419,7 @@ const styles = StyleSheet.create({
   bubblePersona: { borderBottomLeftRadius: 4 },
   bubbleUser: { borderBottomRightRadius: 4 },
   bubbleText: { color: '#fff', fontSize: 14, lineHeight: 20 },
+  reportRow: { alignSelf: 'flex-start' },
   bubbleTextTyping: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontStyle: 'italic' },
   inputRow: {
     flexDirection: 'row',

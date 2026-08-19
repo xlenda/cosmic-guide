@@ -22,6 +22,30 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# ORDEM DE DEPLOY: BACKEND PRIMEIRO, WEB DEPOIS.
+#
+# Denunciar e Bloquear (exigência de Conteúdo Gerado pelo Usuário da Play
+# Store) e o Denunciar da IA chamam POST /api/moderation/*. Essa rota mora no
+# backend da VPS, não na Vercel — se a web nova subir antes, todo toque nesses
+# botões devolve 404 e a pessoa vê "não deu" sem entender nada. Nada aqui fala
+# com o servidor (zero ssh/rsync): o backend sobe por
+# `bash server-patches/deploy.sh`, execução separada e manual.
+#
+# Por isso o portão abaixo, ANTES de tudo: uma requisição inválida de propósito
+# (corpo vazio) que só serve pra saber se a rota EXISTE — 400 significa que o
+# backend está no ar com a moderação; 404 significa que não está.
+echo "== portão: moderação no ar no backend (a web depende dela) =="
+MOD_STATUS="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' -d '{}' https://api.cosmicguide.cloud/api/moderation/report || echo 000)"
+if [ "$MOD_STATUS" = "404" ] || [ "$MOD_STATUS" = "000" ]; then
+  echo ""
+  echo "ABORTADO: POST /api/moderation/report respondeu $MOD_STATUS."
+  echo "Denunciar e Bloquear quebrariam em silêncio pra quem já usa o app."
+  echo "Suba o backend PRIMEIRO:  bash server-patches/deploy.sh"
+  echo "Depois rode este script de novo."
+  exit 1
+fi
+echo "  ok (HTTP $MOD_STATUS — a rota existe)"
+
 echo "== npm test =="
 npm test
 

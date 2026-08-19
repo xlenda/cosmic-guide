@@ -34,7 +34,20 @@ function PrivacyRow({ icon, text, last }) {
 //   · Feed social: lib/socialClient.js publica em api.cosmicguide.cloud/api/social
 //     com o token da conta — conteúdo público e ligado ao login.
 //   · Push: lib/webPush.js manda endpoint + signo + sequência + a DATA do último
-//     registro do Diário (nunca o texto).
+//     registro do Diário (nunca o texto), mais as chaves de criptografia da
+//     inscrição do navegador.
+//   · Leitura de IA: as rotas de IA (server-patches/src/http/server.js) mandam a
+//     foto/texto pra Anthropic e devolvem a interpretação — não gravam nada em
+//     banco nem em disco, e o log só diz "sucesso". O que sobra é a linha diária
+//     de ai_usage (endpoint + contagem). Por isso o texto promete só o que dá
+//     pra provar aqui ("o NOSSO servidor não guarda") e não afirma nada sobre o
+//     que a Anthropic mantém, que não está sob o nosso controle.
+//   · Denúncia e bloqueio (moderationRoutes.js, migração 016): a denúncia grava
+//     o motivo, o texto de IA denunciado, uma cópia do post/comentário, o autor
+//     do conteúdo e — se houver login — quem denunciou. O bloqueio grava quem
+//     bloqueou quem. Nenhuma das duas tabelas tem retenção, e deleteAccountData
+//     (server.js) não toca em nenhuma delas: por isso o texto diz que fica sem
+//     prazo e que apagar a conta não apaga isso.
 // Sem contagem no texto ("existem duas exceções"): número em política de
 // privacidade desmente sozinho na primeira feature nova — a lista fala por si.
 export default function PrivacyScreen() {
@@ -117,6 +130,7 @@ export default function PrivacyScreen() {
             <Text style={styles.paragraph}>{t('privacy.use.account')}</Text>
             <Text style={styles.paragraph}>{t('privacy.use.ai')}</Text>
             <Text style={styles.paragraph}>{t('privacy.use.social')}</Text>
+            <Text style={styles.paragraph}>{t('privacy.use.report')}</Text>
             <Text style={[styles.paragraph, { marginBottom: 0 }]}>{t('privacy.use.push')}</Text>
           </View>
         </View>
@@ -133,7 +147,7 @@ export default function PrivacyScreen() {
         <View style={styles.card}>
           <View style={styles.cardPad}>
             <Text style={styles.paragraph}>
-              {t('privacy.contact.intro')} <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text>
+              {t('privacy.contact.intro')} <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text>.
             </Text>
             <Text style={[styles.paragraph, { marginBottom: 0 }]}>{t('privacy.contact.retention')}</Text>
             <TouchableOpacity style={styles.contactBtn} activeOpacity={0.8} onPress={abrirEmail}>

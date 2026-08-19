@@ -68,11 +68,12 @@ const HOTMART_PAY_URLS = {
 };
 const MOUNT_ID = 'hotmart-checkout-mount';
 
-// Quem cobra muda por plataforma, e o texto tem que dizer a verdade nas duas:
-// na web é a Hotmart (área de compras); no app de loja pode ser a Google Play
-// (assinou por aqui) OU a Hotmart (assinou pelo site e entrou com a conta) —
-// por isso o texto nativo cobre os dois casos em vez de escolher um.
-const NATIVO = Platform.OS !== 'web';
+// Quem cobra muda com a VENDA CONFIGURADA, não com a plataforma: cobrança da
+// Google Play só existe onde LOJA_ATIVA é true. Na primeira build publicada o
+// gate está desligado e nada é vendido pela Play — dizer ali que a assinatura
+// é comprada e cancelada na Play seria descrever uma cobrança que o binário
+// não faz. Com o gate ligado, o texto cobre os dois casos (assinou aqui =
+// Play; assinou pelo site e entrou com a conta = Hotmart).
 
 function loadHotmartScript() {
   return new Promise((resolve, reject) => {
@@ -326,7 +327,7 @@ function PlanPicker({ selected, onSelect, precos }) {
               <Text style={styles.planDetail}>{t(`planos.plan.${plan.id}.detail`)}</Text>
             </View>
             <View style={styles.planPriceCol}>
-              <Text style={[styles.planPrice, isSelected && styles.planLabelSelected]}>{precos?.[plan.id]?.preco || plan.price}</Text>
+              <Text style={[styles.planPrice, isSelected && styles.planLabelSelected]}>{precos ? precos[plan.id].preco : plan.price}</Text>
               <Text style={styles.planCycle}>{t(`planos.plan.${plan.id}.cycle`)}</Text>
             </View>
           </TouchableOpacity>
@@ -401,7 +402,7 @@ function LegalFooter() {
   const abrir = (screen) => navigation.getParent()?.navigate(ROUTES.PROFILE_TAB, { screen });
   return (
     <View style={styles.legalFooter}>
-      <Text style={styles.legalNote}>{t(NATIVO ? 'planos.legal.billingNoteStore' : 'planos.legal.billingNote')}</Text>
+      <Text style={styles.legalNote}>{t(LOJA_ATIVA ? 'planos.legal.billingNoteStore' : 'planos.legal.billingNote')}</Text>
       <View style={styles.legalLinks}>
         <TouchableOpacity onPress={() => abrir(ROUTES.TERMS)} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
           <Text style={styles.legalLink}>{t('planos.legal.terms')}</Text>
@@ -694,8 +695,16 @@ function PlanosScreenNative() {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [selectedPlan, setSelectedPlan] = usePlanoDaRota(route);
-  // Ver comentário do mesmo estado em PlanosScreenWeb.
-  const [jaAssinante, setJaAssinante] = useState(null);
+  // O QUE A TELA PODE AFIRMAR DEPOIS DE UMA COMPRA. Quem diz "você é
+  // assinante" é o backend (GET /api/subscription/me, via refreshAccess); o
+  // entitlement local do RevenueCat só prova que a Play cobrou. Entre a
+  // cobrança e o webhook gravar a assinatura na conta existe uma janela em que
+  // trocar a tela pelo cartão de assinante seria mentira na cara: a pessoa
+  // leria "você é assinante" e NENHUMA tela paga abriria (o acesso vem da
+  // conta, não do aparelho). Então aqui guardamos só o que de fato aconteceu,
+  // e o cartão de assinante continua aparecendo pelo caminho de sempre
+  // (relevantAccess + subscriptionStatus), quando o servidor confirmar.
+  const [aviso, setAviso] = useState('');
   // Ofertas reais da loja: null = não há o que vender aqui (gate desligado,
   // produto ainda não publicado, ou a Play não respondeu). `lojaPronta` evita
   // o piscar entre "carregando" e o cartão de indisponível.
@@ -765,7 +774,11 @@ function PlanosScreenNative() {
       setCarregando(false);
       // Desistiu na folha da Play: não é erro, não mostra nada em vermelho.
       if (!compra) return;
-      if (compra.ativo) setJaAssinante({ status: 'active', currentPeriodEnd: compra.expiraEm });
+      // ativo=false é caminho REAL de dinheiro, não bug: pagamento pendente,
+      // aprovação de responsável no Android, entitlement ainda não propagado.
+      // Ficar mudo aqui era o pior dos dois — a pessoa fechava a folha da Play
+      // e a tela estava idêntica, sem uma palavra sobre o que aconteceu.
+      setAviso(t(compra.ativo ? 'planos.store.confirmando' : 'planos.store.pagamentoPendente'));
       // O acesso das telas continua vindo da conta (webhook do RevenueCat ->
       // backend), então reconsulta em vez de assumir.
       refreshAccess();
@@ -779,23 +792,42 @@ function PlanosScreenNative() {
   // Reinstalou o app, trocou de aparelho ou limpou os dados: a Play guarda a
   // compra e sem isto a pessoa fica pagando sem acesso.
   const restaurar = useCallback(async () => {
+    // Sem conta, restaurar não restaura nada de útil: o entitlement fica na
+    // conta do Google Play e o acesso do app fica na CONTA — deslogado, o app
+    // continuaria trancado inteiro. E sem appUserId o SDK restaura na
+    // identidade anônima (ou na do dono anterior do aparelho), o que atribui a
+    // compra à conta errada. Login SEM resume de propósito: quem tocou em
+    // "restaurar" não pediu pra comprar, e o retomar-do-login abre a folha de
+    // pagamento da Play.
+    //
+    // Variável com nome próprio ("logado") porque os freios chamados
+    // authToken nesta tela são os DO CHECKOUT, um por versão, e o
+    // test/paywallFunnelOrder.test.js casa cada um deles com o
+    // funnel.checkoutClick que vem logo depois. Restaurar não é degrau do
+    // funil de compra: um terceiro freio com o mesmo nome desalinharia esses
+    // pares e o teste passaria a comparar coisas diferentes.
+    const logado = await getAuthToken();
+    if (!logado) {
+      navigation.navigate(ROUTES.LOGIN, { returnTo: ROUTES.PLANOS });
+      return;
+    }
     setErro('');
     setCarregando(true);
     try {
-      const r = await restaurarCompras();
-      if (r.ativo) setJaAssinante({ status: 'active', currentPeriodEnd: r.expiraEm });
+      const r = await restaurarCompras(user?.id);
+      if (r.ativo) setAviso(t('planos.store.confirmando'));
       else setErro(t('planos.store.restoreNone'));
       refreshAccess();
     } catch (err) {
       setErro(t('planos.errorGeneric'));
     }
     setCarregando(false);
-  }, [refreshAccess, t]);
+  }, [navigation, refreshAccess, t, user?.id]);
 
   // Ver o mesmo bloco em PlanosScreenWeb — retomar a compra de quem acabou
   // de logar, sem repetir o toque, e sem retomar nada pra quem já assina nem
   // enquanto a loja não tiver oferta pra vender.
-  const mostrandoAssinatura = !!jaAssinante || (relevantAccess && !!subscriptionStatus && subscriptionStatus !== 'pending');
+  const mostrandoAssinatura = !!(relevantAccess && subscriptionStatus && subscriptionStatus !== 'pending');
   const jaRetomou = useRef(false);
   useEffect(() => {
     if (jaRetomou.current || !route.params?.resume) return;
@@ -804,15 +836,6 @@ function PlanosScreenNative() {
     comprarNaLoja();
   }, [route.params?.resume, authLoading, user, mostrandoAssinatura, loja, comprarNaLoja]);
 
-  if (jaAssinante) {
-    return (
-      <SubscriptionStatusCard
-        status={jaAssinante.status}
-        currentPeriodEnd={jaAssinante.currentPeriodEnd}
-        onBack={() => navigation.goBack()}
-      />
-    );
-  }
   if (relevantAccess && subscriptionStatus && subscriptionStatus !== 'pending') {
     return (
       <SubscriptionStatusCard
@@ -840,6 +863,17 @@ function PlanosScreenNative() {
         <View style={styles.card}>
           {!lojaPronta ? (
             <ActivityIndicator color={colors.accent} size="large" style={styles.nativeLoader} />
+          ) : aviso ? (
+            // A Play cobrou; a conta ainda não sabe. Nem afirma que a pessoa é
+            // assinante (só o servidor pode dizer isso) nem reoferece o botão
+            // de assinar pra quem acabou de pagar: diz o que está acontecendo e
+            // sai da frente. Quando o refreshAccess (foco da tela / volta pro
+            // app) trouxer o acesso, o return lá em cima troca isto pelo cartão
+            // de assinante sozinho — não é beco sem saída.
+            <>
+              <Ionicons name="time-outline" size={36} color={colors.accent} />
+              <Text style={styles.cardText}>{aviso}</Text>
+            </>
           ) : vendendo ? (
             <>
               <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} precos={loja} />

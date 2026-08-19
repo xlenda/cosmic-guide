@@ -27,6 +27,27 @@
 
   As três línguas do app (PT/ES/EN) na mesma página: o revisor do Google
   costuma ler em inglês, e o app é vendido nas três.
+
+  CADA LINHA DAS LISTAS ABAIXO FOI CONFERIDA CONTRA O CÓDIGO (19/08/2026). O que
+  "Deletar conta" realmente faz são três passos, e só isso:
+    1. supabase.rpc('delete_own_account') → apaga a linha de auth.users e, em
+       cascata, identities/sessions/refresh_tokens (supabase/001_delete_own_account.sql).
+    2. DELETE /api/subscription/account → deleteAccountData (server-patches/src/
+       http/server.js) desvincula subscriptions e apaga ai_free_quota. MAIS NADA:
+       a linha do pagamento continua, agora sem dono.
+    3. wipeLocalData → clearAll (context/CoupleContext.js) → cancela o push e o
+       lembrete, apaga a sessão do funil no servidor (POST /api/track/forget) e
+       roda deleteAllCoupleData (lib/coupleData.js).
+
+  O QUE NÃO SAI, e por isso está na lista do que fica:
+    · cosmic-journal (o Diário) e cosmic-jornada-v1 — lib/coupleData.js diz, com
+      todas as letras, que ficam de fora de propósito.
+    · social_profiles / social_posts / social_comments / social_blocks /
+      moderation_reports — deleteAccountData não conhece nenhuma delas.
+    · o passo 3 só existe quando a exclusão é feita PELO APP; pedido por e-mail
+      não alcança o aparelho de ninguém.
+  Até 19/08/2026 esta página prometia que a exclusão apagava o diário. Não
+  apagava. Texto que promete o que o código não faz é defeito, não redação.
 -->
 <style>
   :root {
@@ -93,18 +114,36 @@
       <li>Sua conta de login (e-mail e senha) e todas as sessões abertas.</li>
       <li>O vínculo entre a sua conta e qualquer assinatura.</li>
       <li>A contagem de uso das leituras com IA.</li>
-      <li>Tudo que ficava salvo no aparelho: nomes, signos, datas de nascimento,
-        diário, check-ins e a sequência do casal.</li>
+      <li>Quando você exclui <strong>pelo app</strong>, saem também deste aparelho os
+        nomes, signos, datas e horas de nascimento, a cidade e a sequência do
+        casal — e saem do nosso servidor a inscrição do lembrete diário e o
+        histórico anônimo de passos deste aparelho. Pedido por e-mail não
+        alcança o seu aparelho: para limpá-lo, use o botão do próprio app.</li>
     </ul>
 
     <h3>O que continua guardado, e por quê</h3>
     <ul>
+      <li><strong>O Diário Cósmico continua neste aparelho.</strong> Ele é texto que
+        você escreveu, e apagar mais do que foi pedido é tão ruim quanto apagar
+        menos — então cada entrada sai por você, dentro do próprio Diário, antes
+        de excluir a conta.</li>
+      <li><strong>O que você publicou no feed social</strong> — apelido, @, emoji do
+        avatar, publicações e comentários — continua no ar e visível. Apague
+        publicação por publicação dentro do feed <strong>antes</strong> de excluir a
+        conta: depois não há mais login para fazer isso pelo app, e a remoção
+        passa a depender de um pedido por e-mail.</li>
+      <li><strong>Denúncias e bloqueios</strong> (o motivo, o texto denunciado, quem
+        denunciou e quem foi denunciado) ficam na fila de moderação sem prazo
+        para sair: é o que permite julgar uma denúncia depois que o conteúdo
+        original é apagado. Excluir a conta não apaga essas linhas.</li>
       <li><strong>Registro de pagamento</strong> (data, valor, meio de pagamento e o
         e-mail usado na compra): mantido por obrigação fiscal e para lidar com
         estorno ou contestação. Ele deixa de estar ligado à sua conta, que não
         existe mais.</li>
-      <li><strong>Estatísticas de navegação anônimas</strong>: nunca tiveram nome,
-        e-mail ou endereço de IP — não há como ligá-las a você.</li>
+      <li><strong>Estatísticas de navegação anônimas de outros aparelhos</strong> e os
+        check-ins da Chama do Casal (um código embaralhado do par mais um id
+        aleatório de aparelho): nunca tiveram nome, e-mail ou endereço de IP —
+        não há como ligá-los a você.</li>
     </ul>
 
     <h3>Assinatura ativa</h3>
@@ -142,16 +181,35 @@
       <li>Tu cuenta de acceso (correo y contraseña) y todas las sesiones.</li>
       <li>El vínculo entre tu cuenta y cualquier suscripción.</li>
       <li>El conteo de uso de las lecturas con IA.</li>
-      <li>Los datos guardados en el dispositivo: nombres, signos, fechas de
-        nacimiento, diario, check-ins y la racha de la pareja.</li>
+      <li>Cuando eliminas <strong>desde la app</strong>, salen también de este
+        dispositivo los nombres, signos, fechas y horas de nacimiento, la ciudad
+        y la racha de la pareja — y salen de nuestro servidor la suscripción del
+        recordatorio diario y el historial anónimo de pasos de este dispositivo.
+        Un pedido por correo no llega a tu dispositivo: para limpiarlo, usa el
+        botón de la propia app.</li>
     </ul>
 
     <h3>Qué se conserva, y por qué</h3>
     <ul>
+      <li><strong>El Diario Cósmico sigue en este dispositivo.</strong> Es texto que
+        escribiste, y borrar más de lo prometido es tan malo como borrar menos:
+        cada entrada la borras vos, dentro del propio Diario, antes de eliminar
+        la cuenta.</li>
+      <li><strong>Lo que publicaste en el feed social</strong> — apodo, @, emoji del
+        avatar, publicaciones y comentarios — sigue en línea y visible. Borra
+        publicación por publicación dentro del feed <strong>antes</strong> de eliminar
+        la cuenta: después no queda acceso para hacerlo desde la app, y la
+        eliminación pasa a depender de un pedido por correo.</li>
+      <li><strong>Reportes y bloqueos</strong> (el motivo, el texto reportado, quién
+        reportó y a quién) quedan en la fila de moderación sin plazo para salir:
+        es lo que permite juzgar un reporte después de que el contenido original
+        se borra. Eliminar la cuenta no borra esas líneas.</li>
       <li><strong>El registro de pago</strong> (fecha, importe y correo de la compra),
         por obligación fiscal y para gestionar reembolsos. Deja de estar ligado a
         tu cuenta.</li>
-      <li><strong>Estadísticas de navegación anónimas</strong>, sin nombre, correo ni IP.</li>
+      <li><strong>Estadísticas de navegación anónimas de otros dispositivos</strong> y
+        los check-ins de la Llama de la Pareja (un código cifrado de la pareja
+        más un id aleatorio de dispositivo): sin nombre, correo ni IP.</li>
     </ul>
 
     <h3>Suscripción activa</h3>
@@ -189,17 +247,34 @@
       <li>Your login account (email and password) and every active session.</li>
       <li>The link between your account and any subscription.</li>
       <li>The usage counter for AI readings.</li>
-      <li>Everything stored on the device: names, signs, birth dates, journal,
-        check-ins and the couple streak.</li>
+      <li>When you delete <strong>from inside the app</strong>, this device also loses
+        the names, signs, birth dates and times, the city and the couple streak —
+        and our server loses the daily reminder subscription and this device's
+        anonymous history of steps. An email request cannot reach your device: to
+        wipe it, use the button in the app itself.</li>
     </ul>
 
     <h3>What is kept, and why</h3>
     <ul>
+      <li><strong>The Cosmic Diary stays on this device.</strong> It is text you wrote,
+        and deleting more than was promised is as bad as deleting less — so each
+        entry is removed by you, from inside the Diary itself, before you delete
+        the account.</li>
+      <li><strong>Whatever you posted in the social feed</strong> — display name,
+        @handle, avatar emoji, posts and comments — stays online and visible.
+        Delete your posts one by one inside the feed <strong>before</strong> deleting
+        the account: afterwards there is no login left to do it from the app, and
+        removal depends on an email request.</li>
+      <li><strong>Reports and blocks</strong> (the reason, the reported text, who
+        reported and who was reported) stay in the moderation queue with no
+        expiry: that is what makes a report judgeable after the original content
+        is gone. Deleting the account does not remove those rows.</li>
       <li><strong>Payment records</strong> (date, amount, payment method and the email
         used at checkout) are kept to meet tax obligations and to handle refunds
         or chargebacks. They are no longer linked to your account.</li>
-      <li><strong>Anonymous usage statistics</strong>, which never contained a name,
-        email or IP address.</li>
+      <li><strong>Anonymous usage statistics from other devices</strong> and the Couple
+        Flame check-ins (a scrambled code for the pair plus a random device id),
+        which never contained a name, email or IP address.</li>
     </ul>
 
     <h3>Active subscription</h3>

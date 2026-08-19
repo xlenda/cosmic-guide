@@ -1,0 +1,39 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;500&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1024px; height:500px; overflow:hidden; }
+  .card {
+    position:relative; width:1024px; height:500px;
+    background:#0E0821 url('fundo-1.jpg') center 38% / cover no-repeat;
+    display:flex; align-items:center;
+  }
+  /* o texto precisa de contraste garantido — o Google sobrepoe elementos as vezes */
+  .veu {
+    position:absolute; inset:0;
+    background:linear-gradient(100deg, rgba(14,8,33,.94) 0%, rgba(14,8,33,.80) 38%, rgba(14,8,33,.12) 68%, rgba(14,8,33,0) 100%);
+  }
+  .texto { position:relative; padding-left:76px; max-width:620px; }
+  h1 {
+    font-family:'Cormorant Garamond', Georgia, serif;
+    font-size:82px; font-weight:500; line-height:1;
+    color:#F4E4BC; letter-spacing:-1px;
+    text-shadow:0 2px 30px rgba(0,0,0,.5);
+  }
+  .risco { width:88px; height:2px; background:linear-gradient(90deg,#D4AF62,rgba(212,175,98,0)); margin:22px 0 20px; }
+  p {
+    font-family:'Inter', system-ui, sans-serif;
+    font-size:25px; font-weight:300; line-height:1.45;
+    color:#E8DFF5; letter-spacing:.2px;
+  }
+  .estrela { position:absolute; border-radius:50%; background:#fff; }
+</style></head>
+<body><div class="card">
+  <div class="veu"></div>
+  <div class="texto">
+    <h1>Cosmic Guide</h1>
+    <div class="risco"></div>
+    <p>Mapa astral, tarot e leituras diárias —<br>sozinho ou com quem você ama.</p>
+  </div>
+</div></body></html>

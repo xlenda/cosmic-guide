@@ -115,6 +115,16 @@ test("bloquear tira os posts do feed NO SERVIDOR, nos dois sentidos", async () =
   const depois = await supertest(app).get("/api/social/feed").set(auth("b1"));
   assert.equal(depois.body.posts.filter((p) => p.user_id === "b2").length, 0, "quem bloqueia deixa de ver");
 
+  // O corte do "seguir" nos dois sentidos é o OUTRO mecanismo do bloqueio (o
+  // filtro do feed é a reserva). Sem esta linha, apagar a limpeza de follow
+  // passava verde — as asserções acima ficam de pé só com o filtro.
+  const vinculos = db
+    .prepare(
+      "SELECT COUNT(*) c FROM social_follows WHERE (follower_id = 'b1' AND followee_id = 'b2') OR (follower_id = 'b2' AND followee_id = 'b1')"
+    )
+    .get().c;
+  assert.equal(vinculos, 0, "bloquear tem que cortar o 'seguir' dos dois lados");
+
   const doOutroLado = await supertest(app).get("/api/social/feed").set(auth("b2"));
   assert.equal(doOutroLado.body.posts.filter((p) => p.user_id === "b1").length, 0, "quem foi bloqueado também deixa de ver");
 
@@ -127,6 +137,43 @@ test("bloquear tira os posts do feed NO SERVIDOR, nos dois sentidos", async () =
   assert.equal(busca.body.profiles.filter((p) => p.user_id === "b2").length, 0);
   const direto = await supertest(app).get("/api/social/users/b2").set(auth("b1"));
   assert.equal(direto.status, 404);
+});
+
+// O teste acima passa VERDE mesmo se as duas cláusulas de social_blocks
+// sumirem do GET /feed: bloquear também apaga os follows, e sem follow o post
+// já não entrava no feed. Os dois mecanismos se cobriam, e o de reserva — o
+// que existe "pro caso em que a limpeza de follow falhe" (socialRoutes.js:216)
+// — era justamente o único sem cobertura. Provado por mutação: apagar as duas
+// cláusulas deixava a suíte inteira verde.
+//
+// Este aqui ressuscita o follow por baixo do bloqueio, que é exatamente o
+// estado que as cláusulas existem pra cobrir — some uma delas, fica vermelho.
+test("o filtro de bloqueio do feed segura sozinho, mesmo com o follow de volta", async () => {
+  await perfil("f1", "filtrador");
+  await perfil("f2", "filtrado");
+  await postar("f2", "Post do filtrado", "corpo");
+  await postar("f1", "Post do filtrador", "corpo");
+  await supertest(app).post("/api/moderation/block").set(auth("f1")).send({ blockedUserId: "f2" }).expect(200);
+
+  const revive = db.prepare(
+    "INSERT OR IGNORE INTO social_follows (follower_id, followee_id, created_at) VALUES (?, ?, ?)"
+  );
+  revive.run("f1", "f2", new Date().toISOString());
+  revive.run("f2", "f1", new Date().toISOString());
+
+  const deQuemBloqueou = await supertest(app).get("/api/social/feed").set(auth("f1"));
+  assert.equal(
+    deQuemBloqueou.body.posts.filter((p) => p.user_id === "f2").length,
+    0,
+    "quem bloqueia não pode ver o bloqueado nem com o follow de volta"
+  );
+
+  const deQuemFoiBloqueado = await supertest(app).get("/api/social/feed").set(auth("f2"));
+  assert.equal(
+    deQuemFoiBloqueado.body.posts.filter((p) => p.user_id === "f1").length,
+    0,
+    "quem foi bloqueado não pode ver quem bloqueou nem com o follow de volta"
+  );
 });
 
 test("comentário de quem eu bloqueei some até dos MEUS posts", async () => {

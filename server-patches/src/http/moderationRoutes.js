@@ -162,7 +162,8 @@ router.delete("/block", blockLimiter, requireAuth, (req, res) => {
   if (!alvo) return;
   // Desbloquear NÃO refaz o follow que o bloqueio desfez — quem seguia precisa
   // seguir de novo. Recriar sozinho seria reconstruir um vínculo que a pessoa
-  // mandou cortar.
+  // mandou cortar. Por isso o botão do app é "Desbloquear" e não "Desfazer"
+  // (screens/SocialScreen.js): o rótulo tem que caber no que esta rota faz.
   db.prepare("DELETE FROM social_blocks WHERE user_id = ? AND blocked_user_id = ?").run(req.userId, alvo);
   res.json({ ok: true });
 });

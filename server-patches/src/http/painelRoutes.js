@@ -298,7 +298,12 @@ async function carregar() {
     den.fila.forEach(function(d){
       html += '<div class="den"><div class="dencab">#'+d.id+' · '+esc(d.kind)+' · '+esc(d.reason)+' · '+String(d.quando||'').replace('T',' ')+'</div>'
         + '<div class="dentrecho">'+esc(d.trecho||'(conteúdo não disponível — apagado antes da análise)')+'</div>'
-        + '<div class="denbtns"><button onclick="moderar('+d.id+',1)">Remover</button>'
+        // 'Remover' só aparece onde há conteúdo pra apagar: POST
+        // /api/admin/reports/:id devolve 400 pra kind 'ai' e 'user', e um botão
+        // que só responde "falhou: 400" é pior que botão nenhum. Nessas linhas
+        // sobra Arquivar, que resolve a denúncia do mesmo jeito.
+        + '<div class="denbtns">'
+        + (d.kind === 'post' || d.kind === 'comment' ? '<button onclick="moderar('+d.id+',1)">Remover</button>' : '')
         + '<button class="alt" onclick="moderar('+d.id+',0)">Arquivar</button></div></div>';
     });
     html += '</div>';

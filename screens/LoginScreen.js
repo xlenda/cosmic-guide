@@ -77,8 +77,11 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     const result = await signInWithGoogle();
     setGoogleLoading(false);
+    // result.error é CHAVE de i18n (lib/supabaseClient.js), não texto pronto —
+    // antes o erro cru do Google/Supabase chegava aqui em inglês e ia direto
+    // pra tela de quem usa o app em pt/es.
     if (result.error) {
-      setError(result.error);
+      setError(t(result.error));
       return;
     }
     if (result.concluido) concluirLogin();
@@ -101,7 +104,7 @@ export default function LoginScreen() {
     const result = await resetPassword(email.trim());
     setResetting(false);
     if (result?.error) {
-      setError(result.error);
+      setError(t(result.error));
       return;
     }
     setInfo(t('login.forgot.sent'));
@@ -135,7 +138,7 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (result.error) {
-      setError(result.error);
+      setError(t(result.error));
       return;
     }
     if (result.needsConfirmation) {

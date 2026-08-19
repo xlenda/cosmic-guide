@@ -161,11 +161,16 @@ function PostCard({ post, myUserId, onToggleLike, onOpenComments, onOpenProfile,
 function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
   const { t } = useLanguage();
   const [data, setData] = useState(null);
+  const [erro, setErro] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // Desde o bloqueio, GET /users/:userId devolve 404 pra quem te bloqueou — e
+  // sem estado de erro o painel ficava com o spinner girando pra sempre.
   useFocusEffect(
     useCallback(() => {
-      getSocialUserProfile(userId).then(setData).catch(() => setData(null));
+      getSocialUserProfile(userId)
+        .then((d) => { setData(d); setErro(false); })
+        .catch(() => setErro(true));
     }, [userId])
   );
 
@@ -197,7 +202,9 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
-        {!data ? (
+        {erro ? (
+          <Text style={styles.emptyComments}>{t('social.profileUnavailable')}</Text>
+        ) : !data ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 20, marginBottom: 20 }} />
         ) : (
           <>
@@ -494,16 +501,19 @@ export default function SocialScreen() {
   // do servidor, bloquear tira a pessoa do feed no SERVIDOR (o filtro local
   // abaixo é só pra tela não esperar o próximo carregamento).
   //
-  // ponytail: o único desfazer é o botão do diálogo logo depois de bloquear —
-  // não existe tela de "bloqueados". Vale criar quando alguém pedir pra
-  // desbloquear depois do fato (DELETE /api/moderation/block já atende).
+  // O bloqueio apaga o "seguir" dos dois lados no servidor e o desbloqueio NÃO
+  // refaz (moderationRoutes.js) — por isso o botão do diálogo é "Desbloquear",
+  // não "Desfazer": prometer desfazer seria mentir sobre o que a rota entrega.
+  //
+  // ponytail: o único caminho de desbloqueio é esse botão — não existe tela de
+  // "bloqueados". Vale criar quando alguém pedir pra desbloquear depois.
   const moderar = useCallback(
     (kind, targetId, targetUserId) => {
       const denunciar = () => {
         const enviar = (reason) =>
           reportContent({ kind, targetId, reason })
-            .then(() => Alert.alert(t('report.thanks.title'), t('report.thanks.body')))
-            .catch((e) => Alert.alert(t('social.mod.failed'), e.message));
+            .then(() => Alert.alert(t('report.thanks.title'), t('report.thanks.body'), [{ text: t('common.ok') }]))
+            .catch(() => Alert.alert(t('social.mod.failed'), t('social.mod.failedBody')));
         Alert.alert(t('social.mod.report'), t('social.mod.reportBody'), [
           { text: t('report.reason.offensive'), onPress: () => enviar('ofensivo') },
           { text: t('social.mod.reasonSpam'), onPress: () => enviar('spam') },
@@ -522,14 +532,24 @@ export default function SocialScreen() {
                 setActiveComments(null);
                 setActiveProfileUserId(null);
                 setPosts((prev) => prev.filter((p) => p.user_id !== targetUserId));
-                // Desfazer no mesmo diálogo: bloquear por engano no meio de um
-                // feed é fácil, e sem isto não haveria caminho nenhum de volta.
+                // Desbloquear no mesmo diálogo: bloquear por engano no meio de
+                // um feed é fácil, e sem isto não haveria caminho de volta. O
+                // erro APARECE — falhar calado deixaria a pessoa achando que
+                // desbloqueou com o bloqueio ainda de pé.
                 Alert.alert(t('social.mod.blockedTitle'), t('social.mod.blockedBody'), [
-                  { text: t('social.mod.undo'), onPress: () => unblockSocialUser(targetUserId).then(load).catch(() => {}) },
+                  {
+                    // A chave ainda se chama 'undo' por herança, mas o rótulo
+                    // agora é "Desbloquear" nas 3 línguas: é o que a rota faz.
+                    text: t('social.mod.undo'),
+                    onPress: () =>
+                      unblockSocialUser(targetUserId)
+                        .then(load)
+                        .catch(() => Alert.alert(t('social.mod.failed'), t('social.mod.failedBody'))),
+                  },
                   { text: t('common.ok'), style: 'cancel' },
                 ]);
-              } catch (e) {
-                Alert.alert(t('social.mod.failed'), e.message);
+              } catch {
+                Alert.alert(t('social.mod.failed'), t('social.mod.failedBody'));
               }
             },
           },

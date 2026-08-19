@@ -154,11 +154,13 @@ test('desistir do login não vira erro na tela', async () => {
   assert.deepEqual(r, {});
 });
 
-test('erro que volta na URL é mostrado e não tenta trocar código', async () => {
+// O erro que volta na URL é sempre inglês do Supabase/Google; o módulo devolve
+// CHAVE de i18n pra tela traduzir, nunca o texto cru.
+test('erro que volta na URL vira chave de i18n e não tenta trocar código', async () => {
   const antes = registro.exchange.length;
   deepLinkDeVolta = 'cosmicguide://?error=access_denied&error_description=Login+cancelado';
   const r = await auth.signInWithGoogle();
-  assert.equal(r.error, 'Login cancelado');
+  assert.equal(r.error, 'login.error.generic');
   assert.equal(registro.exchange.length, antes);
 });
 
@@ -166,9 +168,29 @@ test('rede caindo no meio da troca vira mensagem, não promessa rejeitada', asyn
   exchangeExplode = true;
   deepLinkDeVolta = 'cosmicguide://?code=caiu-a-rede';
   const r = await auth.signInWithGoogle();
-  assert.equal(r.error, 'Network request failed');
+  assert.equal(r.error, 'login.error.generic');
   assert.equal(r.concluido, undefined);
   exchangeExplode = false;
+});
+
+// Aparelho sem navegador (ActivityNotFoundException) ou uma aba de auth já
+// aberta: o expo-web-browser RE-LANÇA. Se a exceção subir, o
+// setGoogleLoading(false) da LoginScreen nunca roda e a tela fica girando pra
+// sempre — sem segundo toque possível, porque o botão já é o ActivityIndicator.
+test('navegador que não abre vira erro na tela, não tela girando pra sempre', async () => {
+  const original = webBrowserMock.openAuthSessionAsync;
+  webBrowserMock.openAuthSessionAsync = async () => {
+    throw new Error('No matching activity found');
+  };
+  const antes = registro.exchange.length;
+  try {
+    const r = await auth.signInWithGoogle();
+    assert.equal(r.error, 'login.error.generic');
+    assert.equal(r.concluido, undefined);
+    assert.equal(registro.exchange.length, antes);
+  } finally {
+    webBrowserMock.openAuthSessionAsync = original;
+  }
 });
 
 test('confirmação de e-mail e recuperação de senha voltam pro app, não pro site', async () => {

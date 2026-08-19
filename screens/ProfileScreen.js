@@ -273,18 +273,31 @@ export default function ProfileScreen() {
     ]);
   }
 
+  // A conta JÁ morreu quando isto aparece — por isso o título é "Conta apagada"
+  // mesmo aqui. O corpo lista só o que REALMENTE sobrou: dizer "apagamos tudo"
+  // sem ter apagado é o defeito que este fluxo inteiro existe pra consertar.
+  function avisoParcial(backendOk, localOk) {
+    const partes = [];
+    if (!backendOk) partes.push(t('profile.delete.partialText'));
+    if (!localOk) partes.push(t('profile.delete.partialDevice'));
+    Alert.alert(t('profile.delete.partialTitle'), partes.join('\n\n'));
+  }
+
   // A EXCLUSÃO DE VERDADE. Até 19/08/2026 isto só fazia clearAll()+signOut() — a
   // conta continuava viva no Supabase e a assinatura continuava ligada a ela,
   // mas a tela dizia que tinha apagado.
   //
-  // ORDEM: o IRREVERSÍVEL VEM PRIMEIRO. Apagar o login é o passo com mais chance
-  // de falhar por conta própria (a função SQL é aplicada À MÃO no Supabase; se o
-  // build subir antes dela, TODA tentativa falha) — e enquanto ele não passa,
-  // nada foi destruído e dá pra tentar de novo com os dados no lugar. Na ordem
-  // inversa a falha era DESTRUTIVA: a assinatura já desvinculada e a cota de IA
-  // já apagada, embaixo de uma tela dizendo "não apagamos nada". Depois que o
-  // RPC passa não existe mais "tentar de novo" — backend e aparelho são limpos
-  // de qualquer jeito, e o que sobrar é dito na cara da pessoa.
+  // ORDEM (decidida em 19/08/2026, depois de duas revisões discordarem):
+  // a CONTA primeiro. O critério é o da política do Google Play — o que ela
+  // exige é que a conta seja apagada; conta que sobrevive é violação frontal.
+  // O que pode sobrar do outro lado (uma assinatura desvinculada e a cota de IA)
+  // é lixo órfão no NOSSO backend, recuperável por outro caminho (suporte com o
+  // e-mail da pessoa). Um risco é de política, o outro é de faxina — e enquanto
+  // o RPC não passa nada foi destruído e dá pra tentar de novo com tudo no
+  // lugar. O preço aceito: se o passo 2 falhar, a linha de assinatura fica com
+  // o uuid de uma conta morta. Por isso o passo 2 tem retry (deleteAccountData)
+  // e o que sobrar é dito na cara da pessoa, com o que ela precisa pra pedir
+  // ajuda. NÃO reinverter sem reler isto (test/accountAccess.test.js trava).
   async function deleteAccountForReal() {
     if (deletingAccount) return;
     setDeletingAccount(true);
@@ -302,13 +315,21 @@ export default function ProfileScreen() {
       contaApagada = true;
       // 2) Dados no backend próprio (assinatura desvinculada, cota de IA zerada).
       const backend = await deleteAccountData(token);
-      // 3) O aparelho.
-      await wipeLocalData();
-      if (!backend.ok) Alert.alert(t('profile.delete.partialTitle'), t('profile.delete.partialText'));
+      // 3) O aparelho. Isolado: se clearAll/signOut/popToTop lançar, a pessoa
+      //    acabou de fazer algo irreversível e NÃO pode ficar sem resposta —
+      //    o aviso abaixo é a única coisa que ela ainda vai ver.
+      let localOk = true;
+      try {
+        await wipeLocalData();
+      } catch {
+        localOk = false;
+      }
+      if (!backend.ok || !localOk) avisoParcial(backend.ok, localOk);
     } catch {
       // Depois do RPC a conta JÁ foi apagada — falhouApagar() diria que nada foi
       // apagado, que seria mentira.
-      if (!contaApagada) falhouApagar();
+      if (contaApagada) avisoParcial(false, false);
+      else falhouApagar();
     } finally {
       setDeletingAccount(false);
     }
