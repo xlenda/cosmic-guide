@@ -50,3 +50,7 @@ google-play-service-account*.json
 # (`> nul` em vez de `2>nul`) cria um arquivo com esse nome, e um repo que o
 # contenha quebra o `git clone` de qualquer um no Windows.
 nul
+
+# projeto nativo gerado pelo prebuild (CNG) — o EAS regera no servidor
+android/
+ios/
