@@ -11,9 +11,14 @@
 //   GET /api/admin/metrics   — os números, atrás do MESMO X-Admin-Token das
 //                              rotas admin (timing-safe, 503 sem configurar).
 //
-// O login guarda o token no localStorage do aparelho do dono; o atalho
-// /painel?t=TOKEN grava e LIMPA a URL (replaceState) pra não ficar token em
-// histórico de navegação.
+// O login guarda o token no localStorage do aparelho do dono; o atalho de
+// entrada é /painel#t=TOKEN — FRAGMENTO, não query string. Fragmento é a única
+// parte da URL que o navegador nunca manda pro servidor, então o token não cai
+// no access.log do nginx (que grava query string e é compartilhado com os
+// outros sites do servidor). O antigo ?t=TOKEN foi removido por isso mesmo
+// (auditoria de 19/08/2026): virou risco de verdade quando a moderação deu a
+// este token o poder de APAGAR conteúdo. Depois do primeiro acesso o link nem
+// é mais preciso — o token fica no localStorage do aparelho.
 //
 // CADA BLOCO DE MÉTRICA É INDEPENDENTE (try/catch próprio devolvendo null):
 // uma tabela com schema diferente do esperado derruba SÓ o card dela, nunca o
@@ -22,6 +27,7 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const { db } = require("../infrastructure/db");
 const { timingSafeStringEqual } = require("../infrastructure/timingSafeCompare");
 
@@ -232,9 +238,18 @@ const HTML = `<!DOCTYPE html>
 <div id="painel" style="display:none"></div>
 <script>
 const CHAVE = 'cg-painel-token';
-// Atalho ?t=TOKEN: guarda e LIMPA a URL — token não fica em histórico.
+// Atalho #t=TOKEN (FRAGMENTO): guarda e LIMPA a URL. O fragmento nunca sai do
+// navegador — não vai pro log do nginx, ao contrário do ?t= que existia aqui.
 const u = new URL(location.href);
-if (u.searchParams.get('t')) { localStorage.setItem(CHAVE, u.searchParams.get('t')); history.replaceState(null,'',u.pathname); }
+const doFragmento = new URLSearchParams(u.hash.slice(1)).get('t');
+if (doFragmento) { localStorage.setItem(CHAVE, doFragmento); history.replaceState(null,'',u.pathname); }
+else if (u.searchParams.get('t')) {
+  // Favorito antigo. O token JÁ foi parar no log do servidor só de abrir isto,
+  // então aceitá-lo não protegeria nada — recusa e avisa, uma vez só, até ele
+  // trocar o "?" por "#" no favorito.
+  history.replaceState(null,'',u.pathname);
+  alert('O atalho ?t= saiu de circulação: a query string vai inteira pro log do servidor. Troque o "?" por "#" no seu favorito (/painel#t=SEUTOKEN) ou cole o token no campo abaixo.');
+}
 
 function entrar() { localStorage.setItem(CHAVE, document.getElementById('tok').value.trim()); carregar(); }
 function sair() { localStorage.removeItem(CHAVE); location.reload(); }
@@ -267,7 +282,19 @@ async function carregar() {
   const tok = localStorage.getItem(CHAVE);
   if (!tok) return;
   const r = await fetch('/api/admin/metrics', { headers: { 'X-Admin-Token': tok } });
-  if (!r.ok) { document.getElementById('erro').textContent = r.status===401 ? 'token errado' : 'erro '+r.status; localStorage.removeItem(CHAVE); return; }
+  if (!r.ok) {
+    document.getElementById('erro').textContent = r.status===401 ? 'token errado' : (r.status===429 ? 'muitas tentativas — espere alguns minutos' : 'erro '+r.status);
+    // SÓ o 401 apaga o token salvo. Antes, qualquer 429/500 passageiro (o
+    // painel recarrega sozinho de 60 em 60s) deslogava o dono por um erro que
+    // não era dele. E quando o token realmente morre, a tela de login volta —
+    // senão o painel ficaria congelado com número velho depois de uma rotação.
+    if (r.status === 401) {
+      localStorage.removeItem(CHAVE);
+      document.getElementById('login').style.display='block';
+      document.getElementById('painel').style.display='none';
+    }
+    return;
+  }
   const m = await r.json();
   const dias14 = ultimosDias(14), hoje = m.hoje;
   const f = m.funil||[];
@@ -397,7 +424,25 @@ function buildPainelRouter({ adminToken }) {
     res.type("html").send(HTML);
   });
 
-  router.get("/api/admin/metrics", (req, res) => {
+  // Freio de força bruta no ADMIN_TOKEN, mesmo padrão do adminLimiter de
+  // adminRoutes.js. Não é redundância com ele: hoje o adminRouter está montado
+  // ANTES no server.js e acaba cobrindo esta rota por acidente de ordem — uma
+  // reordenação silenciosa devolveria a porta aberta. O freio mora junto da
+  // rota que ele protege.
+  //
+  // skipSuccessfulRequests: só tentativa QUE FALHOU gasta o balde. O painel se
+  // atualiza sozinho de 60 em 60s; se acerto contasse, o dono deixando a página
+  // aberta se auto-bloquearia em 30 minutos.
+  const metricsLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 30,
+    skipSuccessfulRequests: true,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "muitas tentativas — tente novamente em alguns minutos" },
+  });
+
+  router.get("/api/admin/metrics", metricsLimiter, (req, res) => {
     // Mesma disciplina das rotas admin: sem token configurado a porta nem
     // existe (503), e a comparação é timing-safe.
     if (!adminToken) return res.status(503).json({ error: "painel não configurado (ADMIN_TOKEN ausente)" });

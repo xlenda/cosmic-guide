@@ -106,8 +106,8 @@ https://cosmicguide.cloud/cosmic-guide/privacidade
 
 | Asset | Tamanho | Status |
 |---|---|---|
-| Icone da loja | 512x512 PNG | derivar de assets/icon.png (1024) |
-| Grafico de destaque | 1024x500 PNG | a gerar |
-| Screenshots celular | min 2, max 8 | a gerar do app rodando |
+| Icone da loja | 512x512 PNG | PRONTO: assets/icone-loja-512.png |
+| Grafico de destaque | 1024x500 PNG | PRONTO: assets/feature-graphic.png |
+| Screenshots celular | min 2, max 8 | PRONTO: 8 em 1080x1920, ver assets/COMO-USAR.md |
 | Screenshot tablet | opcional | pular na v1 |
 

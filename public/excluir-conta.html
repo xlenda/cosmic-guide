@@ -33,11 +33,21 @@
     1. supabase.rpc('delete_own_account') → apaga a linha de auth.users e, em
        cascata, identities/sessions/refresh_tokens (supabase/001_delete_own_account.sql).
     2. DELETE /api/subscription/account → deleteAccountData (server-patches/src/
-       http/server.js) desvincula subscriptions e apaga ai_free_quota. MAIS NADA:
-       a linha do pagamento continua, agora sem dono.
+       http/server.js) desvincula subscriptions e grava a lápide de revogação
+       (revoked_accounts, migração 017). MAIS NADA: a linha do pagamento
+       continua, agora sem dono, e a contagem de uso da IA (ai_free_quota) FICA
+       — está na lista do que continua guardado, com o motivo.
     3. wipeLocalData → clearAll (context/CoupleContext.js) → cancela o push e o
        lembrete, apaga a sessão do funil no servidor (POST /api/track/forget) e
        roda deleteAllCoupleData (lib/coupleData.js).
+
+  O RECIBO DE "todas as sessões abertas" (a frase mais fácil de virar mentira
+  desta página): o passo 1 derruba sessions/refresh_tokens no Supabase, então
+  nenhum token NOVO é emitido; e o passo 2 grava o uuid em revoked_accounts, que
+  o requireAuth (server-patches/src/http/socialAuth.js) consulta em TODA
+  requisição autenticada — o access token que já estava na mão vira 401 na hora,
+  em vez de valer até o exp. Antes de 19/08/2026 só o passo 1 existia e essa
+  frase prometia mais do que o código fazia.
 
   O QUE NÃO SAI, e por isso está na lista do que fica:
     · cosmic-journal (o Diário) e cosmic-jornada-v1 — lib/coupleData.js diz, com

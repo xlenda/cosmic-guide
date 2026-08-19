@@ -10,9 +10,17 @@ const { timingSafeStringEqual } = require("../infrastructure/timingSafeCompare")
 function buildAdminRouter({ repository, adminToken }) {
   const router = express.Router();
 
+  // O que este balde existe pra impedir é adivinhação de token — ou seja,
+  // tentativa QUE FALHA. Contar acerto quebrava o uso real desde que o Painel
+  // ganhou a fila de moderação: ela lista até 30 denúncias, cada clique é um
+  // POST /reports/:id mais um reload das métricas (que cai neste mesmo balde,
+  // pela ordem de montagem no server.js), e o dono resolvendo a fila levava um
+  // 429 no meio do trabalho. Com skipSuccessfulRequests o freio segue valendo
+  // pra quem erra o token e some pra quem tem o token certo.
   const adminLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 30,
+    skipSuccessfulRequests: true,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Muitas requisições — tente novamente em alguns minutos." },

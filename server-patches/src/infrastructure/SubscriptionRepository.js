@@ -19,6 +19,12 @@ function normalizeEmailForLookup(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+// Quanto tempo a lápide de revogação (migração 017) fica de pé. O access token
+// do Supabase expira em 1h no padrão e no máximo 1 semana (teto do painel), então
+// 30 dias cobre com folga a única janela em que a lápide serve pra alguma coisa.
+// Passado isso ela seria só o uuid de quem pediu pra ser esquecido.
+const REVOKED_RETENTION_DAYS = 30;
+
 // 'couple' | 'solo'. Até a migração 009 isso vivia SÓ no aparelho (qual chave do
 // AsyncStorage guardou o código). No servidor é derivado de couple_name, que é o
 // único sinal que o checkout já mandava. Escopo explícito ('solo'/'couple')
@@ -299,10 +305,20 @@ class SubscriptionRepository {
     const normalized = normalizeEmailForLookup(email);
     if (!userId || !normalized) return [];
 
+    // linked_by = 'account_deleted' é a lápide que forgetAccount deixa na
+    // linha, e ela vale mais que "sem dono": a pessoa PEDIU pra ser esquecida.
+    // Sem esta condição, uma conta nova com o mesmo e-mail (ou o token ainda
+    // vivo da conta velha, antes da revogação da migração 017) regravava o
+    // e-mail e o uuid na linha que a exclusão tinha acabado de limpar — a
+    // exclusão se desfazendo sozinha. Quem excluiu e quer o acesso de volta
+    // recupera pelo /claim com o código do aparelho ou pelo suporte
+    // (setAccountLink, auditado); nunca de novo por efeito colateral de um GET.
     const candidates = db
       .prepare(`
         SELECT correlation_code FROM subscriptions
-        WHERE LOWER(TRIM(customer_email)) = ? AND supabase_user_id IS NULL
+        WHERE LOWER(TRIM(customer_email)) = ?
+          AND supabase_user_id IS NULL
+          AND COALESCE(linked_by, '') <> 'account_deleted'
       `)
       .all(normalized);
 
@@ -357,9 +373,15 @@ class SubscriptionRepository {
   // A retenção do recibo é declarada na página pública de exclusão
   // (public/excluir-conta.html) — a política do Google aceita reter o que a lei
   // exige, DESDE QUE esteja escrito lá.
+  //
+  // Também é aqui que a LÁPIDE DE REVOGAÇÃO (migração 017) é gravada — é o
+  // único ponto por onde toda exclusão de conta passa. Sem ela, o token da
+  // conta já apagada continuava valendo até o `exp` e o primeiro GET /me
+  // seguinte desfazia o UPDATE acima pelo backfill por e-mail.
   forgetAccount({ supabaseUserId }) {
     const userId = typeof supabaseUserId === "string" ? supabaseUserId.trim() : "";
     if (!userId) return 0;
+    const now = new Date().toISOString();
     const result = db
       .prepare(`
         UPDATE subscriptions
@@ -370,7 +392,22 @@ class SubscriptionRepository {
                updated_at = @now
          WHERE supabase_user_id = @userId
       `)
-      .run({ userId, now: new Date().toISOString() });
+      .run({ userId, now });
+
+    // A LÁPIDE VEM DEPOIS DO UPDATE, nunca antes. A partir do instante em que
+    // ela existe, requireAuth (socialAuth.js) recusa esse token — e o app
+    // REPETE este DELETE quando a resposta se perde (deleteAccountData em
+    // lib/accountSubscription.js tenta 3 vezes). Gravar primeiro e falhar no
+    // UPDATE deixaria a linha do pagamento amarrada pra sempre a um uuid que já
+    // não consegue nem tentar de novo.
+    //
+    // OR IGNORE: revogar de novo não move a data — a hora que importa é a da
+    // primeira exclusão, que é o que a poda abaixo mede.
+    db.prepare("INSERT OR IGNORE INTO revoked_accounts (user_id, revoked_at) VALUES (?, ?)").run(userId, now);
+    db.prepare("DELETE FROM revoked_accounts WHERE revoked_at < ?").run(
+      new Date(Date.now() - REVOKED_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    );
+
     return result.changes;
   }
 

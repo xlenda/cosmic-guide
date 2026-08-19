@@ -16,6 +16,39 @@ const { createRemoteJWKSet, jwtVerify } = require("jose");
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://kroadufkgvymsfzulfzn.supabase.co";
 const JWKS = createRemoteJWKSet(new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`));
 
+// LÁPIDE DE CONTA APAGADA (migração 017, escrita por
+// SubscriptionRepository.forgetAccount).
+//
+// O require é PREGUIÇOSO de propósito, e não por estilo: server-patches é
+// espelho PARCIAL da VPS — src/infrastructure/db.js nem existe aqui — e os
+// testes de rota que trocam o requireAuth por uma auth falsa
+// (test/accountDelete.test.js, test/accountSubscription.test.js) carregam este
+// arquivo sem abrir banco nenhum e sem DATA_DIR isolado. Um require no topo
+// faria esses dois abrirem o SQLite de PRODUÇÃO ao rodar no servidor. Na VPS
+// nada muda: aiQuota, socialRoutes, painelRoutes, trackRoutes e moderationRoutes
+// já exigem db.js no topo, então na primeira requisição isto é um require em
+// cache e uma leitura por chave primária — o mesmo custo que o aiQuota já paga.
+//
+// FALHA É FECHADA, MAS BARULHENTA: se o banco não responder, todo mundo toma
+// 401 — e sem o log ninguém descobriria por quê (já aconteceu: em 18/07 o JWKS
+// apontava pro projeto errado e 100% das chamadas falhavam em silêncio). Na
+// prática o SQLite é local e, se ele caiu, a cota de IA e o feed já caíram
+// junto — fechar aqui não perde nada que já não estivesse perdido.
+let consultaRevogado;
+function contaApagada(userId) {
+  if (!userId) return false;
+  try {
+    if (!consultaRevogado) {
+      const { db } = require("../infrastructure/db");
+      consultaRevogado = db.prepare("SELECT 1 FROM revoked_accounts WHERE user_id = ?");
+    }
+    return Boolean(consultaRevogado.get(userId));
+  } catch (err) {
+    console.error("[socialAuth] não consegui ler revoked_accounts — recusando o token:", err && err.message);
+    return true;
+  }
+}
+
 // Middleware Express: exige um token válido, popula req.userId com o "sub"
 // (UUID estável do usuário) e req.userEmail. Nunca confia em user_id vindo
 // cru do corpo/query da requisição — é sempre derivado do token verificado.
@@ -29,6 +62,26 @@ async function requireAuth(req, res, next) {
       issuer: `${SUPABASE_URL}/auth/v1`,
       audience: "authenticated",
     });
+
+    // CONTA APAGADA — a única checagem aqui que não é sobre o token, e por isso
+    // ela existe (auditoria de 19/08/2026). O Supabase derruba auth.sessions e
+    // auth.refresh_tokens em cascata ao apagar auth.users
+    // (supabase/001_delete_own_account.sql), ou seja: nenhum token NOVO é
+    // emitido. Mas o access token já na mão continua com assinatura válida até
+    // o `exp` (1h no padrão), e jwtVerify não consulta usuário nenhum — então,
+    // sem esta linha, o token de um morto ainda postava no feed, gastava IA e,
+    // no GET /api/subscription/me, fazia o backfill por e-mail REGRAVAR o
+    // e-mail e o uuid dele na linha da assinatura que o DELETE tinha acabado de
+    // desvincular. Exclusão que se desfaz sozinha não é exclusão.
+    //
+    // A ÚNICA exceção é a própria rota de exclusão, que se marca com
+    // req.allowDeletedAccount (accountRoutes.js): ela é idempotente e o app a
+    // REPETE quando a resposta se perde — um 401 ali viraria "não conseguimos
+    // apagar tudo" na cara de quem acabou de apagar tudo.
+    if (!req.allowDeletedAccount && contaApagada(payload.sub)) {
+      return res.status(401).json({ error: "conta apagada", code: "account_deleted" });
+    }
+
     req.userId = payload.sub;
     req.userEmail = payload.email || null;
     // ÚNICA mudança de 26/07/2026 (acesso por conta): expõe o payload já

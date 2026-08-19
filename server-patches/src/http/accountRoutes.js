@@ -135,7 +135,21 @@ function buildAccountRouter({ getAccountSubscription, claimSubscription, require
   // é disparado sozinho pelo auto-vínculo do app, e um balde compartilhado
   // faria a exclusão tomar 429 por causa de tentativa automática — 429 aqui
   // vira "não conseguimos apagar" na cara de quem pediu.
-  router.delete("/account", preAuthLimiter, requireAuth, requireVerifiedEmail, meLimiter, (req, res) => {
+  //
+  // permitirContaApagada: esta é a ÚNICA rota do backend que aceita o token de
+  // uma conta já revogada, e é de propósito. Ela é idempotente (o UPDATE não
+  // acha mais linha, a lápide já está gravada) e o app REPETE o DELETE quando a
+  // resposta se perde — 3 tentativas em deleteAccountData (lib/
+  // accountSubscription.js), porque aqui a conta JÁ morreu e não existe "tentar
+  // de novo mais tarde". Sem esta marca, a segunda tentativa tomaria o 401 de
+  // conta apagada do requireAuth (socialAuth.js) e a tela avisaria "não
+  // conseguimos apagar tudo" depois de ter apagado tudo.
+  function permitirContaApagada(req, _res, next) {
+    req.allowDeletedAccount = true;
+    next();
+  }
+
+  router.delete("/account", preAuthLimiter, permitirContaApagada, requireAuth, requireVerifiedEmail, meLimiter, (req, res) => {
     // server-patches é espelho PARCIAL do que roda na VPS: já aconteceu de uma
     // rota subir sem a linha de mount (/api/track, 03/08). Sem esta guarda, a
     // dependência faltando viraria TypeError 500 sem explicação; com ela, o log

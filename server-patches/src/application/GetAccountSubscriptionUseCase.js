@@ -113,6 +113,15 @@ class GetAccountSubscriptionUseCase {
     // pagamento bate com o e-mail VERIFICADO do login passa a pertencer a esta
     // conta. É o que faz assinante antigo recuperar acesso só logando — sem
     // script de migração, sem service_role key, sem avisar cliente nenhum.
+    //
+    // ESTA ESCRITA DENTRO DE UM GET JÁ DESFEZ UMA EXCLUSÃO DE CONTA
+    // (auditoria de 19/08/2026): com o token da conta apagada ainda válido até
+    // o `exp`, um /me regravava aqui o e-mail e o uuid do morto. Fechado em
+    // DOIS pontos, os dois fora deste arquivo — não reabrir nenhum:
+    //   1. requireAuth (socialAuth.js) recusa o token de conta revogada, então
+    //      este código nem roda (migração 017);
+    //   2. linkUnclaimedByCustomerEmail (SubscriptionRepository.js) ignora
+    //      linha marcada com linked_by='account_deleted', mesmo com token novo.
     if (email && typeof repo.linkUnclaimedByCustomerEmail === "function") {
       try {
         linkedNow = repo.linkUnclaimedByCustomerEmail({ supabaseUserId: userId, email }) || [];
