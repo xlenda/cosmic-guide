@@ -46,31 +46,11 @@ class InitiateCheckoutUseCase {
     const can = (method) => typeof repo[method] === "function";
     const resolvedScope = normalizeScope({ scope, coupleName });
 
-    // O e-mail do checkout é o da SESSÃO quando existe token. Dois motivos:
-    // (1) com token ninguém POSTa o e-mail de outra pessoa e cria uma pendência
-    // "dela"; (2) mandar o e-mail do login no prefilledInfo aumenta a chance de
+    // O e-mail do checkout passa a ser o da SESSÃO quando existe token. Dois
+    // motivos: (1) antes qualquer um podia POSTar o e-mail de outra pessoa e
+    // criar uma pendência "dela", que a cascata do webhook por e-mail poderia
+    // casar; (2) mandar o e-mail do login no prefilledInfo aumenta a chance de
     // o buyerEmail que volta no webhook casar com a linha certa.
-    //
-    // SEM token o e-mail do body continua entrando como veio — e isso NÃO é
-    // descuido, é o preço do funil anônimo (reavaliado e MANTIDO na auditoria
-    // de 19/08/2026). A Hotmart não devolve o xcod no Checkout Elements
-    // embutido (confirmado no payload real de produção, ver
-    // HotmartPaymentProvider), então pra uma compra deslogada o e-mail é a
-    // ÚNICA correlação que existe. Os dois "consertos" óbvios — gravar
-    // customer_email = NULL quando não há sessão, ou marcar a linha como não
-    // confiável e tirá-la dos degraus 4 e 5 da cascata — fariam TODA compra
-    // anônima cair em "assinatura não localizada": o cliente paga e não recebe
-    // nada. É o bug de 26/07 (Carlos) voltando de propósito. Não faça.
-    //
-    // O roubo já está fechado onde dá pra fechar sem quebrar o funil:
-    // findLatestPendingByCustomerEmail põe a linha ligada a uma CONTA cujo
-    // e-mail bate com o do comprador na frente de qualquer linha anônima
-    // (travado em test/subscriptionHijack.test.js), e o app só chama esta rota
-    // logado (PlanosScreen exige getAuthToken antes do initiate). Sobra o caso
-    // anônimo-contra-anônimo, que o servidor não tem como desempatar: os dois
-    // lados são um POST sem prova nenhuma. Fechar esse resto é decisão de
-    // produto — passar o funil velho pro fluxo por LINK (aí o xcod volta no
-    // webhook) ou exigir login nele também —, não uma regra nova aqui.
     const effectiveEmail = supabaseUserId && accountEmail ? accountEmail : customerEmail;
 
     if (supabaseUserId) {

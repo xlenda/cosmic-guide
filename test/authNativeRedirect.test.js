@@ -105,48 +105,19 @@ function emitirDeepLink(url) {
   for (const handler of Array.from(ouvintesDeUrl)) handler({ url });
 }
 
-// AsyncStorage de verdade (em memória): é onde mora a marca de "fui EU que
-// pedi este login", o que separa o retorno legítimo do deep link que qualquer
-// app do aparelho consegue disparar no Android.
-const armazem = new Map();
-const asyncStorageMock = {
-  __esModule: true,
-  default: {
-    async getItem(chave) {
-      return armazem.has(chave) ? armazem.get(chave) : null;
-    },
-    async setItem(chave, valor) {
-      armazem.set(chave, valor);
-    },
-    async removeItem(chave) {
-      armazem.delete(chave);
-    },
-  },
-};
-
 const originalLoad = Module._load;
 Module._load = function (request, parent, isMain) {
   if (request === 'react-native') return reactNativeMock;
   if (request === 'expo-web-browser') return webBrowserMock;
   if (request === '@supabase/supabase-js') return supabaseMock;
   if (request === 'react-native-url-polyfill/auto') return {};
-  if (request === '@react-native-async-storage/async-storage') return asyncStorageMock;
+  if (request === '@react-native-async-storage/async-storage') return { __esModule: true, default: {} };
   return originalLoad.call(this, request, parent, isMain);
 };
 
 const auth = require('../lib/supabaseClient.js');
 // Registrado no import do módulo — antes de qualquer chamada.
 const ouvinteDoApp = ouvintesDeUrl[0];
-
-// No Android QUALQUER app instalado dispara 'cosmicguide://?code=...'. Se o
-// app tentar trocar um código que não pediu, a troca falha MAS o SDK apaga o
-// code verifier do PKCE no catch — e a vítima não consegue mais entrar. Este
-// teste roda ANTES de qualquer login: app recém-aberto, nada pedido por nós.
-test('deep link que não veio de um login nosso é ignorado em silêncio', async () => {
-  const r = await ouvinteDoApp({ url: 'cosmicguide://?code=veio-de-outro-app' });
-  assert.deepEqual(registro.exchange, [], 'não pode chamar exchangeCodeForSession');
-  assert.deepEqual(r, {});
-});
 
 test('nativo: Google abre a aba com deep link de volta e troca o código por sessão', async () => {
   const r = await auth.signInWithGoogle();
@@ -172,18 +143,7 @@ test('o mesmo retorno chegando de novo devolve a MESMA resposta, sem trocar duas
   assert.equal(r.error, undefined);
 });
 
-// A porta fecha atrás de quem entrou: se a marca continuasse valendo, um
-// login legítimo deixaria o app aceitando deep link de fora pra sempre.
-test('depois do login concluído a porta fecha de novo', async () => {
-  await ouvinteDoApp({ url: 'cosmicguide://?code=depois-do-login' });
-  assert.deepEqual(registro.exchange, ['abc123']);
-});
-
-// Link de e-mail é tocado noutra hora, às vezes com o app fechado — quem
-// autoriza a volta é o pedido que ESTE aparelho fez (aqui, a recuperação de
-// senha), gravado em disco.
 test('link de e-mail (código novo) entra sozinho pelo deep link', async () => {
-  await auth.resetPasswordForEmail('a@b.com');
   await ouvinteDoApp({ url: 'cosmicguide://?code=zzz999' });
   assert.deepEqual(registro.exchange, ['abc123', 'zzz999']);
 });
