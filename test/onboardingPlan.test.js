@@ -3,11 +3,17 @@ const assert = require('node:assert/strict');
 
 const {
   ONBOARDING_INTENTS,
+  ONBOARDING_SITUATIONS,
+  ONBOARDING_OUTCOMES,
   buildOnboardingPlan,
   normalizeOnboardingIntent,
+  normalizeOnboardingProfile,
   saveOnboardingIntent,
   getOnboardingIntent,
   clearOnboardingIntent,
+  saveOnboardingProfile,
+  getOnboardingProfile,
+  clearOnboardingProfile,
 } = require('../lib/onboardingPlan.js');
 const { _reiniciarStorageParaTestes } = require('../lib/storage.js');
 
@@ -32,9 +38,54 @@ test('cada resposta muda de verdade a ordem do plano solo', () => {
   assert.deepEqual(buildOnboardingPlan('self', 'solo'), ['birthchart', 'horoscope', 'diary']);
 });
 
+test('cada intenção abre quatro situações próprias e todos os textos são traduzíveis', () => {
+  const ids = [];
+  for (const intent of ONBOARDING_INTENTS) {
+    const situations = ONBOARDING_SITUATIONS[intent.id];
+    assert.equal(situations.length, 4);
+    for (const item of situations) {
+      ids.push(item.id);
+      assert.match(item.labelKey, /^onboarding\.situation\./);
+      assert.match(item.echoKey, /^onboarding\.situation\./);
+      assert.ok(item.firstFeature);
+    }
+  }
+  assert.equal(new Set(ids).size, ids.length);
+  assert.equal(ONBOARDING_OUTCOMES.length, 4);
+});
+
+test('situação e resultado alteram recursos reais, não apenas a frase', () => {
+  assert.deepEqual(
+    buildOnboardingPlan('love', 'solo', { intent: 'love', situation: 'loveClosure', outcome: 'clarity' }),
+    ['diary', 'tarot', 'horoscope']
+  );
+  assert.deepEqual(
+    buildOnboardingPlan('work', 'solo', { intent: 'work', situation: 'workBlock', outcome: 'nextStep' }),
+    ['grounding', 'tarot', 'birthchart']
+  );
+  assert.deepEqual(
+    buildOnboardingPlan('curiosity', 'solo', { intent: 'curiosity', situation: 'curiosityMap', outcome: 'timing' }),
+    ['birthchart', 'horoscope', 'tarot']
+  );
+});
+
+test('perfil não aceita situação de outra intenção nem resposta incompleta', () => {
+  assert.equal(normalizeOnboardingProfile({ intent: 'love', situation: 'workBlock', outcome: 'clarity' }), null);
+  assert.equal(normalizeOnboardingProfile({ intent: 'love', situation: 'loveClosure' }), null);
+  assert.deepEqual(
+    normalizeOnboardingProfile({ intent: 'love', situation: 'loveClosure', outcome: 'patterns', extra: true }),
+    { intent: 'love', situation: 'loveClosure', outcome: 'patterns' }
+  );
+});
+
 test('casal recebe uma trilha própria e começa por compatibilidade', () => {
   for (const item of ONBOARDING_INTENTS) {
     assert.equal(buildOnboardingPlan(item.id, 'couple')[0], 'compatibility');
+    const situation = ONBOARDING_SITUATIONS[item.id][0].id;
+    assert.equal(
+      buildOnboardingPlan(item.id, 'couple', { intent: item.id, situation, outcome: 'clarity' })[0],
+      'compatibility'
+    );
   }
 });
 
@@ -42,6 +93,8 @@ test('valor inválido não é persistido nem vira personalização inventada', a
   assert.equal(normalizeOnboardingIntent('qualquer-coisa'), null);
   assert.equal(await saveOnboardingIntent('qualquer-coisa'), false);
   assert.equal(await getOnboardingIntent(), null);
+  assert.equal(await saveOnboardingProfile({ intent: 'love', situation: 'workBlock', outcome: 'clarity' }), false);
+  assert.equal(await getOnboardingProfile(), null);
 });
 
 test('intenção válida pode ser salva, lida e apagada', async () => {
@@ -49,4 +102,12 @@ test('intenção válida pode ser salva, lida e apagada', async () => {
   assert.equal(await getOnboardingIntent(), 'decision');
   await clearOnboardingIntent();
   assert.equal(await getOnboardingIntent(), null);
+});
+
+test('perfil adaptativo válido pode ser salvo, lido e apagado', async () => {
+  const profile = { intent: 'decision', situation: 'decisionTiming', outcome: 'timing' };
+  assert.equal(await saveOnboardingProfile(profile), true);
+  assert.deepEqual(await getOnboardingProfile(), profile);
+  await clearOnboardingProfile();
+  assert.equal(await getOnboardingProfile(), null);
 });

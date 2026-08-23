@@ -75,6 +75,8 @@ import {
   buildOnboardingPlan,
   getOnboardingIntent,
   getOnboardingIntentDefinition,
+  getOnboardingProfile,
+  getOnboardingSituationDefinition,
 } from '../lib/onboardingPlan';
 
 // Cards do grid que levam a uma LEITURA de verdade (as 9 individuais) — são
@@ -232,6 +234,7 @@ export default function HomeScreen() {
   // Assim que existe uma leitura real no Diário, a Home volta a mostrar as
   // superfícies de continuidade. A intenção apenas ORDENA recursos reais.
   const [onboardingIntent, setOnboardingIntentState] = useState(null);
+  const [onboardingProfile, setOnboardingProfileState] = useState(null);
   const [journalCount, setJournalCount] = useState(null);
   // A Home precisa nascer inteira. O catálogo já ficou atrás deste estado
   // fechado e, na prática, parecia ter sumido para quem entrava no app.
@@ -240,9 +243,10 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      Promise.all([getOnboardingIntent(), getJournalEntries()]).then(([intent, entries]) => {
+      Promise.all([getOnboardingIntent(), getOnboardingProfile(), getJournalEntries()]).then(([intent, profile, entries]) => {
         if (!active) return;
         setOnboardingIntentState(intent);
+        setOnboardingProfileState(profile);
         setJournalCount(Array.isArray(entries) ? entries.length : 0);
       });
       return () => { active = false; };
@@ -813,19 +817,42 @@ export default function HomeScreen() {
         : c
     );
 
-  const resolvedIntent = onboardingIntent || 'curiosity';
+  // The Diary lives in its own Home strip, outside the grid. It is still a
+  // real route and can be the first step for closure or emotional reflection.
+  // This descriptor makes it eligible without duplicating it in the catalog.
+  const pathItems = [
+    ...cardItems,
+    {
+      key: 'diary',
+      title: t('home.card.diary.title'),
+      subtitle: t('home.card.diary.subtitle'),
+      icon: 'book-outline',
+      onPress: () => navigation.navigate(ROUTES.DIARY),
+    },
+  ];
+
+  const resolvedIntent = onboardingProfile?.intent || onboardingIntent || 'curiosity';
   const intentDefinition = getOnboardingIntentDefinition(resolvedIntent);
-  const firstPathKeys = buildOnboardingPlan(resolvedIntent, isCouple ? 'couple' : 'solo');
-  const firstPathItem = cardItems.find((item) => item.key === firstPathKeys[0]) || null;
+  const situationDefinition = onboardingProfile
+    ? getOnboardingSituationDefinition(resolvedIntent, onboardingProfile.situation)
+    : null;
+  const pathReasonDefinition = situationDefinition || intentDefinition;
+  const firstPathKeys = buildOnboardingPlan(
+    resolvedIntent,
+    isCouple ? 'couple' : 'solo',
+    onboardingProfile
+  );
+  const firstPathItem = pathItems.find((item) => item.key === firstPathKeys[0]) || null;
   const firstPathFeature = firstPathItem?.key === 'tarot' ? t('tab.tarot') : firstPathItem?.title;
   const personalizedItems = firstPathKeys
-    .map((key) => cardItems.find((item) => item.key === key))
+    .map((key) => pathItems.find((item) => item.key === key))
     .filter(Boolean)
     .slice(0, 3);
   // Só simplifica a Home para quem realmente respondeu à nova pergunta.
   // Perfis antigos não têm essa chave e continuam vendo o catálogo completo.
-  const showFirstPath = journalCount === 0 && !!onboardingIntent && !!firstPathItem && !!intentDefinition;
-  const showPersistentPath = !showFirstPath && !!onboardingIntent && !!firstPathItem && !!intentDefinition;
+  const hasOnboardingChoice = !!(onboardingProfile || onboardingIntent);
+  const showFirstPath = journalCount === 0 && hasOnboardingChoice && !!firstPathItem && !!intentDefinition;
+  const showPersistentPath = !showFirstPath && hasOnboardingChoice && !!firstPathItem && !!intentDefinition;
 
   // Separação visual pedida pelo Lenda (25/07/2026): desde que solo também
   // assina (as 9 leituras individuais), fica confuso misturar no mesmo grid
@@ -1051,6 +1078,7 @@ export default function HomeScreen() {
 
         {showFirstPath && (
           <Pressable
+            testID="home-first-path"
             style={({ pressed }) => [styles.firstPathCard, pressed && styles.firstPathPressed]}
             onPress={firstPathItem.onPress}
             accessibilityRole="button"
@@ -1062,7 +1090,7 @@ export default function HomeScreen() {
               </Text>
               <Text style={styles.firstPathBody}>
                 {t('home.firstPath.body', {
-                  intent: t(intentDefinition.labelKey),
+                  intent: t(pathReasonDefinition.labelKey),
                 })}
               </Text>
               <View style={styles.firstPathCta}>
@@ -1089,7 +1117,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.forYouCopy}>
                 <Text style={styles.forYouTitle}>{t('home.forYou.title', { feature: firstPathFeature })}</Text>
-                <Text style={styles.forYouBody}>{t('home.forYou.body', { intent: t(intentDefinition.labelKey) })}</Text>
+                <Text style={styles.forYouBody}>{t('home.forYou.body', { intent: t(pathReasonDefinition.labelKey) })}</Text>
               </View>
               <Ionicons name="arrow-forward" size={18} color={colors.gold} />
             </Pressable>

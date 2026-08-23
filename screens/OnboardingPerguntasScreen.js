@@ -65,16 +65,21 @@ import { writeSecureItemWithMirror, saveSoloBirthMirror } from '../lib/birthData
 import { cityLabel } from '../lib/cities';
 import {
   ONBOARDING_INTENTS,
+  ONBOARDING_OUTCOMES,
   getOnboardingIntentDefinition,
+  getOnboardingSituations,
+  getOnboardingSituationDefinition,
+  getOnboardingOutcomeDefinition,
   getOnboardingSignStoryKey,
   saveOnboardingIntent,
+  saveOnboardingProfile,
 } from '../lib/onboardingPlan';
 
 const ANO_ATUAL = new Date().getFullYear();
 const ITEM_ALTURA = 44;
 const HORAS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTOS = Array.from({ length: 60 }, (_, i) => i);
-const SOLO_STEP_IDS = ['intent', 'birth', 'time', 'city', 'reveal'];
+const SOLO_STEP_IDS = ['intent', 'situation', 'outcome', 'birth', 'time', 'city', 'reveal'];
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -129,6 +134,8 @@ export default function OnboardingPerguntasScreen({
   // Concluir dos slides — abandonar no meio nunca deixa perfil pela metade.
   const [passo, setPasso] = useState(0);
   const [intencao, setIntencao] = useState(null);
+  const [situacao, setSituacao] = useState(null);
+  const [resultado, setResultado] = useState(null);
   const [data, setData] = useState(null);
   const [horaH, setHoraH] = useState(null);
   const [horaM, setHoraM] = useState(null);
@@ -182,7 +189,7 @@ export default function OnboardingPerguntasScreen({
   // RECOMPENSA 2: Lua/Ascendente acendem ao lado do mascote na revelação
   // (logo depois de hora+cidade respondidas). Fade simples.
   const parFade = useRef(new Animated.Value(0)).current;
-  const parAceso = passo === 4 && (!!lua || !!asc);
+  const parAceso = passo === 6 && (!!lua || !!asc);
   useEffect(() => {
     if (!parAceso) {
       parFade.setValue(0);
@@ -197,6 +204,12 @@ export default function OnboardingPerguntasScreen({
   }, [parAceso]);
 
   const intencaoDef = useMemo(() => getOnboardingIntentDefinition(intencao), [intencao]);
+  const situacoes = useMemo(() => getOnboardingSituations(intencao), [intencao]);
+  const situacaoDef = useMemo(
+    () => getOnboardingSituationDefinition(intencao, situacao),
+    [intencao, situacao]
+  );
+  const resultadoDef = useMemo(() => getOnboardingOutcomeDefinition(resultado), [resultado]);
 
   // Os SLIDES — intenção declarada + uma devolução realmente específica do
   // signo solar + as camadas de Lua/Ascendente que o Mapa já mostra. O texto
@@ -210,6 +223,8 @@ export default function OnboardingPerguntasScreen({
       })}. ${t(`birthchart.row.${rowKey}.desc`)}.`;
     const out = [t('onboarding.q.slides.greetingNoName')];
     if (intencaoDef) out.push(t(intencaoDef.echoKey));
+    if (situacaoDef) out.push(t(situacaoDef.echoKey));
+    if (resultadoDef) out.push(t(resultadoDef.echoKey));
     const signStoryKey = getOnboardingSignStoryKey(sol);
     if (signStoryKey) out.push(t(signStoryKey));
     else if (sol) out.push(linha('sun', sol));
@@ -217,7 +232,7 @@ export default function OnboardingPerguntasScreen({
     out.push(asc ? linha('asc', asc) : t('birthchart.row.asc.missing'));
     out.push(t('onboarding.q.slides.closing'));
     return out;
-  }, [t, lang, intencaoDef, sol, lua, asc]);
+  }, [t, lang, intencaoDef, situacaoDef, resultadoDef, sol, lua, asc]);
 
   function voltar() {
     if (salvando) return;
@@ -259,6 +274,7 @@ export default function OnboardingPerguntasScreen({
       // A intenção só persiste depois que o perfil real foi salvo. Ela ordena
       // a Home, mas nunca altera carta, cálculo ou significado.
       await saveOnboardingIntent(intencao || 'curiosity');
+      await saveOnboardingProfile({ intent: intencao, situation: situacao, outcome: resultado });
       // Só DEPOIS do ok — mesma regra do grid (pickSign): cadastro que falhou
       // no storage não aparece concluído no relatório.
       funnel.onboardingDone('solo');
@@ -335,8 +351,8 @@ export default function OnboardingPerguntasScreen({
       {/* Topo padrão stories: barra de progresso segmentada + voltar. */}
       <View style={[styles.topo, { paddingTop: insets.top + 14 }]}>
         <View style={styles.barras}>
-          {[0, 1, 2, 3].map((i) => (
-            <View key={i} style={[styles.barra, i > Math.min(passo, 3) && styles.barraFutura]} />
+          {SOLO_STEP_IDS.map((stepId, i) => (
+            <View key={stepId} style={[styles.barra, i > passo && styles.barraFutura]} />
           ))}
         </View>
         {!(hideBackOnFirst && passo === 0) && (
@@ -380,6 +396,8 @@ export default function OnboardingPerguntasScreen({
                       Haptics.selectionAsync();
                       onSoloStart?.();
                       setIntencao(item.id);
+                      setSituacao(null);
+                      setResultado(null);
                     }}
                     accessibilityRole="radio"
                     accessibilityState={{ selected }}
@@ -429,6 +447,117 @@ export default function OnboardingPerguntasScreen({
 
         {passo === 1 && (
           <View style={styles.passo}>
+            {!!intencaoDef && (
+              <View style={styles.responseBubble}>
+                <Text style={styles.responseBubbleText}>{t(intencaoDef.echoKey)}</Text>
+              </View>
+            )}
+            <Text style={styles.adaptiveEyebrow}>{t('onboarding.adaptive.understood')}</Text>
+            <Text style={styles.pergunta}>{t(`onboarding.situation.${intencao}.title`)}</Text>
+            <View style={styles.intentGrid}>
+              {situacoes.map((item) => {
+                const selected = situacao === item.id;
+                return (
+                  <Pressable
+                    key={item.id}
+                    testID={`onboarding-situation-${item.id}`}
+                    style={({ pressed }) => [
+                      styles.intentCard,
+                      selected && styles.intentCardSelected,
+                      pressed && styles.intentCardPressed,
+                    ]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setSituacao(item.id);
+                      setResultado(null);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                  >
+                    <View style={[styles.intentIcon, selected && styles.intentIconSelected]}>
+                      <Ionicons name={item.icon} size={20} color={selected ? colors.gold : colors.textSecondary} />
+                    </View>
+                    <Text style={styles.intentLabel}>{t(item.labelKey)}</Text>
+                    {selected && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
+                  </Pressable>
+                );
+              })}
+            </View>
+            {!!situacaoDef && (
+              <View style={styles.responseBubble} testID="onboarding-situation-preview">
+                <Text style={styles.responseBubbleText}>{t(situacaoDef.echoKey)}</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              testID="onboarding-situation-next"
+              style={[styles.continuar, !situacao && styles.continuarApagado]}
+              onPress={avancar}
+              disabled={!situacao}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.continuarTexto}>{t('onboarding.q.continue')}</Text>
+              <Ionicons name="arrow-forward" size={18} color="#21151A" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {passo === 2 && (
+          <View style={styles.passo}>
+            {!!situacaoDef && (
+              <View style={styles.responseBubble}>
+                <Text style={styles.responseBubbleText}>{t(situacaoDef.echoKey)}</Text>
+              </View>
+            )}
+            <Text style={styles.adaptiveEyebrow}>{t('onboarding.adaptive.next')}</Text>
+            <Text style={styles.pergunta}>{t('onboarding.outcome.title')}</Text>
+            <View style={styles.intentGrid}>
+              {ONBOARDING_OUTCOMES.map((item) => {
+                const selected = resultado === item.id;
+                return (
+                  <Pressable
+                    key={item.id}
+                    testID={`onboarding-outcome-${item.id}`}
+                    style={({ pressed }) => [
+                      styles.intentCard,
+                      selected && styles.intentCardSelected,
+                      pressed && styles.intentCardPressed,
+                    ]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setResultado(item.id);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                  >
+                    <View style={[styles.intentIcon, selected && styles.intentIconSelected]}>
+                      <Ionicons name={item.icon} size={20} color={selected ? colors.gold : colors.textSecondary} />
+                    </View>
+                    <Text style={styles.intentLabel}>{t(item.labelKey)}</Text>
+                    {selected && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
+                  </Pressable>
+                );
+              })}
+            </View>
+            {!!resultadoDef && (
+              <View style={styles.responseBubble} testID="onboarding-outcome-preview">
+                <Text style={styles.responseBubbleText}>{t(resultadoDef.echoKey)}</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              testID="onboarding-outcome-next"
+              style={[styles.continuar, !resultado && styles.continuarApagado]}
+              onPress={avancar}
+              disabled={!resultado}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.continuarTexto}>{t('onboarding.q.continue')}</Text>
+              <Ionicons name="arrow-forward" size={18} color="#21151A" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {passo === 3 && (
+          <View style={styles.passo}>
             <Text style={styles.pergunta}>{t('onboarding.q.birth.title')}</Text>
             <TouchableOpacity
               style={styles.pilula}
@@ -462,7 +591,7 @@ export default function OnboardingPerguntasScreen({
           </View>
         )}
 
-        {passo === 2 && (
+        {passo === 4 && (
           <View style={styles.passo}>
             {palco({ compacto: true })}
             <Text style={styles.pergunta}>{t('onboarding.q.time.title')}</Text>
@@ -514,7 +643,7 @@ export default function OnboardingPerguntasScreen({
           </View>
         )}
 
-        {passo === 3 && (
+        {passo === 5 && (
           <View style={styles.passo}>
             {palco({ compacto: true })}
             <Text style={styles.pergunta}>{t('onboarding.q.city.title')}</Text>
@@ -542,7 +671,7 @@ export default function OnboardingPerguntasScreen({
           </View>
         )}
 
-        {passo === 4 && (
+        {passo === 6 && (
           <View style={styles.passo}>
             <Text style={styles.pergunta}>{t('onboarding.q.reveal.title')}</Text>
             {/* RECOMPENSA 2 — com hora+cidade, Lua e Ascendente acendem ao
@@ -594,7 +723,7 @@ export default function OnboardingPerguntasScreen({
           setCidade(c);
           setCidadeAberta(false);
           // Respondeu a última pergunta — vai direto pro palco aceso.
-          setPasso(4);
+          setPasso(6);
         }}
         onClear={() => {
           setCidade(null);
@@ -656,6 +785,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 6,
   },
+  adaptiveEyebrow: {
+    color: colors.gold,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginTop: 18,
+    marginBottom: 8,
+  },
   nota: {
     color: colors.textMuted,
     fontSize: 12,
@@ -678,7 +817,7 @@ const styles = StyleSheet.create({
   },
   intentIconSelected: { backgroundColor: colors.gold + '24' },
   intentTextWrap: { flex: 1 },
-  intentLabel: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  intentLabel: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '700' },
   intentDescription: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 2 },
   planPreview: {
     marginTop: 14, padding: 14, borderRadius: 16,

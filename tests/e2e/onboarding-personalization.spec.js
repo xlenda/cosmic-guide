@@ -25,7 +25,20 @@ test.describe('Primeiro caminho personalizado', () => {
 
     // Responder só personaliza a prévia. O tema não persiste antes de o
     // cadastro real terminar, para abandono no meio não deixar dado órfão.
+    await page.getByTestId('onboarding-primary').click();
+    await expect(page.getByTestId('onboarding-situation-selfEmotions')).toBeVisible();
+    await expect(page.getByTestId('onboarding-situation-loveBeginning')).toHaveCount(0);
+
+    await page.getByTestId('onboarding-situation-selfEmotions').click();
+    await expect(page.getByTestId('onboarding-situation-preview')).toBeVisible();
+    await page.getByTestId('onboarding-situation-next').click();
+
+    await expect(page.getByTestId('onboarding-outcome-nextStep')).toBeVisible();
+    await page.getByTestId('onboarding-outcome-nextStep').click();
+    await expect(page.getByTestId('onboarding-outcome-preview')).toBeVisible();
+
     await expect.poll(() => page.evaluate(() => window.localStorage.getItem('cosmic-onboarding-intent-v1'))).toBe(null);
+    await expect.poll(() => page.evaluate(() => window.localStorage.getItem('cosmic-onboarding-profile-v1'))).toBe(null);
   });
 });
 
@@ -89,4 +102,26 @@ test('a primeira tiragem revela a carta por raspagem', async ({ page }) => {
   await page.mouse.up();
 
   await expect(page.getByTestId('tarot-card-name-0')).toBeVisible({ timeout: 10_000 });
+});
+
+test('perfil adaptativo muda a primeira ferramenta e abre a rota prometida', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('app-language', 'pt');
+    window.localStorage.setItem(
+      'userSign',
+      JSON.stringify({ name: 'Touro', pt: 'Touro', icon: '♉', color: '#5FD98C' })
+    );
+    window.localStorage.setItem('cosmic-onboarding-intent-v1', 'love');
+    window.localStorage.setItem(
+      'cosmic-onboarding-profile-v1',
+      JSON.stringify({ intent: 'love', situation: 'loveClosure', outcome: 'clarity' })
+    );
+  });
+  await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
+
+  const firstPath = page.getByTestId('home-first-path');
+  await expect(firstPath).toContainText('Primeiro passo: Diário Cósmico', { timeout: 20_000 });
+  await expect(firstPath).toContainText('Estou fechando um ciclo');
+  await firstPath.click();
+  await expect(page.getByText('Diário Cósmico', { exact: true })).toBeVisible({ timeout: 20_000 });
 });
