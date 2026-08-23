@@ -39,6 +39,7 @@ test('a primeira tiragem revela a carta por raspagem', async ({ page }) => {
   });
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
+  await page.getByTestId('home-explore-toggle').click();
   await page.getByTestId('card-tarot').click();
   await expect(page.getByTestId('tarot-draw')).toBeVisible({ timeout: 20_000 });
   await page.getByTestId('tarot-draw').click();

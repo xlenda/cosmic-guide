@@ -61,7 +61,6 @@ import CosmicSoundPlayer from './components/CosmicSoundPlayer';
 import PillPremium from './components/PillPremium';
 import HomeScreen from './screens/HomeScreen';
 import TarotScreen from './screens/TarotScreen';
-import ChatScreen from './screens/ChatScreen';
 import ProfileScreen from './screens/ProfileScreen';
 // Eager de propósito: é a tela MAIS visitada do produto — 118 das 128 sessões
 // de 30/07 passaram por ela (92% dos aparelhos do dia não têm perfil). Estava
@@ -89,6 +88,10 @@ const TokensScreen = lazy(() => import('./screens/TokensScreen'));
 const LojaScreen = lazy(() => import('./screens/LojaScreen'));
 const HelpSupportScreen = lazy(() => import('./screens/HelpSupportScreen'));
 const TermsScreen = lazy(() => import('./screens/TermsScreen'));
+// O Chat não ocupa mais a navegação principal e só abre por links de contexto.
+// Mantê-lo no bundle inicial fazia toda pessoa pagar o parse de conversa,
+// personas e histórico sem sequer ver uma aba correspondente.
+const ChatScreen = lazy(() => import('./screens/ChatScreen'));
 // Lote 2 (25/07/2026, achado real de auditoria de performance): mais 12 telas
 // que ainda carregavam eager dentro do HomeStack, que já tem <Suspense>
 // próprio — Home/Tarot/Chat/Profile ficam de fora de propósito (são as raízes
@@ -197,6 +200,14 @@ function LoadingFallback() {
     <View style={styles.loader}>
       <ActivityIndicator color={colors.accent} size="large" />
     </View>
+  );
+}
+
+function ChatTabScreen() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ChatScreen />
+    </Suspense>
   );
 }
 
@@ -678,7 +689,7 @@ function Gate() {
         />
         <Tab.Screen
           name={ROUTES.CHAT_TAB}
-          component={ChatScreen}
+          component={ChatTabScreen}
           options={{ tabBarButton: () => null }}
           listeners={{ tabPress: () => funnel.readingStart('chat', 'tab') }}
         />

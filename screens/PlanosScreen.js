@@ -602,6 +602,7 @@ function PlanosScreenWeb() {
         {!aberto && (
           <View style={styles.card}>
             <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
+            <Text style={styles.currencyNote}>{t('planos.currencyNote')}</Text>
             <BenefitsList isCouple={isCouple} />
             {/* Enquanto a sessão do Supabase não resolve, o botão vira spinner:
                 clicar nesse meio-tempo mandaria pro login quem JÁ está logado. */}
@@ -980,6 +981,7 @@ const styles = StyleSheet.create({
   // Nota discreta sob o CTA de quem está deslogado: menor e mais apagada que o
   // botão de propósito, ela informa o próximo passo sem competir com ele.
   loginNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 12 },
+  currencyNote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 10, paddingHorizontal: 8 },
 
   // Rodapé legal: presente e alcançável, mas discreto de propósito — quem
   // procura já sabe o que procura, e quem não procura não deve ser distraído

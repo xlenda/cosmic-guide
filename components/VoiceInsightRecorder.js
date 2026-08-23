@@ -6,7 +6,7 @@
 // nunca inventa conteúdo. Se o navegador não suportar a API (Firefox, por
 // exemplo), cai num campo de texto manual — nunca deixa a pessoa sem opção.
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -28,7 +28,7 @@ const STEP = { IDLE: 'idle', RECORDING: 'recording', REVIEW: 'review', ENHANCING
 // entryId: id da entrada já salva no Diário Cósmico (lib/journal.js) pra essa
 // leitura — o insight é anexado nela, nunca cria uma entrada nova.
 export default function VoiceInsightRecorder({ entryId, readingType, readingTitle }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const navigation = useNavigation();
   const [step, setStep] = useState(STEP.IDLE);
   const [transcript, setTranscript] = useState('');
@@ -69,7 +69,7 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
     if (!Ctor) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const recognition = new Ctor();
-    recognition.lang = 'pt-BR';
+    recognition.lang = lang === 'es' ? 'es-ES' : lang === 'en' ? 'en-US' : 'pt-BR';
     recognition.continuous = true;
     recognition.interimResults = true;
     let finalText = '';
@@ -82,7 +82,7 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
       }
       setTranscript((finalText + interim).trim());
     };
-    recognition.onerror = () => setError('Não consegui ouvir direito — tenta de novo ou escreve seu insight.');
+    recognition.onerror = () => setError(t('voice.hearingError'));
     recognition.onend = () => setStep((s) => (s === STEP.RECORDING ? STEP.REVIEW : s));
     recognitionRef.current = recognition;
     setTranscript('');
@@ -131,11 +131,11 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
       if (isAiAccessError(err)) {
         setError(
           isLoginRequired(err)
-            ? 'Seu insight foi salvo. Crie sua conta (é grátis) para lapidar com IA.'
-            : 'Seu insight foi salvo. Suas lapidações gratuitas com IA acabaram — assine para continuar.'
+            ? t('voice.loginRequired')
+            : t('voice.quotaReached')
         );
       } else {
-        setError('Não consegui lapidar com IA agora, mas seu insight original foi salvo.');
+        setError(t('voice.polishError'));
       }
       setStep(STEP.DONE);
     }
@@ -160,14 +160,13 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
             Mesmo padrão navigateFromTab do OneTimeLock — este componente vive
             dentro das telas de leitura (TarotStack etc.) e o Diário mora no
             HomeStack, então o navigate precisa borbulhar pro tab navigator. */}
-        <TouchableOpacity
+        <Pressable
           style={styles.diaryLink}
-          activeOpacity={0.7}
           onPress={() => (navigation.getParent() || navigation).navigate(ROUTES.HOME_TAB, { screen: ROUTES.DIARY })}
         >
           <Text style={styles.diaryLinkText}>{t('voice.seeInDiary')}</Text>
           <Ionicons name="arrow-forward" size={14} color={colors.accent} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
@@ -187,15 +186,15 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
         <Text style={styles.label}>{t('voice.yourInsight')}</Text>
         <Text style={styles.transcriptText}>{transcript}</Text>
         <View style={styles.rowButtons}>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={saveOriginalOnly} disabled={busy}>
+          <Pressable style={styles.secondaryBtn} onPress={saveOriginalOnly} disabled={busy}>
             <Text style={styles.secondaryBtnText}>{t('voice.saveAsIs')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.85} onPress={enhanceWithAi} disabled={busy} style={{ flex: 1, borderRadius: 12, overflow: 'hidden' }}>
+          </Pressable>
+          <Pressable onPress={enhanceWithAi} disabled={busy} style={{ flex: 1, borderRadius: 12, overflow: 'hidden' }}>
             <LinearGradient colors={gradients.teal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
               <Ionicons name="sparkles" size={16} color="#0E0821" />
               <Text style={styles.primaryBtnText}>{t('voice.polish')}</Text>
             </LinearGradient>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
     );
@@ -209,10 +208,10 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
           <Text style={styles.recordingText}>{t('voice.recording')}</Text>
         </View>
         {!!transcript && <Text style={styles.transcriptText}>{transcript}</Text>}
-        <TouchableOpacity activeOpacity={0.85} onPress={stopRecording} style={styles.finishBtn}>
+        <Pressable onPress={stopRecording} style={styles.finishBtn}>
           <Ionicons name="stop-circle" size={18} color={colors.red} />
           <Text style={styles.finishBtnText}>{t('voice.finish')}</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
@@ -222,31 +221,32 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
     <View style={styles.card}>
       <Text style={styles.label}>{t('voice.ask')}</Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
-      {speechSupported ? (
-        <TouchableOpacity activeOpacity={0.85} onPress={startRecording} style={{ borderRadius: 12, overflow: 'hidden' }}>
+      {speechSupported && (
+        <Pressable onPress={startRecording} style={{ borderRadius: 12, overflow: 'hidden' }}>
           <LinearGradient colors={gradients.teal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
             <Ionicons name="mic" size={18} color="#0E0821" />
             <Text style={styles.primaryBtnText}>{t('voice.record')}</Text>
           </LinearGradient>
-        </TouchableOpacity>
-      ) : (
-        <>
-          <Text style={styles.hint}>{t('voice.noMic')}</Text>
-          <TextInput
-            value={manualText}
-            onChangeText={setManualText}
-            placeholder="O que essa leitura despertou em você?"
-            placeholderTextColor={colors.textMuted}
-            style={styles.textInput}
-            multiline
-          />
-          <TouchableOpacity activeOpacity={0.85} onPress={useManualText} style={{ borderRadius: 12, overflow: 'hidden', marginTop: 8 }}>
-            <LinearGradient colors={gradients.teal} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
-              <Text style={styles.primaryBtnText}>{t('voice.continue')}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </>
+        </Pressable>
       )}
+      <Text style={styles.hint}>{speechSupported ? t('voice.orWrite') : t('voice.noMic')}</Text>
+      <TextInput
+        value={manualText}
+        onChangeText={setManualText}
+        placeholder={t('voice.placeholder')}
+        placeholderTextColor={colors.textMuted}
+        style={styles.textInput}
+        multiline
+        accessibilityLabel={t('voice.placeholder')}
+      />
+      <Pressable
+        onPress={useManualText}
+        disabled={!manualText.trim()}
+        style={[styles.manualContinue, !manualText.trim() && styles.manualContinueDisabled]}
+        accessibilityRole="button"
+      >
+        <Text style={styles.manualContinueText}>{t('voice.continue')}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -272,4 +272,7 @@ const styles = StyleSheet.create({
   finishBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.red, borderRadius: 12, paddingVertical: 10 },
   finishBtnText: { color: colors.red, fontWeight: '700', fontSize: 13 },
   textInput: { backgroundColor: colors.card, borderRadius: 12, padding: 12, color: colors.text, fontSize: 14, minHeight: 70, textAlignVertical: 'top', borderWidth: 1, borderColor: colors.border },
+  manualContinue: { alignItems: 'center', justifyContent: 'center', borderRadius: 12, paddingVertical: 11, borderWidth: 1, borderColor: colors.teal },
+  manualContinueDisabled: { opacity: 0.4 },
+  manualContinueText: { color: colors.teal, fontSize: 13, fontWeight: '800' },
 });

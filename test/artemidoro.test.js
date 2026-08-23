@@ -732,7 +732,11 @@ test('a tela mostra o que o motor exporta e não escreve conteúdo de Artemidoro
 
 test('a interpretação por IA continua de pé, e a pergunta que vem ANTES vem antes dela', () => {
   assert.match(FONTE_TELA, /fetchAiDreamReading/, 'a leitura por IA sumiu — o pedido era somar, não trocar');
-  assert.match(FONTE_TELA, /getMockDreamReading/, 'a leitura enlatada honesta sumiu');
+  assert.doesNotMatch(
+    FONTE_TELA,
+    /getMockDreamReading/,
+    'falha técnica não pode ser apresentada como interpretação do relato'
+  );
   const iBloco = FONTE_TELA.lastIndexOf('{renderArtemidoro()}');
   const iLeitura = FONTE_TELA.indexOf('<View style={styles.resultCard}>');
   assert.ok(iBloco > 0, 'o bloco das cinco espécies não é renderizado');

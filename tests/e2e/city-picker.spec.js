@@ -45,6 +45,12 @@ async function abrirPicker(page, { width, height }, { api = null } = {}) {
   });
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
+  await expect(page.getByText(/undefined/i)).toHaveCount(0);
+
+  // A Home progressiva mantÃ©m o catÃ¡logo recolhido. Abrir explicitamente
+  // testa o mesmo gesto que uma pessoa faz, sem desfazer a hierarquia nova.
+  await page.getByTestId('home-explore-toggle').click();
+
   const card = page.getByTestId('card-birthchart');
   await expect(card).toBeVisible({ timeout: 30000 });
 
@@ -317,6 +323,7 @@ async function abrirMapaComCidadeSalva(page, cidadeSalva) {
   }, cidadeSalva);
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
+  await page.getByTestId('home-explore-toggle').click();
   const card = page.getByTestId('card-birthchart');
   await expect(card).toBeVisible({ timeout: 30000 });
   await expect(async () => {

@@ -41,8 +41,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Permitir acesso à câmera para fotografar sua palma da mão ou a borra do café para a leitura simbólica.",
-          "photosPermission": "Permitir acesso às fotos para escolher uma imagem da palma da mão ou da borra do café para a leitura simbólica.",
+          "cameraPermission": "Permitir acesso à câmera para enviar uma foto às leituras simbólicas de mão, rosto, pé, pintas ou borra de café.",
+          "photosPermission": "Permitir acesso às fotos para escolher uma imagem para as leituras simbólicas de mão, rosto, pé, pintas ou borra de café.",
           "microphonePermission": false
         }
       ],

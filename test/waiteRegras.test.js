@@ -728,10 +728,10 @@ test('screens/TarotScreen.js chama o motor e renderiza o preparo', () => {
   assert.match(TELA_TARO, /from '\.\.\/lib\/waiteRegras'/, 'o import do motor sumiu');
 });
 
-test('o preparo entra ANTES do botão de tirar — é o vão entre escolher o tema e apertar', () => {
+test('o botão de tirar vem antes do preparo — primeiro valor antes da camada de estudo', () => {
   const iPreparo = TELA_TARO.indexOf('<PreparoDeWaite');
   const iBotao = TELA_TARO.indexOf("t('tarot.draw')");
-  assert.ok(iPreparo > 0 && iBotao > iPreparo, 'o preparo tem que vir antes do botão de tirar');
+  assert.ok(iBotao > 0 && iPreparo > iBotao, 'o CTA principal não pode ficar abaixo do painel educativo');
 });
 
 test('o preparo NÃO tranca a tiragem: nada de disabled amarrado ao progresso', () => {

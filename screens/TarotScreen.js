@@ -139,6 +139,7 @@ export default function TarotScreen() {
   // limite diário do tema UMA vez por bônus guardado. Recarrega no foco (não
   // só no mount) pra refletir uma compra feita na Loja e voltar direto pro Tarô.
   const [bonusReadings, setBonusReadings] = useState(0);
+  const themeLabel = t(`tarot.theme.${theme.key}`);
 
   // ---- O PREPARO DE WAITE, no vão antes de tirar ----
   // Só DUAS coisas moram aqui em cima; o resto do estado é do próprio painel.
@@ -304,8 +305,8 @@ export default function TarotScreen() {
     const body = [...readings, dignity, pattern].filter(Boolean).join('\n\n');
     const { entryId } = await recordReadingCompletion({
       type: 'tarot',
-      typeLabel: 'Leitura de Tarô',
-      title: `Tarô de ${theme.key} — Passado, Presente e Futuro`,
+      typeLabel: t('tarot.diary.type'),
+      title: t('tarot.diary.title', { theme: themeLabel }),
       body,
     });
     setJournalEntryId(entryId);
@@ -370,7 +371,7 @@ export default function TarotScreen() {
             activeOpacity={0.8}
             onPress={() => navigation.navigate(ROUTES.TAROT_ALBUM)}
             accessibilityRole="button"
-            accessibilityLabel="Abrir Álbum de Cartas"
+            accessibilityLabel={t('tarot.albumA11y')}
           >
             <Ionicons name="albums" size={20} color="#fff" />
             <Text style={styles.albumBtnText}>{t('tarot.album')}</Text>
@@ -381,14 +382,16 @@ export default function TarotScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionLabel}>{t('tarot.chooseTheme')}</Text>
         <View style={styles.themeRow}>
-          {THEMES.map((t) => (
+          {THEMES.map((themeOption) => (
             <TouchableOpacity
-              key={t.key}
-              style={[styles.themeChip, theme.key === t.key && { borderColor: t.color, backgroundColor: t.color + '22' }]}
-              onPress={() => { Haptics.selectionAsync(); setTheme(t); setDrawn(null); setJournalEntryId(null); }}
+              key={themeOption.key}
+              style={[styles.themeChip, theme.key === themeOption.key && { borderColor: themeOption.color, backgroundColor: themeOption.color + '22' }]}
+              onPress={() => { Haptics.selectionAsync(); setTheme(themeOption); setDrawn(null); setJournalEntryId(null); }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: theme.key === themeOption.key }}
             >
-              <Ionicons name={t.icon} size={20} color={t.color} />
-              <Text style={styles.themeText}>{t.key}</Text>
+              <Ionicons name={themeOption.icon} size={20} color={themeOption.color} />
+              <Text style={styles.themeText}>{t(`tarot.theme.${themeOption.key}`)}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -419,14 +422,14 @@ export default function TarotScreen() {
                       renova — dizer o contrário é prometer o que o app não
                       vai cumprir. */}
                   {limiteDiarioReal
-                    ? `Você já consultou o tema ${theme.key} hoje. Essa tiragem é única por dia — assuntos sérios como esse merecem uma resposta, não uma repetição até achar a que você quer ouvir. Volta amanhã.`
-                    : 'Você já usou sua leitura gratuita de Tarô — ela é uma só e não renova amanhã. Mas você tem Leitura Bônus guardada da Loja: use uma agora, ou assine pra tirar cartas todo dia.'}
+                    ? t('tarot.dailyBlocked', { theme: themeLabel })
+                    : t('tarot.previewBlocked')}
                 </Text>
                 {bonusReadings > 0 ? (
                   <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards(true)} style={styles.btnWrap}>
                     <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                       <Ionicons name="sparkles" size={18} color="#fff" />
-                      <Text style={styles.btnText}>Usar Leitura Bônus ({bonusReadings})</Text>
+                      <Text style={styles.btnText}>{t('tarot.bonusUse', { count: bonusReadings })}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 ) : (
@@ -460,20 +463,7 @@ export default function TarotScreen() {
               </>
             ) : (
               <>
-                <Text style={styles.emptyTitle}>Concentre-se na sua pergunta sobre {theme.key.toLowerCase()}</Text>
-
-                {/* AS QUATRO NOTAS DE PRÁTICA DE WAITE (1911) — convite, nunca
-                    obstáculo: entra fechado, abre com um toque, fecha com
-                    outro, e o botão de tirar continua logo abaixo o tempo
-                    todo, habilitado, faça a pessoa zero ou quatro. */}
-                <PreparoDeWaite
-                  lang={lang}
-                  aberto={preparoAberto}
-                  onAlternar={() => setPreparoAberto((v) => !v)}
-                  feitas={preparoFeitas}
-                  onMarcar={marcarRegraDoPreparo}
-                  progresso={progressoDoWaite}
-                />
+                <Text style={styles.emptyTitle}>{t('tarot.focusQuestion', { theme: themeLabel.toLocaleLowerCase(lang) })}</Text>
 
                 <TouchableOpacity
                   testID="tarot-draw"
@@ -490,6 +480,18 @@ export default function TarotScreen() {
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
+
+                {/* O CTA entrega o primeiro valor antes da camada de estudo.
+                    As notas continuam disponíveis, mas não empurram a ação
+                    principal para fora da primeira dobra. */}
+                <PreparoDeWaite
+                  lang={lang}
+                  aberto={preparoAberto}
+                  onAlternar={() => setPreparoAberto((v) => !v)}
+                  feitas={preparoFeitas}
+                  onMarcar={marcarRegraDoPreparo}
+                  progresso={progressoDoWaite}
+                />
               </>
             )}
           </View>
@@ -605,25 +607,17 @@ export default function TarotScreen() {
                   <Text style={styles.spreadTitle}>{t('tarot.howToRead')}</Text>
                   {temMaior && (
                     <Text style={styles.spreadText}>
-                      Saiu Arcano Maior. A tradição lê os 22 como assunto de outra ordem de grandeza:
-                      o eixo, não o episódio; o rumo, não a tarefa. Isso vale igual para os 22 — o que
-                      diferencia o seu está na leitura dele, acima.
+                      {t('tarot.note.major')}
                     </Text>
                   )}
                   {temCorte && (
                     <Text style={[styles.spreadText, temMaior && { marginTop: 10 }]}>
-                      Saiu figura de corte (Valete, Cavaleiro, Rainha ou Rei). Corte pode ser uma pessoa
-                      da sua vida ou uma postura sua — ler corte como se fosse sempre gente é o erro mais
-                      comum da tiragem de três.
+                      {t('tarot.note.court')}
                     </Text>
                   )}
                   {temInvertida && (
                     <Text style={[styles.spreadText, (temMaior || temCorte) && { marginTop: 10 }]}>
-                      Saiu carta invertida. Invertida aqui não é o oposto da carta: é a mesma energia
-                      travada, em excesso ou virada para dentro — qual das três é o caso está escrito na
-                      leitura da carta. Nota honesta: ler assim é escola contemporânea (Eden Gray,
-                      Rachel Pollack, Mary K. Greer). Em Waite, 1911, a invertida costuma ser lateral, e
-                      às vezes melhor que a direta.
+                      {t('tarot.note.reversed')}
                     </Text>
                   )}
                 </View>
@@ -660,9 +654,7 @@ export default function TarotScreen() {
                       si, e quem escreve "a correspondência astrológica do
                       tarô" está escondendo uma escolha. */}
                   <Text style={styles.spreadFootnote}>
-                    As atribuições acima são as da Golden Dawn (“Book T”). Existem pelo menos três tabelas
-                    incompatíveis — a continental de Lévi/Papus desloca todas as letras em uma casa, e o Thoth
-                    de Crowley (1944) troca Heh e Tzaddi. Este app escolheu uma e diz qual.
+                    {t('tarot.note.system')}
                   </Text>
                 </View>
               );
@@ -672,7 +664,7 @@ export default function TarotScreen() {
               <VoiceInsightRecorder
                 entryId={journalEntryId}
                 readingType="tarot"
-                readingTitle={`Tarô de ${theme.key} — Passado, Presente e Futuro`}
+                readingTitle={t('tarot.diary.title', { theme: themeLabel })}
               />
             )}
 
@@ -699,7 +691,7 @@ export default function TarotScreen() {
                     uma só e não renova. Nada de "volta amanhã" — amanhã, sem
                     assinatura, é paywall. */}
                 <Text style={styles.dailyLimitNote}>
-                  Sua prévia grátis de Tarô é uma só e não renova amanhã — assine pra tirar cartas todo dia, em qualquer tema.
+                  {t('tarot.previewAfter')}
                 </Text>
                 <TouchableOpacity
                   activeOpacity={0.85}
@@ -722,7 +714,7 @@ export default function TarotScreen() {
                     onPress={() => drawCards(true)}
                   >
                     <Ionicons name="sparkles" size={16} color={colors.gold} />
-                    <Text style={styles.bonusStoreText}>Usar Leitura Bônus ({bonusReadings})</Text>
+                    <Text style={styles.bonusStoreText}>{t('tarot.bonusUse', { count: bonusReadings })}</Text>
                   </TouchableOpacity>
                 )}
               </>
@@ -732,7 +724,7 @@ export default function TarotScreen() {
               // por isso a frase aponta pra saída que existe agora.
               <>
                 <Text style={styles.dailyLimitNote}>
-                  Essa foi a sua tiragem de {theme.key} de hoje — volta amanhã pra uma nova. Os outros temas lá em cima ainda têm a tiragem deles hoje.
+                  {t('tarot.dailyAfter', { theme: themeLabel })}
                 </Text>
                 <TouchableOpacity
                   activeOpacity={0.8}

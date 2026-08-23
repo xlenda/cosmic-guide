@@ -18,7 +18,6 @@ import { useNavigation } from '@react-navigation/native';
 import { colors } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
-import { getMockCoffeeReading } from '../lib/coffeeReadings';
 import {
   fetchAiCoffeeReading,
   fetchAiCoffeeWeeklySummary,
@@ -39,6 +38,7 @@ import OneTimeLock from '../components/OneTimeLock';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
 import ReportarIA from '../components/ReportarIA';
+import { Alert } from '../lib/webAlert';
 // O MODO HISTÓRIA (09/08/2026) — a mesma leitura, um trecho por tela, como
 // stories. paraSlides só REFORMATA: nenhum byte de reading.body muda. E é a
 // entrega PADRÃO: o leitor abre sozinho quando a leitura da IA chega
@@ -260,9 +260,9 @@ export default function CoffeeScreen() {
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
 
-    // Tenta a IA real com visão (proxy no backend); se não houver base64
-    // (galeria web sem suporte) ou o servidor ainda não tiver a chave
-    // configurada, cai pra leitura mockada honesta.
+    // A foto só produz resultado quando a análise real termina. Falha de rede,
+    // imagem ou provedor mantém a prévia para uma nova tentativa; nunca troca a
+    // foto por uma leitura genérica.
     let result;
     try {
       if (!imageBase64) throw new Error('sem base64 da imagem');
@@ -278,7 +278,9 @@ export default function CoffeeScreen() {
         setStep(STEP.INTRO);
         return;
       }
-      result = getMockCoffeeReading();
+      setIsAnalyzing(false);
+      Alert.alert(t('ai.unavailable.title'), t('ai.unavailable.body'));
+      return;
     }
 
     setReading(result);
@@ -458,14 +460,6 @@ export default function CoffeeScreen() {
             <View style={styles.resultCard}>
               <Text style={styles.resultTitle}>{reading.title}</Text>
               <Text style={styles.resultBody}>{reading.body}</Text>
-              {reading.isGeneric && (
-                                /* Fallback que nao se declara e quebra de confianca: o
-                                   testador mandou um sonho de evacuacao de predio e recebeu
-                                   'Aguas que revelam emocoes' SEM saber que a IA nao tinha
-                                   respondido (29/07/2026). A leitura enlatada continua — e
-                                   melhor que erro cru — mas agora se apresenta como o que e. */
-                                <Text style={styles.genericNote}>{t('reading.genericNote')}</Text>
-                              )}
             </View>
 
             {/* Denúncia da saída de IA — rodapé do resultado, exigido pela
@@ -605,7 +599,6 @@ const styles = StyleSheet.create({
   },
   resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   resultBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  genericNote: { color: colors.gold, fontSize: 12, lineHeight: 17, marginTop: 10, fontStyle: 'italic' },
   // O botão do modo história — contorno no accent da tela, sem fundo: porta
   // pra mesma leitura, não call-to-action (mesmo desenho de DreamScreen.js).
   historiaBtn: {

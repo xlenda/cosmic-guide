@@ -19,12 +19,13 @@ import OneTimeLock from '../components/OneTimeLock';
 import ReportarIA from '../components/ReportarIA';
 import { PERSONAS, ACTIVE_PERSONA_ID } from '../lib/chatPersonas';
 import { CENAS } from '../lib/ilustracoes';
-import { getMockReply } from '../lib/chatResponses';
 import { fetchAiChatReply, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
 import { useCouple } from '../context/CoupleContext';
+import { useLanguage } from '../context/LanguageContext';
 import { hasReachedFreeMessageLimit, incrementFreeMessagesSent, FREE_MESSAGE_LIMIT } from '../lib/chatFreeMessages';
+import { Alert } from '../lib/webAlert';
 
 const DIARY_RECORDED_KEY = 'cosmic-chat-diary-date';
 // Histórico do Chat ANTES vivia só em useState — sair da tela (ou dar reload
@@ -73,6 +74,7 @@ export default function ChatScreen() {
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
   const { hasAccess, accessConfirmed } = useCouple();
+  const { t } = useLanguage();
   const [personaId, setPersonaId] = useState(ACTIVE_PERSONA_ID);
   const persona = PERSONAS[personaId];
   const [messages, setMessages] = useState([makeMessage('persona', persona.introMessage)]);
@@ -198,8 +200,9 @@ export default function ChatScreen() {
     recordMissionAction(MISSION_ACTIONS.CHAT_MENSAGEM_ENVIADA);
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
 
-    // Tenta a IA real (proxy no backend); se o servidor ainda não tiver a
-    // chave configurada (ou a rede falhar), cai pro mock local honesto.
+    // Uma falha técnica nunca pode virar uma resposta local apresentada como
+    // se tivesse lido a mensagem. O texto volta ao campo e a pessoa pode tentar
+    // de novo sem gastar sua prévia.
     let reply;
     try {
       reply = await fetchAiChatReply(persona.id, text, history);
@@ -217,7 +220,11 @@ export default function ChatScreen() {
         setServerBlock(isLoginRequired(err) ? 'login' : 'quota');
         return;
       }
-      reply = getMockReply(persona.id, text);
+      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
+      setInput(text);
+      setIsTyping(false);
+      Alert.alert(t('ai.unavailable.title'), t('ai.unavailable.body'));
+      return;
     }
 
     setMessages((prev) => [...prev, makeMessage('persona', reply)]);

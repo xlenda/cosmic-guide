@@ -10,12 +10,10 @@
 //      não sabe que é o assinante falando: o assinante levaria paywall depois
 //      de pagar, e a cota de quem não assina seria burlável só trocando de IP;
 //
-//   2. "cota esgotada" é DISTINGUÍVEL de "caiu a rede". As telas fazem
-//      `try { fetchAiX() } catch { getMockX() }` — servir uma leitura enlatada
-//      no exato momento em que o paywall foi acionado entrega de graça o que
-//      acabou de ser negado. A resposta de cota tem que subir como um erro
-//      tipado (AiAccessError) pra tela mandar pro muro, e QUALQUER outra falha
-//      tem que continuar caindo no mock honesto de sempre.
+//   2. "cota esgotada" é DISTINGUÍVEL de "caiu a rede". A resposta de cota
+//      sobe como AiAccessError para a tela abrir o caminho de acesso; falha
+//      técnica permanece erro comum para a tela preservar a entrada e dizer,
+//      com honestidade, que nada foi gerado.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -177,7 +175,7 @@ test('402 anônimo traz loginHelps — criar conta ainda destrava, e a tela prec
   );
 });
 
-test('500 do servidor NÃO é bloqueio de acesso — continua caindo no mock honesto', async () => {
+test('500 do servidor NÃO é bloqueio de acesso — sobe como falha técnica', async () => {
   responder = async () => ({ status: 500, body: { error: 'erro interno' } });
   await assert.rejects(
     () => fetchAiChatReply('luna', 'oi', []),

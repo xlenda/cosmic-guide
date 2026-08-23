@@ -234,6 +234,7 @@ export default function HomeScreen() {
   // superfícies de continuidade. A intenção apenas ORDENA recursos reais.
   const [onboardingIntent, setOnboardingIntentState] = useState(null);
   const [journalCount, setJournalCount] = useState(null);
+  const [exploreOpen, setExploreOpen] = useState(false);
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -646,7 +647,10 @@ export default function HomeScreen() {
     ? t('home.greetingCouple', { voce: coupleData.voce, amor: coupleData.amor })
     // sign.pt e o nome PORTUGUES do signo — em ingles dava "Hi, Gemeos"
     // dois centimetros acima do pensamento do dia que dizia "Gemini".
-    : t('home.greetingSolo', { sign: nomeDoSigno(sign.pt, lang) });
+    // Perfis legados salvaram `nome`/`signo` antes de o objeto canÃ´nico ganhar
+    // `pt`. Aceitar os quatro formatos evita a saudaÃ§Ã£o "OlÃ¡, undefined" para
+    // quem apenas atualizou o app.
+    : t('home.greetingSolo', { sign: nomeDoSigno(sign.pt || sign.nome || sign.name || sign.signo, lang) });
 
   // Timeline exige memórias reais do casal — não faz sentido pra quem ainda
   // não tem par, fica escondida por completo pra usuário solo. As outras 5
@@ -812,9 +816,14 @@ export default function HomeScreen() {
   const firstPathKeys = buildOnboardingPlan(resolvedIntent, isCouple ? 'couple' : 'solo');
   const firstPathItem = cardItems.find((item) => item.key === firstPathKeys[0]) || null;
   const firstPathFeature = firstPathItem?.key === 'tarot' ? t('tab.tarot') : firstPathItem?.title;
+  const personalizedItems = firstPathKeys
+    .map((key) => cardItems.find((item) => item.key === key))
+    .filter(Boolean)
+    .slice(0, 3);
   // Só simplifica a Home para quem realmente respondeu à nova pergunta.
   // Perfis antigos não têm essa chave e continuam vendo o catálogo completo.
   const showFirstPath = journalCount === 0 && !!onboardingIntent && !!firstPathItem && !!intentDefinition;
+  const showPersistentPath = !showFirstPath && !!onboardingIntent && !!firstPathItem && !!intentDefinition;
 
   // Separação visual pedida pelo Lenda (25/07/2026): desde que solo também
   // assina (as 9 leituras individuais), fica confuso misturar no mesmo grid
@@ -1074,6 +1083,45 @@ export default function HomeScreen() {
           </Pressable>
         )}
         {showFirstPath && <CosmicSoundPlayer variant="inline" style={styles.hiddenSoundRegistrar} />}
+
+        {showPersistentPath && (
+          <View style={styles.forYouWrap}>
+            <Text style={styles.forYouEyebrow}>{t('home.forYou.eyebrow')}</Text>
+            <Pressable
+              style={({ pressed }) => [styles.forYouPrimary, pressed && styles.firstPathPressed]}
+              onPress={firstPathItem.onPress}
+              accessibilityRole="button"
+            >
+              <View style={styles.forYouIcon}>
+                <Ionicons name={firstPathItem.icon} size={22} color={colors.gold} />
+              </View>
+              <View style={styles.forYouCopy}>
+                <Text style={styles.forYouTitle}>{t('home.forYou.title', { feature: firstPathFeature })}</Text>
+                <Text style={styles.forYouBody}>{t('home.forYou.body', { intent: t(intentDefinition.labelKey) })}</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={18} color={colors.gold} />
+            </Pressable>
+
+            {personalizedItems.length > 1 && (
+              <>
+                <Text style={styles.forYouNext}>{t('home.forYou.next')}</Text>
+                <View style={styles.forYouSecondaryRow}>
+                  {personalizedItems.slice(1).map((item) => (
+                    <Pressable
+                      key={item.key}
+                      style={({ pressed }) => [styles.forYouSecondary, pressed && styles.firstPathPressed]}
+                      onPress={item.onPress}
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
+                      <Text style={styles.forYouSecondaryText} numberOfLines={2}>{item.title}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            )}
+          </View>
+        )}
 
         {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
             explícito: não ficar escondido junto dos outros cards do grid). */}
@@ -1620,7 +1668,26 @@ export default function HomeScreen() {
             cima da zona é o corte que a onda 3 fazia. O título logo abaixo
             mantém o marginTop 6 (sectionTitleAposOnda): o paddingTop da zona
             é o respiro, e somar os 28 de sempre viraria buraco. */}
-        <BandaSection tom="claro">
+        <View style={styles.exploreGate}>
+          <Pressable
+            testID="home-explore-toggle"
+            style={({ pressed }) => [styles.exploreToggle, pressed && styles.firstPathPressed]}
+            onPress={() => setExploreOpen((open) => !open)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: exploreOpen }}
+          >
+            <View style={styles.exploreToggleIcon}>
+              <Ionicons name="compass-outline" size={20} color={colors.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.exploreToggleTitle}>{t(exploreOpen ? 'home.explore.close' : 'home.explore.open')}</Text>
+              {!exploreOpen && <Text style={styles.exploreToggleHint}>{t('home.explore.hint')}</Text>}
+            </View>
+            <Ionicons name={exploreOpen ? 'chevron-up' : 'chevron-down'} size={19} color={colors.textMuted} />
+          </Pressable>
+        </View>
+
+        {exploreOpen && <BandaSection tom="claro">
 
           {/* Feature grid — individual (solo ou casal, assina direto), em quatro
               grupos: Leituras, Práticas, Datas e Curiosidades. Ver o porquê
@@ -1674,7 +1741,7 @@ export default function HomeScreen() {
             </>
           )}
 
-        </BandaSection>
+        </BandaSection>}
 
         {/* ONDA 4 [AUTO-DECISION: MANTIDA — a única das quatro] — é a
             transição pra FORA da última zona, de volta pro céu escuro onde o
@@ -1771,10 +1838,37 @@ const styles = StyleSheet.create({
     letterSpacing: -0.7,
   },
   hiddenSoundRegistrar: { display: 'none' },
+  forYouWrap: { marginHorizontal: 20, marginTop: 4, marginBottom: 20 },
+  forYouEyebrow: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 9 },
+  forYouPrimary: {
+    minHeight: 92, flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.gold + '70',
+    borderRadius: 18, paddingHorizontal: 16, paddingVertical: 15,
+  },
+  forYouIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold + '18' },
+  forYouCopy: { flex: 1 },
+  forYouTitle: { color: colors.text, fontSize: 16, lineHeight: 21, fontWeight: '800' },
+  forYouBody: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 3 },
+  forYouNext: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginTop: 13, marginBottom: 8 },
+  forYouSecondaryRow: { flexDirection: 'row', gap: 9 },
+  forYouSecondary: {
+    flex: 1, minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.surfaceElevated, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10,
+  },
+  forYouSecondaryText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   // Gutter 20 da reforma pra filhos que já trazem marginHorizontal 16 próprio
   // (NotifPromptCard, linhas do CardGrid): 4 + 16 = 20, sem tocar nos
   // componentes.
   gutterWrap: { paddingHorizontal: 4 },
+  exploreGate: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 14 },
+  exploreToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 15,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  exploreToggleIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold + '16' },
+  exploreToggleTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  exploreToggleHint: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 3 },
   loader: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
   firstPathCard: {
     marginHorizontal: 20,

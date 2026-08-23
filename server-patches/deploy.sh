@@ -36,6 +36,15 @@ if [ ! -d "$REPO_DIR/src" ]; then
   echo "ERRO: $REPO_DIR/src não existe. Nada a subir."
   exit 1
 fi
+
+# server.js importa este módulo no boot. Ele já ficou presente só na VPS,
+# escondendo a ausência no repositório; um deploy nunca mais pode depender de
+# arquivo residual de uma versão anterior.
+IMAGE_PROCESSING="$REPO_DIR/src/infrastructure/imageProcessing.js"
+if [ ! -f "$IMAGE_PROCESSING" ]; then
+  echo "ERRO: $IMAGE_PROCESSING não existe. O backend não iniciaria em ambiente limpo."
+  exit 1
+fi
 echo ""
 echo "Arquivos que serão enviados:"
 find "$REPO_DIR/src" "$REPO_DIR/scripts" "$REPO_DIR/test" -type f 2>/dev/null | sed "s|$REPO_DIR/|  |"

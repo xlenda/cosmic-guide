@@ -19,10 +19,6 @@ import { useNavigation } from '@react-navigation/native';
 import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
-import { getMockPalmReading } from '../lib/palmReadings';
-import { getMockFaceReading } from '../lib/faceReadings';
-import { getMockFootReading } from '../lib/footReadings';
-import { getMockMolesReading } from '../lib/molesReadings';
 import {
   fetchAiPalmReading,
   fetchAiFaceReading,
@@ -64,7 +60,7 @@ const FEATURE_KEY = 'palm';
 
 // Hub de 4 modos de leitura simbólica, todos usando a mesma câmera/galeria e
 // o mesmo fluxo intro -> preview -> result. Cada modo só muda o texto de
-// instrução, o disclaimer, o cabeçalho e qual função de IA/mock é chamada em
+// instrução, o disclaimer, o cabeçalho e qual função de IA é chamada em
 // handleAnalyze — mesmo padrão visual de seletor de chips de THEMES em
 // screens/TarotScreen.js.
 const MODES = [
@@ -164,7 +160,7 @@ async function resizeForUpload(uri) {
 }
 
 // Estados possíveis da tela: intro (sem foto) -> preview (foto escolhida,
-// aguardando "Analisar") -> result (leitura mockada exibida).
+// aguardando "Analisar") -> result (leitura real exibida).
 const STEP = { INTRO: 'intro', PREVIEW: 'preview', RESULT: 'result' };
 
 // O BLOCO DE ESPERA ILUSTRADO ([BLOCO-ESPERA], 09/08/2026) — enquanto a IA
@@ -377,9 +373,9 @@ export default function PalmScreen() {
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
 
-    // Tenta a IA real com visão (proxy no backend), escolhendo a função certa
-    // pro modo ativo; se não houver base64 (galeria web sem suporte) ou o
-    // servidor ainda não tiver a chave configurada, cai pro mock do mesmo modo.
+    // A imagem só produz resultado quando a análise real termina. Qualquer
+    // falha técnica preserva a prévia para nova tentativa; nunca substitui a
+    // foto por uma leitura local genérica.
     let result;
     try {
       if (!imageBase64) throw new Error('sem base64 da imagem');
@@ -391,21 +387,17 @@ export default function PalmScreen() {
       // PAYWALL DE VERDADE (30/07/2026) — não é queda de rede. O servidor
       // passou a contar a cota grátis por CONTA (aiQuota.js no backend) e
       // devolve um erro RECONHECÍVEL quando ela acaba (402) ou quando a rota
-      // exige conta (401, caso destas 4 leituras com foto). Cair no mock aqui
-      // seria o pior dos mundos: entrega de graça exatamente o que acabou de
-      // ser negado e ainda ensina a pessoa que "o pago" é aquele texto
-      // genérico. Todo o resto (rede, CORS, 500) continua caindo no mock
-      // honesto de sempre.
+      // exige conta (401, caso destas 4 leituras com foto). Falha técnica não
+      // consome a prévia nem fabrica uma leitura local.
       if (isAiAccessError(err)) {
         setIsAnalyzing(false);
         setServerBlock(isLoginRequired(err) ? 'login' : 'quota');
         setStep(STEP.INTRO);
         return;
       }
-      if (mode === 'palma') result = getMockPalmReading();
-      else if (mode === 'rosto') result = getMockFaceReading();
-      else if (mode === 'pe') result = getMockFootReading();
-      else result = getMockMolesReading();
+      setIsAnalyzing(false);
+      Alert.alert(t('ai.unavailable.title'), t('ai.unavailable.body'));
+      return;
     }
 
     setReading(result);
@@ -552,14 +544,6 @@ export default function PalmScreen() {
             <View style={styles.resultCard}>
               <Text style={styles.resultTitle}>{reading.title}</Text>
               <Text style={styles.resultBody}>{reading.body}</Text>
-              {reading.isGeneric && (
-                                /* Fallback que nao se declara e quebra de confianca: o
-                                   testador mandou um sonho de evacuacao de predio e recebeu
-                                   'Aguas que revelam emocoes' SEM saber que a IA nao tinha
-                                   respondido (29/07/2026). A leitura enlatada continua — e
-                                   melhor que erro cru — mas agora se apresenta como o que e. */
-                                <Text style={styles.genericNote}>{t('reading.genericNote')}</Text>
-                              )}
             </View>
 
             {/* Canal de denúncia da saída de IA. Esta tela sozinha gera QUATRO
@@ -714,7 +698,6 @@ const styles = StyleSheet.create({
   },
   resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   resultBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  genericNote: { color: colors.gold, fontSize: 12, lineHeight: 17, marginTop: 10, fontStyle: 'italic' },
   // O botão do modo história — contorno no accent da tela, sem fundo: porta
   // pra mesma leitura, não call-to-action (mesmo desenho de DreamScreen.js).
   historiaBtn: {

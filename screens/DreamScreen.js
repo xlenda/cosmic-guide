@@ -70,12 +70,12 @@ import OneTimeLock from '../components/OneTimeLock';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
 import ReportarIA from '../components/ReportarIA';
-import { getMockDreamReading } from '../lib/dreamReadings';
 import { fetchAiDreamReading, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
+import { Alert } from '../lib/webAlert';
 import {
   classificarSonho,
   especies as especiesDeArtemidoro,
@@ -536,23 +536,25 @@ export default function DreamScreen() {
     if (!dreamText.trim()) return;
     setIsAnalyzing(true);
 
-    // Tenta a IA real (proxy no backend); se falhar por qualquer motivo
-    // (sem rede, servidor sem chave configurada, etc.), cai pra leitura
-    // mockada honesta — nunca mostra erro pra pessoa, sempre entrega uma leitura.
+    // O relato só produz interpretação quando a chamada real termina. Uma
+    // falha técnica mantém o texto intacto e nunca é disfarçada com uma leitura
+    // genérica local.
     let result;
     try {
       result = await fetchAiDreamReading(dreamText.trim());
     } catch (err) {
       // PAYWALL DE VERDADE (30/07/2026): 402/401 com `code` conhecido é a cota
-      // grátis da CONTA acabando, não falha técnica. O mock honesto continua
-      // valendo pra tudo o mais (rede, 500, servidor sem chave).
+      // grátis da CONTA acabando, não falha técnica. Rede, 500 ou resposta
+      // inválida preservam o relato e informam que nada foi gerado.
       if (isAiAccessError(err)) {
         setIsAnalyzing(false);
         setServerBlock(isLoginRequired(err) ? 'login' : 'quota');
         setStep(STEP.INTRO);
         return;
       }
-      result = getMockDreamReading(dreamText.trim());
+      setIsAnalyzing(false);
+      Alert.alert(t('ai.unavailable.title'), t('ai.unavailable.body'));
+      return;
     }
 
     setReading(result);
@@ -699,14 +701,6 @@ export default function DreamScreen() {
               <View style={styles.resultCard}>
                 <Text style={styles.resultTitle}>{reading.title}</Text>
                 <Text style={styles.resultBody}>{reading.body}</Text>
-                {reading.isGeneric && (
-                                  /* Fallback que nao se declara e quebra de confianca: o
-                                     testador mandou um sonho de evacuacao de predio e recebeu
-                                     'Aguas que revelam emocoes' SEM saber que a IA nao tinha
-                                     respondido (29/07/2026). A leitura enlatada continua — e
-                                     melhor que erro cru — mas agora se apresenta como o que e. */
-                                  <Text style={styles.genericNote}>{t('reading.genericNote')}</Text>
-                                )}
               </View>
 
               {/* Denúncia da saída de IA — rodapé do resultado, exigido pela
@@ -827,7 +821,6 @@ const styles = StyleSheet.create({
   },
   resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   resultBody: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
-  genericNote: { color: colors.gold, fontSize: 12, lineHeight: 17, marginTop: 10, fontStyle: 'italic' },
   // O botão do modo história — contorno no teal da tela, sem fundo: porta
   // pra mesma leitura, não call-to-action.
   historiaBtn: {

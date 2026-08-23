@@ -6,6 +6,11 @@ const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
+  // O dist inclui um bundle inicial grande e o servidor estÃ¡tico do E2E Ã©
+  // intencionalmente simples. Quatro browsers pedindo o mesmo bundle causavam
+  // timeout no DOMContentLoaded, nÃ£o falha do produto. Serializar deixa o teste
+  // determinÃ­stico e preserva a validaÃ§Ã£o contra o artefato real de produÃ§Ã£o.
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: 'list',
