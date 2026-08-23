@@ -35,7 +35,6 @@ import BandaSection from '../components/BandaSection';
 import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import DailyMissionsCard from '../components/DailyMissionsCard';
-import OrbiGuide from '../components/OrbiGuide';
 // Som do céu — o card que APRESENTA a feature. O motor e o estado vivem no
 // provider em App.js; aqui é só um controle remoto (ver o cabeçalho de
 // components/CosmicSoundPlayer.js). Sem este card, a única porta de entrada
@@ -977,7 +976,7 @@ export default function HomeScreen() {
       {/* O cenário cobre o fundo chapado por cima; o root MANTÉM
           colors.background por baixo, pra área além do cenário nunca piscar.
           pointerEvents="none" lá dentro — decoração nunca rouba toque. */}
-      {!showFirstPath && <CosmicScene />}
+      <CosmicScene />
       {milestone && (
         <Modal transparent animationType="fade" visible onRequestClose={() => setMilestone(null)}>
           <View style={styles.milestoneBackdrop}>
@@ -1029,33 +1028,23 @@ export default function HomeScreen() {
             null) NADA disto monta e o badge segue no posto — nunca um quadrado
             vazio. pointerEvents="none": decoração não rouba toque;
             accessible={false}: o signo já está dito em texto na saudação. */}
-        {showFirstPath ? (
-          <View style={[styles.firstWelcome, { paddingTop: insets.top + 18 }]}>
-            <View style={styles.firstWelcomeCopy}>
-              <Text style={styles.firstWelcomeDate}>{dateStr}</Text>
-              <Text style={styles.firstWelcomeGreeting}>{greeting}</Text>
+        <View style={styles.heroWrap}>
+          <HeroSection
+            greeting={<Text style={styles.greetingDisplay}>{greeting}</Text>}
+            dateStr={dateStr}
+            sign={sign}
+            streak={coupleData ? { count: streakInfo.currentStreak } : undefined}
+            insetTop={insets.top}
+          />
+          {mascoteHero && (
+            <View
+              pointerEvents="none"
+              style={[styles.heroMascoteWrap, { top: insets.top + 8, borderColor: sign.color + '88' }]}
+            >
+              <Image source={mascoteHero} style={styles.heroMascoteImg} resizeMode="cover" accessible={false} />
             </View>
-            <OrbiGuide size={96} />
-          </View>
-        ) : (
-          <View style={styles.heroWrap}>
-            <HeroSection
-              greeting={<Text style={styles.greetingDisplay}>{greeting}</Text>}
-              dateStr={dateStr}
-              sign={sign}
-              streak={coupleData ? { count: streakInfo.currentStreak } : undefined}
-              insetTop={insets.top}
-            />
-            {mascoteHero && (
-              <View
-                pointerEvents="none"
-                style={[styles.heroMascoteWrap, { top: insets.top + 8, borderColor: sign.color + '88' }]}
-              >
-                <Image source={mascoteHero} style={styles.heroMascoteImg} resizeMode="cover" accessible={false} />
-              </View>
-            )}
-          </View>
-        )}
+          )}
+        </View>
 
         {showFirstPath && (
           <Pressable
@@ -1125,7 +1114,6 @@ export default function HomeScreen() {
 
         {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
             explícito: não ficar escondido junto dos outros cards do grid). */}
-        {!showFirstPath && <>
         {journalCount > 0 && (
         <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate(ROUTES.DIARY)} style={styles.diaryBar}>
           <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.diaryBarInner}>
@@ -1210,7 +1198,6 @@ export default function HomeScreen() {
             devocional. Recolhido por padrão (2 linhas + "ler completo");
             expandir marca como lida hoje (AsyncStorage) e conta o dia ativo
             na sequência — ver markThoughtReadToday acima. */}
-        {!showFirstPath && (
         <TouchableOpacity
           activeOpacity={0.85}
           style={[styles.thoughtCard, !thoughtReadToday && styles.thoughtCardUnread]}
@@ -1261,13 +1248,12 @@ export default function HomeScreen() {
             )}
           </View>
         </TouchableOpacity>
-        )}
 
         {/* Missões de hoje (motor lib/missions.js) — na Home SÓ pra quem está
             solo: casal vê o MESMO card dentro de Agir (a tela de "fazer"),
             mas solo nunca chega lá (SoloTeaser na borda da rota, App.js) e
             ficaria sem o loop missão→token→Loja pedido pelo dono. */}
-        {!showFirstPath && !isCouple && (
+        {!isCouple && (
           <View style={{ marginHorizontal: 20, marginBottom: 14 }}>
             <DailyMissionsCard />
           </View>
@@ -1294,7 +1280,7 @@ export default function HomeScreen() {
             gradiente — cards novos na dobra de cima era exatamente o "fica
             perdido no meio" que o dono mandou tirar. Ver o bloco no topo do
             arquivo pra escolha entre trilha e ritual. */}
-        {!showFirstPath && mostrarTodayLine && (
+        {mostrarTodayLine && (
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.todayLine}
@@ -1327,7 +1313,7 @@ export default function HomeScreen() {
             propósito: o uso que o card sugere é "deixa tocando enquanto você
             lê", e a leitura do dia acabou de acontecer dois blocos acima.
             Devolve null sozinho onde a Web Audio API não existe. */}
-        {!showFirstPath && <CosmicSoundPlayer variant="inline" style={{ marginHorizontal: 20, marginBottom: 14 }} />}
+        <CosmicSoundPlayer variant="inline" style={{ marginHorizontal: 20, marginBottom: 14 }} />
 
         {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
             só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}
@@ -1788,7 +1774,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
-        </>}
       </ScrollView>
     </View>
   );
@@ -1813,30 +1798,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, overflow: 'hidden',
   },
   heroMascoteImg: { width: '100%', height: '100%' },
-  firstWelcome: {
-    minHeight: 208,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  firstWelcomeCopy: { flex: 1, paddingTop: 6 },
-  firstWelcomeDate: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-    marginBottom: 10,
-  },
-  firstWelcomeGreeting: {
-    color: colors.text,
-    fontSize: 30,
-    lineHeight: 35,
-    fontWeight: '800',
-    letterSpacing: -0.7,
-  },
   hiddenSoundRegistrar: { display: 'none' },
   forYouWrap: { marginHorizontal: 20, marginTop: 4, marginBottom: 20 },
   forYouEyebrow: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 9 },

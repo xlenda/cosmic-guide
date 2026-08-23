@@ -49,7 +49,7 @@ test('em node não há Web Speech API — vozDisponivel() é false e nada explod
 // de getVoices()) e devolve a melhor pro idioma. É o placar que decide se a
 // pessoa ouve a voz NEURAL instalada ou a sintética velha do sistema.
 // ---------------------------------------------------------------------------
-const { escolherVoz } = require('../lib/voz.js');
+const { escolherVoz, escolherVozNatural } = require('../lib/voz.js');
 
 // Retratos fiéis do que getVoices() devolve em cada plataforma real.
 const V = {
@@ -98,4 +98,22 @@ test('lista vazia, nula ou com buraco não explode', () => {
 
 test('pt-PT serve pra quem pede pt-BR quando é a única do idioma', () => {
   assert.equal(escolherVoz([V.ptPortugal, V.ingles], 'pt-BR'), V.ptPortugal);
+});
+
+test('reprodução real recusa a voz desktop robótica mesmo quando ela é a padrão', () => {
+  assert.equal(escolherVozNatural([V.windowsVelha], 'pt-BR'), null);
+  assert.equal(escolherVozNatural([V.iosCompacta], 'pt-BR'), null);
+});
+
+test('reprodução real aceita natural, Google e a voz preferida do sistema', () => {
+  assert.equal(escolherVozNatural([V.windowsVelha, V.edgeNatural], 'pt-BR'), V.edgeNatural);
+  assert.equal(escolherVozNatural([V.googleBr], 'pt-BR'), V.googleBr);
+  assert.equal(escolherVozNatural([V.iosLuciana], 'pt-BR'), V.iosLuciana);
+});
+
+test('voz remota de nome genérico passa a régua natural; local genérica não', () => {
+  const remota = { name: 'Português Brasil', lang: 'pt-BR', localService: false };
+  const local = { name: 'Português Brasil', lang: 'pt-BR', localService: true };
+  assert.equal(escolherVozNatural([remota], 'pt-BR'), remota);
+  assert.equal(escolherVozNatural([local], 'pt-BR'), null);
 });

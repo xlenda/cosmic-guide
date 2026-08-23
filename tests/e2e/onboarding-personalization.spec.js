@@ -29,6 +29,34 @@ test.describe('Primeiro caminho personalizado', () => {
   });
 });
 
+test('usuário novo recebe o primeiro caminho sem perder a Home', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('app-language', 'pt');
+    window.localStorage.setItem(
+      'userSign',
+      JSON.stringify({ name: 'Touro', pt: 'Touro', icon: '♉', color: '#5FD98C' })
+    );
+    window.localStorage.setItem('cosmic-onboarding-intent-v1', 'self');
+  });
+  await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByText('Olá, Touro')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('Seu primeiro caminho')).toBeVisible();
+  await expect(page.getByTestId('home-explore-toggle')).toBeVisible();
+  await expect(page.getByText('Pensamento cósmico do dia')).toBeVisible();
+});
+
+test('atalho de signo mostra a leitura do signo tocado antes da Home', async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.setItem('app-language', 'pt'));
+  await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
+
+  await page.getByText('Já sei meu signo — escolher direto').click();
+  await page.getByText('Touro', { exact: true }).click();
+
+  await expect(page.getByText(/Touro é terra fixa/)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/Áries é fogo cardinal/)).toHaveCount(0);
+});
+
 test('a primeira tiragem revela a carta por raspagem', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem('app-language', 'pt');

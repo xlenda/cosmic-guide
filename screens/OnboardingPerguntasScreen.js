@@ -66,6 +66,7 @@ import { cityLabel } from '../lib/cities';
 import {
   ONBOARDING_INTENTS,
   getOnboardingIntentDefinition,
+  getOnboardingSignStoryKey,
   saveOnboardingIntent,
 } from '../lib/onboardingPlan';
 
@@ -197,9 +198,10 @@ export default function OnboardingPerguntasScreen({
 
   const intencaoDef = useMemo(() => getOnboardingIntentDefinition(intencao), [intencao]);
 
-  // Os SLIDES — intenção declarada + as leituras que o Mapa já mostra
-  // (positionIn + row.desc; o Asc sem hora/cidade vira o .missing honesto,
-  // que também é o convite pra completar depois no Mapa). Nada redigido aqui.
+  // Os SLIDES — intenção declarada + uma devolução realmente específica do
+  // signo solar + as camadas de Lua/Ascendente que o Mapa já mostra. O texto
+  // solar se declara contemporâneo; Lua/Asc continuam saindo dos mesmos campos
+  // do Mapa, e o Asc sem hora/cidade mantém o .missing honesto.
   const slides = useMemo(() => {
     const linha = (rowKey, signo) =>
       `${t('birthchart.positionIn', {
@@ -208,7 +210,9 @@ export default function OnboardingPerguntasScreen({
       })}. ${t(`birthchart.row.${rowKey}.desc`)}.`;
     const out = [t('onboarding.q.slides.greetingNoName')];
     if (intencaoDef) out.push(t(intencaoDef.echoKey));
-    if (sol) out.push(linha('sun', sol));
+    const signStoryKey = getOnboardingSignStoryKey(sol);
+    if (signStoryKey) out.push(t(signStoryKey));
+    else if (sol) out.push(linha('sun', sol));
     if (lua) out.push(linha('moon', lua));
     out.push(asc ? linha('asc', asc) : t('birthchart.row.asc.missing'));
     out.push(t('onboarding.q.slides.closing'));

@@ -23,11 +23,19 @@ import { NavigationContext } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
-import { vozDisponivel, falar, parar, aquecerVozes } from '../lib/voz';
+import {
+  vozDisponivel,
+  vozNaturalDisponivel,
+  observarVozes,
+  falar,
+  parar,
+  aquecerVozes,
+} from '../lib/voz';
 
 export default function BotaoOuvir({ texto, style }) {
   const { t, lang } = useLanguage();
   const [tocando, setTocando] = useState(false);
+  const [vozPronta, setVozPronta] = useState(false);
   // O callback de fim de fala chega DEPOIS que o componente pode ter morrido
   // (parar() do cleanup dispara onerror da fila) — o ref evita setState em
   // componente desmontado.
@@ -40,11 +48,21 @@ export default function BotaoOuvir({ texto, style }) {
     // Chrome a lista só chega assíncrona — aquecendo aqui, quando a pessoa
     // toca a voz neural já está escolhida. Idempotente.
     aquecerVozes();
+    const atualizarVoz = () => setVozPronta(vozNaturalDisponivel(lang));
+    atualizarVoz();
+    const deixarDeOuvir = observarVozes(atualizarVoz);
+    // Há WebViews que carregam getVoices() sem emitir voiceschanged. Duas
+    // sondas curtas cobrem esse caso sem segurar o gesto do usuário.
+    const sondaCurta = setTimeout(atualizarVoz, 150);
+    const sondaFinal = setTimeout(atualizarVoz, 900);
     return () => {
       vivo.current = false;
+      deixarDeOuvir();
+      clearTimeout(sondaCurta);
+      clearTimeout(sondaFinal);
       parar();
     };
-  }, []);
+  }, [lang]);
 
   // AUDITORIA 09/08/2026: o cleanup de desmonte NÃO cobre trocar de aba nem
   // push (React Navigation mantém a tela montada — achado real, o próprio
@@ -75,7 +93,7 @@ export default function BotaoOuvir({ texto, style }) {
     setTocando(false);
   }, [texto, lang]);
 
-  if (!vozDisponivel()) return null;
+  if (!vozDisponivel() || !vozPronta) return null;
 
   const alternar = () => {
     if (tocando) {

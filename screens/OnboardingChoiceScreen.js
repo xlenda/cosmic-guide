@@ -10,7 +10,9 @@ import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
 import OrbiGuide from '../components/OrbiGuide';
+import StoriesReader from '../components/StoriesReader';
 import OnboardingPerguntasScreen from './OnboardingPerguntasScreen';
+import { getOnboardingSignStoryKey } from '../lib/onboardingPlan';
 
 // A entrada limpa começa pela pergunta que personaliza o caminho. O seletor
 // de signos continua disponível como atalho, sem trazer de volta a antiga
@@ -23,6 +25,7 @@ export default function OnboardingChoiceScreen() {
   const [fase, setFase] = useState('perguntas');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [selectedSign, setSelectedSign] = useState(null);
 
   useEffect(() => {
     funnel.onboardingStart();
@@ -35,11 +38,18 @@ export default function OnboardingChoiceScreen() {
   async function pickSign(z) {
     if (saving) return;
     Haptics.selectionAsync();
+    setSelectedSign(z);
+  }
+
+  async function confirmSelectedSign() {
+    const z = selectedSign;
+    if (!z || saving) return;
     setSaving(true);
     setError('');
     const ok = await saveSolo(z);
     if (!ok) {
       setSaving(false);
+      setSelectedSign(null);
       setError(t('onboarding.saveError'));
       return;
     }
@@ -100,6 +110,12 @@ export default function OnboardingChoiceScreen() {
           </View>
         )}
       </ScrollView>
+      <StoriesReader
+        visible={!!selectedSign}
+        slides={selectedSign ? [t(getOnboardingSignStoryKey(selectedSign.name))] : []}
+        titulo={selectedSign ? selectedSign.pt : ''}
+        onClose={confirmSelectedSign}
+      />
     </View>
   );
 }
