@@ -142,7 +142,8 @@ async function newSoloPage(browser, extraStorage = {}) {
     await page.getByText('Usar Leitura Bônus', { exact: false }).first().click();
     await page.waitForTimeout(1200);
     body = await page.evaluate(() => document.body.innerText);
-    check('bônus tirou cartas de verdade', body.includes('Passado') && body.includes('Toque'));
+    const scratchVisible = await page.getByTestId('tarot-scratch-0').isVisible().catch(() => false);
+    check('bônus tirou cartas de verdade', body.includes('Passado') && scratchVisible);
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }

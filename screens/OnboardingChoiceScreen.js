@@ -99,8 +99,8 @@ export default function OnboardingChoiceScreen() {
         style={[styles.header, { paddingTop: insets.top + 28 }]}
       >
         <Text style={styles.headerEyebrow}>Cosmic Guide</Text>
-        <Text style={styles.headerTitle}>{t('onboarding.headerTitle')}</Text>
-        <Text style={styles.headerSub}>{t('onboarding.headerSub')}</Text>
+        <Text style={styles.headerTitle}>{t('onboarding.entry.title')}</Text>
+        <Text style={styles.headerSub}>{t('onboarding.entry.subtitle')}</Text>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -116,38 +116,31 @@ export default function OnboardingChoiceScreen() {
             <View style={styles.cenaWrap}>
               <Image source={CENAS.onboarding} style={styles.cenaImg} resizeMode="cover" accessible={false} />
             </View>
-            <TouchableOpacity activeOpacity={0.9} style={styles.card} onPress={escolherSolo}>
-              <LinearGradient colors={gradients.purple} style={styles.cardIcon}>
-                <Ionicons name="person" size={26} color="#fff" />
+            {/* Uma ação dominante: o usuário não precisa escolher um produto
+                antes de sentir valor. O modo casal continua disponível, mas
+                deixa de competir com a primeira leitura na mesma hierarquia. */}
+            <TouchableOpacity
+              testID="onboarding-primary"
+              activeOpacity={0.9}
+              style={styles.primaryWrap}
+              onPress={escolherSolo}
+            >
+              <LinearGradient colors={gradients.purple} style={styles.primaryAction}>
+                <Ionicons name="sparkles" size={22} color="#fff" />
+                <Text style={styles.primaryActionText}>{t('onboarding.entry.primary')}</Text>
+                <Ionicons name="arrow-forward" size={19} color="#fff" />
               </LinearGradient>
-              <Text style={styles.cardTitle}>{t('onboarding.solo.title')}</Text>
-              <Text style={styles.cardDesc}>{t('onboarding.solo.desc')}</Text>
-              {/* Cada card tem AGORA o seu próprio rótulo de botão — antes os
-                  dois liam a MESMA chave, e ela dizia "Começar": o toque daqui abre um
-                  grid de 12 signos que aparecia sem aviso nenhum — é o ponto
-                  onde a pessoa some (ver escolherSolo acima) — e nomear o
-                  passo antes tira a surpresa. A seta continua sendo o Ionicons
-                  ao lado; por isso o texto não traz "→". */}
-              <View style={styles.cardCta}>
-                <Text style={styles.cardCtaText}>{t('onboarding.solo.cta')}</Text>
-                <Ionicons name="arrow-forward" size={16} color={colors.accent} />
-              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.card}
+              testID="onboarding-couple"
+              activeOpacity={0.82}
+              style={styles.coupleSecondary}
               onPress={() => navigation.navigate(ROUTES.QUIZ)}
             >
-              <LinearGradient colors={gradients.pink} style={styles.cardIcon}>
-                <Ionicons name="heart" size={26} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.cardTitle}>{t('onboarding.couple.title')}</Text>
-              <Text style={styles.cardDesc}>{t('onboarding.couple.desc')}</Text>
-              <View style={styles.cardCta}>
-                <Text style={styles.cardCtaText}>{t('onboarding.couple.cta')}</Text>
-                <Ionicons name="arrow-forward" size={16} color={colors.accent} />
-              </View>
+              <Ionicons name="heart" size={18} color={colors.pink} />
+              <Text style={styles.coupleSecondaryText}>{t('onboarding.entry.couple')}</Text>
+              <Ionicons name="chevron-forward" size={17} color={colors.textMuted} />
             </TouchableOpacity>
           </>
         ) : (
@@ -201,6 +194,18 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20, paddingBottom: 40 },
   cenaWrap: { borderRadius: 18, overflow: 'hidden' },
   cenaImg: { width: '100%', height: 120 },
+  primaryWrap: { borderRadius: 18, overflow: 'hidden', marginTop: 18 },
+  primaryAction: {
+    minHeight: 58, paddingVertical: 16, paddingHorizontal: 18,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
+  },
+  primaryActionText: { flex: 1, color: '#fff', fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  coupleSecondary: {
+    minHeight: 48, marginTop: 12, borderRadius: 16, paddingHorizontal: 15,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card,
+  },
+  coupleSecondaryText: { flex: 1, color: colors.textSecondary, fontSize: 14, fontWeight: '700', textAlign: 'center' },
   card: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     borderRadius: 20, padding: 20, marginTop: 16,

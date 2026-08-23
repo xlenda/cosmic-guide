@@ -37,6 +37,7 @@ async function abrirPicker(page, { width, height }, { api = null } = {}) {
   );
   if (api) await page.route('**/api/cities/**', api);
   await page.addInitScript(() => {
+    window.localStorage.setItem('app-language', 'pt');
     window.localStorage.setItem(
       'userSign',
       JSON.stringify({ nome: 'Áries', name: 'Áries', signo: 'Áries' })
@@ -307,6 +308,7 @@ async function abrirMapaComCidadeSalva(page, cidadeSalva) {
   // que upgradeCityTimezone precisa devolver a cidade intacta em vez de lancar.
   await page.route('**/api/cities/**', (route) => route.fulfill(resposta503()));
   await page.addInitScript((salva) => {
+    window.localStorage.setItem('app-language', 'pt');
     window.localStorage.setItem(
       'userSign',
       JSON.stringify({ nome: 'Áries', name: 'Áries', signo: 'Áries' })
@@ -355,10 +357,15 @@ test('usuario ANTIGO com cidade da reserva: mapa abre, Ascendente e corrigido e 
   // 10/01/2015 as 13:00 em Sao Paulo: dentro do horario de verao brasileiro.
   await abrirMapaComCidadeSalva(page, { date: '2015-01-10', time: '13:00', city: SP_LEGADO });
 
-  // A cidade salva continua na tela (nada foi perdido no upgrade).
-  await expect(page.getByText('São Paulo, SP — Brasil').first()).toBeVisible({ timeout: 20000 });
+  // A cidade continua no dado salvo depois do upgrade. A versão compacta do
+  // resultado não imprime a cidade; validar o storage é mais direto do que
+  // abrir o formulário e esconder o próprio mapa que este teste confere.
+  await expect.poll(() => page.evaluate(() => {
+    const raw = window.localStorage.getItem('birthChartSolo-mirror');
+    return raw ? JSON.parse(raw)?.city?.name : null;
+  })).toBe('São Paulo');
   // O mapa saiu.
-  await expect(page.getByText('Ascendente').first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText('Ascendente', { exact: true }).first()).toBeVisible({ timeout: 20000 });
   // E o numero se explica: sem esta linha o usuario confere em outro site, ve
   // 1h de diferenca e acha que o app errou.
   await expect(page.getByText(/UTC-02:00/).first()).toBeVisible({ timeout: 20000 });
@@ -379,8 +386,11 @@ test('usuario ANTIGO com cidade FORA da reserva e servidor em 503: o mapa dele s
   page.on('pageerror', (e) => erros.push(e.message));
   await abrirMapaComCidadeSalva(page, { date: '2015-01-10', time: '13:00', city: CANOAS_LEGADO });
 
-  await expect(page.getByText('Canoas, RS — Brasil').first()).toBeVisible({ timeout: 20000 });
-  await expect(page.getByText('Ascendente').first()).toBeVisible({ timeout: 20000 });
+  await expect.poll(() => page.evaluate(() => {
+    const raw = window.localStorage.getItem('birthChartSolo-mirror');
+    return raw ? JSON.parse(raw)?.city?.name : null;
+  })).toBe('Canoas');
+  await expect(page.getByText('Ascendente', { exact: true }).first()).toBeVisible({ timeout: 20000 });
   // Sem fuso IANA nao ha o que anunciar — e, sobretudo, nao ha nada mudando.
   await expect(page.getByText(/horário de verão/)).toHaveCount(0);
   await expect(page.getByText(/UTC-0[23]:00/)).toHaveCount(0);

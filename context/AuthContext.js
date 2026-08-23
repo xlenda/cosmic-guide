@@ -4,7 +4,7 @@
 // de assinar, ver PlanosScreen.js). `user`/`session` ficam null até logar.
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { supabase, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPasswordForEmail, signOut as signOutSupabase } from '../lib/supabaseClient';
+import { supabase, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPasswordForEmail, updatePasswordForCurrentUser, signOut as signOutSupabase } from '../lib/supabaseClient';
 import { Alert } from '../lib/webAlert';
 
 const AuthContext = createContext(null);
@@ -12,6 +12,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   // Quando o retorno do OAuth/e-mail vem com erro (consentimento cancelado,
   // link expirado, provider mal configurado), o auth-js engole isso num erro
@@ -45,9 +46,10 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!active) return;
       setSession(newSession);
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
     });
 
     return () => {
@@ -64,6 +66,9 @@ export function AuthProvider({ children }) {
     signUp: signUpWithEmail,
     signInWithGoogle,
     resetPassword: resetPasswordForEmail,
+    updatePassword: updatePasswordForCurrentUser,
+    passwordRecovery,
+    finishPasswordRecovery: () => setPasswordRecovery(false),
     signOut: signOutSupabase,
   };
 

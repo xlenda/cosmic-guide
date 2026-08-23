@@ -21,6 +21,7 @@ test.describe('Paywall — 1 uso grátis do Horóscopo', () => {
     // visitas. Um contexto novo do Playwright já começa com localStorage
     // vazio, então não precisa de limpeza defensiva.
     await page.addInitScript((profile) => {
+      window.localStorage.setItem('app-language', 'pt');
       window.localStorage.setItem('gff-couple-profile', JSON.stringify(profile));
     }, COUPLE_PROFILE);
   });
@@ -32,7 +33,7 @@ test.describe('Paywall — 1 uso grátis do Horóscopo', () => {
     await expect(horoscopeCard).toBeVisible({ timeout: 15000 });
     await horoscopeCard.click();
 
-    await expect(page.getByTestId('horoscope-reading')).toBeVisible();
+    await expect(page.getByTestId('horoscope-reading')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId('onetimelock-container')).toHaveCount(0);
 
     // markFeatureUsedOnce (lib/featureUsage.js) grava no storage sem await

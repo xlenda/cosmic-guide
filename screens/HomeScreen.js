@@ -70,6 +70,12 @@ import { getAgirData } from '../lib/coupleData';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
+import { getJournalEntries } from '../lib/journal';
+import {
+  buildOnboardingPlan,
+  getOnboardingIntent,
+  getOnboardingIntentDefinition,
+} from '../lib/onboardingPlan';
 
 // Cards do grid que levam a uma LEITURA de verdade (as 9 individuais) — são
 // eles que valem como "pediu a 1ª leitura" (reading_start). Os cards de casal
@@ -221,6 +227,23 @@ export default function HomeScreen() {
   }, [refresh]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // Home progressiva: o primeiro acesso recebe uma única etapa dominante.
+  // Assim que existe uma leitura real no Diário, a Home volta a mostrar as
+  // superfícies de continuidade. A intenção apenas ORDENA recursos reais.
+  const [onboardingIntent, setOnboardingIntentState] = useState(null);
+  const [journalCount, setJournalCount] = useState(null);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      Promise.all([getOnboardingIntent(), getJournalEntries()]).then(([intent, entries]) => {
+        if (!active) return;
+        setOnboardingIntentState(intent);
+        setJournalCount(Array.isArray(entries) ? entries.length : 0);
+      });
+      return () => { active = false; };
+    }, [])
+  );
 
   // Widget "sequência da semana" (lib/streak.js) — só leitura/exibição, quem
   // marca o dia como ativo é recordActiveDay() em outro lugar do app. Recarrega
@@ -783,6 +806,12 @@ export default function HomeScreen() {
         : c
     );
 
+  const resolvedIntent = onboardingIntent || 'curiosity';
+  const intentDefinition = getOnboardingIntentDefinition(resolvedIntent);
+  const firstPathKeys = buildOnboardingPlan(resolvedIntent, isCouple ? 'couple' : 'solo');
+  const firstPathItem = cardItems.find((item) => item.key === firstPathKeys[0]) || null;
+  const showFirstPath = journalCount === 0 && !!firstPathItem && !!intentDefinition;
+
   // Separação visual pedida pelo Lenda (25/07/2026): desde que solo também
   // assina (as 9 leituras individuais), fica confuso misturar no mesmo grid
   // features que solo pode assinar direto com as 5 que exigem formar casal —
@@ -1005,8 +1034,38 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {showFirstPath && (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.firstPathCard}
+            onPress={firstPathItem.onPress}
+            accessibilityRole="button"
+          >
+            <LinearGradient colors={firstPathItem.gradient} style={styles.firstPathInner}>
+              <View style={styles.firstPathIcon}>
+                <Ionicons name={firstPathItem.icon} size={24} color="#fff" />
+              </View>
+              <Text style={styles.firstPathEyebrow}>{t('home.firstPath.eyebrow')}</Text>
+              <Text style={styles.firstPathTitle}>
+                {t('home.firstPath.title', { feature: firstPathItem.title })}
+              </Text>
+              <Text style={styles.firstPathBody}>
+                {t('home.firstPath.body', {
+                  intent: t(intentDefinition.labelKey),
+                })}
+              </Text>
+              <View style={styles.firstPathCta}>
+                <Text style={styles.firstPathCtaText}>{t('home.firstPath.cta')}</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
+              </View>
+              <Text style={styles.firstPathHonesty}>{t('home.firstPath.honesty')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
             explícito: não ficar escondido junto dos outros cards do grid). */}
+        {journalCount > 0 && (
         <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate(ROUTES.DIARY)} style={styles.diaryBar}>
           <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.diaryBarInner}>
             <View style={styles.diaryBarIcon}>
@@ -1019,9 +1078,11 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={20} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
+        )}
 
         {/* Sequência da semana (lib/streak.js) — leva pros Relatórios (calendário
             de sequência completo) ao tocar. */}
+        {(journalCount > 0 || streakInfo.totalActiveDays > 0) && (
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.streakCard}
@@ -1052,6 +1113,7 @@ export default function HomeScreen() {
             ))}
           </View>
         </TouchableOpacity>
+        )}
 
         {/* Opt-in de notificação no momento certo: só depois da 1ª atividade
             real, uma vez só (ver components/NotifPromptCard.js). */}
@@ -1673,6 +1735,18 @@ const styles = StyleSheet.create({
   // componentes.
   gutterWrap: { paddingHorizontal: 4 },
   loader: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+  firstPathCard: { marginHorizontal: 20, marginTop: -14, marginBottom: 16, borderRadius: 22, overflow: 'hidden' },
+  firstPathInner: { padding: 20 },
+  firstPathIcon: {
+    width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)', marginBottom: 14,
+  },
+  firstPathEyebrow: { color: 'rgba(255,255,255,0.78)', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+  firstPathTitle: { color: '#fff', fontSize: 24, lineHeight: 29, fontWeight: '800', marginTop: 6 },
+  firstPathBody: { color: 'rgba(255,255,255,0.9)', fontSize: 14, lineHeight: 20, marginTop: 8 },
+  firstPathCta: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 16 },
+  firstPathCtaText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  firstPathHonesty: { color: 'rgba(255,255,255,0.72)', fontSize: 10, lineHeight: 14, marginTop: 14 },
   diaryBar: { marginHorizontal: 20, marginTop: -14, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   diaryBarInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   diaryBarIcon: {

@@ -14,13 +14,13 @@ import {
   StyleSheet,
   Modal,
   FlatList,
-  Animated,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
@@ -40,6 +40,8 @@ import { cityLabel } from '../lib/cities';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
+import { saveOnboardingIntent } from '../lib/onboardingPlan';
+import ScratchRevealCard from '../components/ScratchRevealCard';
 
 // Chaves de tradução (não os nomes exibidos) — a exibição real passa por
 // t(STEPS[idx]) onde for mostrado; aqui só serve de key/índice estável.
@@ -258,6 +260,10 @@ export default function QuizScreen() {
     funnel.onboardingStart('couple');
   }, []);
 
+  useEffect(() => {
+    funnel.onboardingStep('couple', `step_${step}`, 'view');
+  }, [step]);
+
   const amorInputRef = useRef(null);
   // Guarda os ids do setInterval/setTimeout do loading do passo 4->5 para
   // poder cancelá-los se a tela desmontar (voltar pelo hardware back, reset de
@@ -273,15 +279,6 @@ export default function QuizScreen() {
       timersRef.current = [];
     };
   }, []);
-  const flipAnimsRef = useRef(null);
-  if (!flipAnimsRef.current) {
-    flipAnimsRef.current = {};
-    CARDS.forEach((c) => {
-      flipAnimsRef.current[c.name] = new Animated.Value(0);
-    });
-  }
-  const flipAnims = flipAnimsRef.current;
-
   // Hora opcional: combina HH + MM em "HH:MM" só quando os dois campos são números válidos
   // (mesmo comportamento do <input type="time"> opcional do original — some fica igual a "").
   useEffect(() => {
@@ -303,18 +300,6 @@ export default function QuizScreen() {
       setNascHoraAmor('');
     }
   }, [horaAmorH, horaAmorM]);
-
-  // Anima o flip de cada carta sempre que a seleção mudar (inclusive ao desmarcar).
-  useEffect(() => {
-    CARDS.forEach((c) => {
-      const flipped = cartas.includes(c.name);
-      Animated.timing(flipAnims[c.name], {
-        toValue: flipped ? 1 : 0,
-        duration: 600,
-        useNativeDriver: true,
-      }).start();
-    });
-  }, [cartas]);
 
   useEffect(() => {
     setAviso('');
@@ -460,6 +445,9 @@ export default function QuizScreen() {
       setAviso(t('quiz.aviso.saveFailed'));
       return;
     }
+    // Quem concluiu o fluxo de casal declarou um objetivo relacional de forma
+    // inequívoca. Isso só ordena a Home; não altera a sinastria nem as cartas.
+    await saveOnboardingIntent('love');
     // 3º degrau: perfil de CASAL salvo de verdade (só depois do ok — este
     // botão já reprovou 100% dos salvamentos web num bug real, ver
     // saveCoupleProfile em lib/coupleData.js; um evento disparado antes do ok
@@ -594,6 +582,12 @@ export default function QuizScreen() {
                 placeholderTextColor={colors.textMuted}
               />
             </View>
+            {!!voce.trim() && !!amor.trim() && (
+              <View style={styles.answerEchoCard}>
+                <Ionicons name="heart" size={18} color={colors.gold} />
+                <Text style={styles.answerEchoText}>{t('quiz.names.echo', { voce: voce.trim(), amor: amor.trim() })}</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -718,6 +712,19 @@ export default function QuizScreen() {
               </TouchableOpacity>
             </View>
             {signoManualAmor && <SignGrid current={signoAmor} onSelect={setSignoAmor} />}
+            {!!compat && (
+              <View style={styles.compatPreview}>
+                <Text style={styles.compatPreviewKicker}>{t('quiz.birth.previewKicker')}</Text>
+                <Text style={styles.compatPreviewTitle}>{t('quiz.birth.previewTitle', { voce, amor })}</Text>
+                <Text style={styles.compatPreviewBody}>
+                  {t('quiz.birth.previewBody', {
+                    signA: signoVoce,
+                    signB: signoAmor,
+                    aspect: t(CHAVES_DE_TRADUCAO.aspecto[compat.familia]),
+                  })}
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -765,39 +772,41 @@ export default function QuizScreen() {
                 // Travada assim que virada (não dá pra tocar de novo pra desmarcar) e
                 // as demais desabilitam quando as 3 já foram escolhidas.
                 const disabled = flipped || cartas.length >= 3;
-                const anim = flipAnims[c.name];
-                const rotateBack = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
-                const rotateFront = anim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
-                const backOpacity = anim.interpolate({ inputRange: [0, 0.5, 0.51, 1], outputRange: [1, 1, 0, 0] });
-                const frontOpacity = anim.interpolate({ inputRange: [0, 0.5, 0.51, 1], outputRange: [0, 0, 1, 1] });
                 return (
-                  <TouchableOpacity
+                  <View
                     key={c.name}
-                    activeOpacity={0.85}
-                    disabled={disabled}
-                    onPress={() => toggleCarta(c.name)}
                     style={[styles.tarotCardWrap, !flipped && disabled && styles.tarotCardDisabled]}
                   >
-                    <Animated.View
-                      style={[
-                        styles.tarotFace,
-                        styles.tarotBack,
-                        { opacity: backOpacity, transform: [{ perspective: 800 }, { rotateY: rotateBack }] },
-                      ]}
-                    >
-                      <Text style={styles.tarotBackGlyph}>✷</Text>
-                    </Animated.View>
-                    <Animated.View
-                      style={[
-                        styles.tarotFace,
-                        styles.tarotFront,
-                        { opacity: frontOpacity, transform: [{ perspective: 800 }, { rotateY: rotateFront }] },
-                      ]}
-                    >
-                      <Text style={styles.tarotEmoji}>{c.emoji}</Text>
-                      <Text style={styles.tarotName}>{c.name}</Text>
-                    </Animated.View>
-                  </TouchableOpacity>
+                    {flipped ? (
+                      <View style={[styles.tarotFace, styles.tarotFront]}>
+                        <Text style={styles.tarotEmoji}>{c.emoji}</Text>
+                        <Text style={styles.tarotName}>{c.name}</Text>
+                      </View>
+                    ) : disabled ? (
+                      <View style={[styles.tarotFace, styles.tarotBack]}>
+                        <Text style={styles.tarotBackGlyph}>✷</Text>
+                      </View>
+                    ) : (
+                      <ScratchRevealCard
+                        revealed={false}
+                        resetKey={c.name}
+                        onReveal={() => {
+                          funnel.scratchReveal('couple', `card_${cartas.length + 1}`);
+                          toggleCarta(c.name);
+                        }}
+                        themeColor={colors.accent}
+                        scratchLabel={t('tarot.scratch')}
+                        tapLabel={t('tarot.scratch.tapAlternative')}
+                        accessibilityLabel={t('tarot.scratch.a11y')}
+                        style={styles.coupleScratchCard}
+                      >
+                        <View style={[styles.tarotFace, styles.tarotFront]}>
+                          <Text style={styles.tarotEmoji}>{c.emoji}</Text>
+                          <Text style={styles.tarotName}>{c.name}</Text>
+                        </View>
+                      </ScratchRevealCard>
+                    )}
+                  </View>
                 );
               })}
             </View>
@@ -1102,9 +1111,23 @@ const styles = StyleSheet.create({
   energyText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700', textAlign: 'center' },
   energyTextSel: { color: colors.text },
   energyEcho: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 18, lineHeight: 20 },
+  answerEchoCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 10,
+    backgroundColor: colors.gold + '12', borderWidth: 1, borderColor: colors.gold + '55',
+    borderRadius: 14, padding: 13,
+  },
+  answerEchoText: { flex: 1, color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  compatPreview: {
+    marginTop: 16, padding: 15, borderRadius: 16,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.accent + '66',
+  },
+  compatPreviewKicker: { color: colors.gold, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
+  compatPreviewTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 5 },
+  compatPreviewBody: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 6 },
 
   tarotGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   tarotCardWrap: { width: '31%', aspectRatio: 0.75, marginBottom: 12 },
+  coupleScratchCard: { width: '100%', height: '100%', borderRadius: 14 },
   tarotCardDisabled: { opacity: 0.35 },
   tarotFace: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

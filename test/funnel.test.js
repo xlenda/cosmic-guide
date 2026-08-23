@@ -17,6 +17,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('node:module');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const mem = new Map();
 let storageBroken = false;
@@ -112,6 +114,21 @@ test('fila: track() não manda nada na hora — junta e sai em UM lote', async (
     ['app_open', 'home_view', 'reading_start']
   );
   assert.strictEqual(__funnelDebug().queue.length, 0);
+});
+
+test('passos do onboarding e raspagem registram só ids fixos, com dedupe por etapa', () => {
+  reset();
+  funnel.onboardingStep('solo', 'intent', 'view');
+  funnel.onboardingStep('solo', 'intent', 'view');
+  funnel.onboardingStep('solo', 'intent', 'complete');
+  funnel.scratchReveal('tarot', 'passado');
+  funnel.scratchReveal('tarot', 'passado');
+
+  assert.deepStrictEqual(__funnelDebug().queue, [
+    { event: 'onboarding_step', props: { mode: 'solo', screen: 'intent', source: 'view' } },
+    { event: 'onboarding_step', props: { mode: 'solo', screen: 'intent', source: 'complete' } },
+    { event: 'scratch_reveal', props: { kind: 'tarot', screen: 'passado' } },
+  ]);
 });
 
 test('lote: chegando a 10 eventos, o envio sai sozinho sem esperar o debounce', async () => {
@@ -436,14 +453,19 @@ test('evento fora da allowlist é descartado no aparelho, sem contaminar o lote'
   );
 });
 
-test('a allowlist local é exatamente a do servidor (14 eventos)', () => {
+test('a allowlist local é exatamente a do servidor (16 eventos)', () => {
+  const serverSource = fs.readFileSync(
+    path.resolve(__dirname, '../server-patches/src/http/trackRoutes.js'),
+    'utf8'
+  );
+  const block = serverSource.match(/const EVENTS = \[([\s\S]*?)\];/);
+  assert.ok(block, 'a lista EVENTS do backend precisa continuar explícita e auditável');
+  const serverEvents = [...block[1].matchAll(/^\s*"([^"]+)"/gm)].map((match) => match[1]);
+
+  assert.strictEqual(serverEvents.length, 16, 'adicionar evento exige revisar cliente, servidor e relatório');
   assert.deepStrictEqual(
     [...FUNNEL_EVENTS].sort(),
-    [
-      'app_open', 'checkout_click', 'checkout_open', 'home_view', 'login_done', 'login_view',
-      'onboarding_done', 'onboarding_start', 'paywall_view', 'plan_select', 'reading_done', 'reading_start',
-      'today_line_tap', 'ai_report',
-    ].sort()
+    serverEvents.sort()
   );
 });
 

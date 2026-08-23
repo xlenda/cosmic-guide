@@ -128,6 +128,8 @@ function main() {
   let porEvento;
   let porDia;
   let totalSessoes;
+  let porPasso = [];
+  let porRaspagem = [];
   try {
     porEvento = db
       .prepare(
@@ -147,6 +149,27 @@ function main() {
     totalSessoes = db
       .prepare("SELECT COUNT(DISTINCT session_id) AS c FROM funnel_events WHERE created_at >= ?")
       .get(desde).c;
+    porPasso = db
+      .prepare(
+        `SELECT json_extract(props, '$.mode') AS mode,
+                json_extract(props, '$.screen') AS step,
+                json_extract(props, '$.source') AS action,
+                COUNT(DISTINCT session_id) AS sessoes
+         FROM funnel_events
+         WHERE created_at >= ? AND event = 'onboarding_step'
+         GROUP BY mode, step, action ORDER BY mode, MIN(created_at)`
+      )
+      .all(desde);
+    porRaspagem = db
+      .prepare(
+        `SELECT json_extract(props, '$.kind') AS kind,
+                json_extract(props, '$.screen') AS screen,
+                COUNT(DISTINCT session_id) AS sessoes
+         FROM funnel_events
+         WHERE created_at >= ? AND event = 'scratch_reveal'
+         GROUP BY kind, screen ORDER BY kind, screen`
+      )
+      .all(desde);
   } catch (err) {
     if (String(err.message).includes("no such table")) {
       console.error("A tabela funnel_events não existe — a migração 010 ainda não foi aplicada.");
@@ -325,9 +348,29 @@ function main() {
   }
 
   // -------------------------------------------------------------------------
-  // 4) Eventos fora do funil (nome novo que o app começou a mandar)
+  // 4) O miolo que antes era caixa-preta
+  // -------------------------------------------------------------------------
+  if (porPasso.length) {
+    console.log("");
+    console.log(`${cores.neg}PASSOS DO ONBOARDING${cores.reset}`);
+    for (const row of porPasso) {
+      console.log(`  ${String(row.mode || '?').padEnd(7)} ${String(row.step || '?').padEnd(16)} ${String(row.action || '?').padEnd(9)} ${row.sessoes}`);
+    }
+  }
+  if (porRaspagem.length) {
+    console.log("");
+    console.log(`${cores.neg}CARTAS RASPADAS ATÉ O FIM${cores.reset}`);
+    for (const row of porRaspagem) {
+      console.log(`  ${String(row.kind || '?').padEnd(9)} ${String(row.screen || '?').padEnd(16)} ${row.sessoes}`);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 5) Eventos fora do funil (nome novo que o app começou a mandar)
   // -------------------------------------------------------------------------
   const conhecidos = new Set(FUNIL.map((p) => p.event));
+  conhecidos.add('onboarding_step');
+  conhecidos.add('scratch_reveal');
   const fora = porEvento.filter((r) => !conhecidos.has(r.event));
   if (fora.length) {
     console.log("");

@@ -57,6 +57,7 @@ Module._load = function (request, parent, isMain) {
 };
 
 const coupleData = require('../lib/coupleData.js');
+const onboardingPlan = require('../lib/onboardingPlan.js');
 
 function reset(webMode) {
   mem.async.clear();
@@ -107,12 +108,18 @@ test('NATIVO (SecureStore ok): nascimento vai pro SecureStore e NÃO vaza pro As
 test('WEB: deleteAllCoupleData apaga também o espelho do nascimento', async () => {
   reset(true);
   await coupleData.saveCoupleProfile(PERFIL);
+  await onboardingPlan.saveOnboardingIntent('love');
   await coupleData.deleteAllCoupleData();
 
   const { birthA, birthB } = await coupleData.getBirthData();
   assert.strictEqual(birthA, null, 'a data de nascimento não pode sobreviver a "apagar meus dados" na web');
   assert.strictEqual(birthB, null);
   assert.strictEqual(await coupleData.getCoupleProfile(), null);
+  assert.strictEqual(
+    await onboardingPlan.getOnboardingIntent(),
+    null,
+    'o tema escolhido no primeiro caminho também é dado local e não pode sobreviver a "apagar tudo"'
+  );
 });
 
 // Regressão de privacidade (26/07/2026): deleteAllCoupleData só apagava o

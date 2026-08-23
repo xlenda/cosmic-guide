@@ -1,5 +1,5 @@
 // O ONBOARDING-RECOMPENSA (09/08/2026) — o melhor momento do app concorrente,
-// replicado com os motores da casa: UMA pergunta por tela (nome → data →
+// replicado com os motores da casa: UMA pergunta por tela (intenção → data →
 // horário com saída honesta → cidade) e CADA resposta devolve algo visual no
 // centro — a data acende o signo solar com o MASCOTE (lib/ilustracoes.js), e
 // hora+cidade acendem Lua/Ascendente ao lado dele. Fecha com a leitura em
@@ -20,10 +20,8 @@
 //     writeSecureItemWithMirror + saveSoloBirthMirror — byte-idêntico ao
 //     generateSolo() do BirthChartScreen; o Mapa e o Céu de Hoje da Home
 //     enxergam o nascimento sem saber que o onboarding mudou.
-//   - O NOME não persiste em lugar nenhum ([AUTO-DECISION]): nenhuma tela do
-//     app consome nome solo hoje (home.greetingSolo usa {sign}), e gravar um
-//     dado pessoal que ninguém lê criaria superfície de LGPD fora da lista de
-//     deleteAllCoupleData. Ele vive só na saudação dos slides.
+//   - A INTENÇÃO declarada ordena o primeiro caminho na Home. Ela nunca muda
+//     cartas, cálculos ou significados e só é salva depois que o perfil nasce.
 //
 // AS LEITURAS DOS SLIDES NUNCA NASCEM AQUI: são birthchart.positionIn +
 // birthchart.row.*.desc (e o .missing honesto do Ascendente) — os MESMOS
@@ -39,7 +37,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -65,11 +62,18 @@ import { nomeDoSigno } from '../lib/synastry';
 import { mascoteDoSigno } from '../lib/ilustracoes';
 import { writeSecureItemWithMirror, saveSoloBirthMirror } from '../lib/birthData';
 import { cityLabel } from '../lib/cities';
+import {
+  ONBOARDING_INTENTS,
+  buildOnboardingPlan,
+  getOnboardingIntentDefinition,
+  saveOnboardingIntent,
+} from '../lib/onboardingPlan';
 
 const ANO_ATUAL = new Date().getFullYear();
 const ITEM_ALTURA = 44;
 const HORAS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTOS = Array.from({ length: 60 }, (_, i) => i);
+const SOLO_STEP_IDS = ['intent', 'birth', 'time', 'city', 'reveal'];
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -114,10 +118,10 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
   const { t, lang } = useLanguage();
   const { saveSolo } = useCouple();
 
-  // 0 nome · 1 data · 2 hora · 3 cidade · 4 revelação. Nada persiste até o
+  // 0 intenção · 1 data · 2 hora · 3 cidade · 4 revelação. Nada persiste até o
   // Concluir dos slides — abandonar no meio nunca deixa perfil pela metade.
   const [passo, setPasso] = useState(0);
-  const [nome, setNome] = useState('');
+  const [intencao, setIntencao] = useState(null);
   const [data, setData] = useState(null);
   const [horaH, setHoraH] = useState(null);
   const [horaM, setHoraM] = useState(null);
@@ -128,6 +132,10 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
   const [lendo, setLendo] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    funnel.onboardingStep('solo', SOLO_STEP_IDS[passo] || 'unknown', 'view');
+  }, [passo]);
 
   const hora = !semHora && horaH != null && horaM != null ? `${pad2(horaH)}:${pad2(horaM)}` : null;
 
@@ -181,7 +189,10 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parAceso]);
 
-  // Os SLIDES — saudação com o nome + as leituras que o Mapa já mostra
+  const planoInicial = useMemo(() => buildOnboardingPlan(intencao, 'solo'), [intencao]);
+  const intencaoDef = useMemo(() => getOnboardingIntentDefinition(intencao), [intencao]);
+
+  // Os SLIDES — intenção declarada + as leituras que o Mapa já mostra
   // (positionIn + row.desc; o Asc sem hora/cidade vira o .missing honesto,
   // que também é o convite pra completar depois no Mapa). Nada redigido aqui.
   const slides = useMemo(() => {
@@ -190,13 +201,14 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
         label: t(`birthchart.row.${rowKey}.label`),
         sign: nomeDoSigno(signo, lang),
       })}. ${t(`birthchart.row.${rowKey}.desc`)}.`;
-    const out = [t('onboarding.q.slides.greeting', { name: nome.trim() })];
+    const out = [t('onboarding.q.slides.greetingNoName')];
+    if (intencaoDef) out.push(t(intencaoDef.echoKey));
     if (sol) out.push(linha('sun', sol));
     if (lua) out.push(linha('moon', lua));
     out.push(asc ? linha('asc', asc) : t('birthchart.row.asc.missing'));
     out.push(t('onboarding.q.slides.closing'));
     return out;
-  }, [t, lang, nome, sol, lua, asc]);
+  }, [t, lang, intencaoDef, sol, lua, asc]);
 
   function voltar() {
     if (salvando) return;
@@ -210,6 +222,7 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
 
   function avancar() {
     Haptics.selectionAsync();
+    funnel.onboardingStep('solo', SOLO_STEP_IDS[passo] || 'unknown', 'complete');
     setPasso(passo + 1);
   }
 
@@ -234,6 +247,9 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
         setErro(t('onboarding.saveError'));
         return;
       }
+      // A intenção só persiste depois que o perfil real foi salvo. Ela ordena
+      // a Home, mas nunca altera carta, cálculo ou significado.
+      await saveOnboardingIntent(intencao || 'curiosity');
       // Só DEPOIS do ok — mesma regra do grid (pickSign): cadastro que falhou
       // no storage não aparece concluído no relatório.
       funnel.onboardingDone('solo');
@@ -245,7 +261,6 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
     }
   }
 
-  const nomeOk = nome.trim().length > 0;
   const horaOk = horaH != null && horaM != null;
 
   // O PALCO — o círculo central com o mascote do signo solar (glifo colorido
@@ -337,28 +352,54 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
       >
         {passo === 0 && (
           <View style={styles.passo}>
-            <Text style={styles.pergunta}>{t('onboarding.q.name.title')}</Text>
-            <TextInput
-              style={styles.inputNome}
-              value={nome}
-              onChangeText={setNome}
-              placeholder={t('onboarding.q.name.placeholder')}
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="words"
-              autoCorrect={false}
-              maxLength={40}
-              returnKeyType="done"
-              onSubmitEditing={() => nomeOk && avancar()}
-            />
-            <Text style={styles.dica}>{t('onboarding.q.name.hint')}</Text>
-            {/* O botão vem COLADO no bloco do input (não ancorado no pé da
-                viewport): com o teclado aberto ele continua logo abaixo do
-                campo, nunca coberto. O respiro de pé fica no paddingBottom
-                do scroll (lei do dvh, ≥140). */}
+            <Text style={styles.pergunta}>{t('onboarding.intent.title')}</Text>
+            <Text style={styles.dica}>{t('onboarding.intent.subtitle')}</Text>
+            <View style={styles.intentGrid}>
+              {ONBOARDING_INTENTS.map((item) => {
+                const selected = intencao === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    testID={`onboarding-intent-${item.id}`}
+                    style={[styles.intentCard, selected && styles.intentCardSelected]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setIntencao(item.id);
+                    }}
+                    activeOpacity={0.82}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                  >
+                    <View style={[styles.intentIcon, selected && styles.intentIconSelected]}>
+                      <Ionicons name={item.icon} size={20} color={selected ? '#fff' : colors.accent} />
+                    </View>
+                    <View style={styles.intentTextWrap}>
+                      <Text style={styles.intentLabel}>{t(item.labelKey)}</Text>
+                      <Text style={styles.intentDescription}>{t(item.descriptionKey)}</Text>
+                    </View>
+                    {selected && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {!!intencaoDef && (
+              <View style={styles.planPreview} testID="onboarding-plan-preview">
+                <Text style={styles.planPreviewTitle}>{t('onboarding.intent.planTitle')}</Text>
+                <Text style={styles.planPreviewEcho}>{t(intencaoDef.echoKey)}</Text>
+                {planoInicial.map((feature, index) => (
+                  <Text key={feature} style={styles.planPreviewStep}>
+                    {t('onboarding.intent.planStep', {
+                      number: index + 1,
+                      feature: t(`home.card.${feature}.title`),
+                    })}
+                  </Text>
+                ))}
+              </View>
+            )}
             <TouchableOpacity
-              style={[styles.continuar, !nomeOk && styles.continuarApagado]}
+              style={[styles.continuar, !intencao && styles.continuarApagado]}
               onPress={avancar}
-              disabled={!nomeOk}
+              disabled={!intencao}
               activeOpacity={0.85}
             >
               <Text style={styles.continuarTexto}>{t('onboarding.q.continue')}</Text>
@@ -533,6 +574,7 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
         onClose={() => setCidadeAberta(false)}
         onSelect={(c) => {
           Haptics.selectionAsync();
+          funnel.onboardingStep('solo', 'city', 'complete');
           setCidade(c);
           setCidadeAberta(false);
           // Respondeu a última pergunta — vai direto pro palco aceso.
@@ -594,6 +636,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
   },
+
+  intentGrid: { gap: 10, marginTop: 12 },
+  intentCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 16, padding: 13,
+  },
+  intentCardSelected: { borderColor: colors.gold, backgroundColor: colors.accent + '20' },
+  intentIcon: {
+    width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.accent + '18',
+  },
+  intentIconSelected: { backgroundColor: colors.accent },
+  intentTextWrap: { flex: 1 },
+  intentLabel: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  intentDescription: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  planPreview: {
+    marginTop: 14, padding: 14, borderRadius: 16,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.gold + '66',
+  },
+  planPreviewTitle: { color: colors.gold, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
+  planPreviewEcho: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 7, marginBottom: 8 },
+  planPreviewStep: { color: colors.text, fontSize: 13, fontWeight: '700', lineHeight: 20 },
 
   inputNome: {
     color: colors.text,

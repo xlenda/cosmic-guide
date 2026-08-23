@@ -26,6 +26,7 @@ import CosmicScene from '../components/CosmicScene';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
+import ScratchRevealCard from '../components/ScratchRevealCard';
 // O PREPARO DE WAITE (01/08/2026) — lib/waiteRegras.js existia, com pack nos
 // três idiomas e teste próprio passando, e NUNCA tinha sido ligado a uma tela.
 // O cabeçalho do módulo já dizia onde ele encaixa: "o vão que hoje está vazio —
@@ -45,6 +46,7 @@ import BotaoOuvir from '../components/BotaoOuvir';
 // (lib/ilustracoes.js, 640px). Entra no topo do estado vazio, no LUGAR do
 // maço de cartas feito de dois gradientes — mesmo slot, nada funcional desce.
 import { CENAS } from '../lib/ilustracoes';
+import { funnel } from '../lib/funnel';
 
 const FEATURE_KEY = 'tarot';
 
@@ -311,6 +313,7 @@ export default function TarotScreen() {
 
   const reveal = (i) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    funnel.scratchReveal('tarot', String(POSITIONS[i] || i).toLowerCase());
     setRevealed((prev) => prev.map((v, idx) => (idx === i ? true : v)));
   };
 
@@ -472,7 +475,12 @@ export default function TarotScreen() {
                   progresso={progressoDoWaite}
                 />
 
-                <TouchableOpacity activeOpacity={0.85} onPress={() => drawCards()} style={styles.btnWrap}>
+                <TouchableOpacity
+                  testID="tarot-draw"
+                  activeOpacity={0.85}
+                  onPress={() => drawCards()}
+                  style={styles.btnWrap}
+                >
                   <LinearGradient colors={theme.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                     <Ionicons name="hand-left" size={18} color="#fff" />
                     {/* Feitas as quatro, o rótulo muda — e só o rótulo. Quem
@@ -489,29 +497,34 @@ export default function TarotScreen() {
           <>
             <View style={styles.cardsRow}>
               {drawn.map((card, i) => (
-                <TouchableOpacity key={i} activeOpacity={0.9} onPress={() => reveal(i)} style={styles.tarotCard}>
-                  {revealed[i] ? (
-                    <>
-                      <View style={styles.tarotFace}>
-                        <Image
-                          source={getTarotImage(card.id)}
-                          style={[styles.tarotImage, orientations[i] && { transform: [{ rotate: '180deg' }] }]}
-                          resizeMode="cover"
-                        />
-                      </View>
-                      <Text style={styles.tarotName} numberOfLines={2}>
+                <View key={card.id} style={styles.tarotCard}>
+                  <ScratchRevealCard
+                    testID={`tarot-scratch-${i}`}
+                    revealed={revealed[i]}
+                    resetKey={`${card.id}:${orientations[i] ? 'r' : 'u'}`}
+                    onReveal={() => reveal(i)}
+                    themeColor={theme.color}
+                    scratchLabel={t('tarot.scratch')}
+                    tapLabel={t('tarot.scratch.tapAlternative')}
+                    accessibilityLabel={t('tarot.scratch.a11y')}
+                    style={styles.scratchCard}
+                  >
+                    <View style={styles.tarotFace}>
+                      <Image
+                        source={getTarotImage(card.id)}
+                        style={[styles.tarotImage, orientations[i] && { transform: [{ rotate: '180deg' }] }]}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  </ScratchRevealCard>
+                  {revealed[i] && (
+                      <Text testID={`tarot-card-name-${i}`} style={styles.tarotName} numberOfLines={2}>
                         {getCardName(card, lang)}
                         {orientations[i] ? t('tarot.reversedTag') : ''}
                       </Text>
-                    </>
-                  ) : (
-                    <LinearGradient colors={['#2A1D52', '#1A1235']} style={styles.tarotBack}>
-                      <Ionicons name="sparkles" size={26} color={theme.color} />
-                      <Text style={styles.tapText}>{t('tarot.tap')}</Text>
-                    </LinearGradient>
                   )}
                   <Text style={styles.posLabel}>{t(`tarot.position.${POSITIONS[i]}`)}</Text>
-                </TouchableOpacity>
+                </View>
               ))}
             </View>
 
@@ -1109,6 +1122,7 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   cardsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   tarotCard: { alignItems: 'center', width: '31%' },
+  scratchCard: { width: '100%', height: 150, borderRadius: 14 },
   tarotFace: {
     width: '100%', height: 150, borderRadius: 14, overflow: 'hidden',
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,

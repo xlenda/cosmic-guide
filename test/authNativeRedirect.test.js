@@ -22,7 +22,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('node:module');
 
-const registro = { oauth: null, signUp: null, reset: null, exchange: [], abriu: null, emissoes: [] };
+const registro = { oauth: null, signUp: null, reset: null, update: null, exchange: [], abriu: null, emissoes: [] };
 // O que o SISTEMA entrega enquanto a aba de autenticação está aberta. `null` =
 // a pessoa fechou a aba sem aprovar (nenhum deep link chega).
 let deepLinkDeVolta = 'cosmicguide://?code=abc123';
@@ -48,6 +48,10 @@ const supabaseMock = {
       },
       async resetPasswordForEmail(email, opts) {
         registro.reset = opts;
+        return { error: null };
+      },
+      async updateUser(fields) {
+        registro.update = fields;
         return { error: null };
       },
     },
@@ -198,4 +202,12 @@ test('confirmação de e-mail e recuperação de senha voltam pro app, não pro 
   assert.equal(registro.signUp.options.emailRedirectTo, 'cosmicguide://');
   await auth.resetPasswordForEmail('a@b.com');
   assert.equal(registro.reset.redirectTo, 'cosmicguide://');
+});
+
+test('sessão de recuperação só troca a senha quando updateUser é chamado', async () => {
+  assert.deepEqual(await auth.updatePasswordForCurrentUser('curta'), { error: 'login.error.weakPassword' });
+  assert.equal(registro.update, null, 'senha inválida não deve chegar ao Supabase');
+
+  assert.deepEqual(await auth.updatePasswordForCurrentUser('segredo123'), {});
+  assert.deepEqual(registro.update, { password: 'segredo123' });
 });

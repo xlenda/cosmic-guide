@@ -13,6 +13,7 @@ import { colors } from './theme';
 import { ROUTES } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AlertHost } from './components/AlertHost';
+import PasswordRecoveryModal from './components/PasswordRecoveryModal';
 import { CoupleProvider, useCouple } from './context/CoupleContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 // Plano que a pessoa escolheu antes de o app pedir login (ver PlanosScreen.js
@@ -27,6 +28,7 @@ import { funnel } from './lib/funnel';
 import { temNovidadeDeTaroHoje } from './lib/tarotNovidade';
 import { acceptInvite } from './lib/coupleInvite';
 import { saveCorrelationCode } from './lib/coupleData';
+import { getJournalEntries } from './lib/journal';
 // Analytics de visitas da própria Vercel (hospeda o app) — não depende de
 // Pixel/GA (que ainda esperam ID real do Lenda): já conta visita real hoje,
 // sem precisar de nenhuma conta nova (25/07/2026).
@@ -548,6 +550,15 @@ function Gate() {
   // some (oferta em cima de oferta é ruído). Alimentada pelos MESMOS
   // onReady/onStateChange que a bolinha do Tarô já usa — sem listener novo.
   const [rotaAtual, setRotaAtual] = useState(null);
+  const [temLeituraConcluida, setTemLeituraConcluida] = useState(false);
+  const relerPrimeiroValor = useCallback(() => {
+    getJournalEntries()
+      .then((entries) => setTemLeituraConcluida(Array.isArray(entries) && entries.length > 0))
+      .catch(() => setTemLeituraConcluida(false));
+  }, []);
+  useEffect(() => {
+    relerPrimeiroValor();
+  }, [relerPrimeiroValor]);
 
   if (loading || !bootstrapped) {
     return (
@@ -577,12 +588,14 @@ function Gate() {
       onReady={() => {
         setNavPronta(true);
         setRotaAtual(navRef.getCurrentRoute()?.name || null);
+        relerPrimeiroValor();
       }}
       // Toda navegação (troca de aba, push de tela) relê a novidade do Tarô —
       // é o único gatilho de atualização da bolinha, ver comentário no estado
       // — e atualiza a rota atual pro esconde-esconde da PillPremium.
       onStateChange={() => {
         relerTarotNovidade();
+        relerPrimeiroValor();
         setRotaAtual(navRef.getCurrentRoute()?.name || null);
       }}
     >
@@ -709,6 +722,10 @@ function Gate() {
             visivel={
               accessConfirmed &&
               !hasAccess &&
+              // A oferta flutuante só entra depois de uma leitura realmente
+              // concluída e salva. Antes disso, a primeira prova de valor é o
+              // único CTA dominante da experiência.
+              temLeituraConcluida &&
               // O DONO nunca vê oferta (09/08/2026, achado de review): a conta
               // dele tem acesso por allowlist, não por assinatura — sem isto
               // ele seria perseguido por "assine" em toda tela. Mesmo guarda
@@ -742,6 +759,7 @@ export default function App() {
           <AlertHost />
           <LanguageProvider>
             <AuthProvider>
+              <PasswordRecoveryModal />
               <CoupleProvider>
                 <Gate />
               </CoupleProvider>

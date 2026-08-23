@@ -77,6 +77,7 @@ const router = express.Router();
 const EVENTS = [
   "app_open", //         abriu o app (1x por sessão, na raiz do App.js)
   "onboarding_start", // viu a tela de escolha solo/casal (OnboardingChoiceScreen)
+  "onboarding_step", //  viu/concluiu um passo fixo do onboarding (nunca a resposta)
   "onboarding_done", //  salvou o perfil (signo solo ou quiz de casal concluído)
   "home_view", //        chegou na Home de verdade, já com perfil
   "reading_start", //    pediu a 1ª leitura (tarô, mão, café, sonho, mapa...)
@@ -88,6 +89,7 @@ const EVENTS = [
   "checkout_click", //   clicou em assinar
   "checkout_open", //    o checkout da Hotmart abriu de fato na tela
   "today_line_tap", //   tocou na "linha de hoje" da Home (kind: jornada|ritual)
+  "scratch_reveal", //    concluiu a raspagem de uma carta (tipo + posição, sem conteúdo)
   // Denúncia de saída de IA (components/ReportarIA.js no app). NÃO é degrau de
   // funil: é o canal de sinalização que a política de Conteúdo Gerado por IA do
   // Google Play exige DENTRO do app. Entra aqui em vez de virar rota própria
