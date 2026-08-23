@@ -647,18 +647,14 @@ function Gate() {
             let icon = 'planet';
             if (route.name === ROUTES.HOME_TAB) icon = focused ? 'planet' : 'planet-outline';
             if (route.name === ROUTES.TAROT_TAB) icon = focused ? 'sparkles' : 'sparkles-outline';
-            if (route.name === ROUTES.CHAT_TAB) icon = focused ? 'chatbubbles' : 'chatbubbles-outline';
             if (route.name === ROUTES.PROFILE_TAB) icon = focused ? 'person-circle' : 'person-circle-outline';
             return <Ionicons name={icon} size={24} color={color} />;
           },
         })}
       >
         <Tab.Screen name={ROUTES.HOME_TAB} component={HomeStack} options={{ tabBarLabel: t('tab.home') }} />
-        {/* Tarô e Chat são as DUAS leituras alcançáveis sem passar pelo card da
-            Home (a barra de abas leva direto). Sem estes dois listeners o funil
-            mostraria reading_done > reading_start — degrau impossível, que faz
-            o relatório parecer quebrado. Os outros pontos de "pediu leitura"
-            saem do grid da Home (ver HomeScreen.js). */}
+        {/* O Tarô continua como leitura direta na navegação principal. O Chat
+            segue funcional por contexto, mas não ocupa uma aba do produto. */}
         <Tab.Screen
           name={ROUTES.TAROT_TAB}
           component={TarotStack}
@@ -683,7 +679,7 @@ function Gate() {
         <Tab.Screen
           name={ROUTES.CHAT_TAB}
           component={ChatScreen}
-          options={{ tabBarLabel: t('tab.chat') }}
+          options={{ tabBarButton: () => null }}
           listeners={{ tabPress: () => funnel.readingStart('chat', 'tab') }}
         />
         {/* A aba Perfil SEMPRE abre no Perfil, nunca onde a pessoa parou.

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share, Image, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -35,6 +35,7 @@ import BandaSection from '../components/BandaSection';
 import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import DailyMissionsCard from '../components/DailyMissionsCard';
+import OrbiGuide from '../components/OrbiGuide';
 // Som do céu — o card que APRESENTA a feature. O motor e o estado vivem no
 // provider em App.js; aqui é só um controle remoto (ver o cabeçalho de
 // components/CosmicSoundPlayer.js). Sem este card, a única porta de entrada
@@ -810,7 +811,10 @@ export default function HomeScreen() {
   const intentDefinition = getOnboardingIntentDefinition(resolvedIntent);
   const firstPathKeys = buildOnboardingPlan(resolvedIntent, isCouple ? 'couple' : 'solo');
   const firstPathItem = cardItems.find((item) => item.key === firstPathKeys[0]) || null;
-  const showFirstPath = journalCount === 0 && !!firstPathItem && !!intentDefinition;
+  const firstPathFeature = firstPathItem?.key === 'tarot' ? t('tab.tarot') : firstPathItem?.title;
+  // Só simplifica a Home para quem realmente respondeu à nova pergunta.
+  // Perfis antigos não têm essa chave e continuam vendo o catálogo completo.
+  const showFirstPath = journalCount === 0 && !!onboardingIntent && !!firstPathItem && !!intentDefinition;
 
   // Separação visual pedida pelo Lenda (25/07/2026): desde que solo também
   // assina (as 9 leituras individuais), fica confuso misturar no mesmo grid
@@ -964,7 +968,7 @@ export default function HomeScreen() {
       {/* O cenário cobre o fundo chapado por cima; o root MANTÉM
           colors.background por baixo, pra área além do cenário nunca piscar.
           pointerEvents="none" lá dentro — decoração nunca rouba toque. */}
-      <CosmicScene />
+      {!showFirstPath && <CosmicScene />}
       {milestone && (
         <Modal transparent animationType="fade" visible onRequestClose={() => setMilestone(null)}>
           <View style={styles.milestoneBackdrop}>
@@ -1016,38 +1020,44 @@ export default function HomeScreen() {
             null) NADA disto monta e o badge segue no posto — nunca um quadrado
             vazio. pointerEvents="none": decoração não rouba toque;
             accessible={false}: o signo já está dito em texto na saudação. */}
-        <View style={styles.heroWrap}>
-          <HeroSection
-            greeting={<Text style={styles.greetingDisplay}>{greeting}</Text>}
-            dateStr={dateStr}
-            sign={sign}
-            streak={coupleData ? { count: streakInfo.currentStreak } : undefined}
-            insetTop={insets.top}
-          />
-          {mascoteHero && (
-            <View
-              pointerEvents="none"
-              style={[styles.heroMascoteWrap, { top: insets.top + 8, borderColor: sign.color + '88' }]}
-            >
-              <Image source={mascoteHero} style={styles.heroMascoteImg} resizeMode="cover" accessible={false} />
+        {showFirstPath ? (
+          <View style={[styles.firstWelcome, { paddingTop: insets.top + 18 }]}>
+            <View style={styles.firstWelcomeCopy}>
+              <Text style={styles.firstWelcomeDate}>{dateStr}</Text>
+              <Text style={styles.firstWelcomeGreeting}>{greeting}</Text>
             </View>
-          )}
-        </View>
+            <OrbiGuide size={96} />
+          </View>
+        ) : (
+          <View style={styles.heroWrap}>
+            <HeroSection
+              greeting={<Text style={styles.greetingDisplay}>{greeting}</Text>}
+              dateStr={dateStr}
+              sign={sign}
+              streak={coupleData ? { count: streakInfo.currentStreak } : undefined}
+              insetTop={insets.top}
+            />
+            {mascoteHero && (
+              <View
+                pointerEvents="none"
+                style={[styles.heroMascoteWrap, { top: insets.top + 8, borderColor: sign.color + '88' }]}
+              >
+                <Image source={mascoteHero} style={styles.heroMascoteImg} resizeMode="cover" accessible={false} />
+              </View>
+            )}
+          </View>
+        )}
 
         {showFirstPath && (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.firstPathCard}
+          <Pressable
+            style={({ pressed }) => [styles.firstPathCard, pressed && styles.firstPathPressed]}
             onPress={firstPathItem.onPress}
             accessibilityRole="button"
           >
-            <LinearGradient colors={firstPathItem.gradient} style={styles.firstPathInner}>
-              <View style={styles.firstPathIcon}>
-                <Ionicons name={firstPathItem.icon} size={24} color="#fff" />
-              </View>
+            <View style={styles.firstPathInner}>
               <Text style={styles.firstPathEyebrow}>{t('home.firstPath.eyebrow')}</Text>
               <Text style={styles.firstPathTitle}>
-                {t('home.firstPath.title', { feature: firstPathItem.title })}
+                {t('home.firstPath.title', { feature: firstPathFeature })}
               </Text>
               <Text style={styles.firstPathBody}>
                 {t('home.firstPath.body', {
@@ -1056,15 +1066,18 @@ export default function HomeScreen() {
               </Text>
               <View style={styles.firstPathCta}>
                 <Text style={styles.firstPathCtaText}>{t('home.firstPath.cta')}</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
+                <View style={styles.firstPathArrow}>
+                  <Ionicons name="arrow-forward" size={17} color="#21151A" />
+                </View>
               </View>
-              <Text style={styles.firstPathHonesty}>{t('home.firstPath.honesty')}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            </View>
+          </Pressable>
         )}
+        {showFirstPath && <CosmicSoundPlayer variant="inline" style={styles.hiddenSoundRegistrar} />}
 
         {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
             explícito: não ficar escondido junto dos outros cards do grid). */}
+        {!showFirstPath && <>
         {journalCount > 0 && (
         <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate(ROUTES.DIARY)} style={styles.diaryBar}>
           <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.diaryBarInner}>
@@ -1149,6 +1162,7 @@ export default function HomeScreen() {
             devocional. Recolhido por padrão (2 linhas + "ler completo");
             expandir marca como lida hoje (AsyncStorage) e conta o dia ativo
             na sequência — ver markThoughtReadToday acima. */}
+        {!showFirstPath && (
         <TouchableOpacity
           activeOpacity={0.85}
           style={[styles.thoughtCard, !thoughtReadToday && styles.thoughtCardUnread]}
@@ -1199,12 +1213,13 @@ export default function HomeScreen() {
             )}
           </View>
         </TouchableOpacity>
+        )}
 
         {/* Missões de hoje (motor lib/missions.js) — na Home SÓ pra quem está
             solo: casal vê o MESMO card dentro de Agir (a tela de "fazer"),
             mas solo nunca chega lá (SoloTeaser na borda da rota, App.js) e
             ficaria sem o loop missão→token→Loja pedido pelo dono. */}
-        {!isCouple && (
+        {!showFirstPath && !isCouple && (
           <View style={{ marginHorizontal: 20, marginBottom: 14 }}>
             <DailyMissionsCard />
           </View>
@@ -1231,7 +1246,7 @@ export default function HomeScreen() {
             gradiente — cards novos na dobra de cima era exatamente o "fica
             perdido no meio" que o dono mandou tirar. Ver o bloco no topo do
             arquivo pra escolha entre trilha e ritual. */}
-        {mostrarTodayLine && (
+        {!showFirstPath && mostrarTodayLine && (
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.todayLine}
@@ -1264,7 +1279,7 @@ export default function HomeScreen() {
             propósito: o uso que o card sugere é "deixa tocando enquanto você
             lê", e a leitura do dia acabou de acontecer dois blocos acima.
             Devolve null sozinho onde a Web Audio API não existe. */}
-        <CosmicSoundPlayer variant="inline" style={{ marginHorizontal: 20, marginBottom: 14 }} />
+        {!showFirstPath && <CosmicSoundPlayer variant="inline" style={{ marginHorizontal: 20, marginBottom: 14 }} />}
 
         {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
             só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}
@@ -1706,6 +1721,7 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+        </>}
       </ScrollView>
     </View>
   );
@@ -1730,22 +1746,65 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, overflow: 'hidden',
   },
   heroMascoteImg: { width: '100%', height: '100%' },
+  firstWelcome: {
+    minHeight: 208,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  firstWelcomeCopy: { flex: 1, paddingTop: 6 },
+  firstWelcomeDate: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+    marginBottom: 10,
+  },
+  firstWelcomeGreeting: {
+    color: colors.text,
+    fontSize: 30,
+    lineHeight: 35,
+    fontWeight: '800',
+    letterSpacing: -0.7,
+  },
+  hiddenSoundRegistrar: { display: 'none' },
   // Gutter 20 da reforma pra filhos que já trazem marginHorizontal 16 próprio
   // (NotifPromptCard, linhas do CardGrid): 4 + 16 = 20, sem tocar nos
   // componentes.
   gutterWrap: { paddingHorizontal: 4 },
   loader: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
-  firstPathCard: { marginHorizontal: 20, marginTop: -14, marginBottom: 16, borderRadius: 22, overflow: 'hidden' },
-  firstPathInner: { padding: 20 },
+  firstPathCard: {
+    marginHorizontal: 20,
+    marginTop: 2,
+    marginBottom: 28,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.gold + '70',
+  },
+  firstPathPressed: { opacity: 0.9, transform: [{ scale: 0.985 }] },
+  firstPathInner: { paddingHorizontal: 22, paddingVertical: 24 },
   firstPathIcon: {
     width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)', marginBottom: 14,
   },
-  firstPathEyebrow: { color: 'rgba(255,255,255,0.78)', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
-  firstPathTitle: { color: '#fff', fontSize: 24, lineHeight: 29, fontWeight: '800', marginTop: 6 },
-  firstPathBody: { color: 'rgba(255,255,255,0.9)', fontSize: 14, lineHeight: 20, marginTop: 8 },
-  firstPathCta: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 16 },
-  firstPathCtaText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  firstPathEyebrow: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+  firstPathTitle: { color: colors.text, fontSize: 25, lineHeight: 30, fontWeight: '800', letterSpacing: -0.4, marginTop: 8 },
+  firstPathBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginTop: 9, maxWidth: 330 },
+  firstPathCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 22 },
+  firstPathCtaText: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  firstPathArrow: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+  },
   firstPathHonesty: { color: 'rgba(255,255,255,0.72)', fontSize: 10, lineHeight: 14, marginTop: 14 },
   diaryBar: { marginHorizontal: 20, marginTop: -14, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   diaryBarInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },

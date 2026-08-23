@@ -1,73 +1,35 @@
-// Primeira tela vista por qualquer usuário sem perfil salvo (nem casal, nem
-// solo) — ver Gate em App.js. Sem botão de voltar: não há nada antes dela.
-// "Só eu" abre um seletor de signo inline (mesmo padrão visual do picker de
-// HoroscopeScreen.js, reaproveitando zodiacSigns de theme.js) e salva via
-// saveSolo() do CoupleContext. "Eu e meu par" manda para o QuizScreen do
-// casal, sem alterar nada do fluxo do quiz.
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { colors, gradients, zodiacSigns } from '../theme';
-import { CENAS } from '../lib/ilustracoes';
+import { colors, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
-// O onboarding-recompensa (09/08/2026): perguntas uma por tela com devolução
-// visual. NÃO é rota — é componente de tela cheia renderizado aqui quando a
-// pessoa escolhe "Pra mim" (menos fiação em App.js/routes.js = menos
-// superfície de regressão no Gate). Ver o cabeçalho dele pra gravação/funil.
+import OrbiGuide from '../components/OrbiGuide';
 import OnboardingPerguntasScreen from './OnboardingPerguntasScreen';
 
+// A entrada limpa começa pela pergunta que personaliza o caminho. O seletor
+// de signos continua disponível como atalho, sem trazer de volta a antiga
+// capa promocional e suas duas decisões concorrentes.
 export default function OnboardingChoiceScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { saveSolo } = useCouple();
   const { t } = useLanguage();
-  const [showSignPicker, setShowSignPicker] = useState(false);
-  // 'choice' | 'perguntas' — o caminho solo agora abre o fluxo de perguntas;
-  // o grid de 12 signos de sempre continua NESTE arquivo, alcançável pelo
-  // atalho "já sei meu signo" dentro do fluxo (nenhum beco: voltar do passo 1
-  // devolve pra cá, e fechar/reabrir o app cai no início limpo).
-  const [fase, setFase] = useState('choice');
+  const [fase, setFase] = useState('perguntas');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // 2º degrau do funil: "viu a tela de escolha solo/casal". No mount, não a
-  // cada render — esta tela re-renderiza a cada toque (showSignPicker/saving)
-  // e um track() solto no corpo do componente multiplicaria o evento.
   useEffect(() => {
     funnel.onboardingStart();
   }, []);
 
-  // Era o único passo do app sem telemetria nenhuma: entre "viu a escolha" e
-  // "salvou o perfil" não existia evento no caminho solo, então quem tocava
-  // aqui e desistia diante do grid de 12 signos era invisível no relatório.
-  // Com a chave por variação em funnel.js, este disparo convive com o
-  // 'choice' do mount em vez de ser engolido por ele.
-  // O MESMO evento no MESMO lugar de sempre — só o destino mudou: em vez do
-  // grid seco de 12 signos, o fluxo de perguntas com recompensa visual.
-  function escolherSolo() {
+  function marcarCaminhoSolo() {
     funnel.onboardingStart('solo');
-    setFase('perguntas');
-  }
-
-  if (fase === 'perguntas') {
-    return (
-      <OnboardingPerguntasScreen
-        onVoltar={() => setFase('choice')}
-        onAtalhoSigno={() => {
-          // O atalho "já sei meu signo": devolve pra esta tela já com o grid
-          // de sempre aberto — o fluxo antigo continua acessível, intocado.
-          setFase('choice');
-          setShowSignPicker(true);
-        }}
-      />
-    );
   }
 
   async function pickSign(z) {
@@ -75,109 +37,66 @@ export default function OnboardingChoiceScreen() {
     Haptics.selectionAsync();
     setSaving(true);
     setError('');
-    // Sem setSaving(false) no caminho feliz: assim que soloSign existir no
-    // contexto, o Gate em App.js troca esta tela pelo Tab.Navigator sozinho.
-    // Mas se o storage falhar, saveSolo retorna false e precisamos reverter o
-    // spinner manualmente — senão o usuário fica preso na tela para sempre.
     const ok = await saveSolo(z);
     if (!ok) {
       setSaving(false);
       setError(t('onboarding.saveError'));
       return;
     }
-    // 3º degrau: perfil salvo. Só DEPOIS do ok — um cadastro que falhou no
-    // storage não pode aparecer como concluído no relatório.
     funnel.onboardingDone('solo');
+  }
+
+  if (fase === 'perguntas') {
+    return (
+      <OnboardingPerguntasScreen
+        hideBackOnFirst
+        onVoltar={() => {}}
+        onSoloStart={marcarCaminhoSolo}
+        onCasal={() => navigation.navigate(ROUTES.QUIZ)}
+        onAtalhoSigno={() => setFase('signo')}
+      />
+    );
   }
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={gradients.hero}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 28 }]}
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.headerEyebrow}>Cosmic Guide</Text>
-        <Text style={styles.headerTitle}>{t('onboarding.entry.title')}</Text>
-        <Text style={styles.headerSub}>{t('onboarding.entry.subtitle')}</Text>
-      </LinearGradient>
+        <TouchableOpacity
+          style={styles.backRow}
+          onPress={() => setFase('perguntas')}
+          disabled={saving}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('onboarding.back')}
+        >
+          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+          <Text style={styles.backRowText}>{t('onboarding.back')}</Text>
+        </TouchableOpacity>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {!showSignPicker ? (
-          <>
-            {/* Cena ilustrada do pack (lib/ilustracoes.js) — casal sob o pôr do
-                sol, acima das duas escolhas. Esta é a primeira tela de ~92% dos
-                visitantes: altura 120 (não os 140-170 padrão) pra os DOIS cards
-                de escolha continuarem alcançáveis na primeira dobra de um
-                iPhone SE (667px). Só no estado de escolha — o grid de 12 signos
-                já é o ponto onde a pessoa some, não perde espaço pra decoração.
-                Decorativa: accessible=false. */}
-            <View style={styles.cenaWrap}>
-              <Image source={CENAS.onboarding} style={styles.cenaImg} resizeMode="cover" accessible={false} />
-            </View>
-            {/* Uma ação dominante: o usuário não precisa escolher um produto
-                antes de sentir valor. O modo casal continua disponível, mas
-                deixa de competir com a primeira leitura na mesma hierarquia. */}
-            <TouchableOpacity
-              testID="onboarding-primary"
-              activeOpacity={0.9}
-              style={styles.primaryWrap}
-              onPress={escolherSolo}
-            >
-              <LinearGradient colors={gradients.purple} style={styles.primaryAction}>
-                <Ionicons name="sparkles" size={22} color="#fff" />
-                <Text style={styles.primaryActionText}>{t('onboarding.entry.primary')}</Text>
-                <Ionicons name="arrow-forward" size={19} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
+        <OrbiGuide size={76} style={styles.orbi} />
+        <Text style={styles.pickerTitle}>{t('onboarding.pickerTitle')}</Text>
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
 
-            <TouchableOpacity
-              testID="onboarding-couple"
-              activeOpacity={0.82}
-              style={styles.coupleSecondary}
-              onPress={() => navigation.navigate(ROUTES.QUIZ)}
-            >
-              <Ionicons name="heart" size={18} color={colors.pink} />
-              <Text style={styles.coupleSecondaryText}>{t('onboarding.entry.couple')}</Text>
-              <Ionicons name="chevron-forward" size={17} color={colors.textMuted} />
-            </TouchableOpacity>
-          </>
+        {saving ? (
+          <View style={styles.savingWrap}>
+            <ActivityIndicator color={colors.gold} size="large" />
+          </View>
         ) : (
-          <View>
-            <TouchableOpacity
-              style={styles.backRow}
-              onPress={() => setShowSignPicker(false)}
-              disabled={saving}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
-              <Text style={styles.backRowText}>{t('onboarding.back')}</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.pickerTitle}>{t('onboarding.pickerTitle')}</Text>
-
-            {!!error && <Text style={styles.errorText}>{error}</Text>}
-
-            {saving ? (
-              <View style={styles.savingWrap}>
-                <ActivityIndicator color={colors.accent} size="large" />
-              </View>
-            ) : (
-              <View style={styles.pickerGrid}>
-                {zodiacSigns.map((z) => (
-                  <TouchableOpacity
-                    key={z.name}
-                    style={styles.pickerItem}
-                    onPress={() => pickSign(z)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.pickerGlyph, { color: z.color }]}>{z.icon}</Text>
-                    <Text style={styles.pickerName}>{z.pt}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+          <View style={styles.pickerGrid}>
+            {zodiacSigns.map((z) => (
+              <TouchableOpacity
+                key={z.name}
+                style={styles.pickerItem}
+                onPress={() => pickSign(z)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.pickerGlyph, { color: z.color }]}>{z.icon}</Text>
+                <Text style={styles.pickerName}>{z.pt}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         )}
       </ScrollView>
@@ -187,44 +106,35 @@ export default function OnboardingChoiceScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: 24, paddingBottom: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
-  headerEyebrow: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', textAlign: 'center' },
-  headerTitle: { color: '#fff', fontSize: 26, fontWeight: '800', textAlign: 'center', marginTop: 10, lineHeight: 32 },
-  headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20 },
-  scrollContent: { padding: 20, paddingBottom: 40 },
-  cenaWrap: { borderRadius: 18, overflow: 'hidden' },
-  cenaImg: { width: '100%', height: 120 },
-  primaryWrap: { borderRadius: 18, overflow: 'hidden', marginTop: 18 },
-  primaryAction: {
-    minHeight: 58, paddingVertical: 16, paddingHorizontal: 18,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
-  },
-  primaryActionText: { flex: 1, color: '#fff', fontSize: 16, fontWeight: '800', textAlign: 'center' },
-  coupleSecondary: {
-    minHeight: 48, marginTop: 12, borderRadius: 16, paddingHorizontal: 15,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card,
-  },
-  coupleSecondaryText: { flex: 1, color: colors.textSecondary, fontSize: 14, fontWeight: '700', textAlign: 'center' },
-  card: {
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 20, padding: 20, marginTop: 16,
-  },
-  cardIcon: { width: 52, height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 14 },
-  cardTitle: { color: colors.text, fontSize: 19, fontWeight: '800' },
-  cardDesc: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginTop: 6 },
-  cardCta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
-  cardCtaText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
-  backRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  backRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 44 },
   backRowText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 },
-  pickerTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginBottom: 16, textAlign: 'center' },
+  orbi: { alignSelf: 'center', marginTop: 8 },
+  pickerTitle: {
+    color: colors.text,
+    fontSize: 24,
+    lineHeight: 29,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    marginTop: 8,
+    marginBottom: 22,
+    textAlign: 'center',
+  },
   pickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
   pickerItem: {
-    width: '31%', backgroundColor: colors.surfaceElevated, borderRadius: 14, paddingVertical: 14,
-    alignItems: 'center', borderWidth: 1, borderColor: colors.border, marginBottom: 4,
+    width: '31%',
+    minHeight: 88,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 4,
   },
-  pickerGlyph: { fontSize: 26 },
-  pickerName: { color: colors.textSecondary, fontSize: 12, marginTop: 6, fontWeight: '600' },
+  pickerGlyph: { fontSize: 27 },
+  pickerName: { color: colors.textSecondary, fontSize: 12, marginTop: 7, fontWeight: '700' },
   savingWrap: { paddingVertical: 40, alignItems: 'center' },
   errorText: { color: colors.red, fontSize: 13, textAlign: 'center', marginBottom: 12 },
 });

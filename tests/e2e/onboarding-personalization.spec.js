@@ -10,22 +10,18 @@ test.describe('Primeiro caminho personalizado', () => {
   test('contexto limpo mostra uma ação e muda o plano conforme a resposta', async ({ page }) => {
     await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByText('Uma pergunta. Uma revelação. Um próximo passo.')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('O que você quer entender agora?')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId('orbi-guide')).toBeVisible();
     await expect(page.getByTestId('onboarding-primary')).toBeVisible();
     await expect(page.getByTestId('pill-premium')).toHaveCount(0);
 
-    await page.getByTestId('onboarding-primary').click();
-    await expect(page.getByText('O que você quer entender agora?')).toBeVisible();
-
     await page.getByTestId('onboarding-intent-love').click();
     const plan = page.getByTestId('onboarding-plan-preview');
-    await expect(plan).toContainText('Tarô');
-    await expect(plan).toContainText('Horóscopo');
+    await expect(plan).toContainText('Seu caminho começa pelos vínculos');
 
     await page.getByTestId('onboarding-intent-self').click();
-    await expect(plan).toContainText('Mapa Astral');
-    await expect(plan).toContainText('Horóscopo');
-    await expect(plan).not.toContainText('Tarô');
+    await expect(plan).toContainText('Seu caminho começa pelo que é calculável no nascimento');
+    await expect(plan).not.toContainText('vínculos');
 
     // Responder só personaliza a prévia. O tema não persiste antes de o
     // cadastro real terminar, para abandono no meio não deixar dado órfão.

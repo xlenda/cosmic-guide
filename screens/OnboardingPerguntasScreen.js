@@ -45,18 +45,19 @@ import {
   FlatList,
   Image,
   Platform,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, zodiacSigns } from '../theme';
-import CosmicScene from '../components/CosmicScene';
 import StoriesReader from '../components/StoriesReader';
 import DatePickerModal from '../components/DatePickerModal';
 import CityPickerModal from '../components/CityPickerModal';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
+import OrbiGuide from '../components/OrbiGuide';
 import { signoFromDate, moonSign, ascendantSign } from '../lib/signs';
 import { nomeDoSigno } from '../lib/synastry';
 import { mascoteDoSigno } from '../lib/ilustracoes';
@@ -64,7 +65,6 @@ import { writeSecureItemWithMirror, saveSoloBirthMirror } from '../lib/birthData
 import { cityLabel } from '../lib/cities';
 import {
   ONBOARDING_INTENTS,
-  buildOnboardingPlan,
   getOnboardingIntentDefinition,
   saveOnboardingIntent,
 } from '../lib/onboardingPlan';
@@ -113,7 +113,13 @@ function ColunaNumeros({ dados, selecionado, aoEscolher }) {
   );
 }
 
-export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
+export default function OnboardingPerguntasScreen({
+  onVoltar,
+  onAtalhoSigno,
+  onCasal,
+  onSoloStart,
+  hideBackOnFirst = false,
+}) {
   const insets = useSafeAreaInsets();
   const { t, lang } = useLanguage();
   const { saveSolo } = useCouple();
@@ -189,7 +195,6 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parAceso]);
 
-  const planoInicial = useMemo(() => buildOnboardingPlan(intencao, 'solo'), [intencao]);
   const intencaoDef = useMemo(() => getOnboardingIntentDefinition(intencao), [intencao]);
 
   // Os SLIDES — intenção declarada + as leituras que o Mapa já mostra
@@ -323,8 +328,6 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
 
   return (
     <View style={styles.root}>
-      <CosmicScene />
-
       {/* Topo padrão stories: barra de progresso segmentada + voltar. */}
       <View style={[styles.topo, { paddingTop: insets.top + 14 }]}>
         <View style={styles.barras}>
@@ -332,17 +335,19 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
             <View key={i} style={[styles.barra, i > Math.min(passo, 3) && styles.barraFutura]} />
           ))}
         </View>
-        <TouchableOpacity
-          style={styles.voltarRow}
-          onPress={voltar}
-          disabled={salvando}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={t('onboarding.back')}
-        >
-          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
-          <Text style={styles.voltarTexto}>{t('onboarding.back')}</Text>
-        </TouchableOpacity>
+        {!(hideBackOnFirst && passo === 0) && (
+          <TouchableOpacity
+            style={styles.voltarRow}
+            onPress={voltar}
+            disabled={salvando}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('onboarding.back')}
+          >
+            <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+            <Text style={styles.voltarTexto}>{t('onboarding.back')}</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView
@@ -352,62 +357,69 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
       >
         {passo === 0 && (
           <View style={styles.passo}>
+            <Text style={styles.brand}>Cosmic Guide</Text>
+            <OrbiGuide size={104} style={styles.orbiIntro} />
             <Text style={styles.pergunta}>{t('onboarding.intent.title')}</Text>
-            <Text style={styles.dica}>{t('onboarding.intent.subtitle')}</Text>
             <View style={styles.intentGrid}>
               {ONBOARDING_INTENTS.map((item) => {
                 const selected = intencao === item.id;
                 return (
-                  <TouchableOpacity
+                  <Pressable
                     key={item.id}
                     testID={`onboarding-intent-${item.id}`}
-                    style={[styles.intentCard, selected && styles.intentCardSelected]}
+                    style={({ pressed }) => [
+                      styles.intentCard,
+                      selected && styles.intentCardSelected,
+                      pressed && styles.intentCardPressed,
+                    ]}
                     onPress={() => {
                       Haptics.selectionAsync();
+                      onSoloStart?.();
                       setIntencao(item.id);
                     }}
-                    activeOpacity={0.82}
                     accessibilityRole="radio"
                     accessibilityState={{ selected }}
                   >
                     <View style={[styles.intentIcon, selected && styles.intentIconSelected]}>
-                      <Ionicons name={item.icon} size={20} color={selected ? '#fff' : colors.accent} />
+                      <Ionicons name={item.icon} size={20} color={selected ? colors.gold : colors.textSecondary} />
                     </View>
                     <View style={styles.intentTextWrap}>
                       <Text style={styles.intentLabel}>{t(item.labelKey)}</Text>
-                      <Text style={styles.intentDescription}>{t(item.descriptionKey)}</Text>
                     </View>
                     {selected && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
-                  </TouchableOpacity>
+                  </Pressable>
                 );
               })}
             </View>
             {!!intencaoDef && (
-              <View style={styles.planPreview} testID="onboarding-plan-preview">
-                <Text style={styles.planPreviewTitle}>{t('onboarding.intent.planTitle')}</Text>
-                <Text style={styles.planPreviewEcho}>{t(intencaoDef.echoKey)}</Text>
-                {planoInicial.map((feature, index) => (
-                  <Text key={feature} style={styles.planPreviewStep}>
-                    {t('onboarding.intent.planStep', {
-                      number: index + 1,
-                      feature: t(`home.card.${feature}.title`),
-                    })}
-                  </Text>
-                ))}
+              <View style={styles.responseBubble} testID="onboarding-plan-preview">
+                <Text style={styles.responseBubbleText}>{t(intencaoDef.echoKey)}</Text>
               </View>
             )}
             <TouchableOpacity
+              testID="onboarding-primary"
               style={[styles.continuar, !intencao && styles.continuarApagado]}
               onPress={avancar}
               disabled={!intencao}
               activeOpacity={0.85}
             >
               <Text style={styles.continuarTexto}>{t('onboarding.q.continue')}</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
+              <Ionicons name="arrow-forward" size={18} color="#21151A" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.atalho} onPress={onAtalhoSigno} activeOpacity={0.7}>
               <Text style={styles.atalhoTexto}>{t('onboarding.q.shortcut')}</Text>
             </TouchableOpacity>
+            {!!onCasal && (
+              <Pressable
+                testID="onboarding-couple"
+                style={({ pressed }) => [styles.coupleLink, pressed && styles.intentCardPressed]}
+                onPress={onCasal}
+                accessibilityRole="button"
+              >
+                <Ionicons name="heart-outline" size={16} color={colors.gold} />
+                <Text style={styles.coupleLinkText}>{t('onboarding.entry.couple')}</Text>
+              </Pressable>
+            )}
           </View>
         )}
 
@@ -436,7 +448,7 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
               activeOpacity={0.85}
             >
               <Text style={styles.continuarTexto}>{t('onboarding.q.continue')}</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
+              <Ionicons name="arrow-forward" size={18} color="#21151A" />
             </TouchableOpacity>
             {!data && (
               <TouchableOpacity style={styles.atalho} onPress={onAtalhoSigno} activeOpacity={0.7}>
@@ -480,7 +492,7 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
               activeOpacity={0.85}
             >
               <Text style={styles.continuarTexto}>{t('onboarding.q.continue')}</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
+              <Ionicons name="arrow-forward" size={18} color="#21151A" />
             </TouchableOpacity>
             {/* A SAÍDA HONESTA — mesma aproximação que o app inteiro já usa
                 (meio-dia, lib/signs.js): sem hora não nasce Ascendente chutado. */}
@@ -516,7 +528,7 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
             {cidade ? (
               <TouchableOpacity style={[styles.continuar]} onPress={avancar} activeOpacity={0.85}>
                 <Text style={styles.continuarTexto}>{t('onboarding.q.continue')}</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
+                <Ionicons name="arrow-forward" size={18} color="#21151A" />
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.atalho} onPress={avancar} activeOpacity={0.7}>
@@ -544,7 +556,7 @@ export default function OnboardingPerguntasScreen({ onVoltar, onAtalhoSigno }) {
                 onPress={erro ? concluir : () => setLendo(true)}
                 activeOpacity={0.85}
               >
-                <Ionicons name="sparkles" size={18} color="#fff" />
+                <Ionicons name="sparkles" size={18} color="#21151A" />
                 <Text style={styles.continuarTexto}>{t('onboarding.q.reveal.cta')}</Text>
               </TouchableOpacity>
             )}
@@ -603,7 +615,7 @@ const styles = StyleSheet.create({
 
   topo: { paddingHorizontal: 16 },
   barras: { flexDirection: 'row', gap: 4 },
-  barra: { flex: 1, height: 3, borderRadius: 2, backgroundColor: colors.text },
+  barra: { flex: 1, height: 3, borderRadius: 2, borderCurve: 'continuous', backgroundColor: colors.gold },
   barraFutura: { opacity: 0.3 },
   voltarRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, alignSelf: 'flex-start' },
   voltarTexto: { color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 },
@@ -613,13 +625,24 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 160 },
   passo: { flex: 1, justifyContent: 'center' },
 
+  brand: {
+    color: colors.gold,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2.2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  orbiIntro: { alignSelf: 'center', marginTop: 4, marginBottom: 4 },
+
   pergunta: {
     color: colors.text,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 29,
+    lineHeight: 34,
     fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 18,
+    letterSpacing: -0.8,
+    marginBottom: 16,
   },
   dica: {
     color: colors.textSecondary,
@@ -637,20 +660,21 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
-  intentGrid: { gap: 10, marginTop: 12 },
+  intentGrid: { gap: 9, marginTop: 6 },
   intentCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 16, padding: 13,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 14, borderCurve: 'continuous', paddingVertical: 12, paddingHorizontal: 13,
   },
-  intentCardSelected: { borderColor: colors.gold, backgroundColor: colors.accent + '20' },
+  intentCardSelected: { borderColor: colors.gold, backgroundColor: colors.gold + '10' },
+  intentCardPressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
   intentIcon: {
-    width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.accent + '18',
+    width: 36, height: 36, borderRadius: 11, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.gold + '12',
   },
-  intentIconSelected: { backgroundColor: colors.accent },
+  intentIconSelected: { backgroundColor: colors.gold + '24' },
   intentTextWrap: { flex: 1 },
-  intentLabel: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  intentLabel: { color: colors.text, fontSize: 15, fontWeight: '700' },
   intentDescription: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 2 },
   planPreview: {
     marginTop: 14, padding: 14, borderRadius: 16,
@@ -659,6 +683,19 @@ const styles = StyleSheet.create({
   planPreviewTitle: { color: colors.gold, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
   planPreviewEcho: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 7, marginBottom: 8 },
   planPreviewStep: { color: colors.text, fontSize: 13, fontWeight: '700', lineHeight: 20 },
+  responseBubble: {
+    alignSelf: 'center',
+    marginTop: 12,
+    maxWidth: 310,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    backgroundColor: colors.gold + '0E',
+    borderWidth: 1,
+    borderColor: colors.gold + '38',
+  },
+  responseBubbleText: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, textAlign: 'center' },
 
   inputNome: {
     color: colors.text,
@@ -759,8 +796,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.accent,
-    borderRadius: 999,
+    backgroundColor: colors.gold,
+    borderRadius: 16,
+    borderCurve: 'continuous',
     paddingVertical: 15,
     paddingHorizontal: 28,
     minHeight: 50,
@@ -768,10 +806,19 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
   continuarApagado: { opacity: 0.4 },
-  continuarTexto: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  continuarTexto: { color: '#21151A', fontSize: 16, fontWeight: '800' },
 
   atalho: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 10, marginTop: 6 },
   atalhoTexto: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+  coupleLink: {
+    minHeight: 42,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+  },
+  coupleLinkText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
 
   erro: { color: colors.red, fontSize: 13, textAlign: 'center', marginBottom: 10 },
   salvando: { paddingVertical: 24, alignItems: 'center' },
