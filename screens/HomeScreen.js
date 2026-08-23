@@ -233,7 +233,10 @@ export default function HomeScreen() {
   // superfícies de continuidade. A intenção apenas ORDENA recursos reais.
   const [onboardingIntent, setOnboardingIntentState] = useState(null);
   const [journalCount, setJournalCount] = useState(null);
-  const [exploreOpen, setExploreOpen] = useState(false);
+  // A Home precisa nascer inteira. O catálogo já ficou atrás deste estado
+  // fechado e, na prática, parecia ter sumido para quem entrava no app.
+  // Recolher continua opcional; esconder nunca mais é o estado inicial.
+  const [exploreOpen, setExploreOpen] = useState(true);
   useFocusEffect(
     useCallback(() => {
       let active = true;

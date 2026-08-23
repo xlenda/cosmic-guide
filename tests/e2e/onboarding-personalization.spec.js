@@ -43,6 +43,7 @@ test('usuário novo recebe o primeiro caminho sem perder a Home', async ({ page 
   await expect(page.getByText('Olá, Touro')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Seu primeiro caminho')).toBeVisible();
   await expect(page.getByTestId('home-explore-toggle')).toBeVisible();
+  await expect(page.getByTestId('card-tarot')).toBeVisible();
   await expect(page.getByText('Pensamento cósmico do dia')).toBeVisible();
 });
 
@@ -67,7 +68,6 @@ test('a primeira tiragem revela a carta por raspagem', async ({ page }) => {
   });
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
-  await page.getByTestId('home-explore-toggle').click();
   await page.getByTestId('card-tarot').click();
   await expect(page.getByTestId('tarot-draw')).toBeVisible({ timeout: 20_000 });
   await page.getByTestId('tarot-draw').click();
