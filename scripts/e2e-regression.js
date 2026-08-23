@@ -86,6 +86,14 @@ async function newSoloPage(browser, extraStorage = {}) {
   return { context, page };
 }
 
+async function openExplore(page) {
+  // A Home progressiva recolhe o catÃ¡logo por padrÃ£o. Os cenÃ¡rios abaixo
+  // precisam reproduzir o gesto real antes de tocar num card secundÃ¡rio.
+  const toggle = page.getByTestId('home-explore-toggle');
+  await toggle.scrollIntoViewIfNeeded();
+  await toggle.click();
+}
+
 (async () => {
   if (!fs.existsSync(path.join(ROOT, 'cosmic-guide', 'index.html'))) {
     console.error(`Build não encontrada em ${ROOT}/cosmic-guide/index.html`);
@@ -192,7 +200,8 @@ async function newSoloPage(browser, extraStorage = {}) {
     const { context, page } = await newSoloPage(browser, {
       'chat-free-messages-sent': '2',
     });
-    await page.getByText('Chat', { exact: false }).first().click();
+    await openExplore(page);
+    await page.getByTestId('card-chat').click();
     await page.waitForTimeout(1300);
     let body = await page.evaluate(() => document.body.innerText);
     check('limite atingido mostra bloqueio', /a primeira foi por conta da casa|Você já usou sua leitura gratuita/.test(body));
@@ -210,7 +219,8 @@ async function newSoloPage(browser, extraStorage = {}) {
   console.log('\n[6] Telas de casal pro solo (bug: cartão duplicado + ícone sobreposto, 26/07)');
   {
     const { context, page } = await newSoloPage(browser);
-    await page.getByText('Reconectar', { exact: false }).first().click();
+    await openExplore(page);
+    await page.getByTestId('card-reconectar').click();
     await page.waitForTimeout(1400);
     const body = await page.evaluate(() => document.body.innerText);
     check('cartão único (sem "Complete o quiz" duplicado)', !body.includes('Complete o quiz do casal primeiro'));
@@ -247,7 +257,8 @@ async function newSoloPage(browser, extraStorage = {}) {
     });
     await page.goto(BASE);
     await page.waitForTimeout(2500);
-    await page.getByText('Reconectar', { exact: false }).first().click();
+    await openExplore(page);
+    await page.getByTestId('card-reconectar').click();
     await page.waitForTimeout(1400);
     const body = await page.evaluate(() => document.body.innerText);
     check('conteúdo real + SubscribeTeaser', /O resto desta tela está logo aí embaixo|Continue com a assinatura/.test(body));
