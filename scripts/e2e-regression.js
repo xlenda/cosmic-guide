@@ -87,11 +87,11 @@ async function newSoloPage(browser, extraStorage = {}) {
 }
 
 async function openExplore(page) {
-  // A Home progressiva recolhe o catÃ¡logo por padrÃ£o. Os cenÃ¡rios abaixo
-  // precisam reproduzir o gesto real antes de tocar num card secundÃ¡rio.
+  // A Home agora nasce completa. A checagem condicional também mantém este
+  // portão compatível se um teste abrir uma sessão antiga já recolhida.
   const toggle = page.getByTestId('home-explore-toggle');
   await toggle.scrollIntoViewIfNeeded();
-  await toggle.click();
+  if (/explorar/i.test(await toggle.innerText())) await toggle.click();
 }
 
 (async () => {
