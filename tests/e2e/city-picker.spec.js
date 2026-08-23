@@ -47,8 +47,9 @@ async function abrirPicker(page, { width, height }, { api = null } = {}) {
 
   await expect(page.getByText(/undefined/i)).toHaveCount(0);
 
-  // A Home nasce completa. Encontrar o card sem gesto extra trava a regressão
-  // em que o catálogo inteiro parecia ter sumido.
+  // A Home nasce focada no caminho do dia; o catálogo completo continua a um
+  // toque e precisa abrir sem perder nenhum card.
+  await page.getByTestId('home-explore-toggle').click();
 
   const card = page.getByTestId('card-birthchart');
   await expect(card).toBeVisible({ timeout: 30000 });
@@ -322,6 +323,7 @@ async function abrirMapaComCidadeSalva(page, cidadeSalva) {
   }, cidadeSalva);
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
+  await page.getByTestId('home-explore-toggle').click();
   const card = page.getByTestId('card-birthchart');
   await expect(card).toBeVisible({ timeout: 30000 });
   await expect(async () => {

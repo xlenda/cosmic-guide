@@ -16,6 +16,7 @@ const {
   clearOnboardingProfile,
 } = require('../lib/onboardingPlan.js');
 const { _reiniciarStorageParaTestes } = require('../lib/storage.js');
+const { _DICTS_FOR_TESTS } = require('../lib/i18n.js');
 
 test.beforeEach(() => {
   _reiniciarStorageParaTestes();
@@ -67,6 +68,42 @@ test('situação e resultado alteram recursos reais, não apenas a frase', () =>
     buildOnboardingPlan('curiosity', 'solo', { intent: 'curiosity', situation: 'curiosityMap', outcome: 'timing' }),
     ['birthchart', 'horoscope', 'tarot']
   );
+});
+
+test('as 80 combinações adaptativas geram respostas completas e um plano real', () => {
+  const idiomas = ['pt', 'es', 'en'];
+  const recursosReais = new Set(['tarot', 'horoscope', 'diary', 'birthchart', 'grounding']);
+  const narrativasPorIdioma = Object.fromEntries(idiomas.map((lang) => [lang, new Set()]));
+  let combinacoes = 0;
+
+  for (const intent of ONBOARDING_INTENTS) {
+    for (const situation of ONBOARDING_SITUATIONS[intent.id]) {
+      for (const outcome of ONBOARDING_OUTCOMES) {
+        combinacoes += 1;
+        const profile = { intent: intent.id, situation: situation.id, outcome: outcome.id };
+        assert.deepEqual(normalizeOnboardingProfile(profile), profile);
+
+        const plan = buildOnboardingPlan(intent.id, 'solo', profile);
+        assert.equal(plan.length, 3);
+        assert.equal(new Set(plan).size, plan.length);
+        assert.equal(plan[0], situation.firstFeature);
+        assert.ok(plan.includes(outcome.firstFeature));
+        for (const feature of plan) assert.ok(recursosReais.has(feature));
+
+        for (const lang of idiomas) {
+          const dict = _DICTS_FOR_TESTS[lang];
+          const parts = [dict[intent.echoKey], dict[situation.echoKey], dict[outcome.echoKey]];
+          assert.ok(parts.every((part) => typeof part === 'string' && part.trim().length > 20));
+          narrativasPorIdioma[lang].add(parts.join('|'));
+        }
+      }
+    }
+  }
+
+  assert.equal(combinacoes, 80);
+  for (const lang of idiomas) {
+    assert.equal(narrativasPorIdioma[lang].size, 80, `${lang} precisa cobrir as 80 combinações`);
+  }
 });
 
 test('perfil não aceita situação de outra intenção nem resposta incompleta', () => {

@@ -236,10 +236,10 @@ export default function HomeScreen() {
   const [onboardingIntent, setOnboardingIntentState] = useState(null);
   const [onboardingProfile, setOnboardingProfileState] = useState(null);
   const [journalCount, setJournalCount] = useState(null);
-  // A Home precisa nascer inteira. O catálogo já ficou atrás deste estado
-  // fechado e, na prática, parecia ter sumido para quem entrava no app.
-  // Recolher continua opcional; esconder nunca mais é o estado inicial.
-  const [exploreOpen, setExploreOpen] = useState(true);
+  // A Home nasce com o caminho pessoal, o pensamento e as ações do dia. O
+  // catálogo completo continua no mesmo fluxo, atrás de um controle explícito
+  // de um toque: reduz ruído sem apagar nenhuma feature nem criar outra rota.
+  const [exploreOpen, setExploreOpen] = useState(false);
   useFocusEffect(
     useCallback(() => {
       let active = true;

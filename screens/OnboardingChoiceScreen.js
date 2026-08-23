@@ -10,6 +10,7 @@ import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
 import OrbiGuide from '../components/OrbiGuide';
+import OrbiIntro from '../components/OrbiIntro';
 import StoriesReader from '../components/StoriesReader';
 import OnboardingPerguntasScreen from './OnboardingPerguntasScreen';
 import { getOnboardingSignStoryKey } from '../lib/onboardingPlan';
@@ -22,7 +23,8 @@ export default function OnboardingChoiceScreen() {
   const insets = useSafeAreaInsets();
   const { saveSolo } = useCouple();
   const { t } = useLanguage();
-  const [fase, setFase] = useState('perguntas');
+  const [fase, setFase] = useState('intro');
+  const [retornoSigno, setRetornoSigno] = useState('intro');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [selectedSign, setSelectedSign] = useState(null);
@@ -33,6 +35,11 @@ export default function OnboardingChoiceScreen() {
 
   function marcarCaminhoSolo() {
     funnel.onboardingStart('solo');
+  }
+
+  function abrirSignos(origem) {
+    setRetornoSigno(origem);
+    setFase('signo');
   }
 
   async function pickSign(z) {
@@ -56,14 +63,23 @@ export default function OnboardingChoiceScreen() {
     funnel.onboardingDone('solo');
   }
 
+  if (fase === 'intro') {
+    return (
+      <OrbiIntro
+        onStart={() => setFase('perguntas')}
+        onSkip={() => setFase('perguntas')}
+        onShortcut={() => abrirSignos('intro')}
+      />
+    );
+  }
+
   if (fase === 'perguntas') {
     return (
       <OnboardingPerguntasScreen
-        hideBackOnFirst
-        onVoltar={() => {}}
+        onVoltar={() => setFase('intro')}
         onSoloStart={marcarCaminhoSolo}
         onCasal={() => navigation.navigate(ROUTES.QUIZ)}
-        onAtalhoSigno={() => setFase('signo')}
+        onAtalhoSigno={() => abrirSignos('perguntas')}
       />
     );
   }
@@ -76,7 +92,7 @@ export default function OnboardingChoiceScreen() {
       >
         <TouchableOpacity
           style={styles.backRow}
-          onPress={() => setFase('perguntas')}
+          onPress={() => setFase(retornoSigno)}
           disabled={saving}
           activeOpacity={0.7}
           accessibilityRole="button"

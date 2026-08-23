@@ -57,7 +57,6 @@ import CityPickerModal from '../components/CityPickerModal';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
-import OrbiGuide from '../components/OrbiGuide';
 import { signoFromDate, moonSign, ascendantSign } from '../lib/signs';
 import { nomeDoSigno } from '../lib/synastry';
 import { mascoteDoSigno } from '../lib/ilustracoes';
@@ -377,8 +376,7 @@ export default function OnboardingPerguntasScreen({
       >
         {passo === 0 && (
           <View style={styles.passo}>
-            <Text style={styles.brand}>Cosmic Guide</Text>
-            <OrbiGuide size={104} style={styles.orbiIntro} />
+            <Text style={styles.adaptiveEyebrow}>{t('onboarding.adaptive.first')}</Text>
             <Text style={styles.pergunta}>{t('onboarding.intent.title')}</Text>
             <View style={styles.intentGrid}>
               {ONBOARDING_INTENTS.map((item) => {
@@ -757,16 +755,6 @@ const styles = StyleSheet.create({
   // barra de navegador/teclado; o conteúdo rola até folgar.
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 160 },
   passo: { flex: 1, justifyContent: 'center' },
-
-  brand: {
-    color: colors.gold,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 2.2,
-    textTransform: 'uppercase',
-    textAlign: 'center',
-  },
-  orbiIntro: { alignSelf: 'center', marginTop: 4, marginBottom: 4 },
 
   pergunta: {
     color: colors.text,

@@ -10,8 +10,12 @@ test.describe('Primeiro caminho personalizado', () => {
   test('contexto limpo mostra uma ação e muda o plano conforme a resposta', async ({ page }) => {
     await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByText('O que você quer entender agora?')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId('onboarding-intro')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Tem algo que você quer entender melhor hoje.')).toBeVisible();
     await expect(page.getByTestId('orbi-guide')).toBeVisible();
+    await page.getByTestId('onboarding-intro-primary').click();
+
+    await expect(page.getByText('O que você quer entender agora?')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId('onboarding-primary')).toBeVisible();
     await expect(page.getByTestId('pill-premium')).toHaveCount(0);
 
@@ -56,6 +60,8 @@ test('usuário novo recebe o primeiro caminho sem perder a Home', async ({ page 
   await expect(page.getByText('Olá, Touro')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Seu primeiro caminho')).toBeVisible();
   await expect(page.getByTestId('home-explore-toggle')).toBeVisible();
+  await expect(page.getByTestId('card-tarot')).toHaveCount(0);
+  await page.getByTestId('home-explore-toggle').click();
   await expect(page.getByTestId('card-tarot')).toBeVisible();
   await expect(page.getByText('Pensamento cósmico do dia')).toBeVisible();
 });
@@ -64,7 +70,7 @@ test('atalho de signo mostra a leitura do signo tocado antes da Home', async ({ 
   await page.addInitScript(() => window.localStorage.setItem('app-language', 'pt'));
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
-  await page.getByText('Já sei meu signo — escolher direto').click();
+  await page.getByTestId('onboarding-intro-shortcut').click();
   await page.getByText('Touro', { exact: true }).click();
 
   await expect(page.getByText(/Touro é terra fixa/)).toBeVisible({ timeout: 10_000 });
@@ -81,6 +87,7 @@ test('a primeira tiragem revela a carta por raspagem', async ({ page }) => {
   });
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
+  await page.getByTestId('home-explore-toggle').click();
   await page.getByTestId('card-tarot').click();
   await expect(page.getByTestId('tarot-draw')).toBeVisible({ timeout: 20_000 });
   await page.getByTestId('tarot-draw').click();
