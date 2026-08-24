@@ -130,5 +130,16 @@ node scripts/e2e-regression.js deploy-vercel
 
 echo "== vercel deploy =="
 cd deploy-vercel
-npx vercel link --yes --project cosmic-guide
-npx vercel --prod --yes
+
+# O Node distribuído nesta máquina não herdava automaticamente a autoridade
+# certificadora do Windows e a CLI falhava antes de autenticar com
+# `unable to verify the first certificate`. Usar a CA do sistema mantém a
+# validação TLS ativa; não usamos NODE_TLS_REJECT_UNAUTHORIZED=0 nem qualquer
+# outro atalho inseguro.
+VERCEL_CLI="$(npm root -g | tr '\\' '/')/vercel/dist/vc.js"
+if [ ! -f "$VERCEL_CLI" ]; then
+  echo "ABORTADO: CLI global da Vercel não encontrada em $VERCEL_CLI"
+  exit 1
+fi
+node --use-system-ca "$VERCEL_CLI" link --yes --project cosmic-guide
+node --use-system-ca "$VERCEL_CLI" --prod --yes
