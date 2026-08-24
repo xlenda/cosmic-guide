@@ -224,6 +224,12 @@ const Stack = createStackNavigator();
 // No nativo (loja, futuro) o gesto fica.
 const GESTO_STACK = { gestureEnabled: Platform.OS !== 'web' };
 
+// React Navigation usa o nome interno da rota como <title> na web quando não
+// recebe um formatter. Isso fazia a aba expor "OnboardingChoice", "HomeMain"
+// e "Chat". A marca é o título público em toda a SPA; no nativo esta opção é
+// um no-op da própria biblioteca.
+const DOCUMENT_TITLE = Object.freeze({ formatter: () => 'Cosmic Guide' });
+
 // A TRANSIÇÃO DE EMPURRAR TELA (09/08/2026) — slide horizontal estilo iOS nos
 // quatro Stack.Navigator. O stack v6 NASCE sem animação na web (conferido no
 // fonte instalado, CardStack.js: animationEnabled = Platform.OS !== 'web'...),
@@ -581,7 +587,7 @@ function Gate() {
 
   if (!coupleData && !soloSign) {
     return (
-      <NavigationContainer>
+      <NavigationContainer documentTitle={DOCUMENT_TITLE}>
         <Suspense fallback={<LoadingFallback />}>
           <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}>
             <Stack.Screen name={ROUTES.ONBOARDING_CHOICE} component={OnboardingChoiceScreen} />
@@ -596,6 +602,7 @@ function Gate() {
     <NavigationContainer
       ref={navRef}
       linking={linking}
+      documentTitle={DOCUMENT_TITLE}
       onReady={() => {
         setNavPronta(true);
         setRotaAtual(navRef.getCurrentRoute()?.name || null);

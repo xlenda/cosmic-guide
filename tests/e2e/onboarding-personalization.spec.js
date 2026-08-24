@@ -10,6 +10,7 @@ test.describe('Primeiro caminho personalizado', () => {
   test('contexto limpo mostra uma ação e muda o plano conforme a resposta', async ({ page }) => {
     await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
+    await expect(page).toHaveTitle('Cosmic Guide');
     await expect(page.getByTestId('onboarding-intro')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText('Tem algo que você quer entender melhor hoje.')).toBeVisible();
     await expect(page.getByTestId('orbi-guide')).toBeVisible();
@@ -57,6 +58,7 @@ test('usuário novo recebe o primeiro caminho sem perder a Home', async ({ page 
   });
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
+  await expect(page).toHaveTitle('Cosmic Guide');
   await expect(page.getByText('Olá, Touro')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Seu primeiro caminho')).toBeVisible();
   await expect(page.getByTestId('home-explore-toggle')).toBeVisible();
@@ -171,6 +173,7 @@ test('Órbi sai do catálogo e sugere perguntas a partir do perfil completo', as
   await expect(page.getByTestId('card-chat')).toHaveCount(0);
   await page.getByTestId('home-orbi-chat').click();
 
+  await expect(page).toHaveTitle('Cosmic Guide');
   await expect(page.getByTestId('orbi-chat-guide')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('orbi-ai-disclosure')).toContainText('usa IA da Anthropic');
   await expect(page.getByTestId('orbi-suggestions')).toContainText('Existe distância ou dúvida');
