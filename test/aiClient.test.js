@@ -24,6 +24,34 @@ test("fetchAiChatReply: resposta ok com reply válido retorna o texto", async ()
   assert.equal(reply, "Olá! Como posso ajudar?");
 });
 
+test("fetchAiChatReply: envia somente o contexto explícito recebido", async () => {
+  let body;
+  mockFetchOnce(async (_url, options) => {
+    body = JSON.parse(options.body);
+    return { ok: true, json: async () => ({ reply: "Vamos organizar isso." }) };
+  });
+  const contexto = {
+    sign: "Áries",
+    intent: "decision",
+    situation: "decisionOptions",
+    outcome: "clarity",
+  };
+  await fetchAiChatReply("orbi", "Tenho dois caminhos", [], contexto);
+  assert.deepEqual(body.contexto, contexto);
+  assert.equal(body.personaId, "orbi");
+  assert.equal(body.lang, "pt");
+});
+
+test("fetchAiChatReply: sem contexto mantém o payload compatível", async () => {
+  let body;
+  mockFetchOnce(async (_url, options) => {
+    body = JSON.parse(options.body);
+    return { ok: true, json: async () => ({ reply: "Oi" }) };
+  });
+  await fetchAiChatReply("orbi", "oi", []);
+  assert.equal(Object.prototype.hasOwnProperty.call(body, "contexto"), false);
+});
+
 test("fetchAiChatReply: resp.ok=false lança (backend fora do ar, CORS, 500 etc.)", async () => {
   mockFetchOnce(async () => ({ ok: false, status: 500, json: async () => ({}) }));
   await assert.rejects(() => fetchAiChatReply("luna", "oi", []), /chat falhou \(500\)/);

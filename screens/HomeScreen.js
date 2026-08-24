@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share, Image, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, Share, Image, Pressable, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -35,6 +35,7 @@ import BandaSection from '../components/BandaSection';
 import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import DailyMissionsCard from '../components/DailyMissionsCard';
+import OrbiGuide from '../components/OrbiGuide';
 // Som do céu — o card que APRESENTA a feature. O motor e o estado vivem no
 // provider em App.js; aqui é só um controle remoto (ver o cabeçalho de
 // components/CosmicSoundPlayer.js). Sem este card, a única porta de entrada
@@ -79,14 +80,15 @@ import {
   getOnboardingSituationDefinition,
 } from '../lib/onboardingPlan';
 
-// Cards do grid que levam a uma LEITURA de verdade (as 9 individuais) — são
+// Cards do grid que levam a uma LEITURA de verdade. Conversar com Órbi tem
+// entrada contextual própria e, por isso, não pertence a este catálogo — são
 // eles que valem como "pediu a 1ª leitura" (reading_start). Os cards de casal
 // (timeline/reconectar/descobrir/agir/progresso/retrospectiva) e o feed social
 // não são leitura e ficam de fora de propósito: contá-los inflaria o degrau e
 // esconderia que ninguém chegou a ler nada.
 const READING_CARD_KEYS = new Set([
   'horoscope', 'birthchart', 'tarot', 'compatibility',
-  'dream', 'lunarCalendar', 'palm', 'coffee', 'chat',
+  'dream', 'lunarCalendar', 'palm', 'coffee',
 ]);
 
 // Segunda a domingo — mesma ordem que getWeekActivity() já retorna. Viraram
@@ -236,6 +238,7 @@ export default function HomeScreen() {
   const [onboardingIntent, setOnboardingIntentState] = useState(null);
   const [onboardingProfile, setOnboardingProfileState] = useState(null);
   const [journalCount, setJournalCount] = useState(null);
+  const [orbiFocused, setOrbiFocused] = useState(false);
   // A Home nasce com o caminho pessoal, o pensamento e as ações do dia. O
   // catálogo completo continua no mesmo fluxo, atrás de um controle explícito
   // de um toque: reduz ruído sem apagar nenhuma feature nem criar outra rota.
@@ -756,7 +759,6 @@ export default function HomeScreen() {
     { key: 'jornada', title: t('home.card.jornada.title'), subtitle: t('home.card.jornada.subtitle'), icon: 'footsteps', gradient: ['#5FD98C', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.JORNADA) },
     { key: 'palm', title: t('home.card.palm.title'), subtitle: t('home.card.palm.subtitle'), icon: 'hand-left', gradient: ['#FFB84D', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.PALM) },
     { key: 'coffee', title: t('home.card.coffee.title'), subtitle: t('home.card.coffee.subtitle'), icon: 'cafe', gradient: ['#B57BFF', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.COFFEE) },
-    { key: 'chat', title: t('home.card.chat.title'), subtitle: t('home.card.chat.subtitle'), icon: 'chatbubbles', gradient: ['#6C7BFF', '#5CE0D8'], onPress: () => navigation.getParent()?.navigate(ROUTES.CHAT_TAB) },
     { key: 'social', title: t('home.card.social.title'), subtitle: t('home.card.social.subtitle'), icon: 'people', gradient: ['#5CE0D8', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.SOCIAL) },
     // -----------------------------------------------------------------------
     // A LEVA DE 31/07/2026 — entradas NO GRID, nenhuma virou card solto na
@@ -1141,6 +1143,41 @@ export default function HomeScreen() {
               </>
             )}
           </View>
+        )}
+
+        {/* Órbi sai do catálogo genérico: é continuidade do caminho, não mais
+            uma leitura concorrendo com outras dezenas de cards. No primeiro
+            acesso o passo dominante continua sozinho; depois, esta porta
+            contextual aparece sem obrigar a abrir “Explore”. */}
+        {!showFirstPath && (
+          <Pressable
+            testID="home-orbi-chat"
+            style={({ pressed }) => [
+              styles.orbiContinuity,
+              orbiFocused && styles.keyboardFocus,
+              pressed && styles.firstPathPressed,
+            ]}
+            onPress={() => {
+              navigation.getParent()?.navigate(ROUTES.CHAT_TAB);
+            }}
+            onFocus={() => setOrbiFocused(true)}
+            onBlur={() => setOrbiFocused(false)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('orbi.home.title')}. ${t('orbi.home.cta')}`}
+          >
+            <View style={styles.orbiContinuityVisual}>
+              <OrbiGuide size={78} pose="pointing" testID="home-orbi-pointing" />
+            </View>
+            <View style={styles.orbiContinuityCopy}>
+              <Text style={styles.orbiContinuityEyebrow}>{t('orbi.home.eyebrow')}</Text>
+              <Text style={styles.orbiContinuityTitle}>{t('orbi.home.title')}</Text>
+              <Text style={styles.orbiContinuityBody}>{t('orbi.home.body')}</Text>
+              <View style={styles.orbiContinuityCta}>
+                <Text style={styles.orbiContinuityCtaText}>{t('orbi.home.cta')}</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.gold} />
+              </View>
+            </View>
+          </Pressable>
         )}
 
         {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
@@ -1873,6 +1910,15 @@ const styles = StyleSheet.create({
     borderColor: colors.gold + '70',
   },
   firstPathPressed: { opacity: 0.9, transform: [{ scale: 0.985 }] },
+  keyboardFocus: Platform.select({
+    web: {
+      outlineStyle: 'solid',
+      outlineWidth: 3,
+      outlineColor: colors.gold,
+      outlineOffset: 3,
+    },
+    default: {},
+  }),
   firstPathInner: { paddingHorizontal: 22, paddingVertical: 24 },
   firstPathIcon: {
     width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
@@ -1892,7 +1938,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gold,
   },
   firstPathHonesty: { color: 'rgba(255,255,255,0.72)', fontSize: 10, lineHeight: 14, marginTop: 14 },
-  diaryBar: { marginHorizontal: 20, marginTop: -14, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
+  orbiContinuity: {
+    minHeight: 138,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 18,
+    marginBottom: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.gold + '30',
+    overflow: 'hidden',
+  },
+  orbiContinuityVisual: {
+    width: 88,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orbiContinuityCopy: { flex: 1, paddingLeft: 4, paddingRight: 2 },
+  orbiContinuityEyebrow: { color: colors.gold, fontSize: 9, fontWeight: '800', letterSpacing: 1.05, textTransform: 'uppercase' },
+  orbiContinuityTitle: { color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '800', letterSpacing: -0.2, marginTop: 5 },
+  orbiContinuityBody: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 4 },
+  orbiContinuityCta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  orbiContinuityCtaText: { color: colors.gold, fontSize: 12, fontWeight: '800' },
+  // O Diário agora vem depois da continuidade do Órbi. A margem negativa do
+  // hero antigo fazia os dois cartões se sobreporem em telas estreitas.
+  diaryBar: { marginHorizontal: 20, marginTop: 14, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   diaryBarInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   diaryBarIcon: {
     width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)',
@@ -1900,9 +1975,7 @@ const styles = StyleSheet.create({
   },
   diaryBarTitle: { color: '#fff', fontSize: 15, fontWeight: '800' },
   diaryBarSubtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
-  // O marginTop -14 saiu na reforma (08/08/2026): era do tempo em que este
-  // card abria a Home colado no hero. Com o diaryBar na frente (que fecha com
-  // marginBottom 14), o -14 zerava o vão e os dois cards se encostavam.
+  // O card de sequência começa depois do respiro fechado pelo Diário.
   streakCard: {
     marginHorizontal: 20, marginTop: 0, marginBottom: 14, padding: 16,
     backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border,

@@ -19,6 +19,10 @@ const { ProcessWebhookUseCase } = require("../application/ProcessWebhookUseCase"
 const { GetSubscriptionStatusUseCase } = require("../application/GetSubscriptionStatusUseCase");
 const { GetAccountSubscriptionUseCase } = require("../application/GetAccountSubscriptionUseCase");
 const { ClaimSubscriptionUseCase } = require("../application/ClaimSubscriptionUseCase");
+const {
+  ChatContextValidationError,
+  sanitizeChatContext,
+} = require("../application/chatContext");
 const { stripControlChars } = require("../infrastructure/textSanitize");
 const { timingSafeStringEqual } = require("../infrastructure/timingSafeCompare");
 
@@ -215,7 +219,7 @@ const CANARY_SUFFIX = ":canary";
 // efeito colateral: 4 chamadas por hora, 96 por dia, TODAS gravadas na
 // ai_usage como se fossem conversa de usuário. Medido no banco em 29/07/2026:
 // 96 "chat" no dia 28, 97 no dia 27 — e o uso humano real desses dias era
-// zero. A única métrica que dizia "o Chat Espiritual está sendo usado" estava
+// zero. A única métrica que dizia "o chat antigo está sendo usado" estava
 // medindo o próprio monitoramento, e é com ela que se decide preço de
 // assinatura e pacote de tokens.
 //
@@ -392,17 +396,34 @@ const CHAT_MESSAGE_MAX_LENGTH = 500;
 app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
   try {
-    const { personaId, message, history } = req.body || {};
+    const { personaId, message, history, contexto: contextoBruto } = req.body || {};
     if (!message) return res.status(400).json({ error: "message é obrigatório" });
     if (typeof message !== "string" || message.length > CHAT_MESSAGE_MAX_LENGTH) {
       return res.status(400).json({ error: `message deve ter no máximo ${CHAT_MESSAGE_MAX_LENGTH} caracteres` });
     }
-    const reply = await aiProvider.chat({ personaId, message, history, lang: langDoPedido(req) });
+    // O contexto é opcional e a ausência mantém o contrato antigo. Quando
+    // existe, somente signo canônico e os três IDs enumerados do onboarding
+    // passam; pergunta, nota, Diário e qualquer texto livre falham antes da
+    // chamada paga. O provider repete a validação como defesa em profundidade.
+    const contexto = sanitizeChatContext(contextoBruto);
+    const reply = await aiProvider.chat({
+      personaId,
+      message,
+      history,
+      contexto,
+      lang: langDoPedido(req),
+    });
     console.log("[api/chat] sucesso");
     // Único endpoint que o canary chama — ver ehCanary() acima.
     countAiUsage(ehCanary(req) ? `chat${CANARY_SUFFIX}` : "chat");
     res.json({ reply });
   } catch (err) {
+    if (err instanceof ChatContextValidationError) {
+      return res.status(400).json({
+        error: "contexto do chat inválido",
+        code: err.code,
+      });
+    }
     console.error("[api/chat] erro:", err.message);
     res.status(500).json({ error: "falha ao gerar resposta" });
   }

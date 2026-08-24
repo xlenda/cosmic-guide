@@ -143,7 +143,7 @@ function instanteLocal(data, locale) {
   }
 }
 
-// Mesmo tom honesto de lib/palmReadings.js / lib/chatResponses.js: a fase em
+// Mesmo tom honesto de lib/palmReadings.js / lib/orbiConversation.js: a fase em
 // si é astronomia real (astronomy-engine), mas a reflexão que a acompanha é
 // simbólica — nunca previsão garantida.
 // O texto do DISCLAIMER morava aqui como const em PT e virou a chave

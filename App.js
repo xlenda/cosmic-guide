@@ -89,8 +89,8 @@ const LojaScreen = lazy(() => import('./screens/LojaScreen'));
 const HelpSupportScreen = lazy(() => import('./screens/HelpSupportScreen'));
 const TermsScreen = lazy(() => import('./screens/TermsScreen'));
 // O Chat não ocupa mais a navegação principal e só abre por links de contexto.
-// Mantê-lo no bundle inicial fazia toda pessoa pagar o parse de conversa,
-// personas e histórico sem sequer ver uma aba correspondente.
+// Mantê-lo no bundle inicial fazia toda pessoa pagar o parse da conversa e
+// do histórico sem sequer abrir a entrada contextual do Órbi.
 const ChatScreen = lazy(() => import('./screens/ChatScreen'));
 // Lote 2 (25/07/2026, achado real de auditoria de performance): mais 12 telas
 // que ainda carregavam eager dentro do HomeStack, que já tem <Suspense>

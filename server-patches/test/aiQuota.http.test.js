@@ -53,11 +53,13 @@ const path = require("node:path");
 
 // A IA de verdade custa dinheiro e não pode ser chamada por teste nenhum.
 let chamadasDeIa = 0;
+const chamadasChat = [];
 mock.module(path.join(__dirname, "..", "src", "infrastructure", "AnthropicChatProvider.js"), {
   namedExports: {
     AnthropicChatProvider: class {
-      async chat() {
+      async chat(args) {
         chamadasDeIa += 1;
+        chamadasChat.push(args);
         return "resposta de teste";
       }
       async analyzePalm() {
@@ -151,10 +153,10 @@ function novoUsuario() {
   return `u-teste-${String(userContador).padStart(4, "0")}`;
 }
 
-function chat(ip, { token, mensagem = "oi" } = {}) {
+function chat(ip, { token, mensagem = "oi", personaId = "luna", contexto, lang } = {}) {
   const req = supertest(app).post("/api/chat").set("X-Forwarded-For", ip);
   if (token) req.set("Authorization", `Bearer user:${token}`);
-  return req.send({ personaId: "luna", message: mensagem });
+  return req.send({ personaId, message: mensagem, ...(contexto === undefined ? {} : { contexto }), ...(lang ? { lang } : {}) });
 }
 
 function assinaturaAtiva(userId, { status = "active" } = {}) {
@@ -187,6 +189,57 @@ const ROTAS_DE_TEXTO = [
   ["/api/weekly-insight", { readings: [{ title: "a", body: "b" }] }],
   ["/api/coffee-weekly-summary", { readings: [{ title: "a", body: "b" }] }],
 ];
+
+// =============================================================================
+// 0) Contrato opcional de contexto do chat
+// =============================================================================
+
+test("chat antigo sem contexto continua compatível e mantém pt como idioma padrão", async () => {
+  const resp = await chat(novoIp());
+  assert.equal(resp.status, 200);
+  const args = chamadasChat.at(-1);
+  assert.equal(args.personaId, "luna");
+  assert.equal(args.contexto, undefined);
+  assert.equal(args.lang, "pt");
+});
+
+test("chat repassa para Órbi somente o contexto canônico saneado e preserva lang", async () => {
+  const contexto = {
+    sign: "Virgem",
+    intent: "work",
+    situation: "workBlock",
+    outcome: "nextStep",
+  };
+  const resp = await chat(novoIp(), { personaId: "orbi", contexto, lang: "en" });
+  assert.equal(resp.status, 200);
+  const args = chamadasChat.at(-1);
+  assert.equal(args.personaId, "orbi");
+  assert.deepEqual({ ...args.contexto }, contexto);
+  assert.equal(args.lang, "en");
+});
+
+test("chat recusa contexto incompleto ou com qualquer campo extra antes de chamar a IA", async () => {
+  const valido = {
+    sign: "Virgem",
+    intent: "work",
+    situation: "workBlock",
+    outcome: "nextStep",
+  };
+  const invalidos = [
+    { sign: "Virgem", intent: "work", situation: "workBlock" },
+    { ...valido, pergunta: "ele vai voltar?" },
+    { ...valido, nota: "texto privado" },
+    { ...valido, diario: [{ body: "texto privado" }] },
+  ];
+
+  for (const contexto of invalidos) {
+    const antes = chamadasChat.length;
+    const resp = await chat(novoIp(), { personaId: "orbi", contexto });
+    assert.equal(resp.status, 400);
+    assert.equal(resp.body.code, "invalid_chat_context");
+    assert.equal(chamadasChat.length, antes, "contexto recusado não pode alcançar o provider");
+  }
+});
 
 // =============================================================================
 // 1) O ATAQUE (b): curl sem token nenhum

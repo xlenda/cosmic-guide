@@ -241,8 +241,9 @@ async function openExplore(page) {
     const { context, page } = await newSoloPage(browser, {
       'chat-free-messages-sent': '2',
     });
-    await openExplore(page);
-    await page.getByTestId('card-chat').click();
+    // Órbi não mora mais no catálogo: a entrada contextual fica visível na
+    // Home depois do primeiro caminho, sem exigir abrir “Explore”.
+    await page.getByTestId('home-orbi-chat').click();
     await page.waitForTimeout(1300);
     let body = await page.evaluate(() => document.body.innerText);
     check('limite atingido mostra bloqueio', /a primeira foi por conta da casa|Você já usou sua leitura gratuita/.test(body));

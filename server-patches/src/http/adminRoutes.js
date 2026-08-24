@@ -43,7 +43,7 @@ function buildAdminRouter({ repository, adminToken }) {
   // Desde 29/07/2026 a resposta separa GENTE de ROBÔ. O canary de 15 em 15
   // minutos (scripts/canary-check.sh) chama /api/chat de verdade e respondia
   // por 96-97 dos ~97 "chats" de um dia — quem lesse `totalPorDia` concluiria
-  // que o Chat Espiritual é o recurso mais usado do app, quando o uso humano
+  // que o chat antigo é o recurso mais usado do app, quando o uso humano
   // era zero. As chamadas do canary agora chegam marcadas (endpoint terminado
   // em ":canary", ver ehCanary em src/http/server.js) e saem em campo próprio:
   //   totalHumanoPorDia -> o número pra decidir preço/pacote de tokens

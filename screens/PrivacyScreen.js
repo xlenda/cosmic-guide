@@ -86,6 +86,7 @@ export default function PrivacyScreen() {
           <PrivacyRow icon="location" text={t('privacy.local.city')} />
           <PrivacyRow icon="planet" text={t('privacy.local.signs')} />
           <PrivacyRow icon="compass" text={t('privacy.local.intent')} />
+          <PrivacyRow icon="chatbubbles" text={t('privacy.local.chat')} />
           <PrivacyRow icon="journal" text={t('privacy.local.journal')} last />
         </View>
 

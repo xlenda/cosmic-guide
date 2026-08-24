@@ -1,31 +1,54 @@
-# Estado do Cosmic Guide — 01/08/2026 (atualizado)
+# Estado do Cosmic Guide — baseline histórico + Fase 3 (23/08/2026)
 
-> Escrito para uma sessão nova continuar sem reler dois dias de conversa.
-> **Tudo commitado e NO AR** (`764a19d`). **1.385 testes, 1.385 passando.**
-> **Auditoria: 42 bugs confirmados, 42 consertados.**
+> Este arquivo nasceu como fotografia de 01/08/2026. Naquele commit (`764a19d`),
+> estavam registrados 1.385 testes verdes e 42 correções da auditoria. Esses
+> números e o estado de produção são históricos: remeça antes de repeti-los.
 >
-> **Última entrega:** as dez features de tradição que estavam na gaveta agora
-> têm tela. Nenhum módulo de `lib/` continua órfão.
+> A atualização de Fase 3 abaixo descreve a implementação preparada em
+> 23/08/2026, mas não afirma deploy. Só declare que está no ar depois dos scripts
+> oficiais, dos testes e dos probes de produção.
 
 ---
 
 ## Como rodar
 
 ```bash
-npm test                          # 1081 testes (~2 min, concorrência limitada de propósito)
-bash scripts/deploy-vercel.sh     # roda a suíte como portão, exporta e publica
-bash server-patches/deploy.sh     # backend na VPS
+npm test                          # suíte completa; registre o total real da execução
+bash server-patches/deploy.sh     # backend na VPS — sempre primeiro
+bash scripts/deploy-vercel.sh     # web — só depois do backend
 ```
 
 ---
 
-## ✅ NO AR e funcionando
+## Fase 3 — Órbi e linguagem (implementação local)
 
-O app fala **três idiomas de verdade** (PT/ES/EN), detecta pelo navegador, e todo
-o conteúdo das leituras tem pack próprio em `lib/traducoes/`.
+- **Conversar com Órbi** substitui as identidades antigas na experiência atual.
+  Órbi é uma interface de conversa gerada pela **IA da Anthropic**, declarada
+  antes da primeira pergunta; não é pessoa, consultor, médium nem previsão.
+- A chamada envia a pergunta e o histórico da conversa atual. O único contexto
+  de perfil aceito pelo backend é o pacote completo e explícito de **signo,
+  tema, situação e objetivo**. Se faltar um campo, o pacote não é enviado; o
+  Diário nunca é lido nem enviado por essa conversa.
+- Históricos trazidos de versões anteriores permanecem no aparelho, rotulados
+  como importados. Eles não são reenviados à Anthropic e não são atribuídos a
+  Órbi.
+- **Voz neural e comunidade estão fora desta Fase 3.** Voz neural pertence ao
+  planejamento da Fase 6; comunidade exige uma fase e um contrato próprios.
+- Recibos no código: `screens/ChatScreen.js`, `lib/orbiConversation.js`,
+  `server-patches/src/application/chatContext.js` e
+  `server-patches/src/infrastructure/AnthropicChatProvider.js`.
 
-**Features com tela:** Horóscopo, Mapa Astral, Tarô, Compatibilidade, Sonhos,
-Palma/Rosto/Pé/Pintas, Café, Chat, Calendário Lunar, Diário (com favoritos),
+---
+
+## Snapshot de 01/08/2026 — não usar como status sem medir de novo
+
+Naquele baseline, o app tinha conteúdo em PT/ES/EN e detecção de idioma. A
+paridade atual deve ser provada pelo portão de i18n; não presuma que todo texto
+novo entrou nos três idiomas só porque os dicionários existem.
+
+**Features registradas naquele baseline:** Horóscopo, Mapa Astral, Tarô,
+Compatibilidade, Sonhos, Palma/Rosto/Pé/Pintas, Café, Chat, Calendário Lunar,
+Diário (com favoritos),
 Rituais (21), Jornada (4 trilhas de 7 dias), Calendário Cósmico, Mitos (25),
 "Como você tá?", Quiz Cósmico (40 perguntas), Papel de Parede, Homem Zodiacal,
 Aterramento, Som do Céu, Loja, Tokens, Missões.
@@ -85,13 +108,13 @@ lá ("fica perdido no meio"); as features entram no **grid**.
 `packDoIdioma` do motor em ~5 linhas comentadas. Cada tela diz no cabeçalho
 exatamente como consolidar quando alguém encostar no motor. Só arrumação.
 
-### 3. ~~Cidades e chave de IA~~ — **as duas resolvidas** (conferido em produção)
+### 3. ~~Cidades e chave de IA~~ — resolvidas no baseline (produção conferida naquela data)
 - Cidades: `GET /api/cities/search` acha cidade pequena do interior (testado com
   Itatira/CE e Ubajara/CE, não só capital).
 - Chave de IA: está no `.env` do servidor, e `/api/chat` responde com texto real
   (não com o fallback enlatado).
 
-### 4. Pendências que continuam abertas — todas dependem de conta/decisão do dono
+### 4. Pendências registradas naquele baseline
 
 | O quê | O que falta da sua parte | Sem isso |
 |---|---|---|
@@ -108,15 +131,15 @@ consolidar.
 
 ## Regras do app que não se atravessa
 
-Estão em `docs/tradicao/00-tese.md` e na memória do Claude. Resumo:
+Estão em `docs/tradicao/00-tese.md` e nas travas do repositório. Resumo:
 
 1. **PRENDE PRIMEIRO, FONTE DEPOIS.** Todo texto abre na vida real, em português
    de conversa; a fonte vem depois, como recibo. Nunca o contrário.
 2. **Nada de alegação de saúde**, nem implícita — e a regra é de PALAVRA, não de
    intenção (pt aliviar/acalmar/curar/tratar; es sanar/calmar; en soothe/heal).
    Há testes varrendo os três idiomas que abortam o build.
-3. **Nada de promessa, veredito ou prova social inventada.** O app tem 2
-   assinaturas ativas — não existe "+10 mil usuários".
+3. **Nada de promessa, veredito ou prova social inventada.** Não publique
+   contagem de assinantes ou usuários sem uma medição atual e verificável.
 4. **Avisos defensivos foram removidos** ("não garante resultados"). Sobraram 4
    linhas curtas, só onde a pessoa fotografa o próprio corpo ou digita
    sofrimento.
@@ -138,4 +161,6 @@ Estão em `docs/tradicao/00-tese.md` e na memória do Claude. Resumo:
 **O gatilho de encantamento** (do reel que o dono mandou): *"POV: sempre achei
 que o tarô era do Egito e ninguém nunca tinha me mostrado que foi inventado em
 1781 😭"*. A fórmula é nomear um desejo antigo + "ninguém tinha feito isso
-ainda" — e no nosso caso isso é literalmente verdade, com fonte.
+ainda". Só use a segunda parte se a pesquisa e a tela atual realmente
+sustentarem essa exclusividade; ter uma fonte histórica não prova que nenhum
+concorrente fez o mesmo.

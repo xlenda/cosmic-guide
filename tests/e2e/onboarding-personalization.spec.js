@@ -147,3 +147,112 @@ test('perfil adaptativo muda a primeira ferramenta e abre a rota prometida', asy
   await firstPath.click();
   await expect(page.getByText('Diário Cósmico', { exact: true })).toBeVisible({ timeout: 20_000 });
 });
+
+test('Órbi sai do catálogo e sugere perguntas a partir do perfil completo', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('app-language', 'pt');
+    window.localStorage.setItem(
+      'userSign',
+      JSON.stringify({ name: 'Touro', pt: 'Touro', icon: '♉', color: '#5FD98C' })
+    );
+    window.localStorage.setItem('cosmic-onboarding-intent-v1', 'love');
+    window.localStorage.setItem(
+      'cosmic-onboarding-profile-v1',
+      JSON.stringify({ intent: 'love', situation: 'loveDistance', outcome: 'nextStep' })
+    );
+    window.localStorage.setItem(
+      'cosmic-journal',
+      JSON.stringify([{ id: 'seed', type: 'tarot', title: 'Leitura', body: 'Corpo', date: '2026-08-23T12:00:00' }])
+    );
+  });
+  await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByTestId('home-orbi-chat')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('card-chat')).toHaveCount(0);
+  await page.getByTestId('home-orbi-chat').click();
+
+  await expect(page.getByTestId('orbi-chat-guide')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('orbi-ai-disclosure')).toContainText('usa IA da Anthropic');
+  await expect(page.getByTestId('orbi-suggestions')).toContainText('Existe distância ou dúvida');
+  await expect(page.getByTestId('orbi-suggestions')).toContainText('Sair com um próximo passo');
+  await expect(page.getByTestId('orbi-suggestions')).toContainText('Touro');
+  await expect(page.getByText(/Luna|Arcano|Chat Espiritual/)).toHaveCount(0);
+});
+
+test('Órbi mantém a primeira ação visível e o foco perceptível em tela pequena', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('app-language', 'pt');
+    window.localStorage.setItem('userSign', JSON.stringify({ name: 'Touro', pt: 'Touro' }));
+    window.localStorage.setItem(
+      'cosmic-onboarding-profile-v1',
+      JSON.stringify({ intent: 'love', situation: 'loveDistance', outcome: 'nextStep' })
+    );
+    window.localStorage.setItem(
+      'cosmic-journal',
+      JSON.stringify([{ id: 'seed', type: 'tarot', title: 'Leitura', body: 'Corpo', date: '2026-08-23T12:00:00' }])
+    );
+  });
+  await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
+
+  const homeOrbi = page.getByTestId('home-orbi-chat');
+  await expect(homeOrbi).toBeVisible({ timeout: 20_000 });
+  await homeOrbi.focus();
+  expect(await homeOrbi.evaluate((node) => getComputedStyle(node).outlineStyle)).toBe('solid');
+  await homeOrbi.click();
+
+  const firstSuggestion = page.getByTestId('orbi-suggestion-situation-loveDistance');
+  await expect(firstSuggestion).toBeVisible({ timeout: 20_000 });
+  await expect(firstSuggestion).toBeInViewport({ ratio: 0.5 });
+  await firstSuggestion.focus();
+  const focusStyle = await firstSuggestion.evaluate((node) => {
+    const style = getComputedStyle(node);
+    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+  });
+  expect(focusStyle.outlineStyle).toBe('solid');
+  expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(3);
+});
+
+test('migração rotula o histórico importado e nunca o reenvia como fala do Órbi', async ({ page }) => {
+  let chatPayload = null;
+  await page.route('**/api/chat', async (route) => {
+    chatPayload = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ reply: 'Resposta nova do Órbi' }),
+    });
+  });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('app-language', 'pt');
+    window.localStorage.setItem('userSign', JSON.stringify({ name: 'Áries', pt: 'Áries' }));
+    window.localStorage.setItem('cosmic-journal', JSON.stringify([{ id: 'seed', type: 'tarot', title: 'Leitura', body: 'Corpo', date: '2026-08-23T12:00:00' }]));
+    window.localStorage.setItem(
+      'cosmic-chat-history-luna',
+      JSON.stringify([
+        { id: '1750000000000-1', from: 'persona', text: 'apresentação antiga' },
+        { id: '1750000000001-2', from: 'user', text: 'Minha pergunta que não pode sumir' },
+        { id: '1750000000002-3', from: 'persona', text: 'Minha resposta antiga preservada' },
+      ])
+    );
+  });
+  await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('home-orbi-chat').click();
+
+  await expect(page.getByText('Minha pergunta que não pode sumir')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('Minha resposta antiga preservada')).toBeVisible();
+  await expect(page.getByText('Histórico importado', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Mensagens anteriores disponíveis neste aparelho foram importadas só para consulta; elas não são enviadas ao Órbi.')
+  ).toBeVisible();
+  await expect(page.getByText('apresentação antiga')).toHaveCount(0);
+
+  await page.getByRole('textbox', { name: 'Escreva o que você quer entender…' }).fill('Esta é uma pergunta nova');
+  await page.getByRole('button', { name: 'Enviar mensagem para Órbi' }).click();
+  await expect(page.getByText('Resposta nova do Órbi')).toBeVisible({ timeout: 20_000 });
+
+  expect(chatPayload).not.toBeNull();
+  expect(chatPayload.personaId).toBe('orbi');
+  expect(chatPayload.message).toBe('Esta é uma pergunta nova');
+  expect(chatPayload.history).toEqual([]);
+});

@@ -1,15 +1,14 @@
 // AnthropicChatProvider (chat, analyzePalm, summarizeWeeklyInsight...) nunca
 // tinha teste — nada cobria o SDK devolvendo um content[] sem bloco de texto
-// nem JSON malformado. Substitui provider.client por um objeto fake DEPOIS de
-// construído (this.client é uma propriedade pública comum, sem precisar
-// mockar o módulo @anthropic-ai/sdk inteiro) — mais simples e não depende de
-// nenhuma flag experimental do node:test. Achado real de auditoria (19/07/2026).
+// nem JSON malformado. Cria a instância pelo prototype e injeta um client fake:
+// assim testa os métodos reais sem construir o SDK, sem rede e sem depender de
+// @anthropic-ai/sdk na máquina local. Achado real de auditoria (19/07/2026).
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { AnthropicChatProvider } = require("../src/infrastructure/AnthropicChatProvider");
 
 function makeProvider(createImpl) {
-  const provider = new AnthropicChatProvider({ apiKey: "chave-fake-de-teste" });
+  const provider = Object.create(AnthropicChatProvider.prototype);
   provider.client = { messages: { create: createImpl } };
   return provider;
 }
@@ -26,7 +25,7 @@ test("chat: content sem nenhum bloco 'text' devolve string vazia, nunca lança n
   assert.equal(reply, "");
 });
 
-test("chat: persona desconhecida cai no prompt da luna (default), não lança", async () => {
+test("chat: persona desconhecida cai no prompt único do Órbi, não lança", async () => {
   let systemUsado = null;
   const provider = makeProvider(async ({ system }) => {
     systemUsado = system;
@@ -37,14 +36,103 @@ test("chat: persona desconhecida cai no prompt da luna (default), não lança", 
   //
   // Virou array quando o provider passou a usar cache de prompt: systemBlocks()
   // devolve [{type:"text", text, cache_control}]. O comportamento testado aqui
-  // — persona desconhecida cai na Luna — continua certo; a assercao e que
+  // — persona desconhecida cai no Órbi — continua certo; a assercao e que
   // ficou velha, porque Array.includes() compara ELEMENTO, nao substring, e
   // nenhum bloco e a string "Luna". O teste passava a impressao de regressao
   // onde nao havia, e um teste vermelho cronico esconde o vermelho de verdade.
   const textoDoSystem = Array.isArray(systemUsado)
     ? systemUsado.map((b) => (typeof b === "string" ? b : b.text || "")).join(" ")
     : String(systemUsado);
-  assert.ok(textoDoSystem.includes("Luna"), "esperava cair no prompt da Luna por padrão");
+  assert.ok(textoDoSystem.includes("Você é Órbi"), "esperava cair no prompt do Órbi por padrão");
+  assert.doesNotMatch(textoDoSystem, /Você é a Luna|Você é o Arcano/);
+});
+
+test("chat: persona orbi usa a voz única sem cair em Luna ou Arcano", async () => {
+  let systemUsado = null;
+  const provider = makeProvider(async ({ system }) => {
+    systemUsado = system;
+    return { content: [{ type: "text", text: "ok" }] };
+  });
+  await provider.chat({ personaId: "orbi", message: "oi", history: [] });
+  const textoDoSystem = systemUsado.map((b) => b.text || "").join(" ");
+  assert.match(textoDoSystem, /Você é Órbi/);
+  assert.match(textoDoSystem, /uma IA de conversa/);
+  assert.doesNotMatch(textoDoSystem, /Você é a Luna|Você é o Arcano/);
+  assert.match(textoDoSystem, /Não presuma país pelo idioma/);
+  assert.doesNotMatch(textoDoSystem, /informe que no Brasil o CVV/);
+});
+
+test("chat: contexto canônico chega antes da mensagem e a diretriz de idioma continua por último", async () => {
+  let messagesUsadas = null;
+  const provider = makeProvider(async ({ messages }) => {
+    messagesUsadas = messages;
+    return { content: [{ type: "text", text: "ok" }] };
+  });
+  await provider.chat({
+    personaId: "orbi",
+    message: "por onde começo?",
+    history: [],
+    contexto: {
+      sign: "Virgem",
+      intent: "work",
+      situation: "workBlock",
+      outcome: "nextStep",
+    },
+    lang: "en",
+  });
+
+  const final = messagesUsadas.at(-1).content;
+  assert.match(final, /Signo escolhido ou calculado no onboarding: Virgem/);
+  assert.match(final, /Foco declarado pela pessoa: Trabalho e direção/);
+  assert.ok(final.indexOf("<contexto>") < final.indexOf("por onde começo?"));
+  assert.ok(final.indexOf("por onde começo?") < final.indexOf("IMPORTANT: answer ENTIRELY in English"));
+});
+
+test("chat: Órbi preserva pt, es e en com ou sem contexto", async () => {
+  const finais = [];
+  const provider = makeProvider(async ({ messages }) => {
+    finais.push(messages.at(-1).content);
+    return { content: [{ type: "text", text: "ok" }] };
+  });
+  const contexto = {
+    sign: "Peixes",
+    intent: "self",
+    situation: "selfDirection",
+    outcome: "clarity",
+  };
+
+  await provider.chat({ personaId: "orbi", message: "oi", history: [], lang: "pt" });
+  await provider.chat({ personaId: "orbi", message: "hola", history: [], contexto, lang: "es" });
+  await provider.chat({ personaId: "orbi", message: "hello", history: [], contexto, lang: "en" });
+
+  assert.equal(finais[0], "oi", "pt mantém o turno sem diretriz adicional");
+  assert.match(finais[1], /responde COMPLETAMENTE en español/);
+  assert.match(finais[2], /answer ENTIRELY in English/);
+});
+
+test("chat: nem chamada interna consegue anexar Diário ou pergunta ao contexto", async () => {
+  let chamadas = 0;
+  const provider = makeProvider(async () => {
+    chamadas += 1;
+    return { content: [{ type: "text", text: "não deveria chamar" }] };
+  });
+  await assert.rejects(
+    () =>
+      provider.chat({
+        personaId: "orbi",
+        message: "oi",
+        history: [],
+        contexto: {
+          sign: "Virgem",
+          intent: "work",
+          situation: "workBlock",
+          outcome: "nextStep",
+          diario: "texto privado",
+        },
+      }),
+    (err) => err && err.code === "invalid_chat_context"
+  );
+  assert.equal(chamadas, 0);
 });
 
 test("analyzePalm: JSON válido no bloco de texto é parseado e devolvido", async () => {

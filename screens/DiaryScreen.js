@@ -92,10 +92,22 @@ function socialBodyForEntry(entry) {
   return typeof entry?.body === 'string' ? entry.body : '';
 }
 
+function entryLabels(entry, t) {
+  if (entry?.type === 'chat') {
+    const label = t('orbi.chat.diaryLabel');
+    return { typeLabel: label, title: label };
+  }
+  return { typeLabel: entry?.typeLabel, title: entry?.title };
+}
+
 function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sharing, pinned, canPin, onPin, onToggleFavorito }) {
   const { t } = useLanguage();
   const hasInsight = !!(entry.voiceTranscript || entry.aiInsight);
   const iconName = TYPE_ICONS[entry.type] || 'sparkles';
+  // Entradas do chat antigo preservam o conteúdo e a data, mas a superfície
+  // atual usa uma única voz de produto. Assim, histórico de Luna/Arcano não
+  // reaparece como uma segunda identidade dentro do Diário.
+  const visibleLabels = entryLabels(entry, t);
   // Sempre pelo predicado de lib/journal.js — entrada antiga não tem o campo
   // `favorito` e a regra "ausente = não-favorita" mora lá, não aqui.
   const favorito = isEntradaFavorita(entry);
@@ -118,8 +130,8 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
           <Ionicons name={iconName} size={18} color={colors.accent} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.typeLabel}>{entry.typeLabel}</Text>
-          <Text style={styles.title}>{entry.title}</Text>
+          <Text style={styles.typeLabel}>{visibleLabels.typeLabel}</Text>
+          <Text style={styles.title}>{visibleLabels.title}</Text>
         </View>
         <View style={styles.headerRight}>
           <View style={styles.headerRightTop}>
@@ -273,8 +285,9 @@ export default function DiaryScreen() {
         const placar = resumoDaSemana(dados);
         if (placar.atual.total > 0) extras = { checkins: placar };
       } catch {}
+      const safeRecent = recent.map((e) => ({ type: e.type, ...entryLabels(e, t), body: e.body }));
       result = await fetchAiWeeklyInsight(
-        recent.map((e) => ({ type: e.type, typeLabel: e.typeLabel, title: e.title, body: e.body })),
+        safeRecent,
         extras
       );
     } catch (err) {
@@ -303,7 +316,10 @@ export default function DiaryScreen() {
       }
       // Nunca mostra erro cru — cai no fallback honesto (só lista o que
       // realmente aconteceu, sem inventar síntese).
-      result = getFallbackWeeklyInsight(recent, t);
+      result = getFallbackWeeklyInsight(
+        recent.map((e) => ({ ...e, ...entryLabels(e, t) })),
+        t
+      );
     }
     setWeeklyInsight(result);
     await saveWeeklyInsight(result);

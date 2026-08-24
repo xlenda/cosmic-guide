@@ -78,6 +78,13 @@ export default function MonthlyWrappedScreen() {
   const [loaded, setLoaded] = useState(false);
   const [wrapped, setWrapped] = useState(null);
 
+  const wrappedTypeLabel = (item) => (
+    item?.type === 'chat' ? t('orbi.chat.diaryLabel') : item?.typeLabel
+  );
+  const wrappedEnergyPhrase = (energy) => (
+    energy?.type === 'chat' ? t('wrapped.orbiEnergy') : energy?.phrase
+  );
+
   const load = useCallback(async () => {
     const w = await computeMonthlyWrapped(target.year, target.month);
     setWrapped(w);
@@ -173,11 +180,11 @@ export default function MonthlyWrappedScreen() {
           <LinearGradient colors={gradients.pink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={slideStyle}>
             <Text style={styles.overline}>{t('wrapped.favorite')}</Text>
             <Text style={styles.slideEmoji}>{TYPE_EMOJI[wrapped.topType.type] || '🔮'}</Text>
-            <Text style={styles.mediumTitle}>{wrapped.topType.typeLabel}</Text>
+            <Text style={styles.mediumTitle}>{wrappedTypeLabel(wrapped.topType)}</Text>
             <Text style={styles.caption}>
               {wrapped.topType.count} {wrapped.topType.count === 1 ? 'vez este mês' : 'vezes este mês'}
             </Text>
-            {wrapped.energy && <Text style={styles.energyPhrase}>{wrapped.energy.phrase}</Text>}
+            {wrapped.energy && <Text style={styles.energyPhrase}>{wrappedEnergyPhrase(wrapped.energy)}</Text>}
             {hint}
           </LinearGradient>
         )}
@@ -223,7 +230,7 @@ export default function MonthlyWrappedScreen() {
             <Text style={styles.summaryRow}>
               🪙 {wrapped.tokensEarned} {wrapped.tokensEarned === 1 ? 'token ganho' : 'tokens ganhos'}
             </Text>
-            {wrapped.energy && <Text style={styles.summaryEnergy}>{wrapped.energy.phrase}</Text>}
+            {wrapped.energy && <Text style={styles.summaryEnergy}>{wrappedEnergyPhrase(wrapped.energy)}</Text>}
           </View>
           <TouchableOpacity style={styles.btn} onPress={handleShare}>
             <Text style={styles.btnText}>{t('wrapped.share')}</Text>

@@ -19,7 +19,7 @@ Da mais provável pra menos. Resposta pronta pra copiar e colar.
 
 ### 1) "Isso é de verdade ou é IA inventando?"
 
-> São duas camadas, e a gente nunca mistura: o céu é calculado de verdade — posição real do Sol, fases da Lua, por astronomia, a mesma matemática dos observatórios. Já o significado é tradição, e cada pedaço tem autor e século citado na tela (Ptolomeu, séc. II; Waite, 1911...). A IA escreve o texto, mas o fato não vem dela — o céu vem calculado e o significado vem citado com autor e século; ela redige por cima dessas duas camadas. E o app não prevê nada: é espelho pra reflexão e entretenimento.
+> O app separa duas camadas: posições e fases do céu são calculadas; os significados são interpretações simbólicas. Quando uma leitura usa IA, a tela identifica isso, e fontes aparecem quando há uma referência histórica rastreável. A IA redige a interpretação — ela não transforma símbolo em fato nem prevê a vida de ninguém. A proposta é reflexão e entretenimento.
 
 **Por quê:** proposição 1 da tese (docs/tradicao/00-tese.md) — céu medível vs. significado atribuído, nunca misturados.
 
@@ -43,7 +43,7 @@ Da mais provável pra menos. Resposta pronta pra copiar e colar.
 
 ### 4) "Cadê a porcentagem de compatibilidade? Todo app tem."
 
-> A gente tirou de propósito, porque ela não existe em fonte nenhuma — é invenção comercial do século XX, do mesmo lote do horóscopo de jornal. No lugar, mostramos a relação que a tradição realmente descreve (Ptolomeu, Tetrabiblos, séc. II): trígono, sextil, quadratura, oposição — com a citação na tela pra você conferir. Nota alta pra todo mundo vende, mas é mentira.
+> A gente tirou de propósito porque uma nota de 0 a 100 não é uma medida astronômica nem uma escala única da tradição. No lugar, mostramos a relação descrita pela régua adotada no app — trígono, sextil, quadratura ou oposição — e identificamos Ptolomeu, *Tetrabiblos*, séc. II, na tela.
 
 **Por quê:** lib/synastry.js:381 (NOTA_ESCALA) exibida em CompatibilityScreen.js + proposição 4 da tese.
 
@@ -67,9 +67,9 @@ Da mais provável pra menos. Resposta pronta pra copiar e colar.
 
 ### 7) "É grátis mesmo ou vocês cobram escondido nos 7 dias?"
 
-> Grátis mesmo. Os 3 planos têm 7 dias de teste, e se cancelar dentro do prazo não cai cobrança nenhuma — tá nos Termos. A cobrança é da Hotmart e o cancelamento é lá, direto, sem falar com ninguém.
+> Na oferta web atual, os três planos mostram 7 dias de teste antes da confirmação. Se você assina pelo site, cobrança e cancelamento ficam na Hotmart; se assina dentro do app Android, ficam no Google Play. O canal escolhido mostra as condições finais e, cancelando dentro do período gratuito indicado, a renovação paga não começa.
 
-**Por quê:** lib/i18n.js:673 e 685 (splash e planos: "7 dias grátis, depois US$5/mês") + lib/i18n.js:2728-2729 (rodapé do checkout).
+**Por quê:** `screens/PlanosScreen.js` + `lib/i18n.js` (`help.faq.cancel.answerStore`, `planos.legal.billingNoteStore` e os detalhes de cada plano).
 
 ---
 
@@ -83,7 +83,7 @@ Da mais provável pra menos. Resposta pronta pra copiar e colar.
 
 ### 9) "Vocês guardam meus dados? E a foto da minha mão, vai parar onde?"
 
-> Nomes, datas e horários de nascimento ficam só no seu aparelho — não sobem pra servidor nenhum. Foto de palma, borra ou texto de sonho vai pro nosso servidor só na hora de gerar aquela leitura (processada por IA da Anthropic) e não fica guardada depois. Não vendemos nada pra Google nem Meta, e tem botão dentro do app pra apagar tudo — aparelho e servidor. Tela de Privacidade explica item por item, com seus direitos da LGPD.
+> Nomes e dados de nascimento ficam guardados no aparelho para os cálculos locais, com exceções explicadas na tela de Privacidade: a busca de cidade envia o texto digitado, a data e a hora ao nosso servidor; login e pagamento usam os respectivos serviços; e entradas de leituras de IA passam pelo nosso servidor e pela Anthropic. Foto de palma, borra ou texto de sonho é enviado para gerar a leitura; nosso servidor não guarda o conteúdo dessa chamada, salvo se você decidir denunciar uma resposta. O botão de limpar dados apaga o que a própria tela enumera; apagar a conta é uma ação separada no Perfil.
 
 **Por quê:** screens/PrivacyScreen.js — seções "O que guardamos neste aparelho", "Como usamos" e "Seus direitos (LGPD)", visíveis no app.
 
@@ -99,17 +99,17 @@ Da mais provável pra menos. Resposta pronta pra copiar e colar.
 
 ### 11) "No chat eu tô falando com uma pessoa? Uma vidente?"
 
-> É IA, e ela mesma te conta na primeira mensagem: 'Sou a Luna — uso IA e mais de dois mil anos de tradição astrológica pra te ajudar a refletir'. Não é pessoa, não é médium, não vê futuro. É um chat pra conversar sobre as suas leituras, respondendo a partir da tradição que o app cita, com autor e século.
+> Órbi é uma experiência de conversa gerada pela IA da Anthropic, e o app informa isso antes da primeira pergunta. Não é pessoa, consultor ou médium e não vê o futuro. Ao conversar, são enviados a pergunta e o histórico da conversa atual. O contexto de perfil só acompanha a mensagem quando o signo e as três escolhas explícitas do primeiro caminho — tema, situação e objetivo — estão completos; se faltar uma parte, esse pacote de perfil não é enviado. O Diário nunca entra nessa conversa. Um histórico trazido de versões anteriores continua visível apenas como conteúdo importado local e não é reenviado nem apresentado como fala de Órbi.
 
-**Por quê:** lib/chatPersonas.js:24 e 34 — Luna e Arcano se apresentam como IA na primeira mensagem.
+**Por quê:** `screens/ChatScreen.js`, `lib/orbiConversation.js`, `lib/i18n.js` (`orbi.chat.disclosure`), `server-patches/src/application/chatContext.js` e `server-patches/src/infrastructure/AnthropicChatProvider.js` — a transparência fica visível; o cliente não reenvia itens importados; e o servidor aceita somente o pacote de contexto enumerado.
 
 ---
 
 ### 12) "E pra cancelar, vai ser aquela novela?"
 
-> Zero novela: cancela direto na área de compras da Hotmart, com o e-mail da compra, a qualquer momento, sem justificar. O acesso segue até o fim do período que você já pagou e não cobra de novo. Cancelou dentro dos 7 dias de teste, não paga nada.
+> O cancelamento fica no mesmo canal da compra: área de compras da Hotmart para quem assinou no site; Play Store > Assinaturas para quem assinou no app Android. Nos dois casos, o acesso segue até o fim do período já pago. Se a oferta incluir 7 dias grátis, cancelar dentro da janela indicada evita a primeira renovação paga.
 
-**Por quê:** lib/i18n.js:2728-2729 (planos.legal.billingNote: "cancela quando quiser, direto na sua área de compras").
+**Por quê:** `lib/i18n.js` (`help.faq.cancel.answerStore`, `planos.legal.billingNoteStore` e `terms.payments.bodyStore`).
 
 ---
 
@@ -123,7 +123,7 @@ Da mais provável pra menos. Resposta pronta pra copiar e colar.
 
 ### 14) "US$3,33 por mês? Vai cair isso no meu cartão?"
 
-> A conta é real, mas a cobrança é do ciclo inteiro de uma vez: US$10 a cada 3 meses (dá 3,33/mês) ou US$20 por ano (dá 1,67/mês). O mensal é US$5. Não existe cobrança fracionada mês a mês nos planos maiores — por isso o card mostra o preço cheio e o ciclo.
+> Esses valores são os da oferta web em dólar: US$10 por trimestre (equivale a US$3,33/mês), US$20 por ano (equivale a US$1,67/mês) ou US$5 no mensal. Trimestral e anual são cobrados pelo ciclo inteiro, não em parcelas mensais. Dentro da loja, valem o preço, a moeda e as condições mostrados pelo Google Play antes da confirmação.
 
 **Por quê:** lib/i18n.js:688-692 (planos.plan.quarterly/annual.detail).
 
@@ -205,7 +205,7 @@ E se for pinta, mancha ou sintoma:
 **NO LUGAR:**
 > Não prometemos isso — e desconfie de quem prometer. O que a gente garante é o nosso lado: conteúdo com fonte, céu calculado de verdade, e leitura oferecida como espelho pra você refletir. O que acontece a partir daí é seu — e é assim que tem que ser.
 
-**Fonte:** moldura da tese ("tendências, não fortunas") + lib/chatResponses.js:34 ("Não trabalho com certezas, trabalho com espelhos").
+**Fonte:** moldura da tese ("tendências, não fortunas") + regras da conversa em `server-patches/src/infrastructure/AnthropicChatProvider.js`.
 
 ### ❌ Previsão
 
@@ -263,7 +263,7 @@ quando a conversa precisar de um gancho.
 > "Todo site diz que Leão rege o coração, mas na lista antiga de verdade (Manílio, séc. I) Leão fica com flancos e omoplatas — o latim tá na tela pra você conferir."
 
 7. **Até o nosso 'espelho, não previsão' tem história:**
-> "A frase 'tendências, não previsões' que o mercado inteiro usa nasceu na defesa criminal de um astrólogo processado em 1914 — a diferença é que a gente sabe de onde ela veio e te conta."
+> "A fórmula 'tendências, não previsões', hoje muito repetida no mercado, tem um precedente documentado na defesa criminal de um astrólogo processado em 1914 — o app mostra essa história em vez de apresentar a frase como sabedoria sem data."
 
 ---
 

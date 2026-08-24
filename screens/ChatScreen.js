@@ -1,14 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
-  Image,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  AccessibilityInfo,
+  useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,45 +17,78 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
+import OrbiGuide from '../components/OrbiGuide';
 import ReportarIA from '../components/ReportarIA';
-import { PERSONAS, ACTIVE_PERSONA_ID } from '../lib/chatPersonas';
-import { CENAS } from '../lib/ilustracoes';
 import { fetchAiChatReply, isAiAccessError, isLoginRequired } from '../lib/aiClient';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
-import { hasReachedFreeMessageLimit, incrementFreeMessagesSent, FREE_MESSAGE_LIMIT } from '../lib/chatFreeMessages';
+import { hasReachedFreeMessageLimit, incrementFreeMessagesSent } from '../lib/chatFreeMessages';
+import { getOnboardingProfile } from '../lib/onboardingPlan';
+import {
+  ORBI_DIARY_RECORDED_KEY,
+  ORBI_HISTORY_KEY,
+  ORBI_LEGACY_HISTORY_KEYS,
+  ORBI_PERSONA_ID,
+  buildOrbiChatContext,
+  buildOrbiSuggestionSpecs,
+} from '../lib/orbiConversation';
+import { nomeDoSigno } from '../lib/synastry';
 import { Alert } from '../lib/webAlert';
 
-const DIARY_RECORDED_KEY = 'cosmic-chat-diary-date';
-// Histórico do Chat ANTES vivia só em useState — sair da tela (ou dar reload
-// na web) apagava a conversa inteira e a pessoa via só a intro de novo, tendo
-// que recomeçar do zero. Persistir por persona (mesmo padrão de MAX_ENTRIES
-// do lib/journal.js) resolve sem misturar Luna com Arcano (achado real de
-// auditoria de retenção, 25/07/2026).
-const HISTORY_MAX_MESSAGES = 60; // nunca cresce sem limite
+const HISTORY_MAX_MESSAGES = 60;
 
-function historyKey(personaId) {
-  return `cosmic-chat-history-${personaId}`;
+function cleanStoredMessages(value, legacy = false) {
+  if (!Array.isArray(value)) return [];
+  let foundFirstUser = !legacy;
+  return value
+    .filter((item) => item && typeof item.text === 'string' && (item.from === 'user' || item.from === 'persona'))
+    .filter((item) => {
+      // As conversas antigas começavam com uma apresentação local da persona.
+      // Ela não é uma resposta da IA nem deve reaparecer como fala do Órbi.
+      if (!foundFirstUser && item.from !== 'user') return false;
+      if (item.from === 'user') foundFirstUser = true;
+      return true;
+    })
+    .map((item) => ({
+      id: String(item.id || `${Date.now()}-${Math.random()}`),
+      from: item.from,
+      text: item.text.slice(0, 12000),
+      ...(legacy || item.migrated === true ? { migrated: true } : {}),
+    }));
 }
 
-// Retorna o histórico salvo da persona se existir e tiver ao menos 1
-// mensagem; caso contrário null (fallback pro comportamento de hoje: só intro).
-async function loadPersonaHistory(personaId) {
+async function readHistory(key, legacy = false) {
   try {
-    const raw = await AsyncStorage.getItem(historyKey(personaId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? cleanStoredMessages(JSON.parse(raw), legacy) : [];
   } catch {
-    return null;
+    return [];
   }
 }
 
-async function savePersonaHistory(personaId, msgs) {
+function messageTime(item) {
+  const value = Number.parseInt(String(item.id).split('-')[0], 10);
+  return Number.isFinite(value) ? value : 0;
+}
+
+async function loadOrbiHistory() {
+  const current = await readHistory(ORBI_HISTORY_KEY);
+  if (current.length) return { messages: current, migrated: current.some((item) => item.migrated) };
+
+  // Migração idempotente: junta os dois históricos antigos pela hora do ID,
+  // tira apenas as apresentações locais e nunca apaga as chaves originais.
+  const legacy = (await Promise.all(ORBI_LEGACY_HISTORY_KEYS.map((key) => readHistory(key, true))))
+    .flat()
+    .sort((a, b) => messageTime(a) - messageTime(b))
+    .slice(-HISTORY_MAX_MESSAGES);
+  return { messages: legacy, migrated: legacy.length > 0 };
+}
+
+async function saveOrbiHistory(messages) {
   try {
-    await AsyncStorage.setItem(historyKey(personaId), JSON.stringify(msgs.slice(-HISTORY_MAX_MESSAGES)));
+    await AsyncStorage.setItem(ORBI_HISTORY_KEY, JSON.stringify(messages.slice(-HISTORY_MAX_MESSAGES)));
   } catch {}
 }
 
@@ -71,108 +105,98 @@ function makeMessage(from, text) {
 }
 
 export default function ChatScreen() {
-  // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
-  // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
-  const { hasAccess, accessConfirmed } = useCouple();
-  const { t } = useLanguage();
-  const [personaId, setPersonaId] = useState(ACTIVE_PERSONA_ID);
-  const persona = PERSONAS[personaId];
-  const [messages, setMessages] = useState([makeMessage('persona', persona.introMessage)]);
+  const { hasAccess, accessConfirmed, coupleData, soloSign } = useCouple();
+  const { lang, t } = useLanguage();
+  const [messages, setMessages] = useState([]);
+  const [historyReady, setHistoryReady] = useState(false);
+  const [profileReady, setProfileReady] = useState(false);
+  const [legacyMigrated, setLegacyMigrated] = useState(false);
+  const [profile, setProfile] = useState(null);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [locked, setLocked] = useState(false);
-  // Bloqueio vindo do SERVIDOR (402 cota esgotada / 401 exige conta), separado
-  // do `locked` local. `locked` é a contagem no aparelho
-  // (lib/chatFreeMessages.js), que o servidor não vê e que um
-  // localStorage.clear() zerava — este aqui é a palavra final de quem cobra, e
-  // por isso vale mesmo com hasAccess=true (que pode vir do fallback por
-  // aparelho, com um correlationCode velho no AsyncStorage).
   const [serverBlock, setServerBlock] = useState(null);
+  const [sessionReplies, setSessionReplies] = useState(0);
+  const [lastReplyId, setLastReplyId] = useState(null);
+  const [focusedControl, setFocusedControl] = useState(null);
+  // Conservador até o sistema responder: rolagem nenhuma começa animada por
+  // acidente para quem ativou "reduzir movimento".
+  const [reducedMotion, setReducedMotion] = useState(true);
   const listRef = useRef(null);
-  // Trava SÍNCRONA de envio em andamento — `isTyping` (state) só atualiza no
-  // próximo render, então dois cliques rápidos no Enviar passavam juntos pelo
-  // guard `if (isTyping)` antes de qualquer setState, e a checagem async do
-  // limite grátis (hasReachedFreeMessageLimit) via a MESMA contagem antiga
-  // pros dois — furava o limite de 2 mensagens (race check-then-act, achado
-  // real de auditoria adversarial, 26/07/2026). Ref muda na hora, sem esperar
-  // render nenhum.
   const sendingRef = useRef(false);
-  // Guarda a persona ativa "de verdade" pra evitar que uma restauração de
-  // histórico assíncrona (loadPersonaHistory) sobrescreva a conversa se a
-  // pessoa trocar de persona de novo antes da leitura do AsyncStorage terminar.
-  const activePersonaRef = useRef(personaId);
-  useEffect(() => {
-    activePersonaRef.current = personaId;
-  }, [personaId]);
+  const { width, height } = useWindowDimensions();
+  const compactLayout = width <= 360 || height <= 650;
+  const interactionReady = historyReady && profileReady;
 
-  // useFocusEffect (não useEffect simples) — a tab bar do app não desmonta
-  // telas ao trocar de aba (unmountOnBlur padrão é false), então ChatScreen
-  // nunca remonta só por sair e voltar pro Chat. Com useEffect puro, `locked`
-  // só era calculado 1x na montagem inicial: mandar 1 mensagem, trocar de aba
-  // e voltar deixava continuar conversando à vontade na mesma sessão, sem
-  // nunca ver o bloqueio (só bloqueava reabrindo o app do zero) — achado real
-  // de auditoria, 25/07/2026. useFocusEffect recheca hasReachedFreeMessageLimit
-  // toda vez que a aba Chat ganha foco de novo, cobrindo esse caminho.
-  useFocusEffect(
-    useCallback(() => {
-      // accessConfirmed=false = a checagem de assinatura falhou por rede, não
-      // confirmou nada de verdade — nunca marcar a prévia grátis como usada
-      // nesse caso (achado real de auditoria, 25/07/2026).
-      if (hasAccess || !accessConfirmed) return;
-      hasReachedFreeMessageLimit().then(setLocked);
-    }, [hasAccess, accessConfirmed])
+  const signName = coupleData?.sa || soloSign?.name || soloSign?.nome || soloSign?.signo || null;
+  const signDisplay = signName ? nomeDoSigno(signName, lang) : null;
+  const chatContext = useMemo(() => buildOrbiChatContext(profile, signName), [profile, signName]);
+  const suggestionSpecs = useMemo(
+    () => buildOrbiSuggestionSpecs(profile, signName),
+    [profile, signName]
   );
 
-  // No mount, tenta restaurar o histórico já salvo da persona inicial em vez
-  // de deixar só a intro (que é o valor inicial de `messages` acima, usado
-  // como fallback honesto enquanto o AsyncStorage ainda não respondeu).
+  function suggestionText(spec) {
+    const vars = { ...(spec.vars || {}) };
+    if (spec.valueKey && spec.valueVar) vars[spec.valueVar] = t(spec.valueKey);
+    if (vars.sign && signDisplay) vars.sign = signDisplay;
+    return t(spec.textKey, vars);
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setProfileReady(false);
+      getOnboardingProfile()
+        .then((value) => {
+          if (active) setProfile(value);
+        })
+        .catch(() => {
+          if (active) setProfile(null);
+        })
+        .finally(() => {
+          if (active) setProfileReady(true);
+        });
+      if (!hasAccess && accessConfirmed) hasReachedFreeMessageLimit().then(setLocked);
+      return () => { active = false; };
+    }, [accessConfirmed, hasAccess])
+  );
+
   useEffect(() => {
-    let cancelled = false;
-    loadPersonaHistory(personaId).then((saved) => {
-      if (!cancelled && saved) setMessages(saved);
-    });
+    let active = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => active && setReducedMotion(!!enabled))
+      .catch(() => active && setReducedMotion(false));
+    const subscription = AccessibilityInfo.addEventListener?.(
+      'reduceMotionChanged',
+      (enabled) => setReducedMotion(!!enabled)
+    );
     return () => {
-      cancelled = true;
+      active = false;
+      subscription?.remove?.();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Toda mudança em `messages` persiste na chave da persona ATUAL (capado nas
-  // últimas HISTORY_MAX_MESSAGES) — cobre tanto mensagens novas quanto a troca
-  // de persona abaixo.
   useEffect(() => {
-    savePersonaHistory(personaId, messages);
-  }, [messages, personaId]);
-
-  // Trocar de persona reinicia a conversa com a intro da nova persona — evita
-  // misturar histórico de Luna com Arcano na mesma janela de chat/contexto da
-  // IA. Mas se já existir histórico salvo daquela persona (de uma troca
-  // anterior), restaura ele em vez de sempre voltar só pra intro.
-  const handleSwitchPersona = (nextPersonaId) => {
-    if (nextPersonaId === personaId || isTyping) return;
-    setPersonaId(nextPersonaId);
-    setMessages([makeMessage('persona', PERSONAS[nextPersonaId].introMessage)]);
-    loadPersonaHistory(nextPersonaId).then((saved) => {
-      if (saved && activePersonaRef.current === nextPersonaId) {
-        setMessages(saved);
-      }
+    let active = true;
+    loadOrbiHistory().then((result) => {
+      if (!active) return;
+      setMessages(result.messages);
+      setLegacyMigrated(result.migrated);
+      setHistoryReady(true);
     });
-  };
+    return () => { active = false; };
+  }, []);
 
-  const handleSend = async () => {
-    const text = input.trim();
-    // sendingRef primeiro (síncrono, ver declaração) — isTyping sozinho não
-    // segura dois cliques no mesmo frame de render.
-    if (!text || isTyping || sendingRef.current) return;
+  useEffect(() => {
+    if (historyReady) saveOrbiHistory(messages);
+  }, [historyReady, messages]);
+
+  const handleSend = async (suggestedText) => {
+    const text = (typeof suggestedText === 'string' ? suggestedText : input).trim();
+    if (!interactionReady || !text || isTyping || sendingRef.current) return;
     sendingRef.current = true;
     try {
-      // Checa ANTES de mandar, usando a contagem atual (não incrementada ainda)
-      // — assim as mensagens dentro do limite (FREE_MESSAGE_LIMIT) sempre são
-      // enviadas e respondidas por completo; só a tentativa SEGUINTE (a que já
-      // estouraria o limite) é bloqueada antes mesmo de sair do campo de texto,
-      // trocando a tela inteira pro OneTimeLock. Mesmo espírito do guard em
-      // TarotScreen.drawCards — nunca deixa o bloqueio interromper uma resposta
-      // que a pessoa já ganhou o direito de ver.
       if (!hasAccess) {
         const reached = await hasReachedFreeMessageLimit();
         if (reached) {
@@ -188,100 +212,83 @@ export default function ChatScreen() {
 
   const doSend = async (text) => {
     const userMessage = makeMessage('user', text);
-    const history = messages.map((m) => ({
-      role: m.from === 'user' ? 'user' : 'assistant',
-      content: m.text,
-    }));
+    // O conteúdo antigo continua legível, mas não vira fala anterior do Órbi
+    // nem volta a ser enviado ao provedor. A nova conversa começa no turno
+    // atual, com o contexto explicitamente declarado na tela.
+    const history = messages
+      .filter((item) => !item.migrated)
+      .map((item) => ({
+        role: item.from === 'user' ? 'user' : 'assistant',
+        content: item.text,
+      }));
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
-    // Missão diária 'conversa-mistica' (lib/missions.js) — marca a ação do
-    // dia; o crédito de tokens só acontece via completeMission, com evidência.
     recordMissionAction(MISSION_ACTIONS.CHAT_MENSAGEM_ENVIADA);
-    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: !reducedMotion }));
 
-    // Uma falha técnica nunca pode virar uma resposta local apresentada como
-    // se tivesse lido a mensagem. O texto volta ao campo e a pessoa pode tentar
-    // de novo sem gastar sua prévia.
     let reply;
     try {
-      reply = await fetchAiChatReply(persona.id, text, history);
+      reply = await fetchAiChatReply(ORBI_PERSONA_ID, text, history, chatContext);
     } catch (err) {
-      // PAYWALL DE VERDADE (30/07/2026): a cota grátis do chat passou a ser
-      // contada no SERVIDOR, por CONTA. Um 402/401 com `code` conhecido não é
-      // falha técnica — responder com o mock aqui daria de graça exatamente a
-      // mensagem que acabou de ser negada. Devolvemos o texto pro campo (a
-      // pessoa não perde o que escreveu), tiramos a bolha que já tinha
-      // entrado na lista e trocamos a tela pelo muro.
+      setMessages((prev) => prev.filter((item) => item.id !== userMessage.id));
+      setInput(text);
+      setIsTyping(false);
       if (isAiAccessError(err)) {
-        setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-        setInput(text);
-        setIsTyping(false);
         setServerBlock(isLoginRequired(err) ? 'login' : 'quota');
         return;
       }
-      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-      setInput(text);
-      setIsTyping(false);
       Alert.alert(t('ai.unavailable.title'), t('ai.unavailable.body'));
       return;
     }
 
-    setMessages((prev) => [...prev, makeMessage('persona', reply)]);
+    const replyMessage = makeMessage('persona', reply);
+    setMessages((prev) => [...prev, replyMessage]);
+    setLastReplyId(replyMessage.id);
+    setSessionReplies((count) => count + 1);
     if (!hasAccess) await incrementFreeMessagesSent();
-    // Vira entrada no Diário Cósmico 1x por dia (não por mensagem, senão o
-    // Diário enche de dezenas de entradas numa conversa só) — antes o Chat não
-    // deixava rastro nenhum (achado real de auditoria de retenção, 25/07/2026).
+
     const today = todayISO();
-    AsyncStorage.getItem(DIARY_RECORDED_KEY).then((lastDate) => {
+    AsyncStorage.getItem(ORBI_DIARY_RECORDED_KEY).then((lastDate) => {
       if (lastDate === today) return;
       recordReadingCompletion({
         type: 'chat',
-        typeLabel: `Conversa com ${persona.name}`,
-        title: `Conversa com ${persona.name}`,
+        typeLabel: t('orbi.chat.diaryLabel'),
+        title: t('orbi.chat.diaryLabel'),
         body: reply,
       });
-      AsyncStorage.setItem(DIARY_RECORDED_KEY, today);
+      AsyncStorage.setItem(ORBI_DIARY_RECORDED_KEY, today);
     });
     setIsTyping(false);
-    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: !reducedMotion }));
   };
 
   const renderItem = ({ item }) => {
     const isUser = item.from === 'user';
-    // Denúncia embaixo de TODA resposta da persona. Antes só a última tinha a
-    // bandeirinha: bastava mandar mais uma mensagem pra resposta ofensiva ficar
-    // sem canal de denúncia — e, como a denúncia agora carrega o texto
-    // (components/ReportarIA.js), cada bolha denuncia a si mesma. A única que
-    // fica de fora é a intro da persona, que é texto local de
-    // lib/chatPersonas.js e não saída de IA.
-    //
-    // O critério é o TEXTO, não o índice: o histórico salvo é cortado nas
-    // últimas HISTORY_MAX_MESSAGES (60), então passando disso a intro sai pela
-    // frente da lista e o item 0 vira uma resposta real da IA — que com
-    // `index > 0` perdia o canal de denúncia pra sempre, em todo reload.
-    const mostrarDenuncia = !isUser && item.text !== persona.introMessage;
+    const speaker = isUser
+      ? t('orbi.chat.you')
+      : item.migrated
+        ? t('orbi.chat.legacySpeaker')
+        : t('orbi.name');
     return (
-      <View>
-        <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowPersona]}>
+      <View style={styles.messageCell}>
+        {!isUser && (
+          <Text style={styles.responseLabel}>
+            {speaker}
+          </Text>
+        )}
+        <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowOrbi]}>
           <View
-            style={[
-              styles.bubble,
-              isUser
-                ? [styles.bubbleUser, { backgroundColor: colors.accent }]
-                : [styles.bubblePersona, { backgroundColor: persona.bubbleColor }],
-            ]}
+            style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleOrbi]}
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel={`${speaker}: ${item.text}`}
+            accessibilityLiveRegion={item.id === lastReplyId ? 'polite' : 'none'}
           >
             <Text style={styles.bubbleText}>{item.text}</Text>
           </View>
         </View>
-        {/* A célula da FlatList ocupa a largura toda e o link vem com
-            alignSelf 'center' (as outras seis telas que usam ReportarIA são
-            painéis full-width, onde centralizado é o certo). Sem esta caixa
-            ele aparecia CENTRALIZADO embaixo de uma bolha alinhada à
-            esquerda; encolhida ao conteúdo e ancorada em flex-start, o link
-            nasce junto da bolha que ele denuncia. */}
-        {mostrarDenuncia && (
+        {!isUser && (
           <View style={styles.reportRow}>
             <ReportarIA kind="chat" texto={item.text} />
           </View>
@@ -291,95 +298,162 @@ export default function ChatScreen() {
   };
 
   if (serverBlock) {
-    return <OneTimeLock featureTitle="Chat Espiritual" gradient={gradients.hero} variant={serverBlock} />;
+    return <OneTimeLock featureTitle={t('orbi.chat.lockTitle')} gradient={gradients.hero} variant={serverBlock} />;
   }
-
   if (!hasAccess && locked) {
-    return <OneTimeLock featureTitle="Chat Espiritual" gradient={gradients.hero} />;
+    return <OneTimeLock featureTitle={t('orbi.chat.lockTitle')} gradient={gradients.hero} />;
   }
 
-  return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <GradientHeader title={persona.name} subtitle={persona.tagline} gradient={persona.gradient} />
-
-      <View style={styles.personaSwitchRow}>
-        {Object.values(PERSONAS).map((p) => (
-          <TouchableOpacity
-            key={p.id}
-            style={[styles.personaPill, p.id === personaId && { backgroundColor: p.bubbleColor }]}
-            activeOpacity={0.85}
-            onPress={() => handleSwitchPersona(p.id)}
-          >
-            <Ionicons
-              name={p.icon}
-              size={15}
-              color={p.id === personaId ? '#fff' : colors.textMuted}
-            />
-            <Text style={[styles.personaPillText, p.id === personaId && styles.personaPillTextActive]}>
-              {p.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+  const listHeader = (
+    <View>
+      <View style={[styles.orbiHero, compactLayout && styles.orbiHeroCompact]}>
+        <View style={styles.heroGlow} />
+        <OrbiGuide size={compactLayout ? 74 : 106} pose="curious" testID="orbi-chat-guide" />
+        <View style={styles.heroCopy}>
+          <Text style={styles.kicker}>{t('orbi.chat.kicker')}</Text>
+          <Text style={[styles.intro, compactLayout && styles.introCompact]}>{t('orbi.chat.intro')}</Text>
+        </View>
       </View>
 
-      <Text style={styles.disclaimer}>
-        {persona.name} une IA e tradições simbólicas de séculos (astrologia, tarot) para
-        reflexão — as respostas não preveem eventos específicos nem substituem orientação profissional.
-      </Text>
+      <View style={styles.disclosure} testID="orbi-ai-disclosure">
+        <Ionicons name="information-circle-outline" size={16} color={colors.gold} />
+        <Text style={styles.disclosureText}>{t('orbi.chat.disclosure')}</Text>
+      </View>
 
+      {legacyMigrated && (
+        <View style={styles.legacyNotice}>
+          <Ionicons name="archive-outline" size={15} color={colors.textMuted} />
+          <Text style={styles.legacyText}>{t('orbi.chat.legacy')}</Text>
+        </View>
+      )}
+
+      {interactionReady && messages.length === 0 && (
+        <View style={[styles.suggestions, compactLayout && styles.suggestionsCompact]} testID="orbi-suggestions">
+          <Text style={styles.suggestionsTitle}>{t('orbi.chat.suggestions')}</Text>
+          {suggestionSpecs.map((spec) => {
+            const text = suggestionText(spec);
+            return (
+              <Pressable
+                key={spec.id}
+                testID={`orbi-suggestion-${spec.id}`}
+                style={({ pressed }) => [
+                  styles.suggestion,
+                  focusedControl === `suggestion-${spec.id}` && styles.keyboardFocus,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => handleSend(text)}
+                onFocus={() => setFocusedControl(`suggestion-${spec.id}`)}
+                onBlur={() => setFocusedControl(null)}
+                accessibilityRole="button"
+                accessibilityLabel={text}
+              >
+                <Text style={styles.suggestionText}>{text}</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.gold} />
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      {!interactionReady && (
+        <View
+          style={styles.loadingContext}
+          accessibilityRole="text"
+          accessibilityLiveRegion="polite"
+          testID="orbi-context-loading"
+        >
+          <Text style={styles.loadingContextText}>{t('orbi.chat.loading')}</Text>
+        </View>
+      )}
+    </View>
+  );
+
+  const listFooter = isTyping ? (
+    <View
+      style={styles.typingRow}
+      testID="orbi-typing"
+      accessibilityRole="text"
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={t('orbi.chat.typing')}
+    >
+      <OrbiGuide size={48} pose="thinking" testID="orbi-thinking" />
+      <View style={[styles.bubble, styles.bubbleOrbi, styles.typingBubble]}>
+        <Text style={styles.typingText}>{t('orbi.chat.typing')}</Text>
+      </View>
+    </View>
+  ) : sessionReplies === 1 ? (
+    <View
+      style={styles.completion}
+      testID="orbi-first-completion"
+      accessibilityRole="text"
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={t('orbi.chat.completion')}
+    >
+      <OrbiGuide size={58} pose="celebrating" testID="orbi-celebrating" />
+      <Text style={styles.completionText}>{t('orbi.chat.completion')}</Text>
+    </View>
+  ) : null;
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      accessibilityState={{ busy: isTyping || !interactionReady }}
+    >
+      <GradientHeader
+        title={compactLayout ? t('orbi.name') : t('orbi.chat.title')}
+        subtitle={compactLayout ? null : t('orbi.chat.subtitle')}
+        gradient={gradients.hero}
+      />
       <FlatList
         ref={listRef}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        contentContainerStyle={[styles.listContent, compactLayout && styles.listContentCompact]}
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-        // Cena ilustrada do pack (lib/ilustracoes.js) — guia místico como
-        // boas-vindas visual, só enquanto a conversa está "vazia" (a lista tem
-        // apenas a intro da persona, nenhuma mensagem trocada). Vive no header
-        // da FlatList (abaixo do seletor de persona e do disclaimer) e some no
-        // primeiro envio. Decorativa (accessible=false); a input row é ancorada
-        // pelo flex, então a cena não empurra o campo de digitar pra fora.
-        ListHeaderComponent={
-          messages.length <= 1 ? (
-            <View style={styles.cenaWrap}>
-              <Image source={CENAS.guia} style={styles.cenaImg} resizeMode="cover" accessible={false} />
-            </View>
-          ) : null
-        }
-        ListFooterComponent={
-          isTyping ? (
-            <View style={[styles.bubbleRow, styles.bubbleRowPersona]}>
-              <View style={[styles.bubble, styles.bubblePersona, { backgroundColor: persona.bubbleColor }]}>
-                <Text style={styles.bubbleTextTyping}>{persona.name} está digitando…</Text>
-              </View>
-            </View>
-          ) : null
-        }
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => {
+          if (messages.length > 0 || isTyping) {
+            listRef.current?.scrollToEnd({ animated: !reducedMotion });
+          }
+        }}
       />
 
       <View style={styles.inputRow}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, focusedControl === 'input' && styles.keyboardFocus]}
           value={input}
           onChangeText={setInput}
-          placeholder="Escreva sua mensagem…"
+          placeholder={t('orbi.chat.placeholder')}
           placeholderTextColor={colors.textMuted}
           multiline
           maxLength={500}
+          editable={interactionReady && !isTyping}
+          onFocus={() => setFocusedControl('input')}
+          onBlur={() => setFocusedControl(null)}
+          accessibilityLabel={t('orbi.chat.placeholder')}
+          accessibilityState={{ disabled: !interactionReady || isTyping }}
         />
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleSend}
-          disabled={!input.trim() || isTyping}
-          style={[styles.sendBtn, (!input.trim() || isTyping) && styles.sendBtnDisabled]}
+        <Pressable
+          onPress={() => handleSend()}
+          disabled={!interactionReady || !input.trim() || isTyping}
+          style={({ pressed }) => [
+            styles.sendButton,
+            (!interactionReady || !input.trim() || isTyping) && styles.sendButtonDisabled,
+            focusedControl === 'send' && styles.keyboardFocus,
+            pressed && interactionReady && input.trim() && !isTyping && styles.sendButtonPressed,
+          ]}
+          onFocus={() => setFocusedControl('send')}
+          onBlur={() => setFocusedControl(null)}
           accessibilityRole="button"
-          accessibilityLabel="Enviar mensagem"
-          accessibilityState={{ disabled: !input.trim() || isTyping }}
+          accessibilityLabel={t('orbi.chat.send')}
+          accessibilityState={{ disabled: !interactionReady || !input.trim() || isTyping }}
         >
-          <Ionicons name="send" size={18} color="#fff" />
-        </TouchableOpacity>
+          <Ionicons name="arrow-up" size={20} color="#21151A" />
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -387,75 +461,73 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  personaSwitchRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    justifyContent: 'center',
-  },
-  personaPill: {
+  listContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
+  listContentCompact: { paddingTop: 8, paddingHorizontal: 12 },
+  orbiHero: {
+    minHeight: 132,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  personaPillText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
-  personaPillTextActive: { color: '#fff' },
-  disclaimer: {
-    color: colors.textMuted,
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 16,
-    paddingHorizontal: 24,
-    paddingTop: 10,
-    paddingBottom: 4,
-  },
-  listContent: { padding: 16, paddingBottom: 8, gap: 10 },
-  cenaWrap: { borderRadius: 18, overflow: 'hidden' },
-  cenaImg: { width: '100%', height: 150 },
-  bubbleRow: { flexDirection: 'row' },
-  bubbleRowPersona: { justifyContent: 'flex-start' },
-  bubbleRowUser: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '80%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
-  bubblePersona: { borderBottomLeftRadius: 4 },
-  bubbleUser: { borderBottomRightRadius: 4 },
-  bubbleText: { color: '#fff', fontSize: 14, lineHeight: 20 },
-  reportRow: { alignSelf: 'flex-start' },
-  bubbleTextTyping: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontStyle: 'italic' },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderRadius: 24,
+    borderCurve: 'continuous',
     backgroundColor: colors.surface,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    color: colors.text,
     borderWidth: 1,
-    borderColor: colors.border,
-    maxHeight: 100,
-    fontSize: 14,
+    borderColor: colors.gold + '32',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    overflow: 'hidden',
   },
-  sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
+  orbiHeroCompact: { minHeight: 92, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 20 },
+  heroGlow: {
+    position: 'absolute',
+    width: 148,
+    height: 148,
+    borderRadius: 74,
+    left: -20,
+    backgroundColor: colors.gold + '0B',
   },
-  sendBtnDisabled: { backgroundColor: colors.border },
+  heroCopy: { flex: 1, paddingLeft: 4, paddingRight: 6 },
+  kicker: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 1.25, textTransform: 'uppercase' },
+  intro: { color: colors.text, fontSize: 15, lineHeight: 22, fontWeight: '600', marginTop: 7 },
+  introCompact: { fontSize: 12.5, lineHeight: 17, marginTop: 4 },
+  disclosure: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12, paddingHorizontal: 4 },
+  disclosureText: { flex: 1, color: colors.textMuted, fontSize: 11, lineHeight: 16 },
+  legacyNotice: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: colors.surface },
+  legacyText: { flex: 1, color: colors.textMuted, fontSize: 11, lineHeight: 15 },
+  suggestions: { marginTop: 24, marginBottom: 6 },
+  suggestionsCompact: { marginTop: 12 },
+  suggestionsTitle: { color: colors.textSecondary, fontSize: 12, fontWeight: '800', letterSpacing: 0.3, marginBottom: 10 },
+  suggestion: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 15, paddingVertical: 12, marginBottom: 9, borderRadius: 16, borderCurve: 'continuous', backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
+  suggestionText: { flex: 1, color: colors.text, fontSize: 13, lineHeight: 19, fontWeight: '600' },
+  pressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
+  keyboardFocus: Platform.select({
+    web: {
+      outlineStyle: 'solid',
+      outlineWidth: 3,
+      outlineColor: colors.gold,
+      outlineOffset: 2,
+    },
+    default: {},
+  }),
+  loadingContext: { alignItems: 'center', paddingVertical: 18 },
+  loadingContextText: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
+  messageCell: { marginTop: 12 },
+  responseLabel: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 0.7, marginLeft: 5, marginBottom: 5 },
+  bubbleRow: { flexDirection: 'row' },
+  bubbleRowOrbi: { justifyContent: 'flex-start' },
+  bubbleRowUser: { justifyContent: 'flex-end' },
+  bubble: { maxWidth: '84%', borderRadius: 19, borderCurve: 'continuous', paddingHorizontal: 15, paddingVertical: 11 },
+  bubbleOrbi: { backgroundColor: colors.surfaceElevated, borderBottomLeftRadius: 5, borderWidth: 1, borderColor: colors.border },
+  bubbleUser: { backgroundColor: colors.accent2, borderBottomRightRadius: 5 },
+  bubbleText: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  reportRow: { alignSelf: 'flex-start', marginTop: 1 },
+  typingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12 },
+  typingBubble: { paddingVertical: 10 },
+  typingText: { color: colors.textSecondary, fontSize: 13, fontStyle: 'italic' },
+  completion: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, paddingHorizontal: 13, paddingVertical: 10, borderRadius: 16, backgroundColor: colors.gold + '0D', borderWidth: 1, borderColor: colors.gold + '2A' },
+  completionText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 17 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 9, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 10 : 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface },
+  input: { flex: 1, minHeight: 46, maxHeight: 110, borderRadius: 18, borderCurve: 'continuous', paddingHorizontal: 15, paddingVertical: 11, color: colors.text, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, fontSize: 14 },
+  sendButton: { width: 46, height: 46, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
+  sendButtonDisabled: { backgroundColor: colors.border },
+  sendButtonPressed: { opacity: 0.84, transform: [{ scale: 0.97 }] },
 });

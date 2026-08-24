@@ -269,8 +269,8 @@ export default function DailyMissionsCard() {
           >
             <Text style={s.rowEmoji}>{m.emoji}</Text>
             <View style={{ flex: 1 }}>
-              <Text style={[s.rowTitle, m.done && s.rowTitleDone]}>{m.title}</Text>
-              <Text style={s.rowDesc}>{m.done ? 'Concluída — tokens no seu saldo ✓' : m.desc}</Text>
+              <Text style={[s.rowTitle, m.done && s.rowTitleDone]}>{m.titleKey ? t(m.titleKey) : m.title}</Text>
+              <Text style={s.rowDesc}>{m.done ? 'Concluída — tokens no seu saldo ✓' : m.descKey ? t(m.descKey) : m.desc}</Text>
             </View>
             <View style={[s.chip, m.done && s.chipDone]}>
               <Ionicons name={m.done ? 'checkmark' : 'diamond'} size={11} color={m.done ? colors.green : colors.gold} />

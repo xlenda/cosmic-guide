@@ -1,7 +1,7 @@
 # Carrossel Instagram — Cosmic Guide
 
-> Estrutura roubada do playbook do Bible Path (nº 4 da categoria, 31 mil
-> avaliações): **um card = uma feature + uma promessa em poucas palavras.**
+> Estrutura inspirada no playbook observado no Bible Path: **um card = uma
+> feature + uma afirmação curta que a tela real consegue sustentar.**
 > Nada aqui inventa número, promete resultado ou toca em saúde — regra da casa.
 >
 > Como usar: cada card vira um slide. A "imagem" indicada é um print real da
@@ -18,13 +18,13 @@
 ## Card 2 — O CÉU DE HOJE
 
 **Headline:** Calculado de verdade. Não é texto genérico.
-**Sub:** Fase da Lua, signo lunar e o aspecto exato do dia — a mesma matemática dos observatórios, no seu horóscopo.
+**Sub:** Fase da Lua, signo lunar e o aspecto do dia calculados pelo motor astronômico do app — separados da interpretação simbólica.
 **Imagem:** print do card "Céu de hoje pra você" com o aspecto do dia.
 
 ## Card 3 — COMPATIBILIDADE SEM MENTIRA
 
 **Headline:** A gente tirou a porcentagem. De propósito.
-**Sub:** Nota de 0 a 100 não existe em fonte nenhuma — é invenção comercial. Aqui você vê a relação real entre os signos, com Ptolomeu citado na tela (século II).
+**Sub:** Nota de 0 a 100 não é medida astronômica nem uma escala única da tradição. Aqui você vê a relação pela régua adotada no app, com Ptolomeu citado na tela (século II).
 **Imagem:** print da tela de Compatibilidade com o nome do aspecto + bloco "O que a fonte diz".
 
 ## Card 4 — TARÔ QUE LÊ A POSIÇÃO
@@ -33,10 +33,10 @@
 **Sub:** Cada carta lê diferente em cada casa da tiragem — e cada carta que sai fica guardada no seu álbum das 78.
 **Imagem:** print de uma tiragem de 3 cartas + canto do álbum.
 
-## Card 5 — CHAT COM FONTE
+## Card 5 — CONVERSAR COM ÓRBI
 
-**Headline:** Pergunta de verdade. Resposta com fonte.
-**Sub:** A Luna responde citando de onde veio — autor e século — em vez de inventar. Mais de dois mil anos de tradição, zero achismo.
+**Headline:** Sua pergunta. Seu contexto declarado.
+**Sub:** Órbi é IA da Anthropic, identificada na tela. Quando o pacote está completo, usa seu signo e as três escolhas do primeiro caminho; o Diário não entra na conversa. Fontes aparecem quando são aplicáveis.
 **Imagem:** print de uma conversa real com citação aparecendo.
 
 ## Card 6 — SOM DO CÉU
@@ -61,11 +61,11 @@
 
 ## Legenda sugerida (caption)
 
-Quase todo app de astrologia te dá o mesmo texto genérico e uma porcentagem
-inventada. A gente foi ler a fonte — Ptolomeu, século II — e descobriu que o
-mercado inteiro repete erros há décadas. O Cosmic Guide calcula o céu de
-verdade e cita de onde vem cada afirmação. Nove leituras, a primeira de cada
-é grátis, sem cartão. Link na bio. 🌙
+Muitos apps de astrologia misturam cálculo do céu, interpretação simbólica e
+nota comercial na mesma tela. O Cosmic Guide separa essas camadas: calcula o
+céu, identifica a régua usada na leitura e mostra a fonte quando há referência
+histórica rastreável. Nove leituras, a primeira de cada é grátis, sem cartão.
+Link na bio. 🌙
 
 **Hashtags:** #astrologia #mapaastral #tarot #horoscopo #signos #espiritualidade #autoconhecimento #luacheia #compatibilidade
 

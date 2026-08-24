@@ -1,7 +1,7 @@
 // O CHAT DIZIA QUE A PESQUISA NAO DATOU O QUE ELA DATOU — achado da auditoria
 // de 02/08/2026.
 //
-// As duas personas do Chat (Luna, de astrologia; Arcano, de taro) recebiam so
+// As personas do Chat (Órbi e as antigas Luna/Arcano) recebem
 // a lista de fatos do proprio dominio. A regra de disciplina de fonte manda
 // dizer "a pesquisa do app nao localizou fonte datada" quando o fato nao esta
 // no prompt — entao, perguntando a Luna sobre linha da mao ou sobre sonho, ela
@@ -35,10 +35,10 @@ const MARCAS = {
   sonhos: /Artemidoro|Oneirocritica/,
 };
 
-const CONVERSAS = ["persona-luna", "persona-arcano"];
+const CONVERSAS = ["persona-orbi", "persona-luna", "persona-arcano"];
 const LEITURAS = ["palm", "coffee", "face", "foot", "moles", "dream", "tarot"];
 
-test("as duas personas do Chat carregam TODAS as listas de fatos", () => {
+test("todas as personas compatíveis do Chat carregam TODAS as listas de fatos", () => {
   for (const chave of CONVERSAS) {
     const prompt = PROMPTS[chave];
     assert.ok(prompt, `${chave} precisa existir`);

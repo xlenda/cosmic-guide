@@ -58,6 +58,11 @@ Module._load = function (request, parent, isMain) {
 
 const coupleData = require('../lib/coupleData.js');
 const onboardingPlan = require('../lib/onboardingPlan.js');
+const {
+  ORBI_DIARY_RECORDED_KEY,
+  ORBI_HISTORY_KEY,
+  ORBI_LEGACY_HISTORY_KEYS,
+} = require('../lib/orbiConversation.js');
 
 function reset(webMode) {
   mem.async.clear();
@@ -213,4 +218,48 @@ test('deleteAllCoupleData NAO apaga o Diario nem a Jornada (nao foram prometidos
   assert.ok(diario, 'o Diario foi apagado sem ter sido prometido');
   assert.match(diario, /escrito a mao/);
   assert.ok(await asyncStorageMock.default.getItem('cosmic-jornada-v1'), 'a Jornada foi apagada sem ter sido prometida');
+});
+
+// Regressao de privacidade da Fase 3: a conversa passou a ter uma unica
+// identidade (Orbi), mas a exclusao precisa cobrir tanto a chave atual quanto
+// as duas chaves legadas importadas. O marcador que impede registrar a mesma
+// conversa duas vezes no Diario tambem pertence ao chat e precisa sair. Isso
+// nao amplia o contrato para apagar o Diario escrito pela pessoa nem a Jornada.
+test('deleteAllCoupleData apaga onboarding e todo dado local do chat, mas preserva Diario e Jornada', async () => {
+  reset(true);
+  const journalKey = 'cosmic-journal';
+  const journeyKey = 'cosmic-jornada-v1';
+
+  await asyncStorageMock.default.setItem(onboardingPlan.ONBOARDING_INTENT_KEY, 'love');
+  await asyncStorageMock.default.setItem(
+    onboardingPlan.ONBOARDING_PROFILE_KEY,
+    JSON.stringify({ intent: 'love', situation: 'loveDistance', outcome: 'clarity' })
+  );
+  await asyncStorageMock.default.setItem(ORBI_HISTORY_KEY, JSON.stringify([{ from: 'user', text: 'atual' }]));
+  for (const key of ORBI_LEGACY_HISTORY_KEYS) {
+    await asyncStorageMock.default.setItem(key, JSON.stringify([{ from: 'persona', text: `legado:${key}` }]));
+  }
+  await asyncStorageMock.default.setItem(ORBI_DIARY_RECORDED_KEY, '2026-08-23');
+  await asyncStorageMock.default.setItem(journalKey, JSON.stringify([{ id: 'manual', body: 'texto da pessoa' }]));
+  await asyncStorageMock.default.setItem(journeyKey, JSON.stringify({ trilha: 'lua', dia: 3 }));
+
+  await coupleData.deleteAllCoupleData();
+
+  const removedKeys = [
+    onboardingPlan.ONBOARDING_INTENT_KEY,
+    onboardingPlan.ONBOARDING_PROFILE_KEY,
+    ORBI_HISTORY_KEY,
+    ...ORBI_LEGACY_HISTORY_KEYS,
+    ORBI_DIARY_RECORDED_KEY,
+  ];
+  for (const key of removedKeys) {
+    assert.strictEqual(
+      await asyncStorageMock.default.getItem(key),
+      null,
+      `${key} sobreviveu a \"apagar meus dados\"`
+    );
+  }
+
+  assert.match(await asyncStorageMock.default.getItem(journalKey), /texto da pessoa/);
+  assert.ok(await asyncStorageMock.default.getItem(journeyKey), 'a Jornada foi apagada sem fazer parte do contrato');
 });

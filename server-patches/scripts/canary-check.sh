@@ -43,7 +43,7 @@ fi
 #    backend só aceita a marca vindo do loopback e sem X-Forwarded-For, então
 #    ninguém de fora consegue se marcar como canary pela internet).
 CHAT_RESP=$(curl -s -m 15 -X POST -H 'Content-Type: application/json' -H 'X-Canary: 1' \
-  -d '{"personaId":"luna","message":"oi","history":[]}' "${BASE}/api/chat")
+  -d '{"personaId":"orbi","message":"oi","history":[]}' "${BASE}/api/chat")
 if echo "$CHAT_RESP" | grep -qi 'credit balance\|invalid_request_error\|IA não configurada'; then
   FAILURES+=("ia: /api/chat com erro real: $(echo "$CHAT_RESP" | head -c 200)")
   report FALHOU "ia (crédito/config)"

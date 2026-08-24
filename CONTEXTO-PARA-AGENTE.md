@@ -1,7 +1,8 @@
 # Contexto para agente — Cosmic Guide
 
-> Handoff escrito em 19/08/2026. Leia isto ANTES de tocar em qualquer arquivo.
-> Ele existe para você não repetir descobertas que já custaram caro aqui.
+> Handoff iniciado em 19/08/2026 e atualizado para a Fase 3 em 23/08/2026.
+> Leia isto ANTES de tocar em qualquer arquivo. Datas e números abaixo são
+> fotografias do momento em que foram medidos, não garantias sobre produção.
 
 ---
 
@@ -24,13 +25,38 @@ over-engineering, e quer sempre saber o que sobrou pendente.
 
 ---
 
-## 2. Estado atual (medido, não presumido)
+## 2. Estado registrado (remeça antes de afirmar)
 
-- **Testes:** 1567/1567 verdes (`npm test`)
-- **Produção:** app 200 · API 200 · rotas de moderação 200 · página de exclusão 200
-- **Git:** limpo, tudo em `origin/master`
-- **Projeto Android:** `npx expo prebuild --platform android` roda **sem nenhum aviso**
-- **Deploy:** backend e web foram ao ar em 19/08/2026 (migrações 016 e 017 aplicadas)
+Baseline de **19/08/2026** (histórico, não reutilize como status atual):
+
+- **Testes naquele commit:** 1567/1567 verdes (`npm test`)
+- **Produção naquele dia:** app 200 · API 200 · rotas de moderação 200 · página de exclusão 200
+- **Git naquele dia:** limpo, tudo em `origin/master`
+- **Projeto Android naquele dia:** `npx expo prebuild --platform android` sem aviso
+- **Deploy daquele baseline:** backend e web publicados; migrações 016 e 017 aplicadas
+
+A **Fase 3** foi preparada depois desse baseline. Este documento não afirma que
+ela já está em produção: confira `git status`, rode a suíte e os exports e, se
+for publicar, use os scripts oficiais na ordem backend → web e confirme com
+probes reais.
+
+### Contrato da Fase 3 — Órbi
+
+- **Órbi é IA da Anthropic e isso aparece antes da primeira pergunta.** Não é
+  pessoa, consultor, médium nem mecanismo de previsão.
+- A chamada envia a pergunta e o histórico da conversa atual. Como contexto de
+  perfil, só existe um pacote estrito com **signo + tema + situação + objetivo**;
+  ele só é enviado quando os quatro campos explícitos estão completos. O
+  servidor rejeita campo extra e o **Diário nunca entra nesse pacote**.
+- Conversas trazidas de versões anteriores ficam legíveis como histórico
+  importado local. Elas não são reenviadas à Anthropic e não são atribuídas a
+  Órbi.
+- **Voz neural e comunidade não fazem parte desta Fase 3.** Não anuncie essas
+  duas capacidades como entregues. A voz neural está planejada para a Fase 6;
+  comunidade depende de escopo próprio.
+- Fontes de verdade: `screens/ChatScreen.js`, `lib/orbiConversation.js`,
+  `server-patches/src/application/chatContext.js` e
+  `server-patches/src/infrastructure/AnthropicChatProvider.js`.
 
 ---
 
@@ -190,9 +216,10 @@ Detalhe completo em **`play-store/PENDENCIAS-CONHECIDAS.md`**. Resumo:
 
 ## 7. Só o dono pode fazer
 
-1. **Créditos da Anthropic** ← a IA está **fora do ar em produção agora**. Todas as
-   features de IA caem no mock enlatado (o usuário não vê erro, mas recebe texto
-   genérico no lugar do produto pago).
+1. **Créditos/chave da Anthropic, se o probe real apontar falha.** Não reutilize
+   o relato de uma indisponibilidade antiga como status atual. O backend desta
+   base retorna erro explícito quando a IA não está configurada ou não consegue
+   gerar resposta; não documente um texto genérico como se fosse resposta real.
 2. **Conta no Play Console** (US$ 25). Ele tem CNPJ + D‑U‑N‑S → abrir como
    **organização** dispensa os 12 testadores por 14 dias.
 3. **Supabase → Authentication → URL Configuration → Redirect URLs → `cosmicguide://`**
@@ -207,7 +234,7 @@ Detalhe completo em **`play-store/PENDENCIAS-CONHECIDAS.md`**. Resumo:
 ## 8. Comandos
 
 ```bash
-npm test                                     # 1567 testes (~90s)
+npm test                                     # rode a suíte inteira e registre o total real
 npx expo export --platform web               # valida o bundle web
 npx expo prebuild --platform android --no-install   # valida config nativa; rm -rf android depois
 
@@ -228,12 +255,15 @@ screenshot não vende nada.
 | Arquivo | Por quê |
 |---|---|
 | `lib/i18n.js` | 3 dicionários. Chaves novas entram no bloco do fim. Um agente por vez. |
+| `screens/ChatScreen.js` + `lib/orbiConversation.js` | Órbi, histórico local/importado e montagem do contexto explícito |
 | `lib/supabaseClient.js` | Login, deep link, o Map de promessas do PKCE |
 | `lib/purchases.js` + `.web.js` | Compra na loja, atrás do gate. Extensão de plataforma. |
 | `lib/accountSubscription.js` | Quem tem acesso. Trata `token_malformed` e `account_deleted`. |
 | `screens/ProfileScreen.js` | Exclusão de conta (RPC → backend → local, nessa ordem) |
 | `server-patches/src/http/socialAuth.js` | `requireAuth` — JWKS + lápide de revogação |
 | `server-patches/src/http/moderationRoutes.js` | Denúncia e bloqueio |
+| `server-patches/src/application/chatContext.js` | Allowlist do contexto enviado ao Órbi; nunca ampliar sem alinhar privacidade e testes |
+| `server-patches/src/infrastructure/AnthropicChatProvider.js` | Prompt e chamada Anthropic; identidade atual da conversa é Órbi |
 | `server-patches/src/http/painelRoutes.js` | Painel do dono — **escape obrigatório** no HTML |
 | `server-patches/supabase/001_delete_own_account.sql` | Já aplicado no Supabase |
 | `play-store/ficha-da-loja.md` | Textos prontos para o Play Console |

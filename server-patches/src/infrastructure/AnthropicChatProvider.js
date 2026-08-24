@@ -23,12 +23,11 @@
 //    observação. Também ganharam `legivel`, que é o caminho honesto de recusa
 //    quando a foto não dá pra ler (hoje sai leitura inventada).
 //
-// 3. CONTEXTO. Todo método aceita um objeto `contexto` OPCIONAL (signo, Lua,
-//    ascendente, fase lunar, aspectos reais de trânsito, últimas leituras,
-//    sonhos anteriores, cartas da tiragem...). Se não vier, tudo funciona
-//    exatamente como antes. Ver "COMO LIGAR O CONTEXTO" no fim do arquivo:
-//    são mudanças pequenas em server.js e lib/aiClient.js, que estão em outra
-//    frente e por isso ficaram DOCUMENTADAS aqui em vez de aplicadas.
+// 3. CONTEXTO. Todo método aceita um objeto `contexto` OPCIONAL. O chat já está
+//    ligado a uma versão estrita: signo canônico e três escolhas enumeradas do
+//    onboarding; pergunta, nota e Diário não fazem parte desse contrato. As
+//    outras rotas continuam preparadas, mas
+//    ainda não recebem contexto pela porta HTTP.
 //
 // 4. HONESTIDADE ENDURECIDA. Proibição explícita de afirmar posição planetária
 //    sem dado no <contexto>, de dizer que "puxou uma carta" (o Arcano não tem
@@ -104,6 +103,8 @@
 // ROLLBACK: qualquer regressão se resolve com env var + restart, sem deploy.
 //   ex.: ANTHROPIC_PALM_MODEL=claude-haiku-4-5
 // ----------------------------------------------------------------------------
+const { chatContextToPrompt } = require("../application/chatContext");
+
 const CHAT_MODEL = process.env.ANTHROPIC_CHAT_MODEL || "claude-haiku-4-5";
 const CHAT_MODEL_PREMIUM = process.env.ANTHROPIC_CHAT_MODEL_PREMIUM || "claude-sonnet-5";
 const PALM_MODEL = process.env.ANTHROPIC_PALM_MODEL || "claude-sonnet-5";
@@ -180,8 +181,9 @@ function jsonOutput(schema) {
 // BLOCO DE CONTEXTO
 // ============================================================================
 // Astrologia só é astrologia com o mapa; leitura sem dado é cold reading.
-// Hoje as rotas não recebem NADA da pessoa — por isso a IA só consegue
-// produzir texto que serve pra qualquer um, por melhor que o prompt seja.
+// As rotas de leitura ainda não recebem estes campos pela porta HTTP. O chat
+// usa um contrato separado e menor (`chatContextToPrompt`), que deliberadamente
+// não aceita conteúdo do Diário, perguntas, notas, sonhos nem cartas.
 // Esta função monta o bloco a partir do que o app JÁ CALCULA offline e de
 // graça (lib/signs.js, lib/personalSky.js, lib/lunarCalendar.js,
 // lib/birthData.js, lib/journal.js, lib/streak.js).
@@ -282,7 +284,7 @@ function blocoContexto(c) {
 // regras de forma, senão a instrução de formato compete com ele.
 const CUIDADO_CRISE = `
 CUIDADO — PRIORIDADE ACIMA DE TUDO (esta regra vence qualquer regra de tamanho, de formato, de pergunta no final ou de linguagem simbólica deste prompt):
-Se aparecer qualquer menção a se machucar, tirar a própria vida, sumir, não aguentar mais, violência sofrida, abuso ou uma crise que claramente extrapola conversa simbólica: pare o registro simbólico na hora. Não interprete o sofrimento como trânsito, arquétipo, sonho, linha da mão ou marca no corpo — isso soa a desprezo. Responda como gente: reconheça o que ela disse em uma ou duas frases, sem eufemismo e sem drama; diga que ela não precisa passar por isso sozinha; informe que no Brasil o CVV atende de graça, 24 horas, no telefone 188 e no cvv.org.br, e que o CAPS mais próximo também atende sem custo e sem encaminhamento. Depois continue na conversa se ela quiser continuar. Nunca termine essa resposta com uma pergunta reflexiva de rotina.
+Se aparecer qualquer menção a se machucar, tirar a própria vida, sumir, não aguentar mais, violência sofrida, abuso ou uma crise que claramente extrapola conversa simbólica: pare o registro simbólico na hora. Não interprete o sofrimento como trânsito, arquétipo, sonho, linha da mão ou marca no corpo — isso soa a desprezo. Responda como gente: reconheça o que ela disse em uma ou duas frases, sem eufemismo e sem drama; diga que ela não precisa passar por isso sozinha; em risco imediato, oriente a procurar agora o serviço de emergência do lugar onde ela está e alguém de confiança que possa ficar junto. Não presuma país pelo idioma e não cite número ou serviço local sem saber o país; se essa informação for necessária, peça apenas o país e ofereça continuar presente enquanto ela busca ajuda. Nunca termine essa resposta com uma pergunta reflexiva de rotina.
 `.trim();
 
 // --- Honestidade -----------------------------------------------------------
@@ -977,6 +979,29 @@ const BASE_PERSONA = montarPrompt([
 ]);
 
 const PERSONA_PROMPTS = Object.assign(Object.create(null), {
+  // Órbi é a voz única da experiência nova. Luna e Arcano continuam abaixo
+  // para os clientes antigos e seus históricos não quebrarem; escolher Órbi
+  // não depende de fingir que uma das personas antigas mudou de identidade.
+  orbi: montarPrompt([
+    `Você é Órbi, o guia do Cosmic Guide: uma IA de conversa que ajuda a pessoa a organizar o que quer entender e a escolher uma ferramenta real do app. Tom adulto, caloroso, direto e sóbrio — sem personagem infantil, sem solenidade mística e sem fingir ser especialista humano.`,
+
+    `CONTEXTO E CONTINUIDADE — quando houver um bloco <contexto>, use o signo e as escolhas declaradas para responder ao assunto concreto da mensagem. Não recite o bloco inteiro nem cite um dado apenas para parecer personalizado. Dê preferência ao foco, à situação e ao resultado desejado quando eles realmente ajudarem. Se o bloco não trouxer uma informação, diga que não sabe ou faça uma pergunta curta; nunca complete a lacuna por probabilidade.`,
+
+    `ESCOPO — você pode conversar sobre astrologia ocidental tropical e sobre os arquétipos do tarô, além de ajudar a pessoa a continuar no Cosmic Guide. O campo "signo" pode ter sido escolhido diretamente ou calculado pelo app: trate-o somente como o signo que a pessoa usa no produto, nunca como prova de Sol, Lua, Ascendente, planeta, casa, aspecto ou retrogradação. Em tarô, você NÃO tem baralho: pode explicar ou evocar um arquétipo como espelho, mas nunca diga que puxou, tirou ou virou uma carta. Uma tiragem real só acontece na tela do Tarô, pela ação da própria pessoa.`,
+
+    `CONTINUIDADE SEM INVENÇÃO — o contexto não prova o que a pessoa sentiu, concluiu ou escreveu. Nunca invente memória de leitura, conversa, pergunta, nota ou Diário. Quando sugerir o próximo passo, limite-se às ferramentas do primeiro caminho que existem no app: Tarô por Tema, Horóscopo, Mapa Astral, Diário Cósmico ou Assentar. Nomeie no máximo uma e explique em uma frase por que ela se conecta ao pedido atual.`,
+
+    blocoFatosDeTudo(),
+    proibir(
+      `PROIBIÇÃO HISTÓRICA ESPECÍFICA: nunca diga que a astrologia tem 5.000 anos, que os babilônios liam mapas natais, nem atribua a Ptolomeu retrato de personalidade por signo solar — a pesquisa do app registra os três como falsos. O que os mesopotâmicos faziam era presságio de Estado, que é outra prática; o retrato por signo solar é caracterologia do séc. XX.`
+    ),
+    proibir(
+      `PROIBIÇÃO HISTÓRICA ESPECÍFICA E INEGOCIÁVEL: o tarô NÃO vem do Egito antigo, NÃO é o Livro de Thoth, NÃO tem 5.000 anos e NÃO foi trazido por nenhum povo. Nunca escreva nada disso, nem como possibilidade, nem como lenda simpática, nem pra depois desmentir. Quem inventou essa origem foi Court de Gébelin em 1781, e o próprio Waite a desmentiu em 1911 — os dois estão nos fatos acima.`
+    ),
+    DISCIPLINA_DE_FONTE,
+    BASE_PERSONA,
+  ]),
+
   luna: montarPrompt([
     `Você é a Luna, uma IA que conversa sobre astrologia. Tom caloroso e acolhedor, mas adulto — sem infantilizar e sem misticismo de enfeite.`,
 
@@ -1344,7 +1369,7 @@ class AnthropicChatProvider {
     // fallback não disparava e `system: Object` ia pro SDK, virando 500.
     const systemPrompt = Object.prototype.hasOwnProperty.call(PERSONA_PROMPTS, personaId)
       ? PERSONA_PROMPTS[personaId]
-      : PERSONA_PROMPTS.luna;
+      : PERSONA_PROMPTS.orbi;
 
     const model = tier === "premium" ? CHAT_MODEL_PREMIUM : CHAT_MODEL;
 
@@ -1364,7 +1389,10 @@ class AnthropicChatProvider {
       }))
       .filter((m) => m.content.length > 0);
 
-    const ctx = blocoContexto(contexto);
+    // O chat nunca usa o bloco amplo das rotas de leitura. Revalidar aqui
+    // garante que nem uma chamada interna consegue anexar pergunta, nota,
+    // tiragem ou Diário contornando a allowlist da rota HTTP.
+    const ctx = chatContextToPrompt(contexto);
     const idioma = diretrizDeIdioma(lang);
     // O chat monta o turno na mão (tem histórico), então repete o que
     // userContent faz pelas outras rotas. A diretriz vai só na ÚLTIMA
@@ -1645,6 +1673,7 @@ const PROMPTS = {
   moles: MOLES_SYSTEM_PROMPT,
   dream: DREAM_SYSTEM_PROMPT,
   tarot: TAROT_SYSTEM_PROMPT,
+  "persona-orbi": PERSONA_PROMPTS.orbi,
   "persona-luna": PERSONA_PROMPTS.luna,
   "persona-arcano": PERSONA_PROMPTS.arcano,
   "weekly-insight": WEEKLY_INSIGHT_SYSTEM_PROMPT,
@@ -1663,11 +1692,12 @@ const FATOS_POR_PROMPT = {
   moles: FATOS_MOLEOSOFIA,
   dream: FATOS_SONHOS,
   tarot: FATOS_TARO,
-  // AS DUAS CONVERSAS RECEBEM TUDO (03/08/2026) — ver blocoFatosDeTudo(). O
+  // AS TRÊS CONVERSAS RECEBEM TUDO (23/08/2026) — ver blocoFatosDeTudo(). O
   // indice tem que dizer a verdade sobre o que cada prompt carrega, porque e
   // por ele que test/aiPrompts.test.js confere se algum ano de 4 digitos
   // apareceu num prompt sem o fato correspondente. Deixar aqui a lista antiga
   // faria o guarda acusar como invencao exatamente o que a correcao autorizou.
+  "persona-orbi": TODOS_OS_FATOS,
   "persona-luna": TODOS_OS_FATOS,
   "persona-arcano": TODOS_OS_FATOS,
 };
@@ -1701,93 +1731,18 @@ module.exports = {
 };
 
 // ============================================================================
-// COMO LIGAR O CONTEXTO (mudanças que NÃO estão neste arquivo)
+// ESTADO DO CONTEXTO
 // ============================================================================
-// Este provider já aceita `contexto` em todos os métodos e funciona sem ele.
-// Para o contexto realmente chegar, faltam duas pontas, ambas em arquivos que
-// estão em outra frente agora (lib/aiClient.js e src/http/server.js) — por
-// isso ficaram documentadas aqui em vez de aplicadas.
+// `/api/chat` já repassa contexto. O contrato público e a sanitização ficam em
+// `src/application/chatContext.js`: lista fechada, 2 KB no máximo e nenhum
+// campo de texto livre. O app pode omitir o objeto inteiro e o comportamento
+// anterior permanece idêntico.
 //
-// --- PONTA 1: o app monta e envia o contexto ------------------------------
-// Novo arquivo lib/aiContext.js (não conflita com nada):
-//
-//   import { getAnyBirthData } from './birthData';
-//   import { signoFromDate, moonSign, isMercuryRetrograde } from './signs';
-//   import { getMoonPhaseToday } from './lunarCalendar';
-//   import { personalSkyToday } from './personalSky';
-//   import { getRecentEntriesForWeeklyInsight } from './journal';
-//   import { getStreak } from './streak';
-//
-//   export async function montarContextoIA() {
-//     const birth = await getAnyBirthData();          // { date, time }
-//     const fase  = getMoonPhaseToday();
-//     const ctx = {
-//       dataHoje: new Date().toISOString().slice(0, 10),
-//       temMapa: !!(birth && birth.date),
-//       faseLua: fase ? { nome: fase.name, iluminacao: fase.illumination } : null,
-//       mercurioRetrogrado: isMercuryRetrograde(new Date().toISOString().slice(0, 10)),
-//     };
-//     if (birth && birth.date) {
-//       ctx.sol = signoFromDate(birth.date);
-//       ctx.lua = moonSign(birth.date, birth.time);
-//       ctx.aspectosHoje = personalSkyToday(birth, 3) || [];
-//     }
-//     const recentes = await getRecentEntriesForWeeklyInsight(7);
-//     ctx.ultimasLeituras = (recentes || []).slice(0, 5)
-//       .map(r => ({ typeLabel: r.typeLabel || r.type, title: r.title, data: r.date }));
-//     return ctx;
-//   }
-//
-// Em lib/aiClient.js (RESERVADO — aplicar quando a outra frente liberar):
-// cada fetchAi* passa a receber `contexto` e a incluí-lo no body. Ex.:
-//
-//   export async function fetchAiChatReply(personaId, message, history, contexto) {
-//     ... body: JSON.stringify({ personaId, message, history, contexto }),
-//   }
-//   export async function fetchAiPalmReading(imageBase64, mediaType, contexto) {
-//     ... body: JSON.stringify({ imageBase64, mediaType, contexto }),
-//   }
-//
-// E cada tela chama `const contexto = await montarContextoIA();` antes.
-//
-// --- PONTA 2: server.js repassa o contexto --------------------------------
-// server.js é RESERVADO. As mudanças são de uma linha por rota, e o único
-// cuidado é validar tamanho (o contexto vem do client e vira token pago):
-//
-//   const CONTEXTO_MAX_CHARS = 4000;
-//   function contextoValido(c) {
-//     if (c == null) return undefined;
-//     if (typeof c !== "object" || Array.isArray(c)) return undefined;
-//     try { return JSON.stringify(c).length <= CONTEXTO_MAX_CHARS ? c : undefined; }
-//     catch { return undefined; }
-//   }
-//
-//   // /api/chat
-//   const { personaId, message, history, contexto } = req.body || {};
-//   const reply = await aiProvider.chat({
-//     personaId, message, history,
-//     contexto: contextoValido(contexto),
-//     tier: req.assinante ? "premium" : "free",   // se/quando houver esse dado
-//   });
-//
-//   // /api/palm (idem coffee, face, foot, moles)
-//   const { imageBase64, mediaType, contexto } = req.body || {};
-//   const compressed = await compressImage(imageBase64, mediaType);
-//   const reading = await aiProvider.analyzePalm({
-//     ...compressed, contexto: contextoValido(contexto),
-//   });
-//
-//   // /api/dream — além do contexto, mandar os 3 sonhos anteriores dentro dele
-//   //   (contexto.sonhosAnteriores). É o gancho de retenção mais forte e mais
-//   //   autêntico do app: motivo que se repete.
-//
-//   // /api/weekly-insight e /api/coffee-weekly-summary
-//   const { readings, extras, contexto } = req.body || {};
-//   ... aiProvider.summarizeWeeklyInsight({
-//         readings, extras, contexto: contextoValido(contexto),
-//       });
-//   // `extras` = { insightsDeVoz: [...], diario: [...] } — validar do mesmo
-//   //   jeito que readings (array, teto de itens, strings).
+// O contrato do chat NÃO deve crescer reaproveitando o bloco amplo acima. Em
+// especial, não adicionar pergunta, anotação, reflexão, últimas leituras,
+// sonhos, cartas ou conteúdo do Diário. Se outra rota precisar desses dados no
+// futuro, ela deve ter um contrato próprio, consentimento correspondente e
+// limites específicos — nunca abrir `contexto` como objeto arbitrário.
 //
 // --- PONTA 3 (opcional): ligar a tiragem de tarô --------------------------
 // O método interpretTarotSpread já existe aqui e não é chamado por ninguém.
