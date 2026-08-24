@@ -203,8 +203,8 @@ mas não substitui a autorização e a chave do provedor.
 
 #### 6. Completar o ritual de tarô sem copiar um concorrente
 
-O Cosmic Guide já possui raspagem, 78 cartas, invertidas, álbum e Diário. Falta
-organizar esses ativos num loop mais forte:
+O segundo lote organizou a raspagem, as 78 cartas, as invertidas, o álbum e o
+Diário num loop mais forte:
 
 1. Escrever ou escolher a pergunta.
 2. Escolher uma tiragem curta, com rótulo honesto de método contemporâneo.
@@ -216,6 +216,13 @@ organizar esses ativos num loop mais forte:
 
 Adicionar busca, favoritos e modo de estudo ao Álbum aproxima o produto da força
 do Labyrinthos sem copiar sua interface, seus textos ou suas ilustrações.
+
+**Implementado no lote 2:** pergunta opcional e privada; sorteio Fisher–Yates;
+uma carta grande por vez; raspagem vetorial contínua seguindo o dedo; síntese
+contextual sem alterar cartas nem significados; anotação privada; retomada exata
+de tiragem interrompida; conclusão idempotente no Diário; e compartilhamento
+opcional com prévia exata e corpo público construído apenas com tema, cartas e
+significados canônicos. Pergunta e anotação nunca entram no post.
 
 #### 7. Perguntas inteligentes em camadas, não um interrogatório
 
@@ -248,14 +255,12 @@ deixar a entrada longa ou manipulativa.
 
 #### 9. Permitir nota manual no Diário
 
-Hoje o Diário guarda o resultado e pode anexar insight por voz, mas não oferece
-uma nota de texto simples editável junto de cada leitura. Adicionar:
+O lote 2 passou a permitir uma nota de texto privada logo após a tiragem e a
+exibi-la separada da leitura do app no Diário. Ainda adicionar:
 
-- campo “O que isso te fez perceber?”;
 - edição posterior;
 - busca pelo texto da pessoa;
 - exportação;
-- distinção visual entre “leitura do app” e “minhas palavras”.
 
 Isso transforma leitura em memória pessoal e atende exatamente ao padrão mais
 elogiado no Labyrinthos.

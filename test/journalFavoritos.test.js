@@ -171,3 +171,41 @@ test('toggle só mexe na entrada alvo — as vizinhas ficam byte a byte iguais',
   assert.deepStrictEqual(depois.find((e) => e.id === 'vizinha-2'), antes.find((e) => e.id === 'vizinha-2'));
   assert.strictEqual(depois.find((e) => e.id === 'alvo').favorito, true);
 });
+
+test('completionId torna a conclusão idempotente e não duplica a entrada', async () => {
+  reset();
+  const fields = {
+    type: 'tarot',
+    typeLabel: 'Tarô',
+    title: 'Leitura completa',
+    body: 'corpo privado',
+    shareBody: 'corpo público',
+    question: 'pergunta privada',
+    completionId: 'tarot:2026-08-23T12:00:00:major-01.major-02.major-03',
+  };
+
+  const first = await journal.saveJournalEntryWithStatus(fields);
+  const retry = await journal.saveJournalEntryWithStatus(fields);
+
+  assert.strictEqual(first.created, true);
+  assert.strictEqual(retry.created, false);
+  assert.strictEqual(retry.entryId, first.entryId);
+  assert.strictEqual(rawEntries().length, 1);
+  assert.strictEqual(rawEntries()[0].shareBody, 'corpo público');
+  assert.strictEqual(rawEntries()[0].question, 'pergunta privada');
+});
+
+test('voz e reflexão concorrentes preservam os dois campos', async () => {
+  reset();
+  const id = await journal.saveJournalEntry({ type: 'tarot', typeLabel: 'Tarô', title: 'Leitura', body: 'texto' });
+
+  await Promise.all([
+    journal.attachVoiceInsight(id, { voiceTranscript: 'o que eu disse', aiInsight: 'versão lapidada' }),
+    journal.attachReflection(id, 'minha nota privada'),
+  ]);
+
+  const [entry] = await journal.getJournalEntries();
+  assert.strictEqual(entry.voiceTranscript, 'o que eu disse');
+  assert.strictEqual(entry.aiInsight, 'versão lapidada');
+  assert.strictEqual(entry.reflection, 'minha nota privada');
+});

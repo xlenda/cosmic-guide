@@ -77,7 +77,8 @@ test('atalho de signo mostra a leitura do signo tocado antes da Home', async ({ 
   await expect(page.getByText(/Áries é fogo cardinal/)).toHaveCount(0);
 });
 
-test('a primeira tiragem revela a carta por raspagem', async ({ page }) => {
+test('a primeira tiragem revela três cartas grandes em sequência', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     window.localStorage.setItem('app-language', 'pt');
     window.localStorage.setItem(
@@ -96,6 +97,8 @@ test('a primeira tiragem revela a carta por raspagem', async ({ page }) => {
   await expect(scratch).toBeVisible();
   const box = await scratch.boundingBox();
   expect(box).not.toBeNull();
+  const viewport = page.viewportSize();
+  expect(box.width).toBeGreaterThanOrEqual(viewport.width * 0.72);
 
   await page.mouse.move(box.x + 8, box.y + 8);
   await page.mouse.down();
@@ -109,6 +112,18 @@ test('a primeira tiragem revela a carta por raspagem', async ({ page }) => {
   await page.mouse.up();
 
   await expect(page.getByTestId('tarot-card-name-0')).toBeVisible({ timeout: 10_000 });
+
+  await page.getByTestId('tarot-next-0').click();
+  await expect(page.getByTestId('tarot-scratch-1')).toBeVisible();
+  await page.getByTestId('tarot-scratch-1').getByText('Revelar sem raspar').click();
+  await expect(page.getByTestId('tarot-card-name-1')).toBeVisible({ timeout: 10_000 });
+
+  await page.getByTestId('tarot-next-1').click();
+  await expect(page.getByTestId('tarot-scratch-2')).toBeVisible();
+  await page.getByTestId('tarot-scratch-2').getByText('Revelar sem raspar').click();
+
+  await expect(page.getByTestId('tarot-personal-synthesis')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('tarot-community-card')).toBeVisible();
 });
 
 test('perfil adaptativo muda a primeira ferramenta e abre a rota prometida', async ({ page }) => {

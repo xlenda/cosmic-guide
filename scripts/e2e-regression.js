@@ -108,7 +108,15 @@ async function openExplore(page) {
     await page.getByText('Tarô', { exact: false }).first().click();
     await page.waitForTimeout(1300);
     await page.getByText('Tirar 3 Cartas', { exact: false }).first().click();
-    await page.waitForTimeout(1000);
+    // Desde o ritual sequencial, trocar de tema com carta fechada é bloqueado
+    // para não descartar uma tiragem já consumida. Concluímos as três cartas
+    // pela alternativa acessível e só então testamos a segunda tentativa.
+    for (let index = 0; index < 3; index += 1) {
+      const scratch = page.getByTestId(`tarot-scratch-${index}`);
+      await scratch.getByText('Revelar sem raspar', { exact: false }).click();
+      await page.getByTestId(`tarot-card-name-${index}`).waitFor({ state: 'visible' });
+      if (index < 2) await page.getByTestId(`tarot-next-${index}`).click();
+    }
     await page.getByText('Carreira', { exact: false }).first().click();
     await page.waitForTimeout(1200);
     const body = await page.evaluate(() => document.body.innerText);
@@ -173,6 +181,18 @@ async function openExplore(page) {
     await page.route('**/api/subscription/solo-corr**', (r) =>
       r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ hasAccess: true, status: 'active', confirmed: true }) })
     );
+    // A conta não é a fonte que este cenário testa. Deixá-la bater no backend
+    // real fazia o localhost depender de CORS/rede e podia segurar o
+    // Promise.all do CoupleContext por várias tentativas. O 404 representa o
+    // backend sem informação de conta e prova justamente que o código SOLO do
+    // aparelho, sozinho, concede o acesso combinado — sem disparar auto-vínculo.
+    await page.route('**/api/subscription/me**', (r) =>
+      r.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'not_found' }),
+      })
+    );
     await page.addInitScript(() => {
       window.localStorage.setItem('gff-couple-profile', JSON.stringify({ voce: 'RegX', amor: 'RegY', sa: 'Áries', sb: 'Touro' }));
       window.localStorage.setItem(
@@ -181,16 +201,37 @@ async function openExplore(page) {
       );
       window.localStorage.setItem('gff-correlation:solo:reg@reg.com', 'solo-corr-1');
     });
+    const soloAccessResponse = page.waitForResponse(
+      (response) => response.url().includes('/api/subscription/solo-corr-1') && response.status() === 200
+    );
     await page.goto(BASE);
+    await soloAccessResponse;
     await page.waitForTimeout(2800);
     await page.getByText('Perfil', { exact: false }).first().click();
-    await page.waitForTimeout(1000);
+    // Espera o estado real da UI, não um número arbitrário de milissegundos.
+    // Se a regra regredir para "Assinar", o timeout expira e o portão falha.
+    const manageSubscription = page.getByText('Gerenciar assinatura', { exact: false }).first();
+    const manageVisible = await manageSubscription
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
     const menu = await page.evaluate(() => document.body.innerText);
-    check('menu mostra "Gerenciar assinatura" pra casal com sub solo ativa (1 assinatura = tudo)', menu.includes('Gerenciar assinatura'));
-    await page.getByText('Gerenciar assinatura', { exact: false }).first().click();
-    await page.waitForTimeout(1800);
+    check(
+      'menu mostra "Gerenciar assinatura" pra casal com sub solo ativa (1 assinatura = tudo)',
+      manageVisible && menu.includes('Gerenciar assinatura')
+    );
+    if (manageVisible) await manageSubscription.click();
+    const subscriberTitle = page.getByText('Você já é assinante', { exact: false }).first();
+    const activeStatus = page.getByText('Status: Ativa', { exact: false }).first();
+    const subscriberStateVisible = await Promise.all([
+      subscriberTitle.waitFor({ state: 'visible', timeout: 5000 }),
+      activeStatus.waitFor({ state: 'visible', timeout: 5000 }),
+    ]).then(() => true).catch(() => false);
     const body = await page.evaluate(() => document.body.innerText);
-    check('Planos trata como assinante (não reoferece checkout do zero)', !body.includes('Faça login para assinar'));
+    check(
+      'Planos confirma positivamente a assinatura ativa (não reoferece checkout do zero)',
+      subscriberStateVisible && body.includes('Você já é assinante') && body.includes('Status: Ativa') && !body.includes('Faça login para assinar')
+    );
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }

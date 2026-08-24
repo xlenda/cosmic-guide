@@ -83,6 +83,15 @@ function excerpt(body, length = 80) {
   return `${clean.slice(0, length).trim()}...`;
 }
 
+function socialBodyForEntry(entry) {
+  if (typeof entry?.shareBody === 'string' && entry.shareBody.trim()) return entry.shareBody.trim();
+  // Entradas antigas não tinham corpo público separado. O fallback só é
+  // permitido quando também não existe nenhum campo privado novo; retirar
+  // pergunta/reflexão de um texto pronto seria uma proteção frágil.
+  if (entry?.question || entry?.reflection || entry?.readingDetails) return '';
+  return typeof entry?.body === 'string' ? entry.body : '';
+}
+
 function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sharing, pinned, canPin, onPin, onToggleFavorito }) {
   const { t } = useLanguage();
   const hasInsight = !!(entry.voiceTranscript || entry.aiInsight);
@@ -149,7 +158,27 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
 
       {expanded && (
         <View style={styles.expandedArea}>
+          {!!entry.question && (
+            <View style={styles.privateBlock}>
+              <View style={styles.privateLabelRow}>
+                <Ionicons name="lock-closed-outline" size={13} color={colors.gold} />
+                <Text style={styles.insightLabel}>{t('tarot.diary.question')}</Text>
+              </View>
+              <Text style={styles.privateText}>“{entry.question}”</Text>
+            </View>
+          )}
+
           <Text style={styles.fullBody}>{entry.body}</Text>
+
+          {!!entry.reflection && (
+            <View style={styles.privateBlock}>
+              <View style={styles.privateLabelRow}>
+                <Ionicons name="lock-closed-outline" size={13} color={colors.gold} />
+                <Text style={styles.insightLabel}>{t('tarot.diary.reflection')}</Text>
+              </View>
+              <Text style={styles.privateText}>{entry.reflection}</Text>
+            </View>
+          )}
 
           {!!entry.voiceTranscript && (
             <View style={styles.insightBlock}>
@@ -175,7 +204,9 @@ function DiaryItem({ entry, expanded, onToggle, onDelete, canShare, onShare, sha
           {canShare && (
             <TouchableOpacity style={styles.shareBtn} onPress={onShare} activeOpacity={0.8} disabled={sharing}>
               <Ionicons name="share-social" size={16} color={colors.teal} />
-              <Text style={styles.shareText}>{sharing ? 'Compartilhando...' : 'Compartilhar no Feed'}</Text>
+              <Text style={styles.shareText}>
+                {sharing ? t('tarot.community.sharing') : t('tarot.community.share')}
+              </Text>
             </TouchableOpacity>
           )}
 
@@ -312,16 +343,34 @@ export default function DiaryScreen() {
     if (sharingId) return;
     setSharingId(entry.id);
     try {
-      await shareToFeed({ readingType: entry.type, title: entry.title, body: entry.body });
-      Alert.alert('Compartilhado!', 'Sua leitura já apareceu no Feed Social.', [
-        { text: 'Ver Feed', onPress: () => navigation.navigate(ROUTES.SOCIAL) },
-        { text: 'Ok', style: 'cancel' },
+      const publicBody = socialBodyForEntry(entry);
+      if (!publicBody) throw new Error(t('tarot.community.privateBodyMissing'));
+      await shareToFeed({ readingType: entry.type, title: entry.title, body: publicBody });
+      Alert.alert(t('tarot.community.sharedTitle'), t('tarot.community.sharedBody'), [
+        { text: t('tarot.community.view'), onPress: () => navigation.navigate(ROUTES.SOCIAL) },
+        { text: t('tarot.community.ok'), style: 'cancel' },
       ]);
-    } catch (e) {
-      Alert.alert('Não deu', e.message);
+    } catch {
+      Alert.alert(t('tarot.community.errorTitle'), t('tarot.community.errorBody'));
     } finally {
       setSharingId(null);
     }
+  }
+
+  function confirmShare(entry) {
+    const publicBody = socialBodyForEntry(entry);
+    if (!publicBody) {
+      Alert.alert(t('tarot.community.errorTitle'), t('tarot.community.privateBodyMissing'));
+      return;
+    }
+    Alert.alert(
+      t('tarot.community.previewTitle'),
+      [t('tarot.community.previewBody'), entry.title, publicBody].filter(Boolean).join('\n\n'),
+      [
+        { text: t('tarot.community.cancel'), style: 'cancel' },
+        { text: t('tarot.community.publish'), onPress: () => share(entry) },
+      ]
+    );
   }
 
   async function handleToggleFavorito(entry) {
@@ -477,7 +526,7 @@ export default function DiaryScreen() {
               onDelete={() => confirmDelete(item.id)}
               canShare={canShare}
               sharing={sharingId === item.id}
-              onShare={() => share(item)}
+              onShare={() => confirmShare(item)}
               pinned={item.id === pinnedId}
               canPin={pinCredits > 0}
               onPin={() => handlePin(item)}
@@ -571,6 +620,16 @@ const styles = StyleSheet.create({
   insightLabel: { color: colors.gold, fontSize: 12, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase' },
   voiceText: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
   aiText: { color: colors.text, fontSize: 14, lineHeight: 20 },
+  privateBlock: {
+    marginBottom: 14,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: colors.gold + '0D',
+    borderWidth: 1,
+    borderColor: colors.gold + '26',
+  },
+  privateLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  privateText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
 
   shareBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,

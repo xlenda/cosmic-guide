@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Image, Pressable } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, gradients } from '../theme';
 import { TAROT_DECK, getSpreadPattern } from '../lib/tarotDeck';
+import { drawTarotCards } from '../lib/tarotShuffle';
 import { getTarotImage } from '../lib/tarotImages';
 // getCardName entra aqui em 01/08/2026. O pack de nomes existia e estava
 // traduzido desde o passe de idioma; a tela nunca o chamou — lia card.name, que
@@ -16,14 +17,17 @@ import { getTarotImage } from '../lib/tarotImages';
 import { getThemedMeaning, getElementalDignity, getWaiteNote, getCardName } from '../lib/tarotThemes';
 import { canDrawToday, recordDraw } from '../lib/tarotDailyLimit';
 import { useCouple } from '../context/CoupleContext';
+import { useAuth } from '../context/AuthContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { getBonusTarotReadings, consumeBonusTarotReading } from '../lib/cosmeticRewards';
 import { recordCardsSeen } from '../lib/tarotCollection';
 import { ROUTES } from '../routes';
 import { useLanguage } from '../context/LanguageContext';
+import { translate } from '../lib/i18n';
 import OneTimeLock from '../components/OneTimeLock';
 import CosmicScene from '../components/CosmicScene';
 import { recordReadingCompletion } from '../lib/readingCompletion';
+import { attachReflection } from '../lib/journal';
 import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
 import ScratchRevealCard from '../components/ScratchRevealCard';
@@ -42,11 +46,22 @@ import { paraSlides } from '../lib/storySlides';
 // O BOTÃO "OUVIR" (08/08/2026) — a tiragem em voz alta com a voz do aparelho
 // (Web Speech API, lib/voz.js). Sem a API ele devolve null sozinho.
 import BotaoOuvir from '../components/BotaoOuvir';
-// A CENA ILUSTRADA (08/08/2026) — o hero desenhado do pack de arte
-// (lib/ilustracoes.js, 640px). Entra no topo do estado vazio, no LUGAR do
-// maço de cartas feito de dois gradientes — mesmo slot, nada funcional desce.
-import { CENAS } from '../lib/ilustracoes';
 import { funnel } from '../lib/funnel';
+import { Alert } from '../lib/webAlert';
+import { getMySocialProfile, shareToFeed } from '../lib/socialClient';
+import { getOnboardingProfile } from '../lib/onboardingPlan';
+import {
+  buildPublicTarotBody,
+  buildTarotSynthesisModel,
+  normalizeTarotQuestion,
+  resolveTarotOutcome,
+} from '../lib/tarotPersonalization';
+import {
+  clearPendingTarotReading,
+  getPendingTarotReading,
+  savePendingTarotReading,
+  updatePendingTarotRevealed,
+} from '../lib/tarotPendingReading';
 
 const FEATURE_KEY = 'tarot';
 
@@ -116,7 +131,8 @@ export default function TarotScreen() {
   // pra quem usava sem parceiro (achado real de bug: dava pra tirar cartas em
   // vários temas, repetidas vezes, sem nunca pedir assinatura). Corrigido na
   // origem (contexto), não precisa mais recombinar isCouple aqui.
-  const { hasAccess, accessConfirmed } = useCouple();
+  const { hasAccess, accessConfirmed, coupleData } = useCouple();
+  const { user } = useAuth();
   // `lang` é tão obrigatório aqui quanto `t`: os packs de tradução do tarô
   // (lib/traducoes/tarot.{es,en}.js, 118 KB escritos em 31/07/2026) só entram
   // se a tela PEDIR o idioma. Sem isso os motores caem no default 'pt' e o
@@ -135,6 +151,33 @@ export default function TarotScreen() {
   const [dailyBlocked, setDailyBlocked] = useState(false);
   const [locked, setLocked] = useState(false);
   const [journalEntryId, setJournalEntryId] = useState(null);
+  const [ritualIndex, setRitualIndex] = useState(0);
+  const [question, setQuestion] = useState('');
+  const [readingQuestion, setReadingQuestion] = useState(null);
+  const [readingCompletionId, setReadingCompletionId] = useState(null);
+  const [onboardingProfile, setOnboardingProfile] = useState(null);
+  const [readingOutcome, setReadingOutcome] = useState('clarity');
+  const [readingLanguage, setReadingLanguage] = useState(lang);
+  const [reflection, setReflection] = useState('');
+  const [reflectionSaved, setReflectionSaved] = useState(false);
+  const [reflectionSaving, setReflectionSaving] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shared, setShared] = useState(false);
+  const completionRef = useRef(false);
+  const scrollRef = useRef(null);
+  const ritualOffsetRef = useRef(0);
+  const focusOnRitualLayoutRef = useRef(false);
+  const focusRitual = useCallback((animated = true) => {
+    const schedule = typeof requestAnimationFrame === 'function'
+      ? requestAnimationFrame
+      : (callback) => setTimeout(callback, 16);
+    schedule(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, ritualOffsetRef.current - 8),
+        animated,
+      });
+    });
+  }, []);
   // Leitura Bônus, comprada na Loja (lib/cosmeticRewards.js) — deixa furar o
   // limite diário do tema UMA vez por bônus guardado. Recarrega no foco (não
   // só no mount) pra refletir uma compra feita na Loja e voltar direto pro Tarô.
@@ -159,6 +202,9 @@ export default function TarotScreen() {
     });
   }, []);
   const progressoDoWaite = useMemo(() => progressoDoPreparo(preparoFeitas, lang), [preparoFeitas, lang]);
+  const readingTranslate = useCallback((key, vars) => (
+    readingLanguage === lang ? t(key, vars) : translate(readingLanguage, key, vars)
+  ), [readingLanguage, lang, t]);
 
   // ---- O MODO HISTÓRIA ----
   // O corpo é o MESMO que drawCards() grava no Diário (casa por casa + a
@@ -168,44 +214,87 @@ export default function TarotScreen() {
   // enquanto houver carta fechada: o leitor não entrega o desfecho de uma
   // carta que a pessoa ainda não abriu.
   const [historiaAberta, setHistoriaAberta] = useState(false);
-  // ENTREGA EM STORIES POR PADRÃO (09/08/2026) — o leitor abre SOZINHO no
-  // instante em que a tiragem fica inteira (a terceira carta virada), porque é
-  // assim que a leitura nasce agora: em slides, com a página completa esperando
-  // atrás do X. O ref garante UMA abertura por tiragem — fechou, só reabre pelo
-  // botão "Ver como história"; e como a tiragem vive só em estado (nada vem de
-  // AsyncStorage), não existe "voltar pra tela com resultado antigo" que
-  // dispare isto. drawCards() rearma o ref: tiragem nova é leitura nova.
-  const jaAbriuDestaTiragem = useRef(false);
+  // A História agora é uma escolha explícita depois da revelação. Abrir um
+  // modal automaticamente no mesmo momento da terceira carta fazia o gesto
+  // parecer interrompido e escondia o resultado que a pessoa acabou de abrir.
   // O corpo vive num memo próprio porque agora tem DOIS consumidores com a
   // mesma exigência de fidelidade: os slides do modo história e o botão Ouvir
   // (components/BotaoOuvir.js), que fala a tiragem inteira em voz alta. Um
   // texto só, dois formatos — nenhum deles reescreve uma palavra.
-  const corpoDaTiragem = useMemo(() => {
-    if (!drawn || !revealed.every(Boolean)) return '';
-    const readings = drawn.map((card, i) => {
-      const orientationTag = orientations[i] ? t('tarot.reversedTag') : '';
-      const casa = t(`tarot.position.${POSITIONS[i]}`);
-      return `${casa} — ${getCardName(card, lang)}${orientationTag}: ${getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i], lang)}`;
+  const readingArtifacts = useMemo(() => {
+    if (!drawn) return null;
+    const snapshotThemeLabel = readingTranslate(`tarot.theme.${theme.key}`);
+    const cardNames = drawn.map((card, index) => (
+      `${getCardName(card, readingLanguage)}${orientations[index] ? readingTranslate('tarot.reversedTag') : ''}`
+    ));
+    const canonicalMeanings = drawn.map((card, index) => (
+      getThemedMeaning(card, theme.key, orientations[index], POSITIONS[index], readingLanguage)
+    ));
+    const model = buildTarotSynthesisModel({
+      question: readingQuestion,
+      themeLabel: snapshotThemeLabel,
+      profile: { outcome: readingOutcome },
+      cards: cardNames,
+      canonicalMeanings,
     });
-    return [...readings, getElementalDignity(drawn, lang), getSpreadPattern(drawn, lang)]
-      .filter(Boolean)
-      .join('\n\n');
-  }, [drawn, revealed, orientations, theme.key, lang, t]);
+    const context = model.question
+      ? readingTranslate('tarot.personal.withQuestion', { question: model.question, theme: snapshotThemeLabel })
+      : readingTranslate('tarot.personal.withoutQuestion', { theme: snapshotThemeLabel });
+    const bridge = readingTranslate('tarot.personal.bridge', {
+      past: model.bridgeVars.firstCardName,
+      present: model.bridgeVars.secondCardName,
+      future: model.bridgeVars.thirdCardName,
+    });
+    const reflectionPrompt = readingTranslate(`tarot.personal.prompt.${model.outcome}`);
+    const canonicalLines = drawn.map((card, index) => {
+      const position = readingTranslate(`tarot.position.${POSITIONS[index]}`);
+      return `${position} — ${cardNames[index]}: ${canonicalMeanings[index]}`;
+    });
+    const dignity = getElementalDignity(drawn, readingLanguage);
+    const pattern = getSpreadPattern(drawn, readingLanguage);
+    const fullBody = [
+      `${readingTranslate('tarot.personal.title')}\n${context}\n${bridge}\n${reflectionPrompt}`,
+      ...canonicalLines,
+      dignity,
+      pattern,
+    ].filter(Boolean).join('\n\n');
+    const publicBody = buildPublicTarotBody({
+      themeLabel: snapshotThemeLabel,
+      cardNames: cardNames.map((name, index) => `${readingTranslate(`tarot.position.${POSITIONS[index]}`)} — ${name}`),
+      canonicalSnippets: canonicalMeanings,
+    });
+    return {
+      model,
+      themeLabel: snapshotThemeLabel,
+      context,
+      bridge,
+      reflectionPrompt,
+      canonicalMeanings,
+      canonicalLines,
+      dignity,
+      pattern,
+      fullBody,
+      publicBody,
+      readingDetails: {
+        version: 1,
+        lang: readingLanguage,
+        themeKey: theme.key,
+        themeLabel: snapshotThemeLabel,
+        outcome: model.outcome,
+        cards: drawn.map((card, index) => ({
+          id: card.id,
+          name: cardNames[index],
+          position: POSITIONS[index],
+          positionLabel: readingTranslate(`tarot.position.${POSITIONS[index]}`),
+          reversed: orientations[index],
+          canonicalMeaning: canonicalMeanings[index],
+        })),
+        synthesis: { context, bridge, reflectionPrompt },
+      },
+    };
+  }, [drawn, orientations, theme.key, readingLanguage, readingQuestion, readingOutcome, readingTranslate]);
+  const corpoDaTiragem = drawn && revealed.every(Boolean) ? readingArtifacts?.fullBody || '' : '';
   const slidesDaTiragem = useMemo(() => paraSlides(corpoDaTiragem), [corpoDaTiragem]);
-
-  // O auto-open: dispara quando `revealed` vira [true, true, true] com uma
-  // tiragem na tela — o momento em que a revelação da terceira carta completa.
-  // [AUTO-DECISION] 650ms de respiro antes do Modal: a carta acabou de virar
-  // (haptic + face nova) e cobrir a tela no MESMO frame atropelaria o gesto;
-  // meio segundo e pouco deixa a pessoa VER a carta que pediu e ainda lê como
-  // continuação, não como interrupção. O cleanup cancela o timer se a tela
-  // desmontar ou a tiragem mudar antes de ele vencer.
-  useEffect(() => {
-    if (!drawn || !revealed.every(Boolean) || jaAbriuDestaTiragem.current) return undefined;
-    jaAbriuDestaTiragem.current = true;
-    const id = setTimeout(() => setHistoriaAberta(true), 650);
-    return () => clearTimeout(id);
-  }, [drawn, revealed]);
 
   // Todo tema libera só 1 tiragem por dia (ver lib/tarotDailyLimit) — recheca
   // sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
@@ -224,6 +313,51 @@ export default function TarotScreen() {
       getBonusTarotReadings().then(setBonusReadings);
     }, [])
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getOnboardingProfile().then((profile) => {
+        if (active) setOnboardingProfile(profile);
+      });
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
+  useEffect(() => {
+    let active = true;
+    getPendingTarotReading().then(async (pending) => {
+      if (!active || !pending) return;
+      const restoredCards = pending.cardIds.map((id) => TAROT_DECK.find((card) => card.id === id));
+      const restoredTheme = THEMES.find((item) => item.key === pending.themeKey);
+      if (!restoredTheme || restoredCards.some((card) => !card)) {
+        await clearPendingTarotReading();
+        return;
+      }
+      const firstClosed = pending.revealed.findIndex((value) => !value);
+      focusOnRitualLayoutRef.current = true;
+      setTheme(restoredTheme);
+      setDrawn(restoredCards);
+      setOrientations(pending.orientations);
+      setRevealed(pending.revealed);
+      setRitualIndex(firstClosed === -1 ? 2 : firstClosed);
+      setQuestion(pending.question);
+      setReadingQuestion(pending.question || null);
+      setReadingCompletionId(`tarot:${pending.createdAt}:${pending.cardIds.join('.')}`);
+      setReadingOutcome(pending.outcome);
+      setReadingLanguage(pending.lang);
+      setJournalEntryId(null);
+      setReflection('');
+      setReflectionSaved(false);
+      setShared(false);
+      completionRef.current = false;
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Bloqueio vitalício (1 uso grátis, pra tela inteira, qualquer tema) — pra
   // quem NÃO tem acesso completo (solo, ou casal sem assinatura). Independente
@@ -259,19 +393,42 @@ export default function TarotScreen() {
       if (dailyBlocked) return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const shuffled = [...TAROT_DECK].sort(() => Math.random() - 0.5).slice(0, 3);
+    const shuffled = drawTarotCards(TAROT_DECK, 3);
     const newOrientations = shuffled.map(() => Math.random() < 0.5);
+    const questionSnapshot = normalizeTarotQuestion(question);
+    const outcomeSnapshot = resolveTarotOutcome(onboardingProfile);
+    const createdAt = new Date().toISOString();
+    const completionId = `tarot:${createdAt}:${shuffled.map((card) => card.id).join('.')}`;
+    focusOnRitualLayoutRef.current = true;
     setDrawn(shuffled);
     setRevealed([false, false, false]);
     setOrientations(newOrientations);
-    // Tiragem nova é leitura nova: rearma o auto-open do modo história pra
-    // quando ESTA tiragem completar as três cartas.
-    jaAbriuDestaTiragem.current = false;
+    setRitualIndex(0);
+    setReadingQuestion(questionSnapshot);
+    setReadingCompletionId(completionId);
+    setReadingOutcome(outcomeSnapshot);
+    setReadingLanguage(lang);
+    setHistoriaAberta(false);
     setJournalEntryId(null); // nova tiragem: solta o gravador de voz da entrada anterior
+    setReflection('');
+    setReflectionSaved(false);
+    setShared(false);
+    completionRef.current = false;
+
+    // A leitura é consumida agora, mas o resultado fica num snapshot local até
+    // a terceira revelação. Se a pessoa fechar o app no meio, ela retoma as
+    // mesmas cartas em vez de perder a tiragem ou receber outras.
+    await savePendingTarotReading({
+      themeKey: theme.key,
+      cardIds: shuffled.map((card) => card.id),
+      orientations: newOrientations,
+      revealed: [false, false, false],
+      question: questionSnapshot || '',
+      outcome: outcomeSnapshot,
+      lang,
+      createdAt,
+    });
     recordDraw(theme.key);
-    // Álbum das 78 Cartas (lib/tarotCollection.js) — toda carta tirada fica
-    // colecionada; fire-and-forget, nunca atrasa a tiragem em si.
-    recordCardsSeen(shuffled.map((c) => c.id));
     markFeatureUsedOnce(FEATURE_KEY);
     // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
     // tela — trocar de tema ou tocar "Nova Tiragem" na mesma sessão deixaria
@@ -287,35 +444,97 @@ export default function TarotScreen() {
     if (!hasAccess) setLocked(true);
     setDailyBlocked(true);
 
-    // O que vai pro Diário Cósmico é a leitura INTEIRA, casa por casa, mais a
-    // leitura transversal da tiragem (dignidade elemental + grau repetido /
-    // naipe dominante). Sem isso o diário guardava três verbetes soltos, e a
-    // tiragem de três não é três leituras soltas.
-    const readings = shuffled
-      .map((card, i) => {
-        // O que vai pro Diário também é traduzido: era aqui que a entrada
-        // nascia com 'Passado' e '(invertida)' em português mesmo no app em
-        // inglês, e ficava gravada assim pra sempre.
-        const orientationTag = newOrientations[i] ? t('tarot.reversedTag') : '';
-        const casa = t(`tarot.position.${POSITIONS[i]}`);
-        return `${casa} — ${getCardName(card, lang)}${orientationTag}: ${getThemedMeaning(card, theme.key, newOrientations[i], POSITIONS[i], lang)}`;
-      });
-    const dignity = getElementalDignity(shuffled, lang);
-    const pattern = getSpreadPattern(shuffled, lang);
-    const body = [...readings, dignity, pattern].filter(Boolean).join('\n\n');
-    const { entryId } = await recordReadingCompletion({
-      type: 'tarot',
-      typeLabel: t('tarot.diary.type'),
-      title: t('tarot.diary.title', { theme: themeLabel }),
-      body,
-    });
-    setJournalEntryId(entryId);
   };
 
-  const reveal = (i) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const completeReading = useCallback(async () => {
+    if (!drawn || !readingArtifacts || completionRef.current) return;
+    completionRef.current = true;
+    try {
+      const { entryId } = await recordReadingCompletion({
+        type: 'tarot',
+        typeLabel: readingTranslate('tarot.diary.type'),
+        title: readingTranslate('tarot.diary.title', { theme: readingArtifacts.themeLabel }),
+        body: readingArtifacts.fullBody,
+        shareBody: readingArtifacts.publicBody,
+        question: readingQuestion,
+        readingDetails: readingArtifacts.readingDetails,
+        completionId: readingCompletionId,
+      });
+      setJournalEntryId(entryId);
+      recordCardsSeen(drawn.map((card) => card.id));
+      await clearPendingTarotReading();
+    } catch {
+      // O snapshot continua no aparelho. Ao voltar para a tela, a conclusão é
+      // tentada de novo sem trocar carta, pergunta ou orientação.
+      completionRef.current = false;
+    }
+  }, [drawn, readingArtifacts, readingQuestion, readingCompletionId, readingTranslate]);
+
+  const reveal = async (i) => {
     funnel.scratchReveal('tarot', String(POSITIONS[i] || i).toLowerCase());
-    setRevealed((prev) => prev.map((v, idx) => (idx === i ? true : v)));
+    const next = revealed.map((value, index) => (index === i ? true : value));
+    setRevealed(next);
+    await updatePendingTarotRevealed(next);
+    if (next.every(Boolean)) completeReading();
+  };
+
+  useEffect(() => {
+    if (drawn && revealed.every(Boolean) && !journalEntryId) completeReading();
+  }, [drawn, revealed, journalEntryId, completeReading]);
+
+  const saveReflectionToDiary = async () => {
+    const clean = reflection.trim();
+    if (!journalEntryId || !clean || reflectionSaving) return;
+    setReflectionSaving(true);
+    const saved = await attachReflection(journalEntryId, clean);
+    setReflectionSaved(saved);
+    setReflectionSaving(false);
+  };
+
+  const openCommunity = () => navigateFromTab(ROUTES.HOME_TAB, { screen: ROUTES.SOCIAL });
+
+  const publishReading = async () => {
+    if (sharing || !readingArtifacts?.publicBody) return;
+    setSharing(true);
+    try {
+      const profile = await getMySocialProfile();
+      if (!profile) {
+        Alert.alert(t('tarot.community.profileTitle'), t('tarot.community.profileBody'), [
+          { text: t('tarot.community.cancel'), style: 'cancel' },
+          { text: t('tarot.community.profileCta'), onPress: openCommunity },
+        ]);
+        return;
+      }
+      await shareToFeed({
+        readingType: 'tarot',
+        title: readingTranslate('tarot.diary.title', { theme: readingArtifacts.themeLabel }),
+        body: readingArtifacts.publicBody,
+      });
+      setShared(true);
+      Alert.alert(t('tarot.community.sharedTitle'), t('tarot.community.sharedBody'), [
+        { text: t('tarot.community.view'), onPress: openCommunity },
+        { text: t('tarot.community.ok'), style: 'cancel' },
+      ]);
+    } catch {
+      Alert.alert(t('tarot.community.errorTitle'), t('tarot.community.errorBody'));
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const confirmCommunityShare = () => {
+    if (!user) {
+      navigateFromTab(ROUTES.HOME_TAB, { screen: ROUTES.LOGIN });
+      return;
+    }
+    const publicTitle = readingTranslate('tarot.diary.title', { theme: readingArtifacts?.themeLabel || themeLabel });
+    const preview = [t('tarot.community.previewBody'), publicTitle, readingArtifacts?.publicBody]
+      .filter(Boolean)
+      .join('\n\n');
+    Alert.alert(t('tarot.community.previewTitle'), preview, [
+      { text: t('tarot.community.cancel'), style: 'cancel' },
+      { text: t('tarot.community.publish'), onPress: publishReading },
+    ]);
   };
 
   // `!drawn` importa aqui: marcamos `locked=true` no instante em que a
@@ -352,6 +571,10 @@ export default function TarotScreen() {
   // limite diário. Quem não assina nunca lê "amanhã"; só quem assina lê.
   const previaVitaliciaGasta = !hasAccess && locked;
   const limiteDiarioReal = dailyBlocked && !previaVitaliciaGasta;
+  const ritualComplete = !!drawn && revealed.every(Boolean);
+  const currentCard = drawn?.[ritualIndex] || null;
+  const currentOutcome = resolveTarotOutcome(onboardingProfile);
+  const outcomeLabel = t(`onboarding.outcome.${currentOutcome}.label`);
 
   return (
     <View style={styles.root}>
@@ -379,34 +602,54 @@ export default function TarotScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ padding: 20, paddingBottom: Math.max(96, insets.bottom + 88) }}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.sectionLabel}>{t('tarot.chooseTheme')}</Text>
         <View style={styles.themeRow}>
           {THEMES.map((themeOption) => (
             <TouchableOpacity
               key={themeOption.key}
-              style={[styles.themeChip, theme.key === themeOption.key && { borderColor: themeOption.color, backgroundColor: themeOption.color + '22' }]}
-              onPress={() => { Haptics.selectionAsync(); setTheme(themeOption); setDrawn(null); setJournalEntryId(null); }}
+              style={[
+                styles.themeChip,
+                theme.key === themeOption.key && { borderColor: themeOption.color, backgroundColor: themeOption.color + '22' },
+                drawn && !ritualComplete && styles.themeChipDisabled,
+              ]}
+              disabled={!!drawn && !ritualComplete}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setTheme(themeOption);
+                setDrawn(null);
+                setRevealed([false, false, false]);
+                setRitualIndex(0);
+                setJournalEntryId(null);
+                setReadingQuestion(null);
+                setReadingCompletionId(null);
+                setReadingLanguage(lang);
+                setReflection('');
+                setReflectionSaved(false);
+                setShared(false);
+                completionRef.current = false;
+              }}
               accessibilityRole="button"
               accessibilityState={{ selected: theme.key === themeOption.key }}
             >
-              <Ionicons name={themeOption.icon} size={20} color={themeOption.color} />
-              <Text style={styles.themeText}>{t(`tarot.theme.${themeOption.key}`)}</Text>
+              <Ionicons
+                name={themeOption.icon}
+                size={20}
+                color={theme.key === themeOption.key ? themeOption.color : colors.textMuted}
+              />
+              <Text style={[styles.themeText, theme.key === themeOption.key && styles.themeTextSelected]}>
+                {t(`tarot.theme.${themeOption.key}`)}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {!drawn ? (
           <View style={styles.emptyWrap}>
-            {/* A CENA DO TARÔ (08/08/2026) — o hero desenhado (CENAS.taro) no
-                slot que era do maço de dois gradientes. Trocar em vez de somar
-                é o que respeita a primeira dobra: o maço media 170+24 de altura
-                e a cena mede 160+20 — o botão de tirar fica onde estava.
-                accessible={false}: é cenário, não informação; todo o conteúdo
-                da tela segue em texto. */}
-            <View style={styles.cenaWrap}>
-              <Image source={CENAS.taro} style={styles.cenaImg} resizeMode="cover" accessible={false} />
-            </View>
             {limiteDiarioReal || soPodeUsarBonus ? (
               <>
                 <Ionicons
@@ -463,7 +706,37 @@ export default function TarotScreen() {
               </>
             ) : (
               <>
-                <Text style={styles.emptyTitle}>{t('tarot.focusQuestion', { theme: themeLabel.toLocaleLowerCase(lang) })}</Text>
+                <View style={styles.questionCard} testID="tarot-question-card">
+                  <Text style={styles.questionEyebrow}>{t('tarot.question.eyebrow')}</Text>
+                  <Text style={styles.questionTitle}>{t('tarot.question.title')}</Text>
+                  <View style={styles.questionInputShell}>
+                    <TextInput
+                      testID="tarot-question"
+                      style={styles.questionInput}
+                      value={question}
+                      onChangeText={(value) => setQuestion(Array.from(value).slice(0, 220).join(''))}
+                      placeholder={t('tarot.question.placeholder')}
+                      placeholderTextColor={colors.textMuted}
+                      multiline
+                      maxLength={220}
+                      accessibilityLabel={t('tarot.question.title')}
+                    />
+                    <Text style={styles.questionCount}>{Array.from(question).length}/220</Text>
+                  </View>
+                  <Text style={styles.questionHelp}>{t('tarot.question.help')}</Text>
+                  <View style={styles.questionPrivacyRow}>
+                    <Ionicons name="lock-closed-outline" size={13} color={colors.gold} />
+                    <Text style={styles.questionPrivacy}>{t('tarot.question.private')}</Text>
+                  </View>
+                  {onboardingProfile && (
+                    <View style={[styles.profileLens, { borderColor: `${theme.color}55` }]}>
+                      <Ionicons name="options-outline" size={15} color={theme.color} />
+                      <Text style={styles.profileLensText}>
+                        {t('tarot.question.profileLens', { outcome: outcomeLabel.toLocaleLowerCase(lang) })}
+                      </Text>
+                    </View>
+                  )}
+                </View>
 
                 <TouchableOpacity
                   testID="tarot-draw"
@@ -491,49 +764,125 @@ export default function TarotScreen() {
                   feitas={preparoFeitas}
                   onMarcar={marcarRegraDoPreparo}
                   progresso={progressoDoWaite}
+                  pergunta={question}
+                  onPerguntaChange={setQuestion}
                 />
               </>
             )}
           </View>
         ) : (
           <>
-            <View style={styles.cardsRow}>
-              {drawn.map((card, i) => (
-                <View key={card.id} style={styles.tarotCard}>
+            <View
+              style={styles.ritualStage}
+              testID="tarot-ritual-stage"
+              onLayout={(event) => {
+                ritualOffsetRef.current = event.nativeEvent.layout.y;
+                if (!focusOnRitualLayoutRef.current) return;
+                focusOnRitualLayoutRef.current = false;
+                focusRitual(false);
+              }}
+            >
+              <View style={styles.ritualMarkers}>
+                {drawn.map((card, index) => (
+                  <View
+                    key={card.id}
+                    style={[
+                      styles.ritualMarker,
+                      index === ritualIndex && { borderColor: theme.color },
+                      revealed[index] && { backgroundColor: theme.color, borderColor: theme.color },
+                    ]}
+                  >
+                    {revealed[index] && <Ionicons name="checkmark" size={12} color="#fff" />}
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.ritualStep}>
+                {t('tarot.ritual.step', { current: ritualIndex + 1, total: drawn.length })}
+              </Text>
+              <Text style={styles.ritualPosition}>{readingTranslate(`tarot.position.${POSITIONS[ritualIndex]}`)}</Text>
+
+              {currentCard && (
+                <View style={styles.tarotCardLarge}>
                   <ScratchRevealCard
-                    testID={`tarot-scratch-${i}`}
-                    revealed={revealed[i]}
-                    resetKey={`${card.id}:${orientations[i] ? 'r' : 'u'}`}
-                    onReveal={() => reveal(i)}
+                    key={`${currentCard.id}:${ritualIndex}`}
+                    testID={`tarot-scratch-${ritualIndex}`}
+                    revealed={revealed[ritualIndex]}
+                    resetKey={`${currentCard.id}:${orientations[ritualIndex] ? 'r' : 'u'}`}
+                    onReveal={() => reveal(ritualIndex)}
                     themeColor={theme.color}
                     scratchLabel={t('tarot.scratch')}
                     tapLabel={t('tarot.scratch.tapAlternative')}
                     accessibilityLabel={t('tarot.scratch.a11y')}
-                    style={styles.scratchCard}
+                    style={[styles.scratchCard, { shadowColor: theme.color }]}
                   >
                     <View style={styles.tarotFace}>
                       <Image
-                        source={getTarotImage(card.id)}
-                        style={[styles.tarotImage, orientations[i] && { transform: [{ rotate: '180deg' }] }]}
+                        source={getTarotImage(currentCard.id)}
+                        style={[styles.tarotImage, orientations[ritualIndex] && { transform: [{ rotate: '180deg' }] }]}
                         resizeMode="cover"
                       />
                     </View>
                   </ScratchRevealCard>
-                  {revealed[i] && (
-                      <Text testID={`tarot-card-name-${i}`} style={styles.tarotName} numberOfLines={2}>
-                        {getCardName(card, lang)}
-                        {orientations[i] ? t('tarot.reversedTag') : ''}
-                      </Text>
+                  {revealed[ritualIndex] && (
+                    <Text testID={`tarot-card-name-${ritualIndex}`} style={styles.tarotName}>
+                      {getCardName(currentCard, readingLanguage)}
+                      {orientations[ritualIndex] ? readingTranslate('tarot.reversedTag') : ''}
+                    </Text>
                   )}
-                  <Text style={styles.posLabel}>{t(`tarot.position.${POSITIONS[i]}`)}</Text>
                 </View>
-              ))}
+              )}
+
+              {revealed[ritualIndex] && ritualIndex < drawn.length - 1 && (
+                <Pressable
+                  testID={`tarot-next-${ritualIndex}`}
+                  style={({ pressed }) => [styles.nextCardBtn, pressed && styles.nextCardBtnPressed]}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setRitualIndex((index) => Math.min(index + 1, drawn.length - 1));
+                    focusRitual();
+                  }}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.nextCardBtnText}>{t('tarot.ritual.next')}</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#1B1224" />
+                </Pressable>
+              )}
+
+              {ritualComplete && (
+                <View style={styles.ritualCompletePill}>
+                  <Ionicons name="sparkles" size={15} color={colors.gold} />
+                  <Text style={styles.ritualCompleteText}>{t('tarot.ritual.complete')}</Text>
+                </View>
+              )}
             </View>
 
             {/* O MODO HISTÓRIA — acima do texto da leitura, e só com as três
                 cartas viradas: o botão abre a MESMA leitura que está logo
                 abaixo, um trecho por tela. Nenhum gate muda: quem chegou aqui
                 já tem a tiragem na tela. */}
+            {ritualComplete && readingArtifacts && (
+              <View style={styles.personalCard} testID="tarot-personal-synthesis">
+                <View style={styles.personalHeader}>
+                  <View style={[styles.personalIcon, { backgroundColor: `${theme.color}22` }]}>
+                    <Ionicons name="git-branch-outline" size={19} color={theme.color} />
+                  </View>
+                  <View style={styles.personalHeaderText}>
+                    <Text style={styles.personalTitle}>{readingTranslate('tarot.personal.title')}</Text>
+                    <Text style={styles.personalLens}>
+                      {readingTranslate(`onboarding.outcome.${readingArtifacts.model.outcome}.label`)}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.personalContext}>{readingArtifacts.context}</Text>
+                <Text style={styles.personalBridge}>{readingArtifacts.bridge}</Text>
+                <View style={[styles.personalPrompt, { borderColor: `${theme.color}55` }]}>
+                  <Ionicons name="compass-outline" size={18} color={theme.color} />
+                  <Text style={styles.personalPromptText}>{readingArtifacts.reflectionPrompt}</Text>
+                </View>
+                <Text style={styles.personalDisclaimer}>{t('tarot.personal.disclaimer')}</Text>
+              </View>
+            )}
+
             {revealed.every(Boolean) && (
               <TouchableOpacity
                 style={styles.historiaBtn}
@@ -555,22 +904,22 @@ export default function TarotScreen() {
             )}
 
             {drawn.map((card, i) => {
-              if (!revealed[i]) return null;
+              if (!ritualComplete) return null;
               // Waite, 1911, verbatim — só nas cartas em que a citação está
               // conferida (11 das 78). Fica FORA da leitura, numa nota
               // rotulada: é história do baralho, não é o app dizendo isso
               // sobre a vida de quem consultou. Nas outras 67 cartas não
               // aparece nada, porque não citar é melhor que citar de ouvido.
-              const waite = getWaiteNote(card, lang);
+              const waite = getWaiteNote(card, readingLanguage);
               return (
                 <View key={i} style={styles.meaningCard}>
                   <View style={[styles.meaningIcon, { backgroundColor: theme.color + '22' }]}>
                     <Ionicons name={card.icon} size={20} color={theme.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.meaningPos}>{t(`tarot.position.${POSITIONS[i]}`)} · {getCardName(card, lang)}{orientations[i] ? t('tarot.reversedTag') : ''}</Text>
+                    <Text style={styles.meaningPos}>{readingTranslate(`tarot.position.${POSITIONS[i]}`)} · {getCardName(card, readingLanguage)}{orientations[i] ? readingTranslate('tarot.reversedTag') : ''}</Text>
                     <Text style={styles.meaningText}>
-                      {getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i], lang)}
+                      {readingArtifacts?.canonicalMeanings[i] || getThemedMeaning(card, theme.key, orientations[i], POSITIONS[i], lang)}
                     </Text>
                     {waite && (
                       <View style={styles.sourceBox}>
@@ -641,8 +990,8 @@ export default function TarotScreen() {
                 três cartas viradas: antes disso seria entregar o desfecho de
                 uma carta que a pessoa ainda não abriu. */}
             {revealed.every(Boolean) && (() => {
-              const dignity = getElementalDignity(drawn, lang);
-              const pattern = getSpreadPattern(drawn, lang);
+              const dignity = readingArtifacts?.dignity;
+              const pattern = readingArtifacts?.pattern;
               if (!dignity && !pattern) return null;
               return (
                 <View style={styles.spreadCard}>
@@ -664,7 +1013,7 @@ export default function TarotScreen() {
               <VoiceInsightRecorder
                 entryId={journalEntryId}
                 readingType="tarot"
-                readingTitle={t('tarot.diary.title', { theme: themeLabel })}
+                readingTitle={readingTranslate('tarot.diary.title', { theme: readingArtifacts?.themeLabel || themeLabel })}
               />
             )}
 
@@ -672,7 +1021,112 @@ export default function TarotScreen() {
                 acabou de ler (screens/GroundingScreen.js). Card, nunca modal,
                 e sem recompensa nenhuma — o porquê está em
                 components/GroundingInvite.js. */}
-            <GroundingInvite />
+            {ritualComplete && journalEntryId && (
+              <View style={styles.reflectionCard} testID="tarot-reflection-card">
+                <View style={styles.reflectionHeader}>
+                  <View style={styles.reflectionIcon}>
+                    <Ionicons name="create-outline" size={20} color={colors.gold} />
+                  </View>
+                  <View style={styles.reflectionHeaderText}>
+                    <Text style={styles.reflectionTitle}>{t('tarot.reflection.title')}</Text>
+                    <Text style={styles.reflectionBody}>{t('tarot.reflection.body')}</Text>
+                  </View>
+                </View>
+                <TextInput
+                  testID="tarot-reflection-input"
+                  style={styles.reflectionInput}
+                  value={reflection}
+                  onChangeText={(value) => {
+                    setReflection(value);
+                    setReflectionSaved(false);
+                  }}
+                  placeholder={t('tarot.reflection.placeholder')}
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  maxLength={600}
+                  accessibilityLabel={t('tarot.reflection.title')}
+                />
+                <View style={styles.reflectionFooter}>
+                  <View style={styles.reflectionPrivate}>
+                    <Ionicons name="lock-closed-outline" size={13} color={colors.gold} />
+                    <Text style={styles.reflectionPrivateText}>{t('tarot.reflection.private')}</Text>
+                  </View>
+                  <Pressable
+                    testID="tarot-reflection-save"
+                    style={({ pressed }) => [
+                      styles.reflectionSave,
+                      (!reflection.trim() || reflectionSaving) && styles.reflectionSaveDisabled,
+                      pressed && styles.reflectionSavePressed,
+                    ]}
+                    onPress={saveReflectionToDiary}
+                    disabled={!reflection.trim() || reflectionSaving}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name={reflectionSaved ? 'checkmark' : 'bookmark-outline'} size={15} color="#21152D" />
+                    <Text style={styles.reflectionSaveText}>
+                      {reflectionSaved ? t('tarot.reflection.saved') : t('tarot.reflection.save')}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            {ritualComplete && readingArtifacts && (
+              <View style={styles.communityCard} testID="tarot-community-card">
+                <View style={styles.communityHeader}>
+                  <View style={styles.communityIcon}>
+                    <Ionicons name="people-outline" size={21} color={colors.gold} />
+                  </View>
+                  <View style={styles.communityHeaderText}>
+                    <Text style={styles.communityTitle}>{t('tarot.community.title')}</Text>
+                    <Text style={styles.communityBody}>{t('tarot.community.body')}</Text>
+                  </View>
+                </View>
+                <View style={styles.communityPrivacy}>
+                  <Ionicons name="shield-checkmark-outline" size={15} color={colors.gold} />
+                  <Text style={styles.communityPrivacyText}>
+                    {coupleData ? t('tarot.community.couplePrivate') : t('tarot.community.privacy')}
+                  </Text>
+                </View>
+                {!coupleData && (
+                  <View style={styles.communityActions}>
+                    <Pressable
+                      style={({ pressed }) => [styles.communityPrimary, pressed && styles.communityPressed, shared && styles.communityShared]}
+                      onPress={confirmCommunityShare}
+                      disabled={sharing || shared}
+                      accessibilityRole="button"
+                    >
+                      <Ionicons
+                        name={shared ? 'checkmark-circle' : user ? 'share-social-outline' : 'log-in-outline'}
+                        size={17}
+                        color="#21152D"
+                      />
+                      <Text style={styles.communityPrimaryText}>
+                        {shared
+                          ? t('tarot.community.sharedCta')
+                          : sharing
+                            ? t('tarot.community.sharing')
+                            : user
+                              ? t('tarot.community.share')
+                              : t('tarot.community.login')}
+                      </Text>
+                    </Pressable>
+                    {user && (
+                      <Pressable
+                        style={({ pressed }) => [styles.communitySecondary, pressed && styles.communityPressed]}
+                        onPress={openCommunity}
+                        accessibilityRole="button"
+                      >
+                        <Text style={styles.communitySecondaryText}>{t('tarot.community.view')}</Text>
+                        <Ionicons name="arrow-forward" size={16} color={colors.gold} />
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {ritualComplete && <GroundingInvite />}
 
             {/* ORDEM IMPORTA: o ramo do limite diário vinha primeiro e, como
                 drawCards() liga dailyBlocked em TODA tiragem, quem não assina
@@ -680,7 +1134,7 @@ export default function TarotScreen() {
                 botão de assinar nunca chegava a aparecer neste primeiro
                 estado. A prévia vitalícia vem primeiro agora, porque é ela
                 que decide o que acontece amanhã pra essa pessoa. */}
-            {previaVitaliciaGasta ? (
+            {ritualComplete && (previaVitaliciaGasta ? (
               // drawCards() já recusa redesenhar nesse caso — aqui é só pra não
               // deixar um botão "morto" que não faz nada visível ao tocar.
               // O texto ocupa o lugar do botão "Nova Tiragem": pedia assinatura
@@ -742,7 +1196,7 @@ export default function TarotScreen() {
                   <Text style={styles.btnText}>{t('tarot.drawAgain')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
-            )}
+            ))}
           </>
         )}
       </ScrollView>
@@ -784,12 +1238,11 @@ export default function TarotScreen() {
 //
 // STORAGE: nenhum. O preparo é o gesto de agora, nesta cadeira — não há o que
 // guardar, e por isso esta tela continua sem tocar em AsyncStorage.
-function PreparoDeWaite({ lang, aberto, onAlternar, feitas, onMarcar, progresso }) {
+function PreparoDeWaite({ lang, aberto, onAlternar, feitas, onMarcar, progresso, pergunta, onPerguntaChange }) {
   const UI = chromeDoPreparo(lang);
   // 'voce' | 'outra' — a única coisa que muda a saída do motor, e a quarta
   // regra é a única regra que responde a ela.
   const [paraQuem, setParaQuem] = useState('voce');
-  const [pergunta, setPergunta] = useState('');
   const [restam, setRestam] = useState(null);
   const [fontesAbertas, setFontesAbertas] = useState(false);
 
@@ -913,10 +1366,11 @@ function PreparoDeWaite({ lang, aberto, onAlternar, feitas, onMarcar, progresso 
                 <TextInput
                   style={styles.preparoInput}
                   value={pergunta}
-                  onChangeText={setPergunta}
+                  onChangeText={onPerguntaChange}
                   placeholder={UI.ajudaCampo}
                   placeholderTextColor={colors.textMuted}
                   multiline
+                  maxLength={220}
                   accessibilityLabel={UI.rotuloCampo}
                   testID="preparo-campo-pergunta"
                 />
@@ -931,7 +1385,7 @@ function PreparoDeWaite({ lang, aberto, onAlternar, feitas, onMarcar, progresso 
                   <TouchableOpacity
                     key={exemplo}
                     activeOpacity={0.7}
-                    onPress={() => setPergunta(exemplo)}
+                    onPress={() => onPerguntaChange(exemplo)}
                     accessibilityRole="button"
                     accessibilityLabel={exemplo}
                   >
@@ -1085,13 +1539,42 @@ const styles = StyleSheet.create({
   sectionLabel: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
   themeRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   themeChip: { flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border, gap: 6 },
+  themeChipDisabled: { opacity: 0.48 },
   themeText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
-  emptyWrap: { alignItems: 'center', marginTop: 20 },
-  // A cena ilustrada do topo do estado vazio (substituiu deckStack/deckCard,
-  // o maço de gradientes que fazia as vezes de arte antes do pack existir).
-  cenaWrap: { width: '100%', borderRadius: 18, overflow: 'hidden', marginBottom: 20 },
-  cenaImg: { width: '100%', height: 160 },
+  themeTextSelected: { color: colors.text },
+  emptyWrap: { alignItems: 'center', marginTop: 4 },
   emptyTitle: { color: colors.textSecondary, fontSize: 15, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20, lineHeight: 24 },
+  questionCard: {
+    width: '100%',
+    alignItems: 'stretch',
+    backgroundColor: '#17101F',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.gold + '35',
+    padding: 17,
+    marginBottom: 16,
+  },
+  questionEyebrow: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  questionTitle: { color: colors.text, fontSize: 20, lineHeight: 26, fontWeight: '800', marginTop: 7 },
+  questionInputShell: {
+    marginTop: 14,
+    minHeight: 116,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    padding: 13,
+  },
+  questionInput: { minHeight: 72, color: colors.text, fontSize: 16, lineHeight: 23, textAlignVertical: 'top' },
+  questionCount: { color: colors.textMuted, fontSize: 10, fontWeight: '700', textAlign: 'right', marginTop: 4 },
+  questionHelp: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 11 },
+  questionPrivacyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  questionPrivacy: { flex: 1, color: colors.gold, fontSize: 11, lineHeight: 16, fontWeight: '700' },
+  profileLens: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12,
+    padding: 10, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.025)',
+  },
+  profileLensText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
   dailyLimitNote: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 16, lineHeight: 19, paddingHorizontal: 10 },
   bonusStoreBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
@@ -1112,11 +1595,41 @@ const styles = StyleSheet.create({
   btnWrap: { borderRadius: 12, overflow: 'hidden', width: '100%' },
   btn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, gap: 8 },
   btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  cardsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  tarotCard: { alignItems: 'center', width: '31%' },
-  scratchCard: { width: '100%', height: 150, borderRadius: 14 },
+  ritualStage: {
+    width: '100%',
+    alignItems: 'center',
+    backgroundColor: '#140D1D',
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: colors.gold + '2D',
+    paddingVertical: 22,
+    paddingHorizontal: 14,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  ritualMarkers: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  ritualMarker: {
+    width: 22, height: 22, borderRadius: 11, borderWidth: 1,
+    borderColor: colors.border, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.035)',
+  },
+  ritualStep: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.45, marginTop: 14 },
+  ritualPosition: { color: colors.text, fontSize: 24, lineHeight: 30, fontWeight: '800', marginTop: 4, marginBottom: 16 },
+  tarotCardLarge: { width: '100%', alignItems: 'center' },
+  scratchCard: {
+    width: '90%',
+    maxWidth: 310,
+    aspectRatio: 0.625,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.gold + '55',
+    shadowOpacity: 0.34,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
   tarotFace: {
-    width: '100%', height: 150, borderRadius: 14, overflow: 'hidden',
+    width: '100%', height: '100%', borderRadius: 20, overflow: 'hidden',
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
   },
   tarotImage: { width: '100%', height: '100%' },
@@ -1124,9 +1637,39 @@ const styles = StyleSheet.create({
   // O nome da carta revelada é o momento da tela — tipografia display (20/800).
   // numberOfLines={2} segue no JSX; a orientação também está na imagem girada e
   // repetida em meaningPos, então nome longo truncado não esconde informação.
-  tarotName: { color: colors.text, fontSize: 20, fontWeight: '800', lineHeight: 24, marginTop: 10, textAlign: 'center' },
+  tarotName: { color: colors.text, fontSize: 24, fontWeight: '800', lineHeight: 30, marginTop: 14, textAlign: 'center', paddingHorizontal: 18 },
   tapText: { color: colors.textMuted, fontSize: 11 },
   posLabel: { color: colors.textMuted, fontSize: 12, marginTop: 8, fontWeight: '600' },
+  nextCardBtn: {
+    width: '90%', maxWidth: 310, minHeight: 50, marginTop: 18, borderRadius: 15,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
+    backgroundColor: colors.gold,
+  },
+  nextCardBtnPressed: { opacity: 0.84, transform: [{ scale: 0.99 }] },
+  nextCardBtnText: { color: '#1B1224', fontSize: 14, fontWeight: '900' },
+  ritualCompletePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 18,
+    borderRadius: 999, borderWidth: 1, borderColor: colors.gold + '55',
+    backgroundColor: colors.gold + '12', paddingHorizontal: 14, paddingVertical: 8,
+  },
+  ritualCompleteText: { color: colors.gold, fontSize: 12, fontWeight: '800' },
+  personalCard: {
+    backgroundColor: '#191121', borderRadius: 22, padding: 18, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.gold + '38',
+  },
+  personalHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  personalIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  personalHeaderText: { flex: 1 },
+  personalTitle: { color: colors.text, fontSize: 19, fontWeight: '800' },
+  personalLens: { color: colors.gold, fontSize: 11, fontWeight: '800', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.55 },
+  personalContext: { color: colors.text, fontSize: 15, lineHeight: 23, marginTop: 16 },
+  personalBridge: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 10 },
+  personalPrompt: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 15,
+    borderRadius: 14, borderWidth: 1, padding: 13, backgroundColor: 'rgba(255,255,255,0.025)',
+  },
+  personalPromptText: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 21, fontWeight: '600' },
+  personalDisclaimer: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 12 },
   meaningCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
   meaningIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   meaningPos: { color: colors.text, fontSize: 15, fontWeight: '800' },
@@ -1144,6 +1687,63 @@ const styles = StyleSheet.create({
   spreadTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 8 },
   spreadText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
   spreadFootnote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 10 },
+  reflectionCard: {
+    backgroundColor: '#17101F', borderRadius: 20, padding: 17, marginTop: 2, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.gold + '35',
+  },
+  reflectionHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 11 },
+  reflectionIcon: {
+    width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.gold + '14',
+  },
+  reflectionHeaderText: { flex: 1 },
+  reflectionTitle: { color: colors.text, fontSize: 17, lineHeight: 22, fontWeight: '800' },
+  reflectionBody: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 3 },
+  reflectionInput: {
+    minHeight: 104, marginTop: 14, padding: 13, borderRadius: 14, textAlignVertical: 'top',
+    borderWidth: 1, borderColor: colors.border, backgroundColor: 'rgba(255,255,255,0.03)',
+    color: colors.text, fontSize: 15, lineHeight: 22,
+  },
+  reflectionFooter: { marginTop: 11, gap: 10 },
+  reflectionPrivate: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  reflectionPrivateText: { flex: 1, color: colors.textMuted, fontSize: 11, lineHeight: 16 },
+  reflectionSave: {
+    minHeight: 44, borderRadius: 13, backgroundColor: colors.gold,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+  },
+  reflectionSaveDisabled: { opacity: 0.42 },
+  reflectionSavePressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },
+  reflectionSaveText: { color: '#21152D', fontSize: 13, fontWeight: '900' },
+  communityCard: {
+    backgroundColor: '#17101F', borderRadius: 20, padding: 17, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.gold + '35',
+  },
+  communityHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 11 },
+  communityIcon: {
+    width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.gold + '14',
+  },
+  communityHeaderText: { flex: 1 },
+  communityTitle: { color: colors.text, fontSize: 17, lineHeight: 22, fontWeight: '800' },
+  communityBody: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 3 },
+  communityPrivacy: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 13,
+    padding: 11, borderRadius: 12, backgroundColor: colors.gold + '0D',
+  },
+  communityPrivacyText: { flex: 1, color: colors.gold, fontSize: 11, lineHeight: 17, fontWeight: '700' },
+  communityActions: { marginTop: 13, gap: 9 },
+  communityPrimary: {
+    minHeight: 46, borderRadius: 13, backgroundColor: colors.gold,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  communityShared: { backgroundColor: '#DDBA70' },
+  communityPrimaryText: { color: '#21152D', fontSize: 13, fontWeight: '900' },
+  communitySecondary: {
+    minHeight: 43, borderRadius: 13, borderWidth: 1, borderColor: colors.gold + '44',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+  },
+  communitySecondaryText: { color: colors.gold, fontSize: 13, fontWeight: '800' },
+  communityPressed: { opacity: 0.8, transform: [{ scale: 0.99 }] },
 
   // ---- O PREPARO DE WAITE ----
   // Mobile-first e alinhado à esquerda: o painel vive dentro de `emptyWrap`,
