@@ -60,6 +60,9 @@ async function postar(userId, title, body) {
 }
 
 test.after(() => {
+  try {
+    db.close();
+  } catch {}
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
@@ -89,6 +92,41 @@ test("denunciar IA não exige login; denunciar uma PESSOA exige", async () => {
 
   const semToken = await supertest(app).post("/api/moderation/report").send({ kind: "user", targetId: "m2", reason: "spam" });
   assert.equal(semToken.status, 401);
+});
+
+test("ID de pessoa é canonicalizado antes da denúncia e da suspensão", async () => {
+  await perfil("space-reporter", "space_reporter");
+  await perfil("space-victim", "space_victim");
+  await postar("space-victim", "Post da pessoa", "conteúdo social");
+
+  await supertest(app)
+    .post("/api/moderation/report")
+    .set(auth("space-reporter"))
+    .send({ kind: "user", targetId: " \u0000 space-victim\t ", reason: "assédio" })
+    .expect(200);
+
+  const report = db
+    .prepare(
+      "SELECT id, target_id, target_user_id FROM moderation_reports WHERE reporter_id = ? ORDER BY id DESC"
+    )
+    .get("space-reporter");
+  assert.equal(report.target_id, "space-victim");
+  assert.equal(report.target_user_id, "space-victim");
+
+  const suspended = await supertest(app)
+    .post(`/api/admin/reports/${report.id}`)
+    .set("X-Admin-Token", process.env.ADMIN_TOKEN)
+    .send({ action: "suspend", reason: "risco confirmado" })
+    .expect(200);
+
+  assert.equal(suspended.body.suspendedUserId, "space-victim");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM social_profiles WHERE user_id = ?").get("space-victim").c, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM social_posts WHERE user_id = ?").get("space-victim").c, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM social_suspensions WHERE user_id = ?").get("space-victim").c, 1);
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM social_suspensions WHERE user_id = ?").get("  space-victim  ").c, 0);
+
+  const refused = await supertest(app).get("/api/social/profile/me").set(auth("space-victim")).expect(403);
+  assert.equal(refused.body.code, "community_suspended");
 });
 
 test("kind desconhecido e reason vazio são recusados", async () => {
@@ -229,6 +267,11 @@ test("o dono resolve a denúncia: 'remove' apaga o conteúdo e fecha a linha", a
 
   assert.equal(db.prepare("SELECT COUNT(*) c FROM social_posts WHERE id = ?").get(postId).c, 0, "o post denunciado tem que sumir");
   assert.equal(db.prepare("SELECT status FROM moderation_reports WHERE id = ?").get(denuncia.id).status, "removed");
+  const action = db
+    .prepare("SELECT action, reason FROM moderation_actions WHERE report_id = ? ORDER BY id DESC")
+    .get(denuncia.id);
+  assert.equal(action.action, "remove");
+  assert.match(action.reason, /conteúdo removido/);
 
   // Resolver duas vezes não pode apagar outra coisa por engano.
   const denovo = await supertest(app)
@@ -238,29 +281,53 @@ test("o dono resolve a denúncia: 'remove' apaga o conteúdo e fecha a linha", a
   assert.equal(denovo.status, 409);
 });
 
-test("denúncia de usuário pode suspender a presença social e a reversão é auditável", async () => {
+test("denúncia social suspende sem apagar evidência/bloqueio e a reversão fica auditável", async () => {
   await perfil("s1", "denuncias1");
   await perfil("s2", "suspenso2");
-  await postar("s2", "Conteúdo do perfil suspenso", "corpo");
+  const postId = await postar("s2", "Conteúdo do perfil suspenso", "prova preservada para recurso");
+
+  await supertest(app)
+    .post("/api/moderation/block")
+    .set(auth("s1"))
+    .send({ blockedUserId: "s2" })
+    .expect(200);
 
   await supertest(app)
     .post("/api/moderation/report")
     .set(auth("s1"))
-    .send({ kind: "user", targetId: "s2", reason: "assédio" })
+    .send({ kind: "post", targetId: String(postId), reason: "assédio" })
     .expect(200);
   const denuncia = db
-    .prepare("SELECT id FROM moderation_reports WHERE kind = 'user' AND target_user_id = 's2' ORDER BY id DESC")
+    .prepare("SELECT id FROM moderation_reports WHERE kind = 'post' AND target_user_id = 's2' ORDER BY id DESC")
     .get();
 
   const suspended = await supertest(app)
     .post(`/api/admin/reports/${denuncia.id}`)
     .set("X-Admin-Token", process.env.ADMIN_TOKEN)
-    .send({ action: "suspend" })
+    .send({ action: "suspend", reason: "risco confirmado na revisão" })
     .expect(200);
   assert.equal(suspended.body.suspendedUserId, "s2");
+  assert.equal(suspended.body.deleted.blocksPreserved, 1);
+  assert.ok(suspended.body.deleted.reportsPreserved >= 1);
   assert.equal(db.prepare("SELECT COUNT(*) c FROM social_profiles WHERE user_id = 's2'").get().c, 0);
   assert.equal(db.prepare("SELECT COUNT(*) c FROM social_posts WHERE user_id = 's2'").get().c, 0);
   assert.equal(db.prepare("SELECT COUNT(*) c FROM social_suspensions WHERE user_id = 's2'").get().c, 1);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) c FROM social_blocks WHERE user_id = 's1' AND blocked_user_id = 's2'").get().c,
+    1,
+    "suspender não pode desfazer a proteção escolhida por outra pessoa"
+  );
+
+  const preservedReport = db
+    .prepare("SELECT target_user_id, content, status FROM moderation_reports WHERE id = ?")
+    .get(denuncia.id);
+  assert.equal(preservedReport.target_user_id, "s2");
+  assert.match(preservedReport.content, /prova preservada para recurso/);
+  assert.equal(preservedReport.status, "suspended");
+  const suspendAction = db
+    .prepare("SELECT action, reason FROM moderation_actions WHERE report_id = ? ORDER BY id DESC")
+    .get(denuncia.id);
+  assert.deepEqual(suspendAction, { action: "suspend", reason: "risco confirmado na revisão" });
 
   const refused = await supertest(app).get("/api/social/profile/me").set(auth("s2")).expect(403);
   assert.equal(refused.body.code, "community_suspended");
@@ -284,4 +351,14 @@ test("denúncia de usuário pode suspender a presença social e a reversão é a
 
   const after = await supertest(app).get("/api/social/profile/me").set(auth("s2")).expect(200);
   assert.equal(after.body.profile, null, "reverter suspensão não ressuscita conteúdo removido");
+  const actions = db
+    .prepare("SELECT action, reason FROM moderation_actions WHERE report_id = ? ORDER BY id")
+    .all(denuncia.id);
+  assert.deepEqual(actions, [
+    { action: "suspend", reason: "risco confirmado na revisão" },
+    { action: "unsuspend", reason: "revisão concluída" },
+  ]);
+
+  await perfil("s2", "retorno2");
+  await supertest(app).get("/api/social/users/s2").set(auth("s1")).expect(404);
 });

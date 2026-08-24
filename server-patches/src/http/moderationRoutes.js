@@ -26,6 +26,7 @@ const { db } = require("../infrastructure/db");
 const { requireAuth } = require("./socialAuth");
 const { optionalAuth } = require("./accountAuth");
 const { stripControlChars } = require("../infrastructure/textSanitize");
+const { normalizeSocialUserId } = require("../infrastructure/normalizeSocialUserId");
 
 const router = express.Router();
 
@@ -94,7 +95,10 @@ router.post("/report", reportLimiter, optionalAuth, (req, res) => {
   const motivo = texto(reason, REASON_MAX);
   if (!motivo) return res.status(400).json({ error: "reason é obrigatório" });
 
-  const alvo = targetId === undefined || targetId === null ? null : String(targetId).slice(0, 64) || null;
+  // Canonicaliza o alvo na borda. O mesmo valor precisa alimentar o snapshot,
+  // a denuncia e qualquer acao administrativa posterior; manter espacos aqui
+  // permitiria apagar o perfil canonico e gravar a suspensao em outro ID.
+  const alvo = normalizeSocialUserId(targetId);
   if (kind !== "ai" && !alvo) return res.status(400).json({ error: "targetId é obrigatório" });
 
   const snap = alvo ? instantaneo(kind, alvo) : null;
@@ -124,7 +128,7 @@ router.post("/report", reportLimiter, optionalAuth, (req, res) => {
 
 function alvoDoBloqueio(req, res) {
   const { blockedUserId } = req.body || {};
-  const alvo = typeof blockedUserId === "string" ? blockedUserId.trim() : "";
+  const alvo = normalizeSocialUserId(blockedUserId);
   if (!alvo) {
     res.status(400).json({ error: "blockedUserId é obrigatório" });
     return null;

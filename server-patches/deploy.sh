@@ -277,6 +277,15 @@ ssh -o ConnectTimeout=25 "$REMOTE" "
     echo 'ERRO: a rota de Moderação não respondeu com o contrato esperado.' >&2
     exit 1
   fi
+  # Prova que ADMIN_TOKEN está configurado sem ler nem imprimir o segredo.
+  # Sem a env a rota responde 503; configurada e sem header precisa responder
+  # 401. Assim o deploy não deixa a fila humana virar uma tela inoperante.
+  ADMIN_STATUS=\$(curl -sS --max-time 8 -o /dev/null -w '%{http_code}' http://127.0.0.1:3005/api/admin/metrics)
+  echo \"  painel admin sem credencial: HTTP \$ADMIN_STATUS\"
+  if [ \"\$ADMIN_STATUS\" != '401' ]; then
+    echo 'ERRO: ADMIN_TOKEN ausente ou proteção do Painel fora do contrato (esperado 401 sem credencial).' >&2
+    exit 1
+  fi
   echo '  --- migrações aplicadas neste boot ---'
   pm2 logs forja-backend --lines 40 --nostream 2>/dev/null | grep -i 'migration' | tail -5 || echo '  (nenhuma linha de migração no log)'
   echo '  --- erros recentes ---'

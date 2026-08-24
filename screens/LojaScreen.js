@@ -10,7 +10,7 @@ import { getTokenBalance, spendTokens } from '../lib/tokens';
 import { addShield, getShieldCount } from '../lib/streakShield';
 import {
   grantSeloCosmico,
-  addBonusTarotReading,
+  redeemBonusTarotReadingWithTokens,
   grantGoldTheme,
   hasGoldTheme,
   grantBrinde,
@@ -73,6 +73,29 @@ export default function LojaScreen() {
     [t, irGanharTokens]
   );
 
+  // Falha de persistência não pode parecer sucesso. Quando o crédito do
+  // bônus falha, a saga em lib/tokens estorna primeiro; este alerta diz
+  // exatamente o que foi (ou não foi) confirmado no aparelho.
+  const alertaFalhaEntrega = useCallback(
+    (result, cost) => {
+      setBalance(result.balance);
+      if (result.reason === 'storage_error') {
+        Alert.alert(t('loja.alert.storageError.title'), t('loja.alert.storageError.text'));
+        return;
+      }
+      Alert.alert(
+        t('loja.alert.deliveryFailed.title'),
+        t(
+          result.refunded
+            ? 'loja.alert.deliveryFailed.refundedText'
+            : 'loja.alert.deliveryFailed.unconfirmedText',
+          { cost, balance: result.balance }
+        )
+      );
+    },
+    [t]
+  );
+
   const load = useCallback(() => {
     getTokenBalance().then(setBalance);
     getOwnedBrindes().then(setOwnedBrindes);
@@ -95,7 +118,15 @@ export default function LojaScreen() {
         return;
       }
       setRedeeming(reward.id);
-      const result = await spendTokens(reward.cost, rewardTitle(t, reward.id));
+      const title = rewardTitle(t, reward.id);
+      const result =
+        reward.id === 'leitura-bonus'
+          ? await redeemBonusTarotReadingWithTokens({
+              cost: reward.cost,
+              purchaseReason: title,
+              refundReason: t('loja.refund.reason', { title }),
+            })
+          : await spendTokens(reward.cost, title);
       if (result.ok) {
         setBalance(result.balance);
         if (reward.id === 'escudo-sequencia') {
@@ -105,7 +136,7 @@ export default function LojaScreen() {
           await grantSeloCosmico();
           Alert.alert(t('loja.alert.seal.title'), t('loja.alert.seal.text'));
         } else if (reward.id === 'leitura-bonus') {
-          const count = await addBonusTarotReading();
+          const count = result.delivery;
           Alert.alert(t('loja.alert.bonusReading.title'), t('loja.alert.bonusReading.text', { count }));
         } else if (reward.id === 'destaque-diario') {
           await addPinCredit();
@@ -127,6 +158,8 @@ export default function LojaScreen() {
         } else {
           Alert.alert(t('loja.alert.redeemed.title'), t('loja.alert.redeemed.text', { title: rewardTitle(t, reward.id) }));
         }
+      } else if (result.reason === 'delivery_failed' || result.reason === 'storage_error') {
+        alertaFalhaEntrega(result, reward.cost);
       } else {
         alertaSemSaldo(t('loja.alert.noBalance.rewardText', { balance: result.balance, cost: reward.cost }));
       }
@@ -163,8 +196,21 @@ export default function LojaScreen() {
     }
     setRedeeming(brinde.id);
     try {
-      const result = await spendTokens(brinde.cost, t(`loja.brinde.${brinde.id}.title`));
+      const title = t(`loja.brinde.${brinde.id}.title`);
+      // O brinde da tiragem só vira "seu" depois de a Leitura Bônus prometida
+      // ter sido persistida. Se isso falhar, a saga estorna e não grava posse.
+      const result = brinde.grantsBonusReading
+        ? await redeemBonusTarotReadingWithTokens({
+            cost: brinde.cost,
+            purchaseReason: title,
+            refundReason: t('loja.refund.reason', { title }),
+          })
+        : await spendTokens(brinde.cost, title);
       if (!result.ok) {
+        if (result.reason === 'delivery_failed' || result.reason === 'storage_error') {
+          alertaFalhaEntrega(result, brinde.cost);
+          return;
+        }
         alertaSemSaldo(t('loja.alert.noBalance.brindeText', { balance: result.balance, cost: brinde.cost }));
         return;
       }
@@ -172,9 +218,6 @@ export default function LojaScreen() {
       if (brinde.kind === 'conteudo') {
         await grantBrinde(brinde.id);
         setOwnedBrindes(await getOwnedBrindes());
-      }
-      if (brinde.grantsBonusReading) {
-        await addBonusTarotReading(); // Leitura Bônus real junto com a tiragem exclusiva
       }
       setBrindeAberto(brinde.id); // entrega imediata: conteúdo abre na hora
     } finally {

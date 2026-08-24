@@ -1,7 +1,14 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  SCRATCH_BRUSH_RADIUS,
+  SCRATCH_COLUMNS,
+  SCRATCH_HAPTIC_PROGRESS_STEP,
+  SCRATCH_REVEAL_PROGRESS,
+  SCRATCH_ROWS,
   createScratchTiles,
+  createScratchSvgIdBase,
+  scratchHapticMilestone,
   scratchIndexesAtPoint,
   scratchIndexesWithBrush,
   scratchIndexesAlongSegment,
@@ -40,7 +47,9 @@ test('pincel circular acompanha a escala física da carta e respeita as bordas',
     rows: 18,
     brushRadius: 24,
   });
-  assert.ok(center.length >= 8 && center.length <= 16, `pincel inesperado: ${center.length} células`);
+  // O ponto fica no encontro de quatro celulas de 20x20. Somente os quatro
+  // centros realmente dentro do raio de 24 contam para a amostra de area.
+  assert.equal(center.length, 4, `pincel inesperado: ${center.length} celulas`);
   assert.ok(center.every((index) => index >= 0 && index < 216));
 
   const corner = scratchIndexesWithBrush({
@@ -85,4 +94,88 @@ test('trajeto sem ponto anterior ainda raspa o ponto atual', () => {
     brushRadius: 18,
   });
   assert.ok(indexes.length > 0);
+});
+
+function distanceToSegment(x, y, from, to) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const ratio = lengthSquared > 0
+    ? Math.max(0, Math.min(1, ((x - from.x) * dx + (y - from.y) * dy) / lengthSquared))
+    : 0;
+  return Math.hypot(x - (from.x + ratio * dx), y - (from.y + ratio * dy));
+}
+
+function rasterCoverage(segments, width, height, brushRadius, sampleStep = 2) {
+  let covered = 0;
+  let total = 0;
+  for (let y = sampleStep / 2; y < height; y += sampleStep) {
+    for (let x = sampleStep / 2; x < width; x += sampleStep) {
+      total += 1;
+      if (segments.some(([from, to]) => distanceToSegment(x, y, from, to) <= brushRadius)) {
+        covered += 1;
+      }
+    }
+  }
+  return covered / total;
+}
+
+test('gate premium acompanha a area visual com erro menor que tres pontos percentuais', () => {
+  const width = 288;
+  const height = 460.8;
+  const points = [];
+  for (let row = 0; row < 8; row += 1) {
+    const y = ((row + 0.5) * height) / 8;
+    const ratios = row % 2 === 0
+      ? [0.08, 0.28, 0.48, 0.68, 0.88]
+      : [0.88, 0.68, 0.48, 0.28, 0.08];
+    ratios.forEach((ratio) => points.push({ x: width * ratio, y }));
+  }
+
+  const cleared = new Set();
+  const segments = [];
+  let measuredProgress = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const from = index === 0 ? points[index] : points[index - 1];
+    const to = points[index];
+    scratchIndexesAlongSegment({
+      fromX: from.x,
+      fromY: from.y,
+      toX: to.x,
+      toY: to.y,
+      width,
+      height,
+      columns: SCRATCH_COLUMNS,
+      rows: SCRATCH_ROWS,
+      brushRadius: SCRATCH_BRUSH_RADIUS,
+    }).forEach((cell) => cleared.add(cell));
+    segments.push([from, to]);
+    measuredProgress = scratchProgress(cleared.size, SCRATCH_COLUMNS * SCRATCH_ROWS);
+    if (measuredProgress >= SCRATCH_REVEAL_PROGRESS) break;
+  }
+
+  const visualProgress = rasterCoverage(segments, width, height, SCRATCH_BRUSH_RADIUS);
+  assert.ok(visualProgress >= 0.55 && visualProgress <= 0.64, `cobertura visual inesperada: ${visualProgress}`);
+  assert.ok(
+    Math.abs(measuredProgress - visualProgress) <= 0.03,
+    `grade=${measuredProgress}; visual=${visualProgress}`,
+  );
+});
+
+test('degraus hapticos sao limitados, monotonicos e configurados para poucos pulsos', () => {
+  assert.equal(scratchHapticMilestone(-1), 0);
+  assert.equal(scratchHapticMilestone(SCRATCH_HAPTIC_PROGRESS_STEP - 0.001), 0);
+  assert.equal(scratchHapticMilestone(SCRATCH_HAPTIC_PROGRESS_STEP), 1);
+  assert.equal(scratchHapticMilestone(0.59), 4);
+  assert.ok(scratchHapticMilestone(1) <= 8);
+  assert.equal(scratchHapticMilestone(0.5, 0), 0);
+});
+
+test('ids SVG usam a identidade da instancia e nao colidem entre cartas irmas', () => {
+  const first = createScratchSvgIdBase('scratch-card', ':r1:');
+  const second = createScratchSvgIdBase('scratch-card', ':r2:');
+  assert.equal(first, 'scratch-card-r1');
+  assert.equal(second, 'scratch-card-r2');
+  assert.notEqual(first, second);
+  assert.match(createScratchSvgIdBase('tarot scratch/0', ''), /^[a-zA-Z0-9_-]+$/);
 });

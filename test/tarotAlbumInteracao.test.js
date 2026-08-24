@@ -35,9 +35,9 @@ test('a terceira revelação espera o registro no Álbum', () => {
 
   const conclusao = fonte.slice(inicioConclusao, inicioReveal);
   const grava = conclusao.indexOf('await recordCardsSeen(drawn.map((card) => card.id))');
-  const limpa = conclusao.indexOf('await clearPendingTarotReading()');
+  const limpa = conclusao.indexOf('await clearPendingTarotReadingIfMatches({');
   assert.ok(grava >= 0, 'completeReading não aguarda o Álbum');
-  assert.ok(limpa > grava, 'o snapshot foi limpo antes de o Álbum terminar de gravar');
+  assert.ok(limpa > grava, 'o snapshot correspondente foi limpo antes de o Álbum terminar de gravar');
 
   const reveal = fonte.slice(inicioReveal, fonte.indexOf('useEffect', inicioReveal));
   assert.match(reveal, /if \(next\.every\(Boolean\)\) await completeReading\(\)/);

@@ -6,6 +6,25 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { STATUSES } = require("../domain/Subscription");
 const { timingSafeStringEqual } = require("../infrastructure/timingSafeCompare");
+const { stripControlChars } = require("../infrastructure/textSanitize");
+const { normalizeSocialUserId } = require("../infrastructure/normalizeSocialUserId");
+
+const MODERATION_ACTIONS = new Set(["remove", "dismiss", "suspend"]);
+
+function moderationReason(value, fallback) {
+  if (typeof value !== "string") return fallback;
+  const clean = stripControlChars(value).replace(/\s+/g, " ").trim().slice(0, 500);
+  return clean || fallback;
+}
+
+function recordModerationAction(database, { reportId, action, reason, createdAt }) {
+  database
+    .prepare(
+      `INSERT INTO moderation_actions (report_id, action, reason, created_at)
+       VALUES (?, ?, ?, ?)`
+    )
+    .run(reportId || null, action, reason, createdAt);
+}
 
 function buildAdminRouter({ repository, adminToken }) {
   const router = express.Router();
@@ -76,17 +95,18 @@ function buildAdminRouter({ repository, adminToken }) {
   //
   //   action 'remove'   → apaga o post/comentário denunciado e fecha a linha
   //   action 'dismiss'  → fecha a linha sem apagar nada (denúncia sem razão)
-  //   action 'suspend'  → para denúncia de usuário: remove sua presença social
-  //                       e impede recriação até reversão administrativa
+  //   action 'suspend'  → usa target_user_id de denúncia de post/comentário/
+  //                       usuário, remove sua presença social e impede
+  //                       recriação até reversão administrativa
   router.post("/reports/:id", (req, res) => {
     const { db } = require("../infrastructure/db");
-    const { deleteSocialAccountRows } = require("../infrastructure/SocialAccountCleanup");
+    const { suspendSocialPresenceRows } = require("../infrastructure/SocialModerationCleanup");
     const { action } = req.body || {};
-    if (action !== "remove" && action !== "dismiss" && action !== "suspend") {
+    if (!MODERATION_ACTIONS.has(action)) {
       return res.status(400).json({ error: "action deve ser 'remove', 'dismiss' ou 'suspend'" });
     }
     const denuncia = db
-      .prepare("SELECT id, kind, target_id, target_user_id, status FROM moderation_reports WHERE id = ?")
+      .prepare("SELECT id, kind, target_id, target_user_id, reason, status FROM moderation_reports WHERE id = ?")
       .get(req.params.id);
     if (!denuncia) return res.status(404).json({ error: "denúncia não encontrada" });
     if (denuncia.status !== "open") return res.status(409).json({ error: `denúncia já resolvida (${denuncia.status})` });
@@ -94,12 +114,24 @@ function buildAdminRouter({ repository, adminToken }) {
     if (action === "remove" && denuncia.kind !== "post" && denuncia.kind !== "comment") {
       return res.status(400).json({ error: "só denúncia de post ou comentário tem conteúdo pra remover" });
     }
-    const suspendedUserId = denuncia.target_user_id || (denuncia.kind === "user" ? denuncia.target_id : null);
-    if (action === "suspend" && (denuncia.kind !== "user" || !suspendedUserId)) {
-      return res.status(400).json({ error: "só denúncia de usuário com alvo válido pode suspender perfil" });
+    // Denuncias novas ja chegam canonicalizadas. O trim aqui tambem protege
+    // registros legados: limpeza, lapide e resposta usam exatamente o MESMO ID.
+    const suspendedUserIdRaw = denuncia.target_user_id || (denuncia.kind === "user" ? denuncia.target_id : null);
+    const suspendedUserId = normalizeSocialUserId(suspendedUserIdRaw);
+    const socialKind = denuncia.kind === "post" || denuncia.kind === "comment" || denuncia.kind === "user";
+    if (action === "suspend" && (!socialKind || !suspendedUserId)) {
+      return res.status(400).json({ error: "só denúncia social com pessoa identificada pode suspender perfil" });
     }
 
     const reviewedAt = new Date().toISOString();
+    const reviewReason = moderationReason(
+      req.body && req.body.reason,
+      action === "suspend"
+        ? `suspensão após denúncia #${denuncia.id}: ${denuncia.reason}`
+        : action === "remove"
+          ? `conteúdo removido após denúncia #${denuncia.id}`
+          : `denúncia #${denuncia.id} arquivada após revisão`
+    );
     const resolveReport = db.transaction(() => {
       let deleted = null;
       if (action === "remove") {
@@ -112,7 +144,9 @@ function buildAdminRouter({ repository, adminToken }) {
           db.prepare("DELETE FROM social_comments WHERE id = ?").run(denuncia.target_id);
         }
       } else if (action === "suspend") {
-        deleted = deleteSocialAccountRows(db, { userId: suspendedUserId, now: reviewedAt });
+        // Suspensão não é exclusão de conta. Evidências e bloqueios precisam
+        // sobreviver para recurso, reincidência e segurança após uma reversão.
+        deleted = suspendSocialPresenceRows(db, { userId: suspendedUserId });
         db.prepare(
           `INSERT INTO social_suspensions (user_id, report_id, reason, created_at)
            VALUES (?, ?, ?, ?)
@@ -120,14 +154,20 @@ function buildAdminRouter({ repository, adminToken }) {
              report_id = excluded.report_id,
              reason = excluded.reason,
              created_at = excluded.created_at`
-        ).run(suspendedUserId, denuncia.id, `moderation_report:${denuncia.id}`, reviewedAt);
+        ).run(suspendedUserId, denuncia.id, reviewReason, reviewedAt);
       }
 
       db.prepare("UPDATE moderation_reports SET status = ?, reviewed_at = ? WHERE id = ?").run(
-        action === "dismiss" ? "dismissed" : "removed",
+        action === "dismiss" ? "dismissed" : action === "suspend" ? "suspended" : "removed",
         reviewedAt,
         denuncia.id
       );
+      recordModerationAction(db, {
+        reportId: denuncia.id,
+        action,
+        reason: reviewReason,
+        createdAt: reviewedAt,
+      });
       return deleted;
     });
 
@@ -146,12 +186,30 @@ function buildAdminRouter({ repository, adminToken }) {
   router.delete("/social-suspensions/:userId", (req, res) => {
     const { db } = require("../infrastructure/db");
     const { reason } = req.body || {};
-    if (typeof reason !== "string" || !reason.trim()) {
+    const reviewReason = moderationReason(reason, "");
+    if (!reviewReason) {
       return res.status(400).json({ error: "reason é obrigatório para reverter suspensão" });
     }
-    const result = db.prepare("DELETE FROM social_suspensions WHERE user_id = ?").run(req.params.userId);
-    if (!result.changes) return res.status(404).json({ error: "suspensão não encontrada" });
-    console.warn(`[moderation] suspensão removida user=${req.params.userId} motivo=${reason.trim().slice(0, 200)}`);
+    const userId = normalizeSocialUserId(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({ error: "userId inválido" });
+    }
+    const suspension = db
+      .prepare("SELECT user_id, report_id FROM social_suspensions WHERE user_id = ?")
+      .get(userId);
+    if (!suspension) return res.status(404).json({ error: "suspensão não encontrada" });
+
+    const unsuspend = db.transaction(() => {
+      recordModerationAction(db, {
+        reportId: suspension.report_id,
+        action: "unsuspend",
+        reason: reviewReason,
+        createdAt: new Date().toISOString(),
+      });
+      db.prepare("DELETE FROM social_suspensions WHERE user_id = ?").run(userId);
+    });
+    unsuspend();
+    console.warn(`[moderation] suspensão removida user=${userId} motivo=${reviewReason.slice(0, 200)}`);
     res.json({ ok: true });
   });
 
@@ -224,9 +282,8 @@ function buildAdminRouter({ repository, adminToken }) {
   // terceiro). Nesse caso /me e /claim não alcançam, e sem esta rota a única
   // saída seria editar o SQLite via SSH.
   //
-  // ATENÇÃO OPERACIONAL: ADMIN_TOKEN ainda não está configurado no servidor —
-  // todas as rotas admin respondem 503. Configurar precisa entrar no MESMO
-  // deploy, senão o último recurso de suporte não existe de fato.
+  // O deploy oficial confirma que ADMIN_TOKEN continua configurado sem ler ou
+  // imprimir o segredo: /api/admin/metrics precisa responder 401 sem header.
   router.post("/subscriptions/:correlationCode/link", (req, res) => {
     const { supabaseUserId, accountEmail, reason } = req.body || {};
     if (!reason || typeof reason !== "string" || !reason.trim()) {

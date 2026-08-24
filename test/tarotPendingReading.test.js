@@ -3,6 +3,8 @@ const assert = require('node:assert');
 const Module = require('node:module');
 
 const mem = new Map();
+let failWrites = false;
+let failRemovals = false;
 
 const asyncStorageMock = {
   __esModule: true,
@@ -11,9 +13,11 @@ const asyncStorageMock = {
       return mem.has(key) ? mem.get(key) : null;
     },
     async setItem(key, value) {
+      if (failWrites) throw new Error('disk unavailable');
       mem.set(key, String(value));
     },
     async removeItem(key) {
+      if (failRemovals) throw new Error('disk unavailable');
       mem.delete(key);
     },
   },
@@ -26,6 +30,7 @@ Module._load = function (request, parent, isMain) {
 };
 
 const pending = require('../lib/tarotPendingReading.js');
+const storage = require('../lib/storage.js');
 const KEY = pending.PENDING_TAROT_READING_KEY;
 
 function validSnapshot(extra = {}) {
@@ -44,6 +49,9 @@ function validSnapshot(extra = {}) {
 
 test.beforeEach(async () => {
   mem.clear();
+  failWrites = false;
+  failRemovals = false;
+  storage._reiniciarStorageParaTestes();
   await pending.clearPendingTarotReading();
 });
 
@@ -67,6 +75,62 @@ test('salva um snapshot normalizado e restaura exatamente a mesma tiragem', asyn
   assert.deepStrictEqual(JSON.parse(mem.get(KEY)), restored, 'o registro no storage precisa ser versionado');
 });
 
+test('persiste foco, estrutura e signo sem alterar snapshots legados', async () => {
+  const enriched = validSnapshot({
+    focusId: 'mutuality-boundaries',
+    spreadKey: 'situation-tension-next-step',
+    sign: 'Escorpião',
+    guideVersion: 1,
+  });
+  assert.strictEqual(await pending.savePendingTarotReading(enriched), true);
+  const restored = await pending.getPendingTarotReading();
+  assert.equal(restored.focusId, 'mutuality-boundaries');
+  assert.equal(restored.spreadKey, 'situation-tension-next-step');
+  assert.equal(restored.sign, 'scorpio');
+  assert.equal(restored.guideVersion, 1);
+
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot()), true);
+  const legacy = await pending.getPendingTarotReading();
+  assert.equal(Object.hasOwn(legacy, 'focusId'), false);
+  assert.equal(Object.hasOwn(legacy, 'spreadKey'), false);
+  assert.equal(Object.hasOwn(legacy, 'sign'), false);
+  assert.equal(Object.hasOwn(legacy, 'guideVersion'), false);
+});
+
+test('rejeita campos de personalização desconhecidos sem apagar tiragem válida', async () => {
+  await pending.savePendingTarotReading(validSnapshot({ spreadKey: 'past-present-future', sign: 'Áries' }));
+  const before = mem.get(KEY);
+
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({ focusId: 'fora do contrato' })), false);
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({ spreadKey: 'cruz-celta' })), false);
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({ sign: 'Ofiúco' })), false);
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({ guideVersion: 2 })), false);
+  assert.equal(mem.get(KEY), before);
+});
+
+test('os doze signos chegam ao snapshot sem cair no primeiro signo', async () => {
+  const signs = [
+    ['Áries', 'aries'], ['Touro', 'taurus'], ['Gêmeos', 'gemini'], ['Câncer', 'cancer'],
+    ['Leão', 'leo'], ['Virgem', 'virgo'], ['Libra', 'libra'], ['Escorpião', 'scorpio'],
+    ['Sagitário', 'sagittarius'], ['Capricórnio', 'capricorn'], ['Aquário', 'aquarius'], ['Peixes', 'pisces'],
+  ];
+  for (const [sign, expectedId] of signs) {
+    assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({
+      focusId: 'new-bond',
+      spreadKey: 'past-present-future',
+      sign,
+      guideVersion: 1,
+    })), true);
+    assert.equal((await pending.getPendingTarotReading()).sign, expectedId);
+  }
+});
+
+test('foco precisa pertencer ao tema e nunca cai silenciosamente no primeiro', async () => {
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({ focusId: 'direction-purpose' })), false);
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({ focusId: 'foo' })), false);
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({ focusId: 'new-bond' })), true);
+});
+
 test('aceita os cinco temas, quatro outcomes, tres idiomas e createdAt numerico', async () => {
   const themes = ['Amor', 'Carreira', 'Dinheiro', 'Energia', 'Saúde'];
   const outcomes = ['clarity', 'nextStep', 'patterns', 'timing'];
@@ -83,6 +147,14 @@ test('aceita os cinco temas, quatro outcomes, tres idiomas e createdAt numerico'
     assert.strictEqual(await pending.savePendingTarotReading(snapshot), true);
     assert.strictEqual((await pending.getPendingTarotReading()).themeKey, themes[i]);
   }
+});
+
+test('limite da pergunta usa caracteres visiveis, inclusive emoji', async () => {
+  const accepted = '🌙'.repeat(220);
+  const rejected = '🌙'.repeat(221);
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({ question: accepted })), true);
+  assert.strictEqual((await pending.getPendingTarotReading()).question, accepted);
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot({ question: rejected })), false);
 });
 
 test('registro corrompido retorna null e e removido do storage', async () => {
@@ -144,4 +216,45 @@ test('clear remove a tiragem e update sem snapshot e inofensivo', async () => {
   assert.strictEqual(mem.has(KEY), false);
   assert.strictEqual(await pending.getPendingTarotReading(), null);
   assert.strictEqual(await pending.updatePendingTarotRevealed([true, true, true]), null);
+});
+
+test('clear condicional nao apaga uma tiragem mais nova', async () => {
+  const oldReading = validSnapshot();
+  const newReading = validSnapshot({
+    createdAt: '2026-08-23T12:01:00.000Z',
+    cardIds: ['major-01', 'cups-04', 'wands-09'],
+  });
+  await pending.savePendingTarotReading(oldReading);
+  await pending.savePendingTarotReading(newReading);
+
+  assert.strictEqual(await pending.clearPendingTarotReadingIfMatches({
+    createdAt: oldReading.createdAt,
+    cardIds: oldReading.cardIds,
+  }), false);
+  assert.deepStrictEqual((await pending.getPendingTarotReading()).cardIds, newReading.cardIds);
+
+  assert.strictEqual(await pending.clearPendingTarotReadingIfMatches({
+    createdAt: newReading.createdAt,
+    cardIds: newReading.cardIds,
+  }), true);
+  assert.strictEqual(await pending.getPendingTarotReading(), null);
+});
+
+test('save e clear nao informam persistencia quando ficaram apenas em memoria', async () => {
+  failWrites = true;
+  assert.strictEqual(await pending.savePendingTarotReading(validSnapshot()), false);
+  assert.deepStrictEqual((await pending.getPendingTarotReading()).cardIds, validSnapshot().cardIds);
+
+  // Reinicia o modo de disco para isolar a falha de remoção da falha anterior.
+  storage._reiniciarStorageParaTestes();
+  failWrites = false;
+  await pending.savePendingTarotReading(validSnapshot());
+  failRemovals = true;
+  assert.strictEqual(await pending.clearPendingTarotReading(), false);
+});
+
+test('update nao informa sucesso quando a escrita duravel falha', async () => {
+  await pending.savePendingTarotReading(validSnapshot({ revealed: [false, false, false] }));
+  failWrites = true;
+  assert.strictEqual(await pending.updatePendingTarotRevealed([true, false, false]), null);
 });

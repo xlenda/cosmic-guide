@@ -614,6 +614,9 @@ test('toda leitura carrega os dados tradicionais exclusivos daquela carta', () =
           Passado: [`arcano ${carta.number}`, `letra ${carta.letra}`],
           Presente: [`arcano ${carta.number}`, String(carta.element)],
           Futuro: [`caminho ${carta.caminho}`, String(carta.element)],
+          Situação: [`arcano ${carta.number}`, `letra ${carta.letra}`],
+          Tensão: [`letra ${carta.letra}`, String(carta.element)],
+          'Próximo passo': [`arcano ${carta.number}`, `caminho ${carta.caminho}`],
         }[casa];
         for (const trecho of esperado) {
           assert.ok(

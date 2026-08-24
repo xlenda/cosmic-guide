@@ -45,6 +45,7 @@ function migration(number, name) {
 function applySocialSchema(native) {
   native.exec(migration("016", "add_moderation"));
   native.exec(migration("018", "version_social_foundation"));
+  native.exec(migration("020", "add_moderation_actions"));
 }
 
 function scalar(native, sql, ...params) {
@@ -141,6 +142,44 @@ test("migração 018 cria a fundação social completa e pode rodar duas vezes",
         `${index} precisa existir`
       );
     }
+  } finally {
+    native.close();
+  }
+});
+
+test("migração 020 cria histórico de moderação idempotente e restringe ações", () => {
+  const { native } = openDatabase();
+  try {
+    native.exec(migration("016", "add_moderation"));
+    const sql = migration("020", "add_moderation_actions");
+    native.exec(sql);
+    native.exec(sql);
+
+    native
+      .prepare(
+        `INSERT INTO moderation_actions (report_id, action, reason, created_at)
+         VALUES (NULL, 'unsuspend', 'revisão aceita', '2026-08-24T12:00:00.000Z')`
+      )
+      .run();
+    assert.equal(scalar(native, "SELECT COUNT(*) AS value FROM moderation_actions"), 1);
+    assert.throws(
+      () => native
+        .prepare(
+          `INSERT INTO moderation_actions (report_id, action, reason, created_at)
+           VALUES (NULL, 'qualquer', 'inválida', '2026-08-24T12:00:00.000Z')`
+        )
+        .run(),
+      /CHECK constraint failed/
+    );
+    assert.throws(
+      () => native.prepare("UPDATE moderation_actions SET reason = 'reescrita' WHERE id = 1").run(),
+      /moderation_actions is append-only/
+    );
+    assert.throws(
+      () => native.prepare("DELETE FROM moderation_actions WHERE id = 1").run(),
+      /moderation_actions is append-only/
+    );
+    assert.equal(scalar(native, "SELECT COUNT(*) AS value FROM moderation_actions"), 1);
   } finally {
     native.close();
   }

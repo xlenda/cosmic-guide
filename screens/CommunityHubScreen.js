@@ -61,11 +61,17 @@ const ERROR_KEY_BY_CODE = Object.freeze({
   community_suspended: 'community.error.community_suspended',
 });
 
+const COMMUNITY_SUSPENDED_ERROR_KEY = ERROR_KEY_BY_CODE.community_suspended;
+
 const EMPTY_POSTS = Object.freeze([]);
 const EMPTY_SUGGESTIONS = Object.freeze([]);
 
 export function communityErrorKey(error) {
   return ERROR_KEY_BY_CODE[error?.code] || 'community.error.generic';
+}
+
+export function isCommunitySuspendedError(error) {
+  return error?.code === 'community_suspended';
 }
 
 export function hasPublicCommunitySign(profile) {
@@ -154,23 +160,25 @@ function LoadingState({ t }) {
   );
 }
 
-function ErrorState({ t, onRetry, compact = false }) {
+function ErrorState({ t, onRetry, compact = false, bodyKey = 'community.error.generic' }) {
   return (
     <View style={[styles.errorCard, compact ? styles.errorCardCompact : null]} testID="community-hub-error">
       <Ionicons name="cloud-offline-outline" size={21} color={colors.red} />
       <View style={styles.errorCopy}>
         <Text style={styles.errorTitle}>{t('community.error.title')}</Text>
-        <Text style={styles.errorBody}>{t('community.error.generic')}</Text>
+        <Text style={styles.errorBody}>{t(bodyKey)}</Text>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onRetry}
-        style={pressedOpacity(styles.retryButton)}
-        testID="community-retry"
-      >
-        <Ionicons name="refresh" size={17} color={colors.gold} />
-        <Text style={styles.retryText}>{t('community.error.retry')}</Text>
-      </Pressable>
+      {onRetry ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onRetry}
+          style={pressedOpacity(styles.retryButton)}
+          testID="community-retry"
+        >
+          <Ionicons name="refresh" size={17} color={colors.gold} />
+          <Text style={styles.retryText}>{t('community.error.retry')}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -423,6 +431,23 @@ export function CommunityHubState({
     );
   }
 
+  // A suspensão confirmada pelo servidor sempre prevalece sobre qualquer
+  // perfil/feed mantido em memória por uma sessão anterior.
+  if (profileError === COMMUNITY_SUSPENDED_ERROR_KEY) {
+    return (
+      <View style={styles.stateRoot}>
+        <ScreenHeader t={t} />
+        <View style={styles.centerState}>
+          <ErrorState
+            t={t}
+            bodyKey={COMMUNITY_SUSPENDED_ERROR_KEY}
+            onRetry={null}
+          />
+        </View>
+      </View>
+    );
+  }
+
   if (profileLoading && profile === undefined) {
     return (
       <View style={styles.stateRoot}>
@@ -437,7 +462,11 @@ export function CommunityHubState({
       <View style={styles.stateRoot}>
         <ScreenHeader t={t} />
         <View style={styles.centerState}>
-          <ErrorState t={t} onRetry={onRetryProfile} />
+          <ErrorState
+            t={t}
+            bodyKey="community.error.generic"
+            onRetry={onRetryProfile}
+          />
         </View>
       </View>
     );
@@ -1096,7 +1125,7 @@ export default function CommunityHubScreen() {
   const { t } = useLanguage();
   const [profile, setProfile] = useState(undefined);
   const [profileLoading, setProfileLoading] = useState(true);
-  const [profileError, setProfileError] = useState(false);
+  const [profileError, setProfileError] = useState(null);
   const [posts, setPosts] = useState([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState(false);
@@ -1140,6 +1169,49 @@ export default function CommunityHubScreen() {
   const selectedRoom = getCommunityRoom(selectedRoomId) || COMMUNITY_ROOMS[0];
   const selectedTargetSign = getCommunitySign(selectedTargetId);
 
+  const handleCommunitySuspension = useCallback((error) => {
+    if (!isCommunitySuspendedError(error)) return false;
+
+    // Invalida respostas em voo antes de apagar qualquer dado visível. Assim,
+    // uma resposta antiga não consegue repor perfil, feed ou comentários após
+    // o servidor confirmar que a participação desta conta está suspensa.
+    profileRequestRef.current += 1;
+    feedRequestRef.current += 1;
+    commentsRequestRef.current += 1;
+    likingPostIdsRef.current.clear();
+
+    selectedRoomRef.current = 'plaza';
+    setProfile(undefined);
+    setProfileLoading(false);
+    setProfileError(COMMUNITY_SUSPENDED_ERROR_KEY);
+    setPosts([]);
+    setFeedLoading(false);
+    setFeedError(false);
+    setRefreshing(false);
+    setSelectedRoomId('plaza');
+    setSelectedTargetId(null);
+    setNoticeKey(null);
+    setOperationErrorKey(null);
+    setSignModalVisible(false);
+    setSignDraft(null);
+    setComposerVisible(false);
+    setComposerTitle('');
+    setComposerBody('');
+    setGuidelinesVisible(false);
+    setGuidelinesChecked(false);
+    setPendingPost(null);
+    setPendingComment(null);
+    setOperationBusy(false);
+    setActivePost(null);
+    setComments(null);
+    setCommentsLoading(false);
+    setCommentText('');
+    setThreadBusy(false);
+    setThreadErrorKey(null);
+    setThreadNoticeKey(null);
+    return true;
+  }, []);
+
   const loadRoom = useCallback(async (roomId) => {
     const validRoomId = getCommunityRoom(roomId)?.id || 'plaza';
     const requestId = feedRequestRef.current + 1;
@@ -1151,20 +1223,21 @@ export default function CommunityHubScreen() {
       const result = await getCommunityRoomFeed(validRoomId);
       if (feedRequestRef.current !== requestId) return;
       setPosts(Array.isArray(result?.posts) ? result.posts : []);
-    } catch {
+    } catch (error) {
       if (feedRequestRef.current !== requestId) return;
+      if (handleCommunitySuspension(error)) return;
       setFeedError(true);
     } finally {
       if (feedRequestRef.current === requestId) setFeedLoading(false);
     }
-  }, []);
+  }, [handleCommunitySuspension]);
 
   const loadHub = useCallback(async () => {
     if (!user) {
       loadedUserRef.current = null;
       setProfile(undefined);
       setProfileLoading(false);
-      setProfileError(false);
+      setProfileError(null);
       setPosts([]);
       setActivePost(null);
       setComments(null);
@@ -1183,20 +1256,21 @@ export default function CommunityHubScreen() {
     const requestId = profileRequestRef.current + 1;
     profileRequestRef.current = requestId;
     setProfileLoading(true);
-    setProfileError(false);
+    setProfileError(null);
     try {
       const nextProfile = await getMySocialProfile();
       if (profileRequestRef.current !== requestId) return;
       setProfile(nextProfile || null);
       if (nextProfile) await loadRoom(selectedRoomRef.current);
       else setPosts([]);
-    } catch {
+    } catch (error) {
       if (profileRequestRef.current !== requestId) return;
-      setProfileError(true);
+      if (handleCommunitySuspension(error)) return;
+      setProfileError(communityErrorKey(error));
     } finally {
       if (profileRequestRef.current === requestId) setProfileLoading(false);
     }
-  }, [loadRoom, user]);
+  }, [handleCommunitySuspension, loadRoom, user]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1274,11 +1348,12 @@ export default function CommunityHubScreen() {
       setSignModalVisible(false);
       setNoticeKey('community.success.signSaved');
     } catch (error) {
+      if (handleCommunitySuspension(error)) return;
       setOperationErrorKey(communityErrorKey(error));
     } finally {
       setOperationBusy(false);
     }
-  }, [signDraft]);
+  }, [handleCommunitySuspension, signDraft]);
 
   const hidePublicSign = useCallback(async () => {
     setOperationBusy(true);
@@ -1296,11 +1371,12 @@ export default function CommunityHubScreen() {
       setNoticeKey('community.success.signHidden');
       await loadRoom('plaza');
     } catch (error) {
+      if (handleCommunitySuspension(error)) return;
       setOperationErrorKey(communityErrorKey(error));
     } finally {
       setOperationBusy(false);
     }
-  }, [loadRoom]);
+  }, [handleCommunitySuspension, loadRoom]);
 
   const openComposer = useCallback(() => {
     resetMessages();
@@ -1347,12 +1423,13 @@ export default function CommunityHubScreen() {
       updateVisiblePost(postId, (post) => updatePostCommentCount(post, safeComments.length));
     } catch (error) {
       if (commentsRequestRef.current !== requestId) return;
+      if (handleCommunitySuspension(error)) return;
       setThreadErrorKey(communityErrorKey(error));
       setComments(null);
     } finally {
       if (commentsRequestRef.current === requestId) setCommentsLoading(false);
     }
-  }, [updateVisiblePost]);
+  }, [handleCommunitySuspension, updateVisiblePost]);
 
   const openThread = useCallback((post) => {
     if (!post?.id) return;
@@ -1386,13 +1463,14 @@ export default function CommunityHubScreen() {
       else await unlikeSocialPost(post.id);
       updateVisiblePost(post.id, (current) => updatePostLikeState(current, nextLiked));
     } catch (error) {
+      if (handleCommunitySuspension(error)) return;
       const key = communityErrorKey(error);
       setThreadErrorKey(key);
       setOperationErrorKey(key);
     } finally {
       likingPostIdsRef.current.delete(postId);
     }
-  }, [updateVisiblePost]);
+  }, [handleCommunitySuspension, updateVisiblePost]);
 
   const deletePost = useCallback((post) => {
     if (!post?.id) return;
@@ -1413,7 +1491,8 @@ export default function CommunityHubScreen() {
             setComments(null);
             setCommentText('');
             setNoticeKey('community.success.postDeleted');
-          } catch {
+          } catch (error) {
+            if (handleCommunitySuspension(error)) return;
             setThreadErrorKey('social.error.deletePost');
             setOperationErrorKey('social.error.deletePost');
           } finally {
@@ -1422,7 +1501,7 @@ export default function CommunityHubScreen() {
         },
       },
     ]);
-  }, [t]);
+  }, [handleCommunitySuspension, t]);
 
   const deleteComment = useCallback((comment) => {
     if (!comment?.id || !activePost?.id) return;
@@ -1443,7 +1522,8 @@ export default function CommunityHubScreen() {
             setComments(next);
             updateVisiblePost(activePost.id, (post) => updatePostCommentCount(post, next.length));
             setThreadNoticeKey('community.success.commentDeleted');
-          } catch {
+          } catch (error) {
+            if (handleCommunitySuspension(error)) return;
             setThreadErrorKey('community.error.deleteComment');
           } finally {
             setThreadBusy(false);
@@ -1451,7 +1531,7 @@ export default function CommunityHubScreen() {
         },
       },
     ]);
-  }, [activePost?.id, comments, t, updateVisiblePost]);
+  }, [activePost?.id, comments, handleCommunitySuspension, t, updateVisiblePost]);
 
   const submitComment = useCallback(async ({ postId, body }) => {
     setThreadBusy(true);
@@ -1471,11 +1551,13 @@ export default function CommunityHubScreen() {
         setComments(safeComments);
         updateVisiblePost(postId, (post) => updatePostCommentCount(post, safeComments.length));
       } catch (reloadError) {
+        if (handleCommunitySuspension(reloadError)) return false;
         setComments(null);
         setThreadErrorKey(communityErrorKey(reloadError));
       }
       return true;
     } catch (error) {
+      if (handleCommunitySuspension(error)) return false;
       if (error?.code === 'community_guidelines_required') {
         setPendingPost(null);
         setPendingComment({ postId, body });
@@ -1488,7 +1570,7 @@ export default function CommunityHubScreen() {
     } finally {
       setThreadBusy(false);
     }
-  }, [updateVisiblePost]);
+  }, [handleCommunitySuspension, updateVisiblePost]);
 
   const beginComment = useCallback(() => {
     const body = String(commentText || '').trim();
@@ -1519,7 +1601,8 @@ export default function CommunityHubScreen() {
             t('report.thanks.body'),
             [{ text: t('common.ok') }]
           );
-        } catch {
+        } catch (error) {
+          if (handleCommunitySuspension(error)) return;
           Alert.alert(t('social.mod.failed'), t('social.mod.failedBody'));
         } finally {
           setThreadBusy(false);
@@ -1563,13 +1646,20 @@ export default function CommunityHubScreen() {
               Alert.alert(t('social.mod.blockedTitle'), t('social.mod.blockedBody'), [
                 {
                   text: t('social.mod.undo'),
-                  onPress: () => unblockSocialUser(targetUserId)
-                    .then(() => loadRoom(selectedRoomRef.current))
-                    .catch(() => Alert.alert(t('social.mod.failed'), t('social.mod.failedBody'))),
+                  onPress: async () => {
+                    try {
+                      await unblockSocialUser(targetUserId);
+                      await loadRoom(selectedRoomRef.current);
+                    } catch (error) {
+                      if (handleCommunitySuspension(error)) return;
+                      Alert.alert(t('social.mod.failed'), t('social.mod.failedBody'));
+                    }
+                  },
                 },
                 { text: t('common.ok'), style: 'cancel' },
               ]);
-            } catch {
+            } catch (error) {
+              if (handleCommunitySuspension(error)) return;
               Alert.alert(t('social.mod.failed'), t('social.mod.failedBody'));
             } finally {
               setThreadBusy(false);
@@ -1585,7 +1675,7 @@ export default function CommunityHubScreen() {
       { text: t('social.mod.block'), style: 'destructive', onPress: block },
       { text: t('common.cancel'), style: 'cancel' },
     ]);
-  }, [activePost, comments, loadRoom, t, updateVisiblePost, user?.id]);
+  }, [activePost, comments, handleCommunitySuspension, loadRoom, t, updateVisiblePost, user?.id]);
 
   const finishPublishedPost = useCallback(async (payload) => {
     setComposerVisible(false);
@@ -1606,6 +1696,7 @@ export default function CommunityHubScreen() {
       await createCommunityPost(payload);
       await finishPublishedPost(payload);
     } catch (error) {
+      if (handleCommunitySuspension(error)) return;
       const key = communityErrorKey(error);
       setOperationErrorKey(key);
       if (error?.code === 'community_guidelines_required') {
@@ -1617,7 +1708,7 @@ export default function CommunityHubScreen() {
     } finally {
       setOperationBusy(false);
     }
-  }, [finishPublishedPost]);
+  }, [finishPublishedPost, handleCommunitySuspension]);
 
   const beginPublish = useCallback(() => {
     setPendingComment(null);
@@ -1674,6 +1765,7 @@ export default function CommunityHubScreen() {
             (post) => updatePostCommentCount(post, safeComments.length)
           );
         } catch (reloadError) {
+          if (handleCommunitySuspension(reloadError)) return;
           setComments(null);
           setThreadErrorKey(communityErrorKey(reloadError));
           setThreadNoticeKey(null);
@@ -1683,13 +1775,14 @@ export default function CommunityHubScreen() {
       await createCommunityPost(pendingPost);
       await finishPublishedPost(pendingPost);
     } catch (error) {
+      if (handleCommunitySuspension(error)) return;
       const key = communityErrorKey(error);
       if (pendingComment) setThreadErrorKey(key);
       setOperationErrorKey(key);
     } finally {
       setOperationBusy(false);
     }
-  }, [finishPublishedPost, guidelinesChecked, pendingComment, pendingPost, updateVisiblePost]);
+  }, [finishPublishedPost, guidelinesChecked, handleCommunitySuspension, pendingComment, pendingPost, updateVisiblePost]);
 
   const closeGuidelines = useCallback(() => {
     setGuidelinesVisible(false);

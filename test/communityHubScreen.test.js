@@ -168,6 +168,7 @@ const {
   communityErrorKey,
   hasAcceptedCommunityGuidelines,
   hasPublicCommunitySign,
+  isCommunitySuspendedError,
   removeUserContent,
   updatePostCommentCount,
   updatePostLikeState,
@@ -270,7 +271,123 @@ test('cÃ³digos estÃ¡veis do servidor escolhem traduÃ§Ãµes sem exibir a m
     communityErrorKey({ code: 'community_guidelines_required' }),
     'community.error.community_guidelines_required'
   );
+  assert.equal(
+    communityErrorKey({ code: 'community_suspended' }),
+    'community.error.community_suspended'
+  );
   assert.equal(communityErrorKey({ code: 'unknown_new_code' }), 'community.error.generic');
+});
+
+test('participação suspensa mostra o motivo específico sem oferecer retry inútil', () => {
+  const markup = render(React.createElement(CommunityHubState, baseHubProps({
+    profile: undefined,
+    profileError: 'community.error.community_suspended',
+  })));
+
+  assert.match(markup, /community\.error\.community_suspended/);
+  assert.doesNotMatch(markup, /data-testid="community-retry"/);
+  assert.equal(presses.has('community-retry'), false);
+});
+
+test('participação suspensa prevalece sobre perfil e feed mantidos em cache', () => {
+  const markup = render(React.createElement(CommunityHubState, baseHubProps({
+    profileLoading: true,
+    profileError: 'community.error.community_suspended',
+    posts: [{
+      id: 91,
+      title: 'Conteúdo antigo em cache',
+      body: 'Este feed não pode continuar visível.',
+    }],
+  })));
+
+  assert.match(markup, /community\.error\.community_suspended/);
+  assert.doesNotMatch(markup, /data-testid="community-hub-authenticated"/);
+  assert.doesNotMatch(markup, /Conteúdo antigo em cache/);
+  assert.doesNotMatch(markup, /data-testid="community-retry"/);
+  assert.equal(presses.has('community-retry'), false);
+});
+
+test('detector de suspensão aceita somente o código estável do servidor', () => {
+  assert.equal(isCommunitySuspendedError({ code: 'community_suspended' }), true);
+  assert.equal(isCommunitySuspendedError({ code: 'community_guidelines_required' }), false);
+  assert.equal(isCommunitySuspendedError({ message: 'community_suspended' }), false);
+  assert.equal(isCommunitySuspendedError(null), false);
+});
+
+test('handler central de suspensão invalida requests e limpa todo cache social visível', () => {
+  const source = fs.readFileSync(SCREEN_PATH, 'utf8');
+  const start = source.indexOf('const handleCommunitySuspension = useCallback');
+  const end = source.indexOf('const loadRoom = useCallback', start);
+  const handler = source.slice(start, end);
+
+  assert.ok(start >= 0 && end > start, 'handler central não encontrado');
+  assert.equal((source.match(/const handleCommunitySuspension = useCallback/g) || []).length, 1);
+  for (const contract of [
+    "if (!isCommunitySuspendedError(error)) return false",
+    'profileRequestRef.current += 1',
+    'feedRequestRef.current += 1',
+    'commentsRequestRef.current += 1',
+    'likingPostIdsRef.current.clear()',
+    "selectedRoomRef.current = 'plaza'",
+    'setProfile(undefined)',
+    'setProfileLoading(false)',
+    'setProfileError(COMMUNITY_SUSPENDED_ERROR_KEY)',
+    'setPosts([])',
+    'setFeedLoading(false)',
+    'setFeedError(false)',
+    'setRefreshing(false)',
+    "setSelectedRoomId('plaza')",
+    'setSelectedTargetId(null)',
+    'setNoticeKey(null)',
+    'setOperationErrorKey(null)',
+    'setSignModalVisible(false)',
+    'setSignDraft(null)',
+    'setComposerVisible(false)',
+    "setComposerTitle('')",
+    "setComposerBody('')",
+    'setGuidelinesVisible(false)',
+    'setGuidelinesChecked(false)',
+    'setPendingPost(null)',
+    'setPendingComment(null)',
+    'setOperationBusy(false)',
+    'setActivePost(null)',
+    'setComments(null)',
+    'setCommentsLoading(false)',
+    "setCommentText('')",
+    'setThreadBusy(false)',
+    'setThreadErrorKey(null)',
+    'setThreadNoticeKey(null)',
+    'return true',
+  ]) {
+    assert.match(handler, new RegExp(contract.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), contract);
+  }
+});
+
+test('toda família de chamada social encaminha community_suspended ao handler central', () => {
+  const source = fs.readFileSync(SCREEN_PATH, 'utf8');
+  const contracts = [
+    ['const loadRoom = useCallback', 'const loadHub = useCallback', 1],
+    ['const loadHub = useCallback', 'useFocusEffect(', 1],
+    ['const savePublicSign = useCallback', 'const hidePublicSign = useCallback', 1],
+    ['const hidePublicSign = useCallback', 'const openComposer = useCallback', 1],
+    ['const loadComments = useCallback', 'const openThread = useCallback', 1],
+    ['const togglePostLike = useCallback', 'const deletePost = useCallback', 1],
+    ['const deletePost = useCallback', 'const deleteComment = useCallback', 1],
+    ['const deleteComment = useCallback', 'const submitComment = useCallback', 1],
+    ['const submitComment = useCallback', 'const beginComment = useCallback', 2],
+    ['const moderateContent = useCallback', 'const finishPublishedPost = useCallback', 3],
+    ['const publishPayload = useCallback', 'const beginPublish = useCallback', 1],
+    ['const acceptAndPublish = useCallback', 'const closeGuidelines = useCallback', 2],
+  ];
+
+  for (const [startMarker, endMarker, minimum] of contracts) {
+    const start = source.indexOf(startMarker);
+    const end = source.indexOf(endMarker, start);
+    assert.ok(start >= 0 && end > start, `bloco ausente: ${startMarker}`);
+    const block = source.slice(start, end);
+    const routes = block.match(/handleCommunitySuspension\((?:error|reloadError)\)/g) || [];
+    assert.ok(routes.length >= minimum, `${startMarker} tem ${routes.length}/${minimum} rotas de suspensão`);
+  }
 });
 
 test('visitante vÃª proposta honesta e login; pessoa sem perfil recebe criaÃ§Ã£o real', () => {

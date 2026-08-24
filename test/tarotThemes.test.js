@@ -3,7 +3,7 @@
 // sobrando no texto final.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { getThemedMeaning, THEME_KEYS } = require("../lib/tarotThemes.js");
+const { getThemedMeaning, THEME_KEYS, POSITION_KEYS } = require("../lib/tarotThemes.js");
 const { TAROT_DECK } = require("../lib/tarotDeck.js");
 
 test("THEME_KEYS inclui Saúde além dos 4 temas originais", () => {
@@ -33,4 +33,27 @@ test("getThemedMeaning(theme='Saúde') usa reversedMeaning quando isReversed=tru
   const upright = getThemedMeaning(card, "Saúde", false);
   const reversed = getThemedMeaning(card, "Saúde", true);
   assert.notEqual(upright, reversed);
+});
+
+test("Situação, Tensão e Próximo passo têm semânticas distintas em todo o baralho e nos três idiomas", () => {
+  for (const position of ["Situação", "Tensão", "Próximo passo"]) {
+    assert.ok(POSITION_KEYS.includes(position), `posição ausente: ${position}`);
+  }
+  for (const lang of ["pt", "es", "en"]) {
+    for (const theme of THEME_KEYS) {
+      for (const card of TAROT_DECK) {
+        for (const reversed of [false, true]) {
+          const situation = getThemedMeaning(card, theme, reversed, "Situação", lang);
+          const tension = getThemedMeaning(card, theme, reversed, "Tensão", lang);
+          const nextStep = getThemedMeaning(card, theme, reversed, "Próximo passo", lang);
+          const unique = new Set([situation, tension, nextStep]);
+          assert.equal(
+            unique.size,
+            3,
+            `${lang}/${theme}/${card.id}/${reversed ? "reversed" : "upright"}`
+          );
+        }
+      }
+    }
+  }
 });

@@ -130,6 +130,9 @@ test('a primeira tiragem revela três cartas grandes em sequência', async ({ pa
 
   await page.getByTestId('card-tarot').click();
   await expect(page.getByTestId('tarot-draw')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('tarot-sign-lens')).toContainText('Áries');
+  await page.getByTestId('tarot-focus-mutuality-boundaries').click();
+  await expect(page.getByTestId('tarot-guide-receipt')).toContainText('reciprocidade');
   await page.getByTestId('tarot-draw').click();
 
   const scratch = page.getByTestId('tarot-scratch-0');
@@ -137,7 +140,7 @@ test('a primeira tiragem revela três cartas grandes em sequência', async ({ pa
   const box = await scratch.boundingBox();
   expect(box).not.toBeNull();
   const viewport = page.viewportSize();
-  expect(box.width).toBeGreaterThanOrEqual(viewport.width * 0.72);
+  expect(box.width).toBeGreaterThanOrEqual(viewport.width * 0.8);
 
   await page.mouse.move(box.x + 8, box.y + 8);
   await page.mouse.down();
@@ -151,11 +154,16 @@ test('a primeira tiragem revela três cartas grandes em sequência', async ({ pa
   await page.mouse.up();
 
   await expect(page.getByTestId('tarot-card-name-0')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('tarot-card-meaning-0')).toBeVisible();
+  await expect(page.getByTestId('tarot-card-meaning-0')).not.toBeEmpty();
+  await expect(page.getByTestId('tarot-personal-synthesis')).toBeHidden();
 
   await page.getByTestId('tarot-next-0').click();
   await expect(page.getByTestId('tarot-scratch-1')).toBeVisible();
   await page.getByTestId('tarot-scratch-1').getByText('Revelar sem raspar').click();
   await expect(page.getByTestId('tarot-card-name-1')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('tarot-card-meaning-1')).toBeVisible();
+  await expect(page.getByTestId('tarot-personal-synthesis')).toBeHidden();
 
   await page.getByTestId('tarot-next-1').click();
   await expect(page.getByTestId('tarot-scratch-2')).toBeVisible();
