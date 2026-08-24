@@ -1,6 +1,6 @@
-# Memória da próxima sessão — Cosmic Guide
+# Estado consolidado e próximos lotes — Cosmic Guide
 
-> Registrado em **24/08/2026** para retomar em **25/08/2026**.
+> Registrado em **24/08/2026** e atualizado depois da publicação da Community V1.
 >
 > Este arquivo é uma **memória de produto e execução**. Tudo que estiver marcado
 > como **DECIDIDO / NÃO IMPLEMENTADO** ainda precisa ser construído, testado e
@@ -17,7 +17,7 @@
 
 ## 1. Base já publicada
 
-**PUBLICADO — commit `f8140eb` (`fix: restore full home and interactive tarot album`)**
+**PUBLICADO — histórico: commit `f8140eb` (`fix: restore full home and interactive tarot album`)**
 
 - A Home abre com o catálogo completo visível.
 - As 78 costas de carta do Álbum são clicáveis.
@@ -25,7 +25,20 @@
 - O CTA do modal leva à tiragem de Tarô.
 - O Álbum atualiza imediatamente depois da terceira carta revelada.
 - Produção validada em `https://cosmicguide.cloud/cosmic-guide/`.
-- Na última verificação: **1625/1625 testes**, export web e export Android aprovados.
+- Na verificação daquele commit: **1625/1625 testes**, export web e export Android aprovados.
+
+**PUBLICADO — Community V1: commit `8179785` (`feat: launch premium zodiac community`)**
+
+**PUBLICADO — correção segura do deploy web: commit `5a502b2` (`fix: trust system CA for Vercel deploy`)**
+
+- Backend publicado primeiro pelo script oficial, release `20260824-123824`.
+- Banco de produção em `user_version = 19`, com `quick_check = ok`.
+- Web publicada pelo script oficial e disponível em
+  `https://cosmicguide.cloud/cosmic-guide/`.
+- Deploy Vercel de produção: `dpl_2CHDfhxhn1mvN4xzrYtgHo3rxpzr`, estado `READY`.
+- Verificação atual: **1667/1667 testes do app**, **272 testes do backend aprovados,
+  zero falhas e 1 teste documental ignorado**, export web, export Android e regressão
+  E2E aprovados.
 
 Pendência externa conhecida: o backend possuía Anthropic para texto, mas a conta
 retornava erro de crédito insuficiente. Isso não é falha do fluxo visual e não deve
@@ -33,40 +46,38 @@ ser mascarado por fallback que prometa resposta de IA real.
 
 ---
 
-## 2. Comunidade visível — prioridade da próxima sessão
+## 2. Community V1
 
-### Diagnóstico atual
+**PUBLICADO — commit `8179785`**
 
-**PUBLICADO, porém escondido:** já existe uma tela social funcional, com perfil,
-publicações compartilhadas explicitamente pelo Diário/Tarô, seguidores,
-comentários, curtidas, busca por `@usuário`, denúncia e bloqueio. A rota está no
-`HomeStack`, mas o único acesso está fundo no catálogo da Home e somente no modo
-solo. A barra inferior mostra apenas Home, Tarô e Perfil. Para uma pessoa comum,
-parece que a Comunidade não existe.
+### Navegação e experiência entregues
 
-### Decisão de navegação
-
-**DECIDIDO / NÃO IMPLEMENTADO**
-
-- Criar um quarto botão fixo na barra inferior:
+- Quarto botão fixo na barra inferior:
   - PT: **Comunidade**
   - ES: **Comunidad**
   - EN: **Community**
-- Criar um `CommunityStack`, sem duplicar a tela social existente.
-- Manter o botão visível tanto no modo solo quanto no modo casal.
-- Deslogado: mostrar uma apresentação verdadeira do benefício e CTA de login;
+- `CommunityStack` próprio, sem duplicar o feed social existente.
+- Botão visível nos modos solo e casal depois da introdução/configuração inicial.
+- Deslogado: apresentação verdadeira do benefício e CTA de login;
   nunca preencher a tela com pessoas ou atividade falsas.
-- Logado: abrir a nova descoberta da Comunidade, com acesso ao feed já existente.
+- Logado: descoberta da Comunidade, salas, conversas e acesso ao feed **Seguindo**.
+- Card da Home também leva diretamente ao hub da Comunidade.
+- Compartilhamentos explícitos do Diário e do Tarô continuam indo ao feed Seguindo.
 - Quando existir uma central permanente de Explorar, retirar apenas a duplicação
   do card antigo; nunca esconder novamente o acesso principal.
 
-### Conceito aprovado: conversas entre signos
+Observações medidas: num navegador totalmente novo, sem signo escolhido, a introdução
+do Órbi e a configuração inicial continuam vindo antes das abas. O acesso visitante
+foi validado depois da escolha do signo; não anunciar que o deep link ignora essa etapa.
+A URL canônica da tela é `/comunidade`; `/cosmic-guide/comunidade` volta para a Home.
+
+### Conversas entre signos entregues
 
 O produto pode aproximar pessoas por signo, mas precisa tratar isso como
 **afinidade simbólica e assunto para conversa**, não como um diagnóstico real de
 compatibilidade humana.
 
-**V1 aprovado:** poucas salas densas, em vez de 78 combinações vazias.
+O V1 usa poucas salas densas, em vez de 78 combinações vazias.
 
 1. **Praça do Céu:** conversa geral.
 2. **Espelhos:** pessoas do mesmo signo.
@@ -81,15 +92,13 @@ Cada publicação de combinação carrega os dois signos e a relação exata. Ex
 relacionais, sem abrir uma sala isolada para cada par. Todos podem entrar em
 qualquer sala; o signo organiza a descoberta, nunca restringe pessoas.
 
-Na entrada, mostrar:
+Na entrada, o app mostra as seis salas, sugestões qualitativas ligadas ao signo que
+a pessoa consentiu em exibir e conversas reais da sala. Estados vazios são honestos
+e oferecem uma ação real; não existem pergunta, usuário, atividade ou contador fictícios.
 
-- **Sua conversa:** filtro opcional com o próprio signo, sem criar mais uma sala vazia.
-- **Combinações para explorar:** sugestões qualitativas relevantes para o signo
-  que a pessoa consentiu em exibir.
-- **Conversas recentes:** conteúdo real; no vazio, uma pergunta editorial assinada
-  pelo Cosmic Guide, sem fingir ser usuário.
-- Filtros simples como Amor, Trabalho, Decisões e Autoconhecimento somente se
-  alterarem de verdade a descoberta exibida.
+Os 144 pares de signos são classificados de forma determinística nas sete relações
+da tradição usadas pelo produto, mas continuam agrupados nas cinco salas relacionais.
+Filtros como Amor, Trabalho, Decisões e Autoconhecimento não foram incluídos no V1.
 
 **Contrato de honestidade:**
 
@@ -104,9 +113,7 @@ Na entrada, mostrar:
   encontro. Esta é uma relação simbólica entre signos solares, não uma sinastria
   nem uma previsão de relacionamento.”
 
-### Privacidade, consentimento e segurança
-
-**Obrigatório antes de promover a Comunidade:**
+### Privacidade, consentimento e segurança entregues
 
 - O signo no perfil social nasce **desligado**, exige consentimento próprio e pode
   ser ocultado/removido a qualquer momento.
@@ -117,23 +124,28 @@ Na entrada, mostrar:
 - Diário e Tarô continuam privados por padrão; compartilhar exige ação explícita e
   uma prévia exata do texto que será publicado.
 - Nenhuma leitura ou atividade do modo casal é publicada automaticamente.
-- Manter denúncia e bloqueio; acrescentar lista de bloqueados, exclusão do próprio
-  comentário, edição/exclusão do perfil e limites contra spam.
-- Disponibilizar denúncia e bloqueio também no perfil, aplicar o bloqueio dos dois
-  lados no servidor e permitir que a moderação suspenda o perfil denunciado.
-- Fechar o ciclo de exclusão da conta: apagar ou anonimizar perfil social,
-  publicações, comentários e relações conforme a política definida.
-- Preparar fila de moderação, `ADMIN_TOKEN`, e-mail de suporte válido e rotina do dono.
-- Textos e estados nascem em PT/ES/EN; eliminar os textos PT hardcoded da tela atual.
-- Versionar o esquema social e cobrir suas rotas HTTP; não apoiar um lançamento
-  público em tabelas ou testes que só existam no servidor remoto.
-- Atualizar Política de Privacidade, Termos e página de exclusão em PT/ES/EN.
+- Publicações, comentários e curtidas são reais; a pessoa pode apagar o próprio
+  post ou comentário.
+- Denúncia, bloqueio bilateral e suspensão administrativa estão implementados.
+- A exclusão da conta cobre perfil social, publicações, comentários e relações.
+- Textos e estados da nova superfície existem em PT/ES/EN.
+- O esquema social foi versionado nas migrations `018` e `019`; rotas HTTP e
+  contratos locais foram cobertos por testes.
+- Política de Privacidade, Termos e página de exclusão foram atualizados em PT/ES/EN.
+
+### Pendências operacionais e de acabamento
+
+- Confirmar periodicamente `ADMIN_TOKEN`, caixa de suporte e rotina humana de moderação.
+- Uma tela permanente para listar/desbloquear pessoas não fez parte deste V1.
+- Edição/saída explícita do perfil social merece um fluxo dedicado no próximo acabamento.
+- A verificação visual limpa cobriu Home inteira, estado visitante, largura e erros;
+  uma auditoria manual completa com leitor de tela e teclado físico continua recomendada.
 
 **FORA DO V1:** mensagens privadas, namoro/match automático, chat aleatório,
 localização, áudio ao vivo e placar de compatibilidade. Esses recursos aumentam
 risco de assédio, spam e falsas promessas antes de existir operação de moderação.
 
-### Critérios de aceite da Comunidade V1
+### Critérios de aceite medidos
 
 - O botão Comunidade é visível nos modos solo e casal, logado ou deslogado.
 - O acesso não depende de rolar a Home nem de conhecer um `@usuário`.
@@ -144,9 +156,14 @@ risco de assédio, spam e falsas promessas antes de existir operação de modera
   correta, com teste para todos os pares.
 - Não existe atividade, perfil ou contador falso.
 - Denunciar, bloquear, apagar conteúdo próprio e excluir conta cobrem todo o UGC.
-- Leitor de tela, teclado/web, redução de movimento e estados vazio/erro/carregando
-  têm experiência completa.
+- Componentes usam alvos de toque adequados e suportam redução de movimento;
+  estados vazio/erro/carregando estão implementados.
 - Todos os textos visíveis passam pelo portão PT/ES/EN.
+
+Produção foi checada após o deploy: `/health` retornou `200`, Comunidade sem token
+retornou `401`, denúncia inválida retornou `400`, e o navegador limpo não apresentou
+overflow horizontal na Home nem no estado visitante da Comunidade. Em 390 × 844,
+a Home rolou do topo ao fim de seus 5418 px e as quatro abas permaneceram acessíveis.
 
 ---
 
@@ -213,14 +230,16 @@ Frase de diferenciação: **“Tarô raspa. Cosmic Guide alinha.”**
 
 ## 4. Próximos lotes aprovados
 
-### Lote A — fundação antes da Comunidade pública
+### Lote A — publicado em `8179785`
 
-1. Mapear e testar o ciclo de vida completo do UGC na exclusão da conta.
-2. Completar moderação e ações do dono; configurar suporte e `ADMIN_TOKEN`.
-3. Remover hardcodes PT da tela social e criar chaves PT/ES/EN.
-4. Criar `CommunityStack` e o quarto botão inferior.
-5. Entregar descoberta, salas de signo e salas de combinação sem DMs.
-6. Testar em conta nova e ambiente limpo, além da conta do dono.
+1. **Concluído:** ciclo de vida do UGC coberto na exclusão da conta.
+2. **Concluído no produto:** denúncia, bloqueio bilateral, suspensão e limites;
+   a configuração e a rotina humana do dono continuam sendo responsabilidade operacional.
+3. **Concluído:** nova superfície social em PT/ES/EN.
+4. **Concluído:** `CommunityStack` e quarto botão inferior.
+5. **Concluído:** descoberta e salas públicas sem DMs, match ou placar.
+6. **Concluído:** testes automatizados, contexto limpo e produção; manter auditorias
+   manuais periódicas de tecnologias assistivas e da conta operacional de moderação.
 
 ### Lote B — personalização real do Tarô
 
@@ -281,8 +300,9 @@ conhece a pessoa ou já criou um plano antes de as respostas realmente alterarem
   humana antes, se houver licença e arquivo aprovados.
 - Visual: tipografia editorial, menos gradientes/cores, estados consistentes,
   movimento premium e ilustrações com intenção — sem aparência de template de IA.
-- Backend: tornar testes reproduzíveis e rodá-los antes de reiniciar; não confundir
-  a suíte do app com cobertura do servidor.
+- Backend: a fonte local reproduzível, dependências, migrations e testes foram
+  incorporados a `server-patches/`; continuar rodando a suíte do servidor antes
+  de reiniciar e não confundi-la com a suíte do app.
 
 ---
 
@@ -290,11 +310,10 @@ conhece a pessoa ou já criou um plano antes de as respostas realmente alterarem
 
 1. Ler `CONTEXTO-PARA-AGENTE.md` e este arquivo inteiro.
 2. Conferir `git status`, branch, HEAD e produção antes de alterar qualquer coisa.
-3. Auditar exclusão/moderação do UGC e escrever testes de contrato.
-4. Implementar internacionalização social e navegação da Comunidade.
-5. Implementar as salas e validar com usuário novo/conta limpa.
-6. Só então iniciar o gatilho **Alinhe seu céu**.
-7. Seguir para Tarô contextual, Álbum 2.0 e os demais lotes.
+3. Próxima frente: implementar e medir o gatilho 3S **Alinhe seu céu**, que ainda
+   está **DECIDIDO / NÃO IMPLEMENTADO**.
+4. Depois seguir para Tarô contextual e raspagem premium do Lote B.
+5. Seguir para Álbum 2.0, Explorar e os demais lotes.
 
 Não iniciar cinco frentes ao mesmo tempo. Cada lote deve terminar com testes,
 export web/Android quando aplicável, revisão em contexto limpo e registro do que
@@ -314,29 +333,37 @@ realmente foi publicado.
 
 ---
 
-## 7. Arquivos para abrir primeiro amanhã
+## 7. Mapa dos arquivos atuais
 
 | Arquivo | Motivo |
 |---|---|
-| `App.js` | Abas atuais, `HomeStack` e registro de `SocialScreen`. |
-| `routes.js` | Criar a rota/aba da Comunidade sem nomes duplicados. |
-| `screens/HomeScreen.js` | Card social atual e regra `SOLO_ONLY`. |
-| `screens/SocialScreen.js` | Feed já existente e textos ainda hardcoded em PT. |
+| `App.js` | `CommunityStack` e quarta aba nos modos solo/casal. |
+| `routes.js` | Rotas canônicas da Comunidade, Seguindo e Diretrizes. |
+| `screens/HomeScreen.js` | Card que abre o hub da Comunidade. |
+| `screens/CommunityHubScreen.js` | Hub, salas, conversas, comentários e ações sociais. |
+| `components/community/CommunityDiscovery.js` | Descoberta editorial, salas e estado visitante. |
+| `screens/SocialScreen.js` | Feed Seguindo e compartilhamentos explícitos. |
+| `lib/communityRooms.js` | Classificação determinística dos 144 pares. |
 | `lib/socialClient.js` | Contrato do cliente com a API social. |
 | `lib/i18n.js` | Chaves PT/ES/EN da aba, salas, erros e estados. |
 | `server-patches/src/http/socialRoutes.js` | Perfil, posts, follows e comentários. |
 | `server-patches/src/http/socialAuth.js` | Autenticação e conta revogada. |
 | `server-patches/src/http/moderationRoutes.js` | Denúncia, bloqueio e painel de moderação. |
-| `server-patches/src/infrastructure/migrations/016_add_moderation.sql` | Única migração social/moderação já versionada encontrada. |
-| `server-patches/supabase/001_delete_own_account.sql` | Exclusão atual; auditar e cobrir todo o UGC antes do destaque. |
-| `screens/ProfileScreen.js` | Ordem atual da exclusão da conta. |
+| `server-patches/src/infrastructure/migrations/018_version_social_foundation.sql` | Fundação social versionada. |
+| `server-patches/src/infrastructure/migrations/019_add_community_rooms.sql` | Salas, signo público e relações da Community V1. |
+| `server-patches/test/communityRooms.http.test.js` | Contrato HTTP das salas. |
+| `server-patches/test/socialLifecycle.http.test.js` | Ciclo social e exclusão de conta. |
+| `test/communityHubScreen.test.js` | Interações e estados do hub. |
+| `test/communityNavigation.test.js` | Aba, stacks e destinos de compartilhamento. |
+| `test/communityRooms.test.js` | Classificação dos pares no app. |
+| `test/communityServerContract.test.js` | Paridade entre app e backend versionado. |
 | `docs/tradicao/02-aspectos-e-sinastria.md` | Base doutrinária; não transformar signo solar em veredito. |
 
 ---
 
 ## 8. Estado desta noite
 
-Nesta sessão de 24/08/2026, as decisões acima foram **documentadas para amanhã**.
-Nenhuma das novas funções de Comunidade, salas de signos ou “Alinhe seu céu” foi
-implementada ou publicada nesta etapa. A base publicada continua sendo a descrita
-na seção 1.
+A Community V1 foi implementada no commit `8179785`, com backend em schema 19 e
+publicação web concluída depois do ajuste `5a502b2`. O mecanismo 3S **Alinhe seu céu**
+continua **DECIDIDO / NÃO IMPLEMENTADO**, assim como os lotes B, C e D ainda não
+entregues. Esta distinção deve permanecer explícita em qualquer próxima sessão.
