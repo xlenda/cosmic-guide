@@ -1,7 +1,8 @@
 # Estado consolidado e próximos lotes — Cosmic Guide
 
-> Registrado em **24/08/2026** e atualizado depois da publicação da Community V1
-> e do gatilho 3S **Alinhe seu céu**.
+> Registrado em **24/08/2026** e atualizado depois da publicação da Community V1,
+> do gatilho 3S **Alinhe seu céu**, do **Lote B do Tarô** e da operação de
+> moderação humana da Comunidade.
 >
 > Este arquivo é uma **memória de produto e execução**. Tudo que estiver marcado
 > como **DECIDIDO / NÃO IMPLEMENTADO** ainda precisa ser construído, testado e
@@ -48,9 +49,29 @@
   `https://cosmicguide.cloud/cosmic-guide/alinhe-seu-ceu`: palco visível, pathname
   preservado, zero erros JavaScript e zero overflow horizontal em 390 × 844.
 
-Pendência externa conhecida: o backend possuía Anthropic para texto, mas a conta
-retornava erro de crédito insuficiente. Isso não é falha do fluxo visual e não deve
-ser mascarado por fallback que prometa resposta de IA real.
+**PUBLICADO — Lote B + moderação: commits `c96250c` e `306fd5d`**
+
+- Backend publicado primeiro pelo script oficial: release `20260824-180243`.
+- Banco em `user_version = 20`, `quick_check = ok`; migration
+  `020_add_moderation_actions.sql` aplicada.
+- Suíte remota do backend: **283 testes**, **282 aprovados**, zero falhas e
+  1 teste documental ignorado.
+- Suíte completa do app: **1758/1758 aprovada**. Exports web e Android e os
+  nove cenários E2E limpos também foram aprovados.
+- Web de produção: `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3`, estado `READY`,
+  alias `https://cosmicguide.cloud`.
+- Probes externos após a publicação: web raiz `200`, app `200`, API health
+  `200`, Comunidade sem sessão `401`, denúncia inválida `400` e painel admin
+  sem credencial `401`.
+- Em produção, no viewport 390 × 844, a Home percorreu os `4897 px` internos
+  até o fim sem overflow horizontal. O fluxo limpo preservou Touro como Touro,
+  revelou três cartas, só exibiu a síntese após a terceira, mostrou o convite
+  da Comunidade e terminou com zero erros JavaScript.
+
+Pendência externa revalidada nos logs do release `20260824-180243`: a Anthropic
+está configurada para texto, mas a conta retorna **crédito insuficiente**. O chat
+do Órbi pode falhar até o dono recarregar o saldo. Isso não é falha do fluxo visual
+e não deve ser mascarado por fallback que prometa resposta de IA real.
 
 ---
 
@@ -134,16 +155,29 @@ Filtros como Amor, Trabalho, Decisões e Autoconhecimento não foram incluídos 
 - Nenhuma leitura ou atividade do modo casal é publicada automaticamente.
 - Publicações, comentários e curtidas são reais; a pessoa pode apagar o próprio
   post ou comentário.
-- Denúncia, bloqueio bilateral e suspensão administrativa estão implementados.
+- Denúncia, bloqueio bilateral, suspensão administrativa, reversão, histórico
+  append-only e limpeza transacional do UGC estão implementados.
+- Qualquer resposta `community_suspended` invalida requisições antigas e limpa
+  feed, perfil, comentários, modais, rascunhos e pendências sociais do aparelho.
 - A exclusão da conta cobre perfil social, publicações, comentários e relações.
 - Textos e estados da nova superfície existem em PT/ES/EN.
-- O esquema social foi versionado nas migrations `018` e `019`; rotas HTTP e
-  contratos locais foram cobertos por testes.
+- O esquema social foi versionado nas migrations `018`, `019` e `020`; rotas
+  HTTP, ciclo de suspensão e contratos locais foram cobertos por testes.
 - Política de Privacidade, Termos e página de exclusão foram atualizados em PT/ES/EN.
 
 ### Pendências operacionais e de acabamento
 
-- Confirmar periodicamente `ADMIN_TOKEN`, caixa de suporte e rotina humana de moderação.
+- **Rotina humana obrigatória:** abrir o painel em dois turnos por dia, tratar a
+  fila mais antiga primeiro, registrar a decisão e revisar recursos. O procedimento,
+  severidades e protocolo de indisponibilidade estão em `docs/OPERACAO-MODERACAO.md`.
+- `ADMIN_TOKEN` foi confirmado no release atual sem expor o segredo: a rota sem
+  credencial respondeu `401`, e não `503`.
+- **DEPENDÊNCIA EXTERNA:** `contato@cosmicguide.cloud` continua sem MX/TXT e não
+  recebe. Não anunciar recurso por e-mail até configurar caixa, MX, SPF, DKIM e
+  DMARC e testar recebimento real.
+- Dívida técnica não bloqueante: painel sem busca/paginação completa, token
+  administrativo compartilhado sem identidade individual do moderador e timeout
+  que não cobre um corpo de resposta travado depois dos headers.
 - Uma tela permanente para listar/desbloquear pessoas não fez parte deste V1.
 - Edição/saída explícita do perfil social merece um fluxo dedicado no próximo acabamento.
 - A verificação visual limpa cobriu Home inteira, estado visitante, largura e erros;
@@ -168,10 +202,11 @@ risco de assédio, spam e falsas promessas antes de existir operação de modera
   estados vazio/erro/carregando estão implementados.
 - Todos os textos visíveis passam pelo portão PT/ES/EN.
 
-Produção foi checada após o deploy: `/health` retornou `200`, Comunidade sem token
-retornou `401`, denúncia inválida retornou `400`, e o navegador limpo não apresentou
-overflow horizontal na Home nem no estado visitante da Comunidade. Em 390 × 844,
-a Home rolou do topo ao fim de seus 5418 px e as quatro abas permaneceram acessíveis.
+Produção foi rechecada após o release `20260824-180243`: `/health` retornou `200`,
+Comunidade sem token retornou `401`, denúncia inválida retornou `400` e o painel
+admin sem credencial retornou `401`. Em 390 × 844, a Home percorreu os `4897 px`
+internos até o fim, sem overflow horizontal; o convite da Comunidade apareceu ao
+final da tiragem personalizada e não houve erro JavaScript.
 
 ---
 
@@ -267,42 +302,49 @@ abertura fria dessa rota para impedir que ela volte silenciosamente à Home.
 - URL canônica: `https://cosmicguide.cloud/cosmic-guide/alinhe-seu-ceu`.
 - Testes, exports, E2E e verificação adversarial em produção concluídos.
 
-### Lote B — personalização real do Tarô
+### Lote B — **PUBLICADO** em `c96250c`, portão corrigido em `306fd5d`
 
-1. Corrigir e testar a entrada pelos 12 signos: a próxima tela deve usar o signo
-   realmente escolhido, sem texto preso ao primeiro signo, cache antigo ou cópia
-   genérica. Cobrir os 12 signos em PT/ES/EN e também em contexto limpo.
-2. Escrever a camada carta × tema de verdade, começando pelos 22 Arcanos Maiores
-   e depois os 56 Menores, em PT/ES/EN. Hoje o mesmo texto entre temas ainda é
-   semelhante demais.
-3. Mudar a ordem da experiência: raspar → interpretação individual imediata →
-   próxima carta; síntese somente depois da terceira.
-4. Refazer a raspagem como gesto premium: carta maior e em foco, remoção progressiva
-   exatamente sob o dedo, textura elegante, haptics discretos e conclusão sem
-   animação robótica. Incluir botão acessível “Revelar”, teclado/web e movimento
-   reduzido; o gesto nunca finge escolher a carta ou sentir energia.
-5. Perguntas inteligentes depois do primeiro valor, não um onboarding longo.
-   Cada resposta precisa alterar de verdade tema, pergunta sugerida, tiragem, CTA
-   ou plano — nunca apenas repetir o que o lead quer ouvir.
-6. Permitir estruturas como Passado–Presente–Futuro e
-   Situação–Tensão–Próximo passo, persistindo a chave da tiragem.
-7. Não prometer “resposta da IA” quando o resultado for regra/template.
+1. Os 12 signos têm lentes próprias em PT/ES/EN. Signo ausente ou inválido não
+   cai em Áries; contexto limpo de produção preservou Touro como Touro.
+2. A cobertura carta × tema está completa: **78 cartas × 5 temas × 3 idiomas =
+   1170 lentes editoriais**. São 330 lentes dos Maiores e 840 dos Menores, sem
+   texto genérico de emergência.
+3. A experiência é sequencial: raspar → interpretação daquela carta → próxima
+   carta. A síntese pessoal só aparece depois da terceira revelação.
+4. A raspagem usa carta grande, foil de metal antigo, remoção contínua sob o dedo,
+   interpolação do trajeto, haptics discretos e gate medido pela área revelada.
+   Há fallback acessível **“Revelar sem raspar”**, teclado/web e movimento reduzido.
+5. Existem **5 temas × 3 focos = 15 caminhos**. Cada escolha altera confirmação,
+   pergunta sugerida, plano, CTA e/ou estrutura; não é eco vazio do que a pessoa
+   quer ouvir.
+6. As estruturas **Passado–Presente–Futuro** e
+   **Situação–Tensão–Próximo passo** têm semânticas próprias e são persistidas
+   junto das cartas, do foco, do signo, da pergunta e do idioma.
+7. O resultado local é apresentado como método editorial e simbólico, nunca como
+   resposta gerada por IA. Pergunta e reflexão privadas não entram no Feed.
 
-#### Entrada de Órbi antes das perguntas
+#### Entrada compacta de Órbi — entregue
 
-**DECIDIDO / NÃO IMPLEMENTADO — roteiro-base:**
+- Órbi aparece dentro do card de perguntas antes das escolhas, sem criar outra
+  tela ou outro toque obrigatório.
+- O roteiro diz que organiza símbolos, perguntas e caminhos e que não decide pela
+  pessoa. Poucas escolhas mudam de verdade o caminho mostrado.
+- O recibo após a escolha confirma o foco com linguagem específica e explica o
+  plano antes de tirar as cartas.
+- O texto existe em PT/ES/EN. **Nenhuma voz foi prometida ou adicionada:** uma
+  gravação humana só poderá entrar quando houver arquivo licenciado aprovado;
+  voz dinâmica continua no Lote D e depende de provedor próprio.
 
-1. O céu escuro ganha um único ponto de luz; Órbi desperta sem falar demais.
-2. Órbi: **“Antes das cartas, vamos dar nome ao que está pedindo clareza.”**
-3. Órbi: **“Eu não decido por você. Organizo símbolos, perguntas e caminhos para
-   você enxergar sua própria escolha.”**
-4. A primeira pergunta aparece integrada à cena, sem abrir outro formulário.
-5. Órbi: **“São poucas respostas. Cada uma precisa mudar o caminho que vou mostrar.”**
-6. CTA: **“Começar meu caminho.”**
+#### Integridade entregue
 
-O roteiro final deve ser curto, gravável com voz humana licenciada, legendado em
-PT/ES/EN e coerente com o código entregue. Não dizer que Órbi sentiu energia,
-conhece a pessoa ou já criou um plano antes de as respostas realmente alterarem o fluxo.
+- A tiragem é gravada de forma durável antes de consumir Leitura Bônus; falha de
+  gravação não cobra, e corrida entre dois toques não duplica o benefício.
+- Trocar tema/foco durante uma gravação não mistura leituras; uma conclusão antiga
+  não apaga uma tiragem nova.
+- A terceira carta só conclui depois de persistir o Álbum. A síntese e o convite
+  da Comunidade usam exatamente o snapshot congelado daquela leitura.
+- Verificação final: **1758/1758 testes**, exports web e Android, 9/9 cenários
+  limpos de Playwright e regressão oficial aprovados; produção validada sem erro JS.
 
 ### Lote C — Álbum 2.0 e Explorar
 
@@ -336,10 +378,14 @@ conhece a pessoa ou já criou um plano antes de as respostas realmente alterarem
 
 1. Ler `CONTEXTO-PARA-AGENTE.md` e este arquivo inteiro.
 2. Conferir `git status`, branch, HEAD e produção antes de alterar qualquer coisa.
-3. Confirmar o baseline limpo em `2b4d783` e a rota canônica publicada do 3S.
-4. **Próxima frente: Lote B — personalização real do Tarô**, começando pelo signo
-   realmente escolhido, pela camada carta × tema e pela raspagem premium acessível.
-5. Depois seguir para Álbum 2.0/Explorar no Lote C e para o Lote D.
+3. Confirmar o baseline publicado em `306fd5d`, backend `20260824-180243`, web
+   `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3` e o total atual de 1758 testes.
+4. **Rotina diária paralela:** revisar a fila humana de moderação em dois turnos,
+   seguindo `docs/OPERACAO-MODERACAO.md`; isso não é substituído por automação.
+5. **Próxima frente de produto: Lote C — Álbum 2.0 e Explorar.** Depois seguir
+   para o Lote D.
+6. Ações do dono: recarregar créditos da Anthropic e configurar/testar a caixa
+   `contato@cosmicguide.cloud` antes de prometer chat ou recurso por e-mail.
 
 Não iniciar cinco frentes ao mesmo tempo. Cada lote deve terminar com testes,
 export web/Android quando aplicável, revisão em contexto limpo e registro do que
@@ -371,6 +417,11 @@ realmente foi publicado.
 | `hooks/useReducedMotion.js` | Preferência de movimento reduzido no web e no nativo. |
 | `lib/skyAlignment.js` | Motor puro do encontro, próximo evento e recibo auditável. |
 | `lib/personalSky.js` | Leitura validada dos dados natais locais usados pelo motor. |
+| `screens/TarotScreen.js` | Seleção guiada, duas estruturas, ritual sequencial, síntese e ponte explícita para a Comunidade. |
+| `components/ScratchRevealCard.js` + `lib/scratchReveal.js` | Foil premium, gesto contínuo, gate de área, acessibilidade, haptics e movimento reduzido. |
+| `lib/tarotRitualGuide.js` | Contrato dos 5 temas, 15 focos, 12 signos e duas estruturas. |
+| `lib/tarotMajorThemeLenses.js` + `lib/tarotMinorThemeLenses.js` | Acesso às 1170 lentes carta × tema × idioma. |
+| `lib/tarotPendingReading.js` + `lib/tarotDrawCommit.js` | Snapshot durável e consumo transacional da Leitura Bônus. |
 | `screens/CommunityHubScreen.js` | Hub, salas, conversas, comentários e ações sociais. |
 | `components/community/CommunityDiscovery.js` | Descoberta editorial, salas e estado visitante. |
 | `screens/SocialScreen.js` | Feed Seguindo e compartilhamentos explícitos. |
@@ -379,12 +430,18 @@ realmente foi publicado.
 | `lib/i18n.js` | Chaves PT/ES/EN da Comunidade e de todos os estados do 3S. |
 | `server-patches/src/http/socialRoutes.js` | Perfil, posts, follows e comentários. |
 | `server-patches/src/http/socialAuth.js` | Autenticação e conta revogada. |
-| `server-patches/src/http/moderationRoutes.js` | Denúncia, bloqueio e painel de moderação. |
+| `server-patches/src/http/moderationRoutes.js` | Denúncia e bloqueio com identidade social normalizada. |
+| `server-patches/src/http/adminRoutes.js` + `painelRoutes.js` | Suspensão, reversão, histórico, fila oldest-first e painel fail-closed. |
+| `server-patches/src/infrastructure/SocialModerationCleanup.js` | Limpeza transacional do UGC durante suspensão. |
+| `server-patches/src/infrastructure/normalizeSocialUserId.js` | Identidade canônica usada em todo o fluxo de moderação. |
 | `server-patches/src/infrastructure/migrations/018_version_social_foundation.sql` | Fundação social versionada. |
 | `server-patches/src/infrastructure/migrations/019_add_community_rooms.sql` | Salas, signo público e relações da Community V1. |
+| `server-patches/src/infrastructure/migrations/020_add_moderation_actions.sql` | Histórico append-only de ações e reversões administrativas. |
+| `docs/OPERACAO-MODERACAO.md` | Rotina humana em dois turnos, severidade, recurso e protocolo de indisponibilidade. |
 | `server-patches/test/communityRooms.http.test.js` | Contrato HTTP das salas. |
 | `server-patches/test/socialLifecycle.http.test.js` | Ciclo social e exclusão de conta. |
 | `test/communityHubScreen.test.js` | Interações e estados do hub. |
+| `test/tarotLoteBIntegration.test.js` + `test/tarot*ThemeLenses*.test.js` | Integração e cobertura das 78 cartas nos cinco temas e três idiomas. |
 | `test/communityNavigation.test.js` | Aba, stacks e destinos de compartilhamento. |
 | `test/communityRooms.test.js` | Classificação dos pares no app. |
 | `test/communityServerContract.test.js` | Paridade entre app e backend versionado. |
@@ -397,9 +454,14 @@ realmente foi publicado.
 
 ## 8. Estado desta noite
 
-A Community V1 foi publicada no commit `8179785`. O mecanismo 3S **Alinhe seu céu**
-foi publicado em `9f9986e`, com o deep link corrigido em `2b4d783`, backend release
-`20260824-151514`, web `dpl_CtWHToDHH4ijNwtCeykqS3KZP75j` e **1689/1689 testes**.
-A rota canônica é `/cosmic-guide/alinhe-seu-ceu`. O próximo trabalho é o **Lote B**;
-os lotes B, C e D continuam **DECIDIDOS / NÃO IMPLEMENTADOS** até seus respectivos
-códigos, verificações e publicações.
+A Community V1, o 3S **Alinhe seu céu** e o **Lote B do Tarô** estão publicados.
+O snapshot mais recente é `c96250c` + `306fd5d`, backend release
+`20260824-180243`, schema 20, web `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3` e
+**1758/1758 testes do app**. Os probes externos e o ritual completo em navegador
+limpo passaram.
+
+A próxima frente de produto é o **Lote C — Álbum 2.0 e Explorar**. O Lote D
+continua **DECIDIDO / NÃO IMPLEMENTADO**. Em paralelo, a fila da Comunidade exige
+moderação humana duas vezes por dia. Créditos da Anthropic e a caixa de e-mail do
+domínio continuam dependências externas do dono; não tratar nenhum dos dois como
+operacional até medir de novo.

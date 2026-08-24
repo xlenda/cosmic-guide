@@ -1,12 +1,28 @@
-# Estado do Cosmic Guide — baseline histórico + Fase 3 (23/08/2026)
+# Estado do Cosmic Guide — snapshot atual + baselines históricos (24/08/2026)
 
 > Este arquivo nasceu como fotografia de 01/08/2026. Naquele commit (`764a19d`),
 > estavam registrados 1.385 testes verdes e 42 correções da auditoria. Esses
 > números e o estado de produção são históricos: remeça antes de repeti-los.
 >
-> A atualização de Fase 3 abaixo descreve a implementação preparada em
-> 23/08/2026, mas não afirma deploy. Só declare que está no ar depois dos scripts
-> oficiais, dos testes e dos probes de produção.
+> A seção de Fase 3 abaixo preserva o contrato histórico de 23/08/2026. Para o
+> handoff detalhado atual, leia `MEMORIA-PROXIMA-SESSAO.md` e
+> `CONTEXTO-PARA-AGENTE.md`.
+
+## Snapshot medido de 24/08/2026
+
+- Community V1, 3S **Alinhe seu céu** e Lote B do Tarô estão publicados.
+- Commits do Lote B: `c96250c` e `306fd5d`.
+- Backend publicado primeiro: release `20260824-180243`, schema 20,
+  `quick_check = ok`, 283 testes (282 aprovados, zero falhas, 1 ignorado).
+- Web `READY`: `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3`.
+- App: **1758/1758 testes**, exports web/Android e portões E2E aprovados.
+- Produção limpa: Home inteira, signo real, três raspagens, síntese só na terceira,
+  convite da Comunidade e zero erro JavaScript.
+- Próxima frente: **Lote C — Álbum 2.0 e Explorar**.
+- Operação contínua: moderação humana duas vezes por dia, conforme
+  `docs/OPERACAO-MODERACAO.md`.
+- Dependências externas: recarregar Anthropic e configurar/testar
+  `contato@cosmicguide.cloud`; voz neural continua não entregue.
 
 ---
 
@@ -20,7 +36,7 @@ bash scripts/deploy-vercel.sh     # web — só depois do backend
 
 ---
 
-## Fase 3 — Órbi e linguagem (implementação local)
+## Fase 3 — Órbi e linguagem (contrato histórico)
 
 - **Conversar com Órbi** substitui as identidades antigas na experiência atual.
   Órbi é uma interface de conversa gerada pela **IA da Anthropic**, declarada

@@ -1,7 +1,8 @@
 # Contexto para agente — Cosmic Guide
 
 > Handoff iniciado em 19/08/2026 e atualizado em 24/08/2026 depois da publicação
-> da Community V1 e do gatilho 3S **Alinhe seu céu**.
+> da Community V1, do gatilho 3S **Alinhe seu céu**, do Lote B do Tarô e da
+> operação humana de moderação.
 > Leia isto ANTES de tocar em qualquer arquivo. Datas e números abaixo são
 > fotografias do momento em que foram medidos, não garantias sobre produção.
 
@@ -36,16 +37,21 @@ Baseline de **19/08/2026** (histórico, não reutilize como status atual):
 - **Projeto Android naquele dia:** `npx expo prebuild --platform android` sem aviso
 - **Deploy daquele baseline:** backend e web publicados; migrações 016 e 017 aplicadas
 
-A **Fase 3** foi preparada depois desse baseline. O snapshot medido mais recente é:
+O snapshot medido mais recente é:
 
-- feature 3S em `9f9986e` e correção do deep link em `2b4d783`;
-- backend publicado primeiro, release `20260824-151514`;
-- web `READY` no deploy `dpl_CtWHToDHH4ijNwtCeykqS3KZP75j`;
-- **1689/1689 testes do app** e 272 testes do backend aprovados, com 1 teste
-  documental ignorado;
-- URL canônica validada em contexto limpo:
-  `https://cosmicguide.cloud/cosmic-guide/alinhe-seu-ceu`;
-- próxima frente aprovada: **Lote B — personalização real do Tarô**.
+- Lote B + moderação em `c96250c`; portão E2E estabilizado em `306fd5d`;
+- backend publicado primeiro, release `20260824-180243`, schema 20 e
+  `quick_check = ok`;
+- web `READY` no deploy `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3`;
+- **1758/1758 testes do app** e 283 testes do backend, com 282 aprovados,
+  zero falhas e 1 teste documental ignorado;
+- exports web/Android, nove cenários E2E limpos e regressão oficial aprovados;
+- probes externos: web `200`, app `200`, health `200`, Comunidade sem sessão
+  `401`, moderação inválida `400` e painel admin sem credencial `401`;
+- produção limpa em 390 × 844: Home percorreu `4897 px` até o fim sem overflow,
+  Touro permaneceu Touro, três cartas foram reveladas, síntese apenas na terceira,
+  convite da Comunidade visível e zero erros JavaScript;
+- próxima frente de produto: **Lote C — Álbum 2.0 e Explorar**.
 
 Ainda assim, remeça antes de afirmar: confira `git status`, rode a suíte e os
 exports e, se for publicar, use os scripts oficiais na ordem backend → web e
@@ -64,6 +70,9 @@ confirme com probes reais.
   Órbi.
 - **Voz neural não faz parte desta Fase 3 e continua não entregue.** Ela depende
   de provedor, chave, custo, cache e privacidade; Anthropic não gera áudio.
+- No Tarô, a entrada compacta de Órbi e os 15 caminhos são conteúdo editorial
+  local e determinístico. Não os apresente como resposta da Anthropic. O chat é
+  a superfície que realmente chama a IA.
 - A **Community V1 foi publicada depois em um escopo próprio**. Não a atribua à
   Fase 3 original; consulte `MEMORIA-PROXIMA-SESSAO.md` para o contrato social,
   as limitações e o estado real.
@@ -229,18 +238,22 @@ Detalhe completo em **`play-store/PENDENCIAS-CONHECIDAS.md`**. Resumo:
 
 ## 7. Só o dono pode fazer
 
-1. **Créditos/chave da Anthropic, se o probe real apontar falha.** Não reutilize
-   o relato de uma indisponibilidade antiga como status atual. O backend desta
-   base retorna erro explícito quando a IA não está configurada ou não consegue
-   gerar resposta; não documente um texto genérico como se fosse resposta real.
+1. **Recarregar os créditos da Anthropic.** Os logs do release
+   `20260824-180243` devolveram `credit balance is too low`. Remeça antes de
+   repetir no futuro, mas hoje o chat do Órbi pode falhar. O backend retorna erro
+   explícito; não documente um fallback genérico como resposta real da IA.
 2. **Conta no Play Console** (US$ 25). Ele tem CNPJ + D‑U‑N‑S → abrir como
    **organização** dispensa os 12 testadores por 14 dias.
 3. **Supabase → Authentication → URL Configuration → Redirect URLs → `cosmicguide://`**
    Sem isso o login com Google não volta pro app no Android, por mais correto que o
    código esteja. (O conector Supabase alcança o banco, **não** essa configuração.)
 4. **`npx eas login` && `npx eas init`** — grava `extra.eas.projectId` no `app.json`.
-5. **MX do domínio** — `contato@cosmicguide.cloud` **não recebe mensagem**, e é o
-   endereço que a política de privacidade oferece como canal de contato.
+5. **Caixa e DNS do domínio** — `contato@cosmicguide.cloud` **não recebe**. A
+   consulta atual não encontrou MX/TXT. Configurar caixa, MX, SPF, DKIM e DMARC e
+   provar envio/recebimento antes de declarar recursos por e-mail operacionais.
+6. **Moderação humana contínua** — revisar o painel em dois turnos por dia e
+   registrar decisões/recursos conforme `docs/OPERACAO-MODERACAO.md`. O código
+   fornece fila e controles; não substitui a pessoa responsável.
 
 ---
 
@@ -276,16 +289,24 @@ screenshot não vende nada.
 | `hooks/useReducedMotion.js` | Movimento reduzido no web e no nativo. |
 | `test/skyAlignment*.test.js` + `tests/e2e/sky-alignment.spec.js` | Contrato do motor, tela, gesto e deep link frio. |
 | `scripts/e2e-regression.js` | Portão oficial que bloqueia regressões críticas antes do deploy web. |
+| `screens/TarotScreen.js` | Ritual do Lote B: guia, signo real, duas estruturas, raspagem sequencial, síntese e Comunidade. |
+| `components/ScratchRevealCard.js` + `lib/scratchReveal.js` | Gesto premium, gate de área, fallback acessível, haptics e movimento reduzido. |
+| `lib/tarotRitualGuide.js` | Cinco temas, 15 focos, 12 signos e duas estruturas em PT/ES/EN. |
+| `lib/tarotMajorThemeLenses.js` + `lib/tarotMinorThemeLenses.js` | Acesso às 1170 lentes carta × tema × idioma. |
+| `lib/tarotPendingReading.js` + `lib/tarotDrawCommit.js` | Snapshot durável e consumo transacional de Leitura Bônus. |
 | `screens/ChatScreen.js` + `lib/orbiConversation.js` | Órbi, histórico local/importado e montagem do contexto explícito |
 | `lib/supabaseClient.js` | Login, deep link, o Map de promessas do PKCE |
 | `lib/purchases.js` + `.web.js` | Compra na loja, atrás do gate. Extensão de plataforma. |
 | `lib/accountSubscription.js` | Quem tem acesso. Trata `token_malformed` e `account_deleted`. |
 | `screens/ProfileScreen.js` | Exclusão de conta (RPC → backend → local, nessa ordem) |
 | `server-patches/src/http/socialAuth.js` | `requireAuth` — JWKS + lápide de revogação |
-| `server-patches/src/http/moderationRoutes.js` | Denúncia e bloqueio |
+| `server-patches/src/http/moderationRoutes.js` | Denúncia e bloqueio com identidade canônica. |
+| `server-patches/src/http/adminRoutes.js` + `painelRoutes.js` | Suspensão, reversão, histórico e painel fail-closed. |
+| `server-patches/src/infrastructure/SocialModerationCleanup.js` | Limpeza transacional de UGC. |
+| `server-patches/src/infrastructure/migrations/020_add_moderation_actions.sql` | Histórico append-only de moderação. |
+| `docs/OPERACAO-MODERACAO.md` | Procedimento humano obrigatório em dois turnos diários. |
 | `server-patches/src/application/chatContext.js` | Allowlist do contexto enviado ao Órbi; nunca ampliar sem alinhar privacidade e testes |
 | `server-patches/src/infrastructure/AnthropicChatProvider.js` | Prompt e chamada Anthropic; identidade atual da conversa é Órbi |
-| `server-patches/src/http/painelRoutes.js` | Painel do dono — **escape obrigatório** no HTML |
 | `server-patches/supabase/001_delete_own_account.sql` | Já aplicado no Supabase |
 | `play-store/ficha-da-loja.md` | Textos prontos para o Play Console |
 | `play-store/assets/COMO-USAR.md` | Onde vai cada imagem |
@@ -308,11 +329,12 @@ screenshot não vende nada.
 ## 11. Próxima sessão
 
 O estado consolidado para retomar em **25/08/2026** está em
-[`MEMORIA-PROXIMA-SESSAO.md`](./MEMORIA-PROXIMA-SESSAO.md). A Community V1 e o
-3S **Alinhe seu céu** estão **PUBLICADOS**; o 3S corresponde aos commits `9f9986e`
-e `2b4d783`, backend `20260824-151514`, web
-`dpl_CtWHToDHH4ijNwtCeykqS3KZP75j` e **1689/1689 testes**. Sua rota canônica é
-`https://cosmicguide.cloud/cosmic-guide/alinhe-seu-ceu`.
+[`MEMORIA-PROXIMA-SESSAO.md`](./MEMORIA-PROXIMA-SESSAO.md). Community V1, 3S e
+Lote B estão **PUBLICADOS**. O snapshot atual é `c96250c` + `306fd5d`, backend
+`20260824-180243`, schema 20, web `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3` e
+**1758/1758 testes do app**.
 
-A próxima sessão começa pelo **Lote B**. Os lotes B, C e D permanecem roadmap e
-só podem ser chamados de prontos quando mudarem para **PUBLICADO** na memória.
+A próxima sessão começa pelo **Lote C — Álbum 2.0 e Explorar**, mantendo em
+paralelo os dois turnos diários de moderação humana. Lote D continua roadmap.
+Créditos da Anthropic e a caixa `contato@cosmicguide.cloud` seguem como ações
+externas do dono; não anunciar nenhum dos dois como operacional sem medir.
