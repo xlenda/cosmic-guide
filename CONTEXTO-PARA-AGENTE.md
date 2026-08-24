@@ -281,3 +281,15 @@ screenshot não vende nada.
 - **Relatório vazio de agente que caiu não é "nada encontrado".** Confira
   `agents_done`/`agents_error` antes de interpretar.
 - **Diga o que sobrou.** O dono sempre pergunta, e prefere a lista honesta.
+
+---
+
+## 11. Próxima sessão
+
+O plano aprovado para retomar em **25/08/2026** está em
+[`MEMORIA-PROXIMA-SESSAO.md`](./MEMORIA-PROXIMA-SESSAO.md). Ele registra a
+Comunidade visível, as salas de conversas entre signos, o 3S/gatilho próprio e os
+próximos lotes.
+
+**Atenção:** esse arquivo é roadmap, não confirmação de funcionalidades já
+publicadas. Respeite a legenda de estado antes de relatar ou fazer deploy.
