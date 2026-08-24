@@ -157,6 +157,16 @@ test('sem nascimento o app pede o dado e não fabrica um encontro', async ({ pag
   await expect(page.getByTestId('sky-alignment-receipt')).toHaveCount(0);
 });
 
+test('URL canônica direta preserva a rota e abre o estado honesto', async ({ page }) => {
+  await seedKnownUser(page, { withBirth: false, withJournal: false });
+  await page.goto('/cosmic-guide/alinhe-seu-ceu', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByTestId('sky-alignment-needs-birth')).toBeVisible({ timeout: 30_000 });
+  expect(new URL(page.url()).pathname).toBe('/cosmic-guide/alinhe-seu-ceu');
+  await expect(page.getByTestId('sky-alignment-stage')).toHaveCount(0);
+  await expect(page.getByTestId('sky-alignment-receipt')).toHaveCount(0);
+});
+
 test('dado natal inválido mostra indisponibilidade sem palco nem recibo', async ({ page }) => {
   await seedKnownUser(page, { invalidBirth: true });
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });

@@ -292,10 +292,6 @@ const TRANSICAO_STACK = {
 // existe link compartilhável, e o Voltar do navegador SAI DO APP em vez de
 // voltar uma tela.
 //
-// As três telas novas entram aqui porque são justamente o tipo de conteúdo que
-// se manda pra alguém — o mês no Calendário Cósmico e um ritual específico. A
-// adição é puramente aditiva: nenhuma rota existente muda de path, e o estado
-// de navegação já salvo continua válido.
 const linking = {
   // 'cosmicguide://' NÃO entra aqui de propósito. O deep link de volta do login
   // (cosmicguide://?code=...) não é uma tela: quem trata é lib/supabaseClient.js.
@@ -307,6 +303,9 @@ const linking = {
   config: {
     screens: {
       [ROUTES.HOME_TAB]: {
+        // Na web, useLinking recebe o pathname inteiro e não aplica `prefixes`.
+        // O pai carrega a base real do deploy; no nativo, `prefixes` já a remove.
+        path: Platform.OS === 'web' ? 'cosmic-guide' : '',
         screens: {
           [ROUTES.HOME_MAIN]: '',
           [ROUTES.QUIZ]: 'quiz',

@@ -34,6 +34,10 @@ test('Alinhe seu céu tem rota própria, lazy e registrada somente na pilha da H
 });
 
 test('a rota tem URL canônica e fica livre da oferta flutuante sobre o gesto', () => {
+  assert.match(
+    APP,
+    /\[ROUTES\.HOME_TAB\]: \{\s*\/\/[\s\S]{0,240}path: Platform\.OS === 'web' \? 'cosmic-guide' : ''/
+  );
   assert.match(APP, /\[ROUTES\.SKY_ALIGNMENT\]: 'alinhe-seu-ceu'/);
   const inicioPill = APP.indexOf('const ROTAS_SEM_PILL');
   const fimPill = APP.indexOf(']);', inicioPill);

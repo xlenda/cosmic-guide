@@ -308,6 +308,39 @@ async function openExplore(page) {
     await context.close();
   }
 
+  console.log('\n[9] Alinhe seu céu: deep link canônico (bug: URL fria voltava pra Home, 24/08)');
+  {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await context.newPage();
+    page.__errors = [];
+    page.on('pageerror', (e) => page.__errors.push(e.message));
+    await page.addInitScript(() => {
+      window.localStorage.setItem('userSign', JSON.stringify({ name: 'Touro', pt: 'Touro' }));
+      window.localStorage.setItem(
+        'birth-solo-mirror',
+        JSON.stringify({
+          date: '1990-06-15',
+          time: '14:30',
+          city: { name: 'São Paulo', timezone: 'America/Sao_Paulo', utcOffset: -3 },
+        })
+      );
+    });
+    const response = await page.goto(`${BASE}alinhe-seu-ceu`);
+    const stageVisible = await page
+      .getByTestId('sky-alignment-stage')
+      .waitFor({ state: 'visible', timeout: 10000 })
+      .then(() => true)
+      .catch(() => false);
+    check('rota canônica direta responde 200 e abre o palco', response.status() === 200 && stageVisible);
+    check(
+      'pathname continua /cosmic-guide/alinhe-seu-ceu',
+      new URL(page.url()).pathname === '/cosmic-guide/alinhe-seu-ceu',
+      page.url()
+    );
+    check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
+    await context.close();
+  }
+
   await browser.close();
   server.close();
 
