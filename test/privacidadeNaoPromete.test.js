@@ -62,10 +62,9 @@ for (const item of PROIBIDO) {
 // ---------------------------------------------------------------------------
 // 2. O DADO QUE PASSOU A SAIR DO APARELHO ESTÁ DESCRITO
 // ---------------------------------------------------------------------------
-// Denúncia e bloqueio nasceram nesta preparação, persistem no servidor
-// (moderation_reports e social_blocks, migração 016) e não apareciam em lugar
-// nenhum da tela de Privacidade. Omitir tratamento de dado é o mesmo defeito
-// que descrevê-lo errado.
+// Denúncia e bloqueio persistem no servidor enquanto a conta existe e precisam
+// aparecer na Privacidade. A exclusão agora apaga bloqueios e anonimiza as
+// denúncias necessárias em relação à conta excluída.
 test('a tela de Privacidade descreve denúncia e bloqueio nos três idiomas', () => {
   const tela = fs.readFileSync(path.join(RAIZ, 'screens', 'PrivacyScreen.js'), 'utf8');
   assert.match(tela, /t\('privacy\.use\.report'\)/, 'PrivacyScreen.js não renderiza privacy.use.report');
@@ -89,10 +88,8 @@ test('privacy.rights.sharing nomeia os quatro terceiros', () => {
 // 3. A PÁGINA PÚBLICA DE EXCLUSÃO (a que vai no formulário do Google Play)
 // ---------------------------------------------------------------------------
 // deleteAllCoupleData (lib/coupleData.js) deixa cosmic-journal de fora DE
-// PROPÓSITO, e deleteAccountData (server-patches/src/http/server.js) só
-// desvincula subscriptions e apaga ai_free_quota — não conhece social_posts,
-// social_comments, social_blocks nem moderation_reports. A página prometia o
-// contrário.
+// PROPÓSITO. A exclusão de conta, por outro lado, agora remove o UGC social e
+// os bloqueios e anonimiza denúncias necessárias via SocialAccountCleanup.
 const PAGINA = fs.readFileSync(path.join(RAIZ, 'public', 'excluir-conta.html'), 'utf8');
 
 // A vírgula é o que separa o item de lista ("nomes, signos, ..., diário") do
@@ -118,17 +115,35 @@ for (const bloco of BLOCOS) {
   });
 }
 
-// O feed e a fila de moderação sobrevivem à exclusão da conta, e quem apaga a
-// conta perde o login que era o único jeito de apagar os próprios posts.
-test('excluir-conta.html avisa que feed e denúncias sobrevivem à exclusão', () => {
-  for (const trecho of [
-    'O que você publicou no feed social',
-    'Lo que publicaste en el feed social',
-    'Whatever you posted in the social feed',
-    'Denúncias e bloqueios',
-    'Reportes y bloqueos',
-    'Reports and blocks',
-  ]) {
-    assert.ok(PAGINA.includes(trecho), `excluir-conta.html não avisa: "${trecho}"`);
-  }
-});
+const CONTRATO_SOCIAL = [
+  {
+    lang: 'pt',
+    apaga: 'Seu perfil da Comunidade, publicações, comentários, curtidas, relações',
+    anonima: 'Denúncias ainda necessárias à moderação',
+    bloqueios: 'Os bloqueios são apagados.',
+    antigo: 'O que você publicou no feed social',
+  },
+  {
+    lang: 'es',
+    apaga: 'Tu perfil de la Comunidad, publicaciones, comentarios, Me gusta',
+    anonima: 'Los reportes todavía necesarios para moderación',
+    bloqueios: 'Los bloqueos se borran.',
+    antigo: 'Lo que publicaste en el feed social',
+  },
+  {
+    lang: 'en',
+    apaga: 'Your Community profile, posts, comments, likes, follow relationships',
+    anonima: 'Reports that are still needed for moderation',
+    bloqueios: 'Blocks are deleted.',
+    antigo: 'Whatever you posted in the social feed',
+  },
+];
+
+for (const contrato of CONTRATO_SOCIAL) {
+  test(`excluir-conta.html (${contrato.lang}) reflete a exclusão social nova`, () => {
+    assert.ok(PAGINA.includes(contrato.apaga), `${contrato.lang}: UGC identificável não aparece no que é apagado`);
+    assert.ok(PAGINA.includes(contrato.anonima), `${contrato.lang}: retenção anonimizada de denúncias não foi descrita`);
+    assert.ok(PAGINA.includes(contrato.bloqueios), `${contrato.lang}: página não diz que bloqueios são apagados`);
+    assert.ok(!PAGINA.includes(contrato.antigo), `${contrato.lang}: ainda diz que o feed sobrevive à exclusão`);
+  });
+}

@@ -47,7 +47,13 @@ const RAIZ = path.join(__dirname, '..');
 const TELA = fs.readFileSync(path.join(RAIZ, 'screens', 'ComoVoceTaScreen.js'), 'utf8');
 
 const VALORES_DE_ROTA = new Set(Object.values(ROUTES));
-const ABAS = new Set([ROUTES.HOME_TAB, ROUTES.TAROT_TAB, ROUTES.CHAT_TAB, ROUTES.PROFILE_TAB]);
+const ABAS = new Set([
+  ROUTES.HOME_TAB,
+  ROUTES.TAROT_TAB,
+  ROUTES.COMMUNITY_TAB,
+  ROUTES.CHAT_TAB,
+  ROUTES.PROFILE_TAB,
+]);
 
 // ---------------------------------------------------------------------------
 // 1. Estrutura e destinos

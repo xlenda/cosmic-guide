@@ -363,7 +363,13 @@ export default function DiaryScreen() {
       if (!publicBody) throw new Error(t('tarot.community.privateBodyMissing'));
       await shareToFeed({ readingType: entry.type, title: entry.title, body: publicBody });
       Alert.alert(t('tarot.community.sharedTitle'), t('tarot.community.sharedBody'), [
-        { text: t('tarot.community.view'), onPress: () => navigation.navigate(ROUTES.SOCIAL) },
+        {
+          text: t('tarot.community.view'),
+          onPress: () => (navigation.getParent() || navigation).navigate(
+            ROUTES.COMMUNITY_TAB,
+            { screen: ROUTES.SOCIAL }
+          ),
+        },
         { text: t('tarot.community.ok'), style: 'cancel' },
       ]);
     } catch {

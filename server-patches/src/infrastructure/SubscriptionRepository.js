@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { db } = require("./db");
 const { Subscription } = require("../domain/Subscription");
+const { deleteSocialAccountRows, emptySocialDeletion } = require("./SocialAccountCleanup");
 
 // Token gerado SEMPRE no servidor (nunca no navegador) — é o que liga o casal ao
 // pagamento sem precisar de conta/senha. Se fosse gerado no cliente, qualquer um
@@ -378,37 +379,53 @@ class SubscriptionRepository {
   // único ponto por onde toda exclusão de conta passa. Sem ela, o token da
   // conta já apagada continuava valendo até o `exp` e o primeiro GET /me
   // seguinte desfazia o UPDATE acima pelo backfill por e-mail.
-  forgetAccount({ supabaseUserId }) {
+  forgetAccountData({ supabaseUserId }) {
     const userId = typeof supabaseUserId === "string" ? supabaseUserId.trim() : "";
-    if (!userId) return 0;
+    if (!userId) {
+      return { unlinkedSubscriptions: 0, social: emptySocialDeletion() };
+    }
     const now = new Date().toISOString();
-    const result = db
-      .prepare(`
-        UPDATE subscriptions
-           SET supabase_user_id = NULL,
-               account_email = NULL,
-               linked_at = NULL,
-               linked_by = 'account_deleted',
-               updated_at = @now
-         WHERE supabase_user_id = @userId
-      `)
-      .run({ userId, now });
+    const forget = db.transaction(() => {
+      const result = db
+        .prepare(`
+          UPDATE subscriptions
+             SET supabase_user_id = NULL,
+                 account_email = NULL,
+                 linked_at = NULL,
+                 linked_by = 'account_deleted',
+                 updated_at = @now
+           WHERE supabase_user_id = @userId
+        `)
+        .run({ userId, now });
 
-    // A LÁPIDE VEM DEPOIS DO UPDATE, nunca antes. A partir do instante em que
-    // ela existe, requireAuth (socialAuth.js) recusa esse token — e o app
-    // REPETE este DELETE quando a resposta se perde (deleteAccountData em
-    // lib/accountSubscription.js tenta 3 vezes). Gravar primeiro e falhar no
-    // UPDATE deixaria a linha do pagamento amarrada pra sempre a um uuid que já
-    // não consegue nem tentar de novo.
-    //
-    // OR IGNORE: revogar de novo não move a data — a hora que importa é a da
-    // primeira exclusão, que é o que a poda abaixo mede.
-    db.prepare("INSERT OR IGNORE INTO revoked_accounts (user_id, revoked_at) VALUES (?, ?)").run(userId, now);
-    db.prepare("DELETE FROM revoked_accounts WHERE revoked_at < ?").run(
-      new Date(Date.now() - REVOKED_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
-    );
+      // Perfil, posts, comentários, curtidas, follows e bloqueios pertencem à
+      // conta. Denúncias são anonimizadas/fechadas conforme a regra do módulo,
+      // sem apagar uma denúncia válida feita contra outra pessoa.
+      const social = deleteSocialAccountRows(db, { userId, now, deleteSuspension: true });
 
-    return result.changes;
+      // A LÁPIDE VEM POR ÚLTIMO, dentro da MESMA transação. A partir do instante
+      // em que ela existe, requireAuth (socialAuth.js) recusa esse token. Se
+      // qualquer limpeza acima falhar, o rollback preserva tudo e a requisição
+      // responde 500; nunca confirmamos uma exclusão parcial.
+      //
+      // OR IGNORE: revogar de novo não move a data — a hora que importa é a da
+      // primeira exclusão, que é o que a poda abaixo mede.
+      db.prepare("INSERT OR IGNORE INTO revoked_accounts (user_id, revoked_at) VALUES (?, ?)").run(userId, now);
+      db.prepare("DELETE FROM revoked_accounts WHERE revoked_at < ?").run(
+        new Date(Date.now() - REVOKED_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      );
+
+      return { unlinkedSubscriptions: result.changes, social };
+    });
+
+    return forget();
+  }
+
+  // Compatibilidade com chamadas antigas: o método historicamente devolvia
+  // apenas o número de assinaturas desvinculadas. A rota nova usa o método
+  // detalhado acima, mas qualquer consumidor residual continua recebendo Number.
+  forgetAccount({ supabaseUserId }) {
+    return this.forgetAccountData({ supabaseUserId }).unlinkedSubscriptions;
   }
 
   save(subscription) {

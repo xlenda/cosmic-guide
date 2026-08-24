@@ -28,15 +28,15 @@
   As três línguas do app (PT/ES/EN) na mesma página: o revisor do Google
   costuma ler em inglês, e o app é vendido nas três.
 
-  CADA LINHA DAS LISTAS ABAIXO FOI CONFERIDA CONTRA O CÓDIGO (19/08/2026). O que
+  CADA LINHA DAS LISTAS ABAIXO FOI CONFERIDA CONTRA O CÓDIGO (24/08/2026). O que
   "Deletar conta" realmente faz são três passos, e só isso:
     1. supabase.rpc('delete_own_account') → apaga a linha de auth.users e, em
        cascata, identities/sessions/refresh_tokens (supabase/001_delete_own_account.sql).
-    2. DELETE /api/subscription/account → deleteAccountData (server-patches/src/
-       http/server.js) desvincula subscriptions e grava a lápide de revogação
-       (revoked_accounts, migração 017). MAIS NADA: a linha do pagamento
-       continua, agora sem dono, e a contagem de uso da IA (ai_free_quota) FICA
-       — está na lista do que continua guardado, com o motivo.
+    2. DELETE /api/subscription/account → forgetAccountData (SubscriptionRepository)
+       desvincula subscriptions, remove perfil/UGC/interações/bloqueios sociais,
+       anonimiza denúncias necessárias e grava a lápide de revogação. A linha do
+       pagamento continua sem vínculo com a conta, e a contagem antiabuso da IA
+       fica ligada só ao UUID opaco da conta já inexistente.
     3. wipeLocalData → clearAll (context/CoupleContext.js) → cancela o push e o
        lembrete, apaga a sessão do funil no servidor (POST /api/track/forget) e
        roda deleteAllCoupleData (lib/coupleData.js).
@@ -52,8 +52,10 @@
   O QUE NÃO SAI, e por isso está na lista do que fica:
     · cosmic-journal (o Diário) e cosmic-jornada-v1 — lib/coupleData.js diz, com
       todas as letras, que ficam de fora de propósito.
-    · social_profiles / social_posts / social_comments / social_blocks /
-      moderation_reports — deleteAccountData não conhece nenhuma delas.
+    · denúncias ainda necessárias à moderação, depois de removidos os ids,
+      detalhes livres e qualquer cópia de conteúdo da conta excluída.
+    · o recibo fiscal sem vínculo com a conta e a contagem antiabuso ligada ao
+      UUID opaco da conta já inexistente.
     · o passo 3 só existe quando a exclusão é feita PELO APP; pedido por e-mail
       não alcança o aparelho de ninguém.
   Até 19/08/2026 esta página prometia que a exclusão apagava o diário. Não
@@ -123,6 +125,8 @@
     <ul>
       <li>Sua conta de login (e-mail e senha) e todas as sessões abertas.</li>
       <li>O vínculo entre a sua conta e qualquer assinatura.</li>
+      <li>Seu perfil da Comunidade, publicações, comentários, curtidas, relações
+        de seguir e bloqueios ligados à conta.</li>
       <li>Quando você exclui <strong>pelo app</strong>, saem também deste aparelho os
         nomes, signos, datas e horas de nascimento, a cidade e a sequência do
         casal — e saem do nosso servidor a inscrição do lembrete diário e o
@@ -132,20 +136,16 @@
 
     <h3>O que continua guardado, e por quê</h3>
     <ul>
-      <li><strong>A contagem de uso das leituras com IA.</strong> Ela fica presa a um identificador embaralhado que já não aponta para ninguém — não guarda seu nome, seu e-mail nem o que você leu. Se ela fosse apagada, bastaria excluir a conta para ganhar de novo as leituras gratuitas, sem limite, e o custo dessas leituras é real.</li>
+      <li><strong>A contagem de uso das leituras com IA.</strong> Ela fica presa ao UUID opaco da conta já inexistente — sem nome, e-mail, perfil ou conteúdo do que você leu. Se ela fosse apagada, bastaria excluir a conta para ganhar de novo as leituras gratuitas, sem limite, e o custo dessas leituras é real.</li>
       <li><strong>O Diário Cósmico continua neste aparelho.</strong> Ele é texto que
         você escreveu, e apagar mais do que foi pedido é tão ruim quanto apagar
         menos — então cada entrada sai por você, dentro do próprio Diário, antes
         de excluir a conta.</li>
-      <li><strong>O que você publicou no feed social</strong> — apelido, @, emoji do
-        avatar, publicações e comentários — continua no ar e visível. Apague
-        publicação por publicação dentro do feed <strong>antes</strong> de excluir a
-        conta: depois não há mais login para fazer isso pelo app, e a remoção
-        passa a depender de um pedido por e-mail.</li>
-      <li><strong>Denúncias e bloqueios</strong> (o motivo, o texto denunciado, quem
-        denunciou e quem foi denunciado) ficam na fila de moderação sem prazo
-        para sair: é o que permite julgar uma denúncia depois que o conteúdo
-        original é apagado. Excluir a conta não apaga essas linhas.</li>
+      <li><strong>Denúncias ainda necessárias à moderação</strong> podem continuar
+        guardadas sem prazo definido, mas ficam anonimizadas em relação à conta
+        excluída. Se você denunciou alguém, saem o seu identificador e os detalhes
+        livres; se a denúncia era contra você, saem os identificadores e a cópia
+        do seu conteúdo. Os bloqueios são apagados.</li>
       <li><strong>Registro de pagamento</strong> (data, valor, meio de pagamento e o
         e-mail usado na compra): mantido por obrigação fiscal e para lidar com
         estorno ou contestação. Ele deixa de estar ligado à sua conta, que não
@@ -158,9 +158,9 @@
 
     <h3>Assinatura ativa</h3>
     <p>
-      Apagar a conta <strong>não cancela a cobrança</strong>: quem processa a
-      recorrência é a Hotmart. Cancele antes em
-      <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">consumidor.hotmart.com</a>,
+      Apagar a conta <strong>não cancela a cobrança</strong>. Se você assinou pelo
+      app, cancele antes em Play Store &gt; Assinaturas. Se assinou pelo site,
+      cancele na <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">área de compras da Hotmart</a>,
       com o mesmo e-mail da compra.
     </p>
   </div>
@@ -190,6 +190,8 @@
     <ul>
       <li>Tu cuenta de acceso (correo y contraseña) y todas las sesiones.</li>
       <li>El vínculo entre tu cuenta y cualquier suscripción.</li>
+      <li>Tu perfil de la Comunidad, publicaciones, comentarios, Me gusta,
+        relaciones de seguimiento y bloqueos ligados a la cuenta.</li>
       <li>Cuando eliminas <strong>desde la app</strong>, salen también de este
         dispositivo los nombres, signos, fechas y horas de nacimiento, la ciudad
         y la racha de la pareja — y salen de nuestro servidor la suscripción del
@@ -200,20 +202,16 @@
 
     <h3>Qué se conserva, y por qué</h3>
     <ul>
-      <li><strong>El conteo de uso de las lecturas con IA.</strong> Queda ligado a un identificador revuelto que ya no apunta a nadie: no guarda tu nombre, tu correo ni lo que leíste. Si se borrara, bastaría con eliminar la cuenta para recuperar las lecturas gratuitas una y otra vez, y esas lecturas tienen un costo real.</li>
+      <li><strong>El conteo de uso de las lecturas con IA.</strong> Queda ligado al UUID opaco de la cuenta ya inexistente, sin nombre, correo, perfil ni contenido de lo que leíste. Si se borrara, bastaría con eliminar la cuenta para recuperar las lecturas gratuitas una y otra vez, y esas lecturas tienen un costo real.</li>
       <li><strong>El Diario Cósmico sigue en este dispositivo.</strong> Es texto que
         escribiste, y borrar más de lo prometido es tan malo como borrar menos:
         cada entrada la borras vos, dentro del propio Diario, antes de eliminar
         la cuenta.</li>
-      <li><strong>Lo que publicaste en el feed social</strong> — apodo, @, emoji del
-        avatar, publicaciones y comentarios — sigue en línea y visible. Borra
-        publicación por publicación dentro del feed <strong>antes</strong> de eliminar
-        la cuenta: después no queda acceso para hacerlo desde la app, y la
-        eliminación pasa a depender de un pedido por correo.</li>
-      <li><strong>Reportes y bloqueos</strong> (el motivo, el texto reportado, quién
-        reportó y a quién) quedan en la fila de moderación sin plazo para salir:
-        es lo que permite juzgar un reporte después de que el contenido original
-        se borra. Eliminar la cuenta no borra esas líneas.</li>
+      <li><strong>Los reportes todavía necesarios para moderación</strong> pueden
+        seguir guardados sin plazo definido, pero quedan anonimizados respecto de
+        la cuenta eliminada. Si reportaste a alguien, se quitan tu identificador y
+        los detalles libres; si el reporte era contra ti, se quitan los
+        identificadores y la copia de tu contenido. Los bloqueos se borran.</li>
       <li><strong>El registro de pago</strong> (fecha, importe y correo de la compra),
         por obligación fiscal y para gestionar reembolsos. Deja de estar ligado a
         tu cuenta.</li>
@@ -224,9 +222,9 @@
 
     <h3>Suscripción activa</h3>
     <p>
-      Eliminar la cuenta <strong>no cancela el cobro</strong>: la recurrencia la
-      procesa Hotmart. Cancélala antes en
-      <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">consumidor.hotmart.com</a>.
+      Eliminar la cuenta <strong>no cancela el cobro</strong>. Si te suscribiste en
+      la app, cancela antes en Play Store &gt; Suscripciones. Si lo hiciste por el
+      sitio, cancela en el <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">área de compras de Hotmart</a>.
     </p>
   </div>
 
@@ -256,6 +254,8 @@
     <ul>
       <li>Your login account (email and password) and every active session.</li>
       <li>The link between your account and any subscription.</li>
+      <li>Your Community profile, posts, comments, likes, follow relationships,
+        and blocks linked to the account.</li>
       <li>When you delete <strong>from inside the app</strong>, this device also loses
         the names, signs, birth dates and times, the city and the couple streak —
         and our server loses the daily reminder subscription and this device's
@@ -265,20 +265,16 @@
 
     <h3>What is kept, and why</h3>
     <ul>
-      <li><strong>The usage counter for AI readings.</strong> It stays tied to a scrambled identifier that no longer points to anyone — it holds no name, no email and nothing you read. If it were deleted, deleting your account would hand back the free readings again and again, and those readings cost real money.</li>
+      <li><strong>The usage counter for AI readings.</strong> It stays tied to the opaque UUID of the account that no longer exists, with no name, email, profile, or reading content. If it were deleted, deleting your account would hand back the free readings again and again, and those readings cost real money.</li>
       <li><strong>The Cosmic Diary stays on this device.</strong> It is text you wrote,
         and deleting more than was promised is as bad as deleting less — so each
         entry is removed by you, from inside the Diary itself, before you delete
         the account.</li>
-      <li><strong>Whatever you posted in the social feed</strong> — display name,
-        @handle, avatar emoji, posts and comments — stays online and visible.
-        Delete your posts one by one inside the feed <strong>before</strong> deleting
-        the account: afterwards there is no login left to do it from the app, and
-        removal depends on an email request.</li>
-      <li><strong>Reports and blocks</strong> (the reason, the reported text, who
-        reported and who was reported) stay in the moderation queue with no
-        expiry: that is what makes a report judgeable after the original content
-        is gone. Deleting the account does not remove those rows.</li>
+      <li><strong>Reports that are still needed for moderation</strong> may remain
+        with no defined expiry, but they are anonymized in relation to the deleted
+        account. If you reported someone, your identifier and free-form details
+        are removed; if the report was about you, the identifiers and copy of your
+        content are removed. Blocks are deleted.</li>
       <li><strong>Payment records</strong> (date, amount, payment method and the email
         used at checkout) are kept to meet tax obligations and to handle refunds
         or chargebacks. They are no longer linked to your account.</li>
@@ -289,9 +285,9 @@
 
     <h3>Active subscription</h3>
     <p>
-      Deleting the account <strong>does not cancel billing</strong> — recurring
-      charges are processed by Hotmart. Cancel first at
-      <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">consumidor.hotmart.com</a>,
+      Deleting the account <strong>does not cancel billing</strong>. If you subscribed
+      in the app, cancel first in Play Store &gt; Subscriptions. If you subscribed
+      on the website, cancel in your <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">Hotmart purchases area</a>
       using the email you paid with.
     </p>
   </div>

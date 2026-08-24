@@ -94,9 +94,10 @@ const TermsScreen = lazy(() => import('./screens/TermsScreen'));
 const ChatScreen = lazy(() => import('./screens/ChatScreen'));
 // Lote 2 (25/07/2026, achado real de auditoria de performance): mais 12 telas
 // que ainda carregavam eager dentro do HomeStack, que já tem <Suspense>
-// próprio — Home/Tarot/Chat/Profile ficam de fora de propósito (são as raízes
-// das 4 abas, Profile tem timing crítico do listener de instalar, ver
-// components/AlertHost.js/lib/installPrompt.js).
+// próprio — Home/Tarot/Profile ficam de fora de propósito (são raízes da
+// navegação principal; Profile tem timing crítico do listener de instalar,
+// ver components/AlertHost.js/lib/installPrompt.js). Chat e Comunidade seguem
+// lazy porque só precisam carregar quando a pessoa realmente os abre.
 const HoroscopeScreen = lazy(() => import('./screens/HoroscopeScreen'));
 const BirthChartScreen = lazy(() => import('./screens/BirthChartScreen'));
 const CompatibilityScreen = lazy(() => import('./screens/CompatibilityScreen'));
@@ -148,6 +149,8 @@ const CoffeeScreen = lazy(() => import('./screens/CoffeeScreen'));
 const QuizScreen = lazy(() => import('./screens/QuizScreen'));
 const DiaryScreen = lazy(() => import('./screens/DiaryScreen'));
 const SocialScreen = lazy(() => import('./screens/SocialScreen'));
+const CommunityHubScreen = lazy(() => import('./screens/CommunityHubScreen'));
+const CommunityGuidelinesScreen = lazy(() => import('./screens/CommunityGuidelinesScreen'));
 const PlanosScreen = lazy(() => import('./screens/PlanosScreen'));
 const LoginScreen = lazy(() => import('./screens/LoginScreen'));
 const TarotAlbumScreen = lazy(() => import('./screens/TarotAlbumScreen'));
@@ -231,7 +234,7 @@ const GESTO_STACK = { gestureEnabled: Platform.OS !== 'web' };
 const DOCUMENT_TITLE = Object.freeze({ formatter: () => 'Cosmic Guide' });
 
 // A TRANSIÇÃO DE EMPURRAR TELA (09/08/2026) — slide horizontal estilo iOS nos
-// quatro Stack.Navigator. O stack v6 NASCE sem animação na web (conferido no
+// Stack.Navigator. O stack v6 NASCE sem animação na web (conferido no
 // fonte instalado, CardStack.js: animationEnabled = Platform.OS !== 'web'...),
 // então o `animationEnabled: true` aqui é o que liga o slide no navegador.
 // Liga SÓ a animação: o preset não mexe em gestureEnabled, então o
@@ -309,6 +312,16 @@ const linking = {
           [ROUTES.WALLPAPER]: 'papel-de-parede',
         },
       },
+      // URL estável da quarta aba na web. A raiz é o hub de salas; o feed
+      // anterior continua acessível em /seguindo e as regras em /diretrizes.
+      [ROUTES.COMMUNITY_TAB]: {
+        path: 'comunidade',
+        screens: {
+          [ROUTES.COMMUNITY_MAIN]: '',
+          [ROUTES.SOCIAL]: 'seguindo',
+          [ROUTES.COMMUNITY_GUIDELINES]: 'diretrizes',
+        },
+      },
     },
   },
 };
@@ -379,10 +392,13 @@ function useUrlBootstrap() {
   return checked;
 }
 
-function HomeStack() {
+function HomeStack({ initialRouteName = ROUTES.HOME_MAIN } = {}) {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}>
+      <Stack.Navigator
+        initialRouteName={initialRouteName}
+        screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}
+      >
         <Stack.Screen name={ROUTES.HOME_MAIN} component={HomeScreen} />
         <Stack.Screen name={ROUTES.HOROSCOPE} component={HoroscopeScreen} />
         <Stack.Screen name={ROUTES.BIRTH_CHART} component={BirthChartScreen} />
@@ -435,7 +451,6 @@ function HomeStack() {
         <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
         <Stack.Screen name={ROUTES.DIARY} component={DiaryScreen} />
         <Stack.Screen name={ROUTES.REPORTS} component={ReportsScreen} />
-        <Stack.Screen name={ROUTES.SOCIAL} component={SocialScreen} />
         {/* Exclusivas de assinantes — a tela real roda de verdade por baixo,
             com o SubscribeTeaser (components/FeatureGate.js) colado na parte
             de baixo pra quem não tem acesso; mesma altitude do FeatureGate do
@@ -451,6 +466,23 @@ function HomeStack() {
         <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
         <Stack.Screen name={ROUTES.MONTHLY_WRAPPED} component={MonthlyWrappedScreen} />
+      </Stack.Navigator>
+    </Suspense>
+  );
+}
+
+// A Comunidade tem um stack curto e próprio. O hub público é a raiz; o feed
+// legado de pessoas seguidas continua como destino secundário. Login e Diário
+// permanecem registrados porque são CTAs reais dessas duas telas.
+function CommunityStack() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}>
+        <Stack.Screen name={ROUTES.COMMUNITY_MAIN} component={CommunityHubScreen} />
+        <Stack.Screen name={ROUTES.SOCIAL} component={SocialScreen} />
+        <Stack.Screen name={ROUTES.COMMUNITY_GUIDELINES} component={CommunityGuidelinesScreen} />
+        <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
+        <Stack.Screen name={ROUTES.DIARY} component={DiaryScreen} />
       </Stack.Navigator>
     </Suspense>
   );
@@ -665,6 +697,7 @@ function Gate() {
             let icon = 'planet';
             if (route.name === ROUTES.HOME_TAB) icon = focused ? 'planet' : 'planet-outline';
             if (route.name === ROUTES.TAROT_TAB) icon = focused ? 'sparkles' : 'sparkles-outline';
+            if (route.name === ROUTES.COMMUNITY_TAB) icon = focused ? 'people' : 'people-outline';
             if (route.name === ROUTES.PROFILE_TAB) icon = focused ? 'person-circle' : 'person-circle-outline';
             return <Ionicons name={icon} size={24} color={color} />;
           },
@@ -693,6 +726,14 @@ function Gate() {
             },
           }}
           listeners={{ tabPress: () => funnel.readingStart('tarot', 'tab') }}
+        />
+        {/* Visível sem condicional de modo ou autenticação: solo, casal e
+            pessoa deslogada chegam ao mesmo hub. A própria tela decide entre
+            conversa real, criação de perfil e CTA honesto de login. */}
+        <Tab.Screen
+          name={ROUTES.COMMUNITY_TAB}
+          component={CommunityStack}
+          options={{ tabBarLabel: t('tab.community') }}
         />
         <Tab.Screen
           name={ROUTES.CHAT_TAB}

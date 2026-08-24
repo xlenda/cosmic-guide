@@ -501,7 +501,7 @@ export default function TarotScreen() {
     setReflectionSaving(false);
   };
 
-  const openCommunity = () => navigateFromTab(ROUTES.HOME_TAB, { screen: ROUTES.SOCIAL });
+  const openCommunity = () => navigateFromTab(ROUTES.COMMUNITY_TAB, { screen: ROUTES.SOCIAL });
 
   const publishReading = async () => {
     if (sharing || !readingArtifacts?.publicBody) return;

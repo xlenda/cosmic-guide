@@ -112,6 +112,10 @@ test("bloquear tira os posts do feed NO SERVIDOR, nos dois sentidos", async () =
   const bloqueio = await supertest(app).post("/api/moderation/block").set(auth("b1")).send({ blockedUserId: "b2" });
   assert.equal(bloqueio.status, 200);
 
+  const lista = await supertest(app).get("/api/moderation/blocks").set(auth("b1"));
+  assert.equal(lista.status, 200);
+  assert.deepEqual(lista.body.blocked.map((item) => item.user_id), ["b2"]);
+
   const depois = await supertest(app).get("/api/social/feed").set(auth("b1"));
   assert.equal(depois.body.posts.filter((p) => p.user_id === "b2").length, 0, "quem bloqueia deixa de ver");
 
@@ -201,6 +205,8 @@ test("desbloquear devolve o acesso", async () => {
 test("bloquear exige login e não aceita a si mesmo", async () => {
   await supertest(app).post("/api/moderation/block").send({ blockedUserId: "b2" }).expect(401);
   await supertest(app).post("/api/moderation/block").set(auth("b1")).send({ blockedUserId: "b1" }).expect(400);
+  await supertest(app).get("/api/moderation/blocks").expect(401);
+  await supertest(app).post("/api/moderation/block").set(auth("b1")).send({ blockedUserId: "nao-existe" }).expect(404);
 });
 
 test("o dono resolve a denúncia: 'remove' apaga o conteúdo e fecha a linha", async () => {
@@ -230,4 +236,52 @@ test("o dono resolve a denúncia: 'remove' apaga o conteúdo e fecha a linha", a
     .set("X-Admin-Token", process.env.ADMIN_TOKEN)
     .send({ action: "remove" });
   assert.equal(denovo.status, 409);
+});
+
+test("denúncia de usuário pode suspender a presença social e a reversão é auditável", async () => {
+  await perfil("s1", "denuncias1");
+  await perfil("s2", "suspenso2");
+  await postar("s2", "Conteúdo do perfil suspenso", "corpo");
+
+  await supertest(app)
+    .post("/api/moderation/report")
+    .set(auth("s1"))
+    .send({ kind: "user", targetId: "s2", reason: "assédio" })
+    .expect(200);
+  const denuncia = db
+    .prepare("SELECT id FROM moderation_reports WHERE kind = 'user' AND target_user_id = 's2' ORDER BY id DESC")
+    .get();
+
+  const suspended = await supertest(app)
+    .post(`/api/admin/reports/${denuncia.id}`)
+    .set("X-Admin-Token", process.env.ADMIN_TOKEN)
+    .send({ action: "suspend" })
+    .expect(200);
+  assert.equal(suspended.body.suspendedUserId, "s2");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM social_profiles WHERE user_id = 's2'").get().c, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM social_posts WHERE user_id = 's2'").get().c, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM social_suspensions WHERE user_id = 's2'").get().c, 1);
+
+  const refused = await supertest(app).get("/api/social/profile/me").set(auth("s2")).expect(403);
+  assert.equal(refused.body.code, "community_suspended");
+
+  const list = await supertest(app)
+    .get("/api/admin/social-suspensions")
+    .set("X-Admin-Token", process.env.ADMIN_TOKEN)
+    .expect(200);
+  assert.ok(list.body.suspensions.some((item) => item.user_id === "s2"));
+
+  await supertest(app)
+    .delete("/api/admin/social-suspensions/s2")
+    .set("X-Admin-Token", process.env.ADMIN_TOKEN)
+    .send({})
+    .expect(400);
+  await supertest(app)
+    .delete("/api/admin/social-suspensions/s2")
+    .set("X-Admin-Token", process.env.ADMIN_TOKEN)
+    .send({ reason: "revisão concluída" })
+    .expect(200);
+
+  const after = await supertest(app).get("/api/social/profile/me").set(auth("s2")).expect(200);
+  assert.equal(after.body.profile, null, "reverter suspensão não ressuscita conteúdo removido");
 });

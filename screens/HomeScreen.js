@@ -759,7 +759,17 @@ export default function HomeScreen() {
     { key: 'jornada', title: t('home.card.jornada.title'), subtitle: t('home.card.jornada.subtitle'), icon: 'footsteps', gradient: ['#5FD98C', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.JORNADA) },
     { key: 'palm', title: t('home.card.palm.title'), subtitle: t('home.card.palm.subtitle'), icon: 'hand-left', gradient: ['#FFB84D', '#FF8C5C'], onPress: () => navigation.navigate(ROUTES.PALM) },
     { key: 'coffee', title: t('home.card.coffee.title'), subtitle: t('home.card.coffee.subtitle'), icon: 'cafe', gradient: ['#B57BFF', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.COFFEE) },
-    { key: 'social', title: t('home.card.social.title'), subtitle: t('home.card.social.subtitle'), icon: 'people', gradient: ['#5CE0D8', '#7B3FB5'], onPress: () => navigation.navigate(ROUTES.SOCIAL) },
+    {
+      key: 'social',
+      title: t('home.card.social.title'),
+      subtitle: t('home.card.social.subtitle'),
+      icon: 'people',
+      gradient: ['#5CE0D8', '#7B3FB5'],
+      onPress: () => navigation.getParent()?.navigate(
+        ROUTES.COMMUNITY_TAB,
+        { screen: ROUTES.COMMUNITY_MAIN }
+      ),
+    },
     // -----------------------------------------------------------------------
     // A LEVA DE 31/07/2026 — entradas NO GRID, nenhuma virou card solto na
     // dobra de cima: no mesmo dia o dono tirou dois cards da Home por
@@ -794,9 +804,9 @@ export default function HomeScreen() {
   // abaixo, logo depois do HeroSection), sempre visível em vez de ser só
   // mais um card entre os outros.
 
-  // Feed social é só pra quem usa o app sozinho (sem parceiro pareado) —
-  // conteúdo de casal nunca aparece lá, então o card nem existe pra casal.
-  const SOLO_ONLY = ['social'];
+  // A Comunidade é pública e separada dos dados do casal. Ela permanece
+  // visível nos dois modos, exatamente como a quarta aba principal.
+  const SOLO_ONLY = [];
 
   const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key)))
     .map((c) =>

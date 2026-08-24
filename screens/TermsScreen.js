@@ -21,24 +21,16 @@ export default function TermsScreen() {
 
   return (
     <View style={styles.root}>
-      <GradientHeader title="Termos de uso" onBack={() => navigation.goBack()} />
+      <GradientHeader title={t('terms.header.title')} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.intro}>
-          Este é um resumo simples e de boa-fé das regras de uso do Cosmic Guide — não substitui aconselhamento
-          jurídico e pode ser atualizado conforme o app evolui.
-        </Text>
+        <Text style={styles.intro}>{t('terms.intro')}</Text>
 
         <View style={styles.card}>
-          <TermsSection title="Sobre o serviço">
-            O Cosmic Guide é um app de entretenimento e reflexão pessoal baseado em tradições simbólicas — astrologia,
-            tarô, quiromancia, interpretação de sonhos e borra de café. Todo conteúdo gerado, incluindo respostas de
-            IA, tem caráter recreativo e não constitui aconselhamento médico, psicológico, financeiro, jurídico ou
-            profissional de qualquer tipo. Decisões importantes da sua vida não devem se basear nas leituras do app.
+          <TermsSection title={t('terms.service.title')}>
+            {t('terms.service.body')}
           </TermsSection>
-          <TermsSection title="Sua conta">
-            Você pode usar boa parte do app sem criar conta. Quando decide assinar, criamos uma conta vinculada ao
-            seu e-mail pra sincronizar o acesso entre aparelhos. Você é responsável por manter sua senha em sigilo e
-            por tudo que acontecer usando sua conta.
+          <TermsSection title={t('terms.account.title')}>
+            {t('terms.account.body')}
           </TermsSection>
           {/* CORRIGIDO em 29/07/2026. O texto anterior descrevia um app que não
               é este: dizia que a assinatura é cobrada "pela loja de aplicativos"
@@ -59,25 +51,24 @@ export default function TermsScreen() {
               texto nativo cobre os DOIS caminhos em vez de escolher um — dizer
               "cancele na Hotmart" pra quem pagou na Play é mandar a pessoa
               procurar um botão que não existe. */}
-          <TermsSection title="Pagamentos e assinatura">
+          <TermsSection title={t('terms.payments.title')}>
             {t(Platform.OS === 'web' ? 'terms.payments.body' : 'terms.payments.bodyStore')}
           </TermsSection>
-          <TermsSection
-            title="Uso aceitável"
-            last
-          >
-            Pedimos que você não use o app pra enviar conteúdo ilegal, ofensivo ou que viole direitos de terceiros, não
-            tente contornar os limites de uso ou segurança do serviço, e não reutilize as leituras geradas de forma
-            comercial sem autorização. Podemos suspender contas que abusem claramente dessas regras.
+          <TermsSection title={t('terms.community.title')}>
+            {t('terms.community.body')}
+          </TermsSection>
+          <TermsSection title={t('terms.acceptable.title')}>
+            {t('terms.acceptable.body')}
+          </TermsSection>
+          <TermsSection title={t('terms.deletion.title')} last>
+            {t('terms.deletion.body')}
           </TermsSection>
         </View>
 
-        <Text style={styles.sectionTitle}>Fale conosco</Text>
+        <Text style={styles.sectionTitle}>{t('terms.contact.title')}</Text>
         <View style={styles.card}>
           <View style={styles.cardPad}>
-            <Text style={styles.paragraph}>
-              Dúvidas sobre estes termos? Escreva para <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text>.
-            </Text>
+            <Text style={styles.paragraph}>{t('terms.contact.body', { email: SUPPORT_EMAIL })}</Text>
           </View>
         </View>
       </ScrollView>
@@ -99,5 +90,4 @@ const styles = StyleSheet.create({
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   rowTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 8 },
   paragraph: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  emailText: { color: colors.accent, fontWeight: '700' },
 });

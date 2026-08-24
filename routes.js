@@ -4,6 +4,7 @@
 export const ROUTES = {
   HOME_TAB: 'Início',
   TAROT_TAB: 'Tarô',
+  COMMUNITY_TAB: 'Comunidade',
   CHAT_TAB: 'Chat',
   PROFILE_TAB: 'Perfil',
 
@@ -60,6 +61,9 @@ export const ROUTES = {
   TAROT_MAIN: 'TarotMain',
   TAROT_ALBUM: 'TarotAlbum',
   MONTHLY_WRAPPED: 'MonthlyWrapped',
+
+  COMMUNITY_MAIN: 'CommunityMain',
+  COMMUNITY_GUIDELINES: 'CommunityGuidelines',
 
   PROFILE_MAIN: 'ProfileMain',
   PRIVACY: 'Privacy',

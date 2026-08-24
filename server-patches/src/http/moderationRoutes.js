@@ -8,6 +8,7 @@
 //   POST   /api/moderation/report  { kind, targetId?, reason, detail? } -> 200 { ok: true }
 //   POST   /api/moderation/block   { blockedUserId }                    -> 200 { ok: true }
 //   DELETE /api/moderation/block   { blockedUserId }                    -> 200 { ok: true }
+//   GET    /api/moderation/blocks                                       -> 200 { blocked: [...] }
 //
 // AUTENTICAÇÃO: bloquear exige login sempre (o bloqueio pertence a uma conta;
 // sem `sub` verificado não há quem bloqueie). Denunciar aceita anônimo de
@@ -135,9 +136,33 @@ function alvoDoBloqueio(req, res) {
   return alvo;
 }
 
+// Lista somente os bloqueios feitos pela própria conta. Nunca revela quem
+// bloqueou o usuário (isso viraria ferramenta de retaliação). LEFT JOIN mantém
+// a ação reversível mesmo quando o perfil bloqueado foi apagado depois.
+router.get("/blocks", blockLimiter, requireAuth, (req, res) => {
+  const blocked = db
+    .prepare(
+      `SELECT b.blocked_user_id AS user_id,
+              b.created_at,
+              p.display_name,
+              p.username,
+              p.avatar_emoji
+         FROM social_blocks b
+         LEFT JOIN social_profiles p ON p.user_id = b.blocked_user_id
+        WHERE b.user_id = ?
+        ORDER BY b.created_at DESC, b.blocked_user_id
+        LIMIT 500`
+    )
+    .all(req.userId);
+  res.json({ blocked });
+});
+
 router.post("/block", blockLimiter, requireAuth, (req, res) => {
   const alvo = alvoDoBloqueio(req, res);
   if (!alvo) return;
+  if (!db.prepare("SELECT 1 FROM social_profiles WHERE user_id = ?").get(alvo)) {
+    return res.status(404).json({ error: "perfil não encontrado" });
+  }
 
   const aplicar = db.transaction(() => {
     db.prepare("INSERT OR IGNORE INTO social_blocks (user_id, blocked_user_id, created_at) VALUES (?, ?, ?)").run(

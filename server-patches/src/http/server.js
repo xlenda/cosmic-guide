@@ -356,15 +356,17 @@ const publicReadLimiter = rateLimit({
 //                     provar que a conta morreu de fato —, entao apagar aqui virava
 //                     reset infinito do paywall por curl. Sobra um uuid opaco de
 //                     conta inexistente, sem dado pessoal.
+//   social_*        → perfil, posts, comentários, curtidas, follows e bloqueios
+//                     apagados na mesma transação da desvinculação. Denúncias
+//                     ficam sem ids/conteúdo da conta apagada; denúncia válida
+//                     feita por ela contra conteúdo alheio fica anonimizada.
 //
-// As outras tabelas NÃO conhecem a conta e por isso não entram aqui:
+// As outras tabelas não têm caminho de userId e por isso não entram aqui:
 // funnel_events é session_id anônimo (e já tem POST /api/track/forget),
 // flame_checkins é couple_key+device_id, couple_invites e push_daily_reminder
 // são chaveadas pelo endpoint do push. Não existe caminho de userId pra elas.
 function deleteAccountData({ userId }) {
-  return {
-    unlinkedSubscriptions: repository.forgetAccount({ supabaseUserId: userId }),
-  };
+  return repository.forgetAccountData({ supabaseUserId: userId });
 }
 
 app.use(
@@ -551,9 +553,9 @@ app.post("/api/enhance-insight", aiLimiter, optionalAuth, aiQuota.gate("enhance-
   }
 });
 
-// Feed social só pra usuários solo (sem parceiro pareado — ver isCouple no
-// app); Reconectar/Agir e o resto do conteúdo de casal nunca passam por aqui.
-// Cada rota exige um JWT válido do Supabase (ver socialAuth.js).
+// Feed legado de seguidores + salas explícitas da Comunidade. O modo casal
+// pode abrir a Comunidade, mas Reconectar/Agir, Diário e leituras não passam por
+// aqui automaticamente. Cada rota exige JWT válido (ver socialAuth.js).
 app.use("/api/social", socialRouter);
 
 // Denúncia e bloqueio — o que a política de Conteúdo Gerado pelo Usuário do

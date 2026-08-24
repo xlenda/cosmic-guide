@@ -1,9 +1,8 @@
 // screens/SocialScreen.js
-// Feed social entre leitores solo (inspirado no app de leitura Ziggur) — só
-// aparece pra quem usa o Cosmic Guide sozinho, sem parceiro pareado. Conteúdo
-// de casal (Reconectar/Agir/leituras privadas) nunca passa por aqui: só o que
-// a própria pessoa escolhe compartilhar do Diário Cósmico (ver DiaryScreen.js)
-// vira post.
+// Feed de pessoas seguidas, acessível dentro da aba Comunidade nos modos solo
+// e casal. Conteúdo de casal (Reconectar/Agir/leituras privadas) nunca passa
+// por aqui: só o que a própria pessoa escolhe compartilhar do Diário Cósmico
+// (ver DiaryScreen.js) vira post.
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
@@ -19,6 +18,7 @@ import GradientHeader from '../components/GradientHeader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
+import { formatSocialTimeAgo } from '../lib/socialTime';
 import {
   getMySocialProfile, upsertSocialProfile, getSocialFeed, deleteSocialPost,
   likeSocialPost, unlikeSocialPost, getSocialComments, addSocialComment,
@@ -27,16 +27,6 @@ import {
 } from '../lib/socialClient';
 
 const AVATAR_OPTIONS = ['🌙', '✨', '🔮', '🌟', '☀️', '🪐', '🦋', '🌊'];
-
-function timeAgo(iso) {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const min = Math.floor(diffMs / 60000);
-  if (min < 1) return 'agora';
-  if (min < 60) return `${min}min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `${h}h`;
-  return `${Math.floor(h / 24)}d`;
-}
 
 function ProfileSetup({ onCreated }) {
   const { t } = useLanguage();
@@ -48,7 +38,7 @@ function ProfileSetup({ onCreated }) {
 
   const submit = async () => {
     if (!displayName.trim() || !username.trim()) {
-      setError('Preencha nome e username.');
+      setError(t('social.createProfile.required'));
       return;
     }
     setSaving(true);
@@ -56,8 +46,8 @@ function ProfileSetup({ onCreated }) {
     try {
       const profile = await upsertSocialProfile({ displayName, username: username.toLowerCase(), avatarEmoji });
       onCreated(profile);
-    } catch (e) {
-      setError(e.message);
+    } catch {
+      setError(t('social.error.profileSave'));
     } finally {
       setSaving(false);
     }
@@ -84,7 +74,7 @@ function ProfileSetup({ onCreated }) {
         <TextInput
           value={displayName}
           onChangeText={setDisplayName}
-          placeholder="Nome de exibição"
+          placeholder={t('social.createProfile.displayNamePlaceholder')}
           placeholderTextColor={colors.textMuted}
           style={styles.input}
           maxLength={60}
@@ -92,7 +82,7 @@ function ProfileSetup({ onCreated }) {
         <TextInput
           value={username}
           onChangeText={(t) => setUsername(t.replace(/[^a-z0-9_]/gi, ''))}
-          placeholder="username (só letras, números, _)"
+          placeholder={t('social.createProfile.usernamePlaceholder')}
           placeholderTextColor={colors.textMuted}
           style={styles.input}
           autoCapitalize="none"
@@ -119,11 +109,16 @@ function PostCard({ post, myUserId, onToggleLike, onOpenComments, onOpenProfile,
           <Text style={styles.postAvatar}>{post.avatar_emoji || '✨'}</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.postAuthor} numberOfLines={1}>{post.display_name}</Text>
-            <Text style={styles.postMeta} numberOfLines={1}>@{post.username} · {timeAgo(post.created_at)}</Text>
+            <Text style={styles.postMeta} numberOfLines={1}>@{post.username} · {formatSocialTimeAgo(post.created_at, t)}</Text>
           </View>
         </TouchableOpacity>
         {post.user_id === myUserId ? (
-          <TouchableOpacity style={styles.iconBtn} onPress={() => onDeletePost(post)}>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => onDeletePost(post)}
+            accessibilityRole="button"
+            accessibilityLabel={t('social.delete.cta')}
+          >
             <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         ) : (
@@ -140,11 +135,21 @@ function PostCard({ post, myUserId, onToggleLike, onOpenComments, onOpenProfile,
       <Text style={styles.postTitle} numberOfLines={2}>{post.title}</Text>
       <Text style={styles.postBody} numberOfLines={4}>{post.body}</Text>
       <View style={styles.postActions}>
-        <TouchableOpacity style={styles.postActionBtn} onPress={() => onToggleLike(post)}>
+        <TouchableOpacity
+          style={styles.postActionBtn}
+          onPress={() => onToggleLike(post)}
+          accessibilityRole="button"
+          accessibilityLabel={t(post.liked_by_me ? 'social.unlike' : 'social.like')}
+        >
           <Ionicons name={post.liked_by_me ? 'heart' : 'heart-outline'} size={18} color={post.liked_by_me ? colors.pink : colors.textMuted} />
           <Text style={styles.postActionText}>{post.like_count}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.postActionBtn} onPress={() => onOpenComments(post)}>
+        <TouchableOpacity
+          style={styles.postActionBtn}
+          onPress={() => onOpenComments(post)}
+          accessibilityRole="button"
+          accessibilityLabel={t('social.comments.open')}
+        >
           <Ionicons name="chatbubble-outline" size={17} color={colors.textMuted} />
           <Text style={styles.postActionText}>{post.comment_count}</Text>
         </TouchableOpacity>
@@ -186,8 +191,8 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
         followers: prev.followers + (prev.isFollowing ? -1 : 1),
       }));
       onFollowChange?.();
-    } catch (e) {
-      Alert.alert('Não deu', e.message);
+    } catch {
+      Alert.alert(t('social.error.title'), t('social.error.follow'));
     } finally {
       setBusy(false);
     }
@@ -198,7 +203,11 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
       <View style={styles.commentsPanel}>
         <View style={styles.commentsHeader}>
           <Text style={styles.commentsTitle}>{t('social.profile')}</Text>
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={t('social.profile.close')}
+          >
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -213,12 +222,14 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
               <Text style={styles.postAuthor}>{data.profile.display_name}</Text>
               <Text style={styles.postMeta}>@{data.profile.username}</Text>
               <View style={styles.profilePanelStats}>
-                <Text style={styles.profilePanelStat}>{data.followers} seguidores</Text>
-                <Text style={styles.profilePanelStat}>{data.following} seguindo</Text>
+                <Text style={styles.profilePanelStat}>
+                  {t(data.followers === 1 ? 'social.profile.followers_one' : 'social.profile.followers_other', { count: data.followers })}
+                </Text>
+                <Text style={styles.profilePanelStat}>{t('social.profile.following', { count: data.following })}</Text>
               </View>
               {userId !== myUserId && (
                 <TouchableOpacity disabled={busy} onPress={toggleFollow} style={[styles.followBtn, { marginTop: 10 }]}>
-                  <Text style={styles.followBtnText}>{data.isFollowing ? 'Deixar de seguir' : 'Seguir'}</Text>
+                  <Text style={styles.followBtnText}>{t(data.isFollowing ? 'social.unfollow' : 'social.follow')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -228,7 +239,7 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
               style={{ maxHeight: 260 }}
               ListEmptyComponent={
                 <Text style={styles.emptyComments}>
-                  {data.isFollowing || userId === myUserId ? 'Nenhuma leitura compartilhada ainda.' : 'Siga essa pessoa pra ver as leituras compartilhadas.'}
+                  {t(data.isFollowing || userId === myUserId ? 'social.profile.noShared' : 'social.profile.followToSee')}
                 </Text>
               }
               renderItem={({ item }) => (
@@ -266,8 +277,8 @@ function CommentsPanel({ post, myUserId, onClose, onModerate }) {
       await addSocialComment(post.id, text.trim());
       setText('');
       setComments(await getSocialComments(post.id));
-    } catch (e) {
-      Alert.alert('Não deu', e.message);
+    } catch {
+      Alert.alert(t('social.error.title'), t('social.error.comment'));
     } finally {
       setSending(false);
     }
@@ -278,7 +289,11 @@ function CommentsPanel({ post, myUserId, onClose, onModerate }) {
       <View style={styles.commentsPanel}>
         <View style={styles.commentsHeader}>
           <Text style={styles.commentsTitle}>{t('social.comments')}</Text>
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={t('social.comments.close')}
+          >
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -315,11 +330,17 @@ function CommentsPanel({ post, myUserId, onClose, onModerate }) {
           <TextInput
             value={text}
             onChangeText={setText}
-            placeholder="Escreva um comentário..."
+            placeholder={t('social.comments.placeholder')}
             placeholderTextColor={colors.textMuted}
             style={styles.commentInput}
           />
-          <TouchableOpacity onPress={send} disabled={sending} style={styles.commentSendBtn}>
+          <TouchableOpacity
+            onPress={send}
+            disabled={sending}
+            style={styles.commentSendBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t('social.comments.send')}
+          >
             <Ionicons name="send" size={18} color={colors.accent} />
           </TouchableOpacity>
         </View>
@@ -350,8 +371,8 @@ function SearchPanel({ onFollowChange }) {
       await followSocialUser(userId);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onFollowChange?.();
-    } catch (e) {
-      Alert.alert('Não deu', e.message);
+    } catch {
+      Alert.alert(t('social.error.title'), t('social.error.follow'));
     } finally {
       setBusy(false);
     }
@@ -364,7 +385,7 @@ function SearchPanel({ onFollowChange }) {
         <TextInput
           value={query}
           onChangeText={search}
-          placeholder="Buscar por @username pra seguir"
+          placeholder={t('social.search.placeholder')}
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCapitalize="none"
@@ -479,17 +500,17 @@ export default function SocialScreen() {
   // quem compartilhava uma leitura não tinha como apagar depois. Achado real
   // de auditoria (19/07/2026).
   const handleDeletePost = (post) => {
-    Alert.alert('Apagar publicação?', 'Essa ação não pode ser desfeita.', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('social.delete.title'), t('social.delete.body'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Apagar',
+        text: t('social.delete.cta'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteSocialPost(post.id);
             setPosts((prev) => prev.filter((p) => p.id !== post.id));
-          } catch (e) {
-            Alert.alert('Não deu', e.message);
+          } catch {
+            Alert.alert(t('social.error.title'), t('social.error.deletePost'));
           }
         },
       },
@@ -569,11 +590,11 @@ export default function SocialScreen() {
   if (!user) {
     return (
       <View style={styles.root}>
-        <GradientHeader title="Feed Social" subtitle="Entre em contato com outros leitores" gradient={gradients.purple} />
+        <GradientHeader title={t('social.header.title')} subtitle={t('social.header.subtitle')} gradient={gradients.purple} />
         <View style={styles.card}>
           <Ionicons name="lock-closed" size={30} color={colors.gold} />
           <Text style={styles.cardTitle}>{t('social.loginNeeded')}</Text>
-          <TouchableOpacity style={styles.primaryBtnFlat} onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity style={styles.primaryBtnFlat} onPress={() => navigation.navigate(ROUTES.LOGIN)}>
             <Text style={styles.primaryBtnFlatText}>{t('social.loginCta')}</Text>
           </TouchableOpacity>
         </View>
@@ -584,12 +605,16 @@ export default function SocialScreen() {
   return (
     <View style={styles.root}>
       <GradientHeader
-        title="Feed Social"
-        subtitle="Entre em contato com outros leitores"
+        title={t('social.header.title')}
+        subtitle={t('social.header.subtitle')}
         gradient={gradients.purple}
         right={
           profile ? (
-            <TouchableOpacity onPress={() => setShowSearch((s) => !s)}>
+            <TouchableOpacity
+              onPress={() => setShowSearch((s) => !s)}
+              accessibilityRole="button"
+              accessibilityLabel={t('social.search.open')}
+            >
               <Ionicons name="person-add-outline" size={22} color={colors.text} />
             </TouchableOpacity>
           ) : null
@@ -609,13 +634,11 @@ export default function SocialScreen() {
           ListHeaderComponent={showSearch ? <SearchPanel onFollowChange={load} /> : null}
           ListEmptyComponent={
             <View>
-              <Text style={styles.emptyText}>
-                Seu feed está vazio — siga outros leitores (ícone no topo) ou compartilhe uma leitura do seu Diário Cósmico.
-              </Text>
+              <Text style={styles.emptyText}>{t('social.empty.body')}</Text>
               {/* Duas instruções, zero toques: o texto citava um "ícone no
                   topo" e outra tela pelo nome. Agora cada pedido tem o toque
                   que o cumpre — o primeiro abre a busca aqui mesmo, o segundo
-                  leva ao Diário (Social e Diary vivem no mesmo HomeStack). */}
+                  leva ao Diário (ambos são destinos do CommunityStack). */}
               <View style={styles.emptyActions}>
                 <TouchableOpacity
                   style={styles.emptyActionBtn}

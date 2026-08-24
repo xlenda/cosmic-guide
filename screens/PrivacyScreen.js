@@ -31,8 +31,9 @@ function PrivacyRow({ icon, text, last }) {
 //     data e a hora saem no `at` da busca em todas elas — não só no Mapa Astral.
 //   · Login: existem DOIS caminhos, e-mail/senha e Google (signInWithGoogle em
 //     lib/supabaseClient.js, botão em LoginScreen.js).
-//   · Feed social: lib/socialClient.js publica em api.cosmicguide.cloud/api/social
-//     com o token da conta — conteúdo público e ligado ao login.
+//   · Comunidade: lib/socialClient.js publica em api.cosmicguide.cloud/api/social
+//     com o token da conta. Ao excluir a conta, SocialAccountCleanup remove
+//     perfil, posts, comentários, curtidas, follows e bloqueios ligados ao uuid.
 //   · Push: lib/webPush.js manda endpoint + signo + sequência + a DATA do último
 //     registro do Diário (nunca o texto), mais as chaves de criptografia da
 //     inscrição do navegador.
@@ -42,12 +43,11 @@ function PrivacyRow({ icon, text, last }) {
 //     de ai_usage (endpoint + contagem). Por isso o texto promete só o que dá
 //     pra provar aqui ("o NOSSO servidor não guarda") e não afirma nada sobre o
 //     que a Anthropic mantém, que não está sob o nosso controle.
-//   · Denúncia e bloqueio (moderationRoutes.js, migração 016): a denúncia grava
-//     o motivo, o texto de IA denunciado, uma cópia do post/comentário, o autor
-//     do conteúdo e — se houver login — quem denunciou. O bloqueio grava quem
-//     bloqueou quem. Nenhuma das duas tabelas tem retenção, e deleteAccountData
-//     (server.js) não toca em nenhuma delas: por isso o texto diz que fica sem
-//     prazo e que apagar a conta não apaga isso.
+//   · Denúncia e bloqueio (moderationRoutes.js, migrações 016/018): a denúncia
+//     grava o motivo, o conteúdo necessário e os ids enquanto a conta existe.
+//     SocialAccountCleanup apaga os bloqueios e anonimiza a denúncia em relação
+//     à conta excluída: ids e detalhes livres saem; se o alvo era a conta
+//     apagada, a cópia do conteúdo dela também sai.
 // Sem contagem no texto ("existem duas exceções"): número em política de
 // privacidade desmente sozinho na primeira feature nova — a lista fala por si.
 export default function PrivacyScreen() {
