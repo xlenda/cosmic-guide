@@ -1116,6 +1116,7 @@ export default function TarotScreen() {
                 </Text>
                 {bonusReadings > 0 ? (
                   <TouchableOpacity
+                    testID="tarot-bonus-draw"
                     activeOpacity={0.85}
                     onPress={() => drawCards(true)}
                     disabled={!bonusDrawReady || drawInFlight}

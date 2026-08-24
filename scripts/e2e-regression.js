@@ -107,7 +107,9 @@ async function openExplore(page) {
     const { context, page } = await newSoloPage(browser);
     await page.getByText('Tarô', { exact: false }).first().click();
     await page.waitForTimeout(1300);
-    await page.getByText('Tirar 3 Cartas', { exact: false }).first().click();
+    // O rótulo agora confirma o foco escolhido e muda entre os 15 caminhos.
+    // O testID é o contrato estável da ação real, não uma copy específica.
+    await page.getByTestId('tarot-draw').click();
     // Desde o ritual sequencial, trocar de tema com carta fechada é bloqueado
     // para não descartar uma tiragem já consumida. Concluímos as três cartas
     // pela alternativa acessível e só então testamos a segunda tentativa.
@@ -155,11 +157,26 @@ async function openExplore(page) {
     await page.waitForTimeout(1300);
     let body = await page.evaluate(() => document.body.innerText);
     check('botão Usar Leitura Bônus visível (não OneTimeLock)', body.includes('Usar Leitura Bônus'));
-    await page.getByText('Usar Leitura Bônus', { exact: false }).first().click();
-    await page.waitForTimeout(1200);
+    const bonusDraw = page.getByTestId('tarot-bonus-draw');
+    if (await bonusDraw.count()) {
+      await bonusDraw.click();
+    } else {
+      // Compatibilidade apenas para executar este portão contra uma build
+      // anterior à inclusão do contrato estável; builds novas usam o testID.
+      await page.getByText('Usar Leitura Bônus', { exact: false }).first().click();
+    }
+    const scratch = page.getByTestId('tarot-scratch-0');
+    const scratchVisible = await scratch
+      .waitFor({ state: 'visible', timeout: 10000 })
+      .then(() => true)
+      .catch(() => false);
     body = await page.evaluate(() => document.body.innerText);
-    const scratchVisible = await page.getByTestId('tarot-scratch-0').isVisible().catch(() => false);
-    check('bônus tirou cartas de verdade', body.includes('Passado') && scratchVisible);
+    const bonusAfter = await page.evaluate(() => window.localStorage.getItem('cosmic-reward-bonus-tarot'));
+    check(
+      'bônus tirou cartas de verdade',
+      scratchVisible && bonusAfter === '0',
+      JSON.stringify({ scratchVisible, bonusAfter })
+    );
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }
