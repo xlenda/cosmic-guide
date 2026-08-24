@@ -1,6 +1,7 @@
 # Estado consolidado e próximos lotes — Cosmic Guide
 
-> Registrado em **24/08/2026** e atualizado depois da publicação da Community V1.
+> Registrado em **24/08/2026** e atualizado depois da publicação da Community V1
+> e do gatilho 3S **Alinhe seu céu**.
 >
 > Este arquivo é uma **memória de produto e execução**. Tudo que estiver marcado
 > como **DECIDIDO / NÃO IMPLEMENTADO** ainda precisa ser construído, testado e
@@ -31,14 +32,21 @@
 
 **PUBLICADO — correção segura do deploy web: commit `5a502b2` (`fix: trust system CA for Vercel deploy`)**
 
-- Backend publicado primeiro pelo script oficial, release `20260824-123824`.
+**PUBLICADO — 3S Alinhe seu céu: commit `9f9986e` (`feat: launch sky alignment signature`)**
+
+**PUBLICADO — correção do deep link: commit `2b4d783` (`fix: preserve sky alignment deep link`)**
+
+- Backend final publicado primeiro pelo script oficial, release `20260824-151514`.
 - Banco de produção em `user_version = 19`, com `quick_check = ok`.
 - Web publicada pelo script oficial e disponível em
   `https://cosmicguide.cloud/cosmic-guide/`.
-- Deploy Vercel de produção: `dpl_2CHDfhxhn1mvN4xzrYtgHo3rxpzr`, estado `READY`.
-- Verificação atual: **1667/1667 testes do app**, **272 testes do backend aprovados,
+- Deploy Vercel de produção: `dpl_CtWHToDHH4ijNwtCeykqS3KZP75j`, estado `READY`.
+- Verificação final: **1689/1689 testes do app**, **272 testes do backend aprovados,
   zero falhas e 1 teste documental ignorado**, export web, export Android e regressão
   E2E aprovados.
+- Abertura fria validada em navegador limpo na URL canônica
+  `https://cosmicguide.cloud/cosmic-guide/alinhe-seu-ceu`: palco visível, pathname
+  preservado, zero erros JavaScript e zero overflow horizontal em 390 × 844.
 
 Pendência externa conhecida: o backend possuía Anthropic para texto, mas a conta
 retornava erro de crédito insuficiente. Isso não é falha do fluxo visual e não deve
@@ -178,9 +186,9 @@ Os cinco apps da mentoria não devem ser copiados literalmente. O padrão útil 
 - um resultado pessoal que usa de verdade a resposta/dado informado;
 - uma cena de poucos segundos que qualquer pessoa consegue mostrar em vídeo.
 
-### Assinatura principal aprovada: **Alinhe seu céu**
+### Assinatura principal publicada: **Alinhe seu céu**
 
-**DECIDIDO / NÃO IMPLEMENTADO**
+**PUBLICADO — commits `9f9986e` e `2b4d783`**
 
 1. A tela mostra dois discos: **Meu mapa** e **Céu de agora**.
 2. A pessoa arrasta o “Céu de agora” sobre o “Meu mapa”.
@@ -216,6 +224,17 @@ Frase de diferenciação: **“Tarô raspa. Cosmic Guide alinha.”**
 - O criativo de oito segundos usa fixture calculada e identificada; nunca inventa
   um aspecto só para o vídeo.
 
+O motor usa efemérides determinísticas do `Astronomy Engine 2.1.19`, o instante
+natal convertido pelo fuso informado e o céu real do momento. O Recibo Cósmico
+expõe dado, cálculo, aspecto/orbe, fonte, convenção e limite. Cadastros antigos que
+guardam apenas offset fixo aparecem como aproximação explícita, nunca como cidade
+ou fuso exato. O gesto tem fallback **Alinhar por mim**, teclado/web, leitor de tela
+e movimento reduzido; todos os estados visíveis existem em PT/ES/EN.
+
+URL canônica publicada: `https://cosmicguide.cloud/cosmic-guide/alinhe-seu-ceu`.
+O portão final passou em **1689/1689 testes**, e o deploy agora testa também a
+abertura fria dessa rota para impedir que ela volte silenciosamente à Home.
+
 ### Alternativas reservadas
 
 - **Pulso Órbi:** segurar Órbi por três pulsos para iniciar uma revelação. É uma
@@ -240,6 +259,13 @@ Frase de diferenciação: **“Tarô raspa. Cosmic Guide alinha.”**
 5. **Concluído:** descoberta e salas públicas sem DMs, match ou placar.
 6. **Concluído:** testes automatizados, contexto limpo e produção; manter auditorias
    manuais periódicas de tecnologias assistivas e da conta operacional de moderação.
+
+### Gatilho 3S — publicado em `9f9986e`, corrigido em `2b4d783`
+
+- Backend publicado primeiro: release `20260824-151514`.
+- Web publicada: `dpl_CtWHToDHH4ijNwtCeykqS3KZP75j`.
+- URL canônica: `https://cosmicguide.cloud/cosmic-guide/alinhe-seu-ceu`.
+- Testes, exports, E2E e verificação adversarial em produção concluídos.
 
 ### Lote B — personalização real do Tarô
 
@@ -310,10 +336,10 @@ conhece a pessoa ou já criou um plano antes de as respostas realmente alterarem
 
 1. Ler `CONTEXTO-PARA-AGENTE.md` e este arquivo inteiro.
 2. Conferir `git status`, branch, HEAD e produção antes de alterar qualquer coisa.
-3. Próxima frente: implementar e medir o gatilho 3S **Alinhe seu céu**, que ainda
-   está **DECIDIDO / NÃO IMPLEMENTADO**.
-4. Depois seguir para Tarô contextual e raspagem premium do Lote B.
-5. Seguir para Álbum 2.0, Explorar e os demais lotes.
+3. Confirmar o baseline limpo em `2b4d783` e a rota canônica publicada do 3S.
+4. **Próxima frente: Lote B — personalização real do Tarô**, começando pelo signo
+   realmente escolhido, pela camada carta × tema e pela raspagem premium acessível.
+5. Depois seguir para Álbum 2.0/Explorar no Lote C e para o Lote D.
 
 Não iniciar cinco frentes ao mesmo tempo. Cada lote deve terminar com testes,
 export web/Android quando aplicável, revisão em contexto limpo e registro do que
@@ -337,15 +363,20 @@ realmente foi publicado.
 
 | Arquivo | Motivo |
 |---|---|
-| `App.js` | `CommunityStack` e quarta aba nos modos solo/casal. |
-| `routes.js` | Rotas canônicas da Comunidade, Seguindo e Diretrizes. |
-| `screens/HomeScreen.js` | Card que abre o hub da Comunidade. |
+| `App.js` | `CommunityStack`, quarta aba, rota lazy do 3S e base web dos deep links. |
+| `routes.js` | Rotas canônicas da Comunidade, Seguindo, Diretrizes e `SkyAlignment`. |
+| `screens/HomeScreen.js` | Entradas editoriais da Comunidade e de **Alinhe seu céu**. |
+| `screens/SkyAlignmentScreen.js` | Estados honestos, palco, resultado e Recibo Cósmico. |
+| `components/SkyAlignmentStage.js` | Dois discos, arraste, encaixe, haptics e fallback acessível. |
+| `hooks/useReducedMotion.js` | Preferência de movimento reduzido no web e no nativo. |
+| `lib/skyAlignment.js` | Motor puro do encontro, próximo evento e recibo auditável. |
+| `lib/personalSky.js` | Leitura validada dos dados natais locais usados pelo motor. |
 | `screens/CommunityHubScreen.js` | Hub, salas, conversas, comentários e ações sociais. |
 | `components/community/CommunityDiscovery.js` | Descoberta editorial, salas e estado visitante. |
 | `screens/SocialScreen.js` | Feed Seguindo e compartilhamentos explícitos. |
 | `lib/communityRooms.js` | Classificação determinística dos 144 pares. |
 | `lib/socialClient.js` | Contrato do cliente com a API social. |
-| `lib/i18n.js` | Chaves PT/ES/EN da aba, salas, erros e estados. |
+| `lib/i18n.js` | Chaves PT/ES/EN da Comunidade e de todos os estados do 3S. |
 | `server-patches/src/http/socialRoutes.js` | Perfil, posts, follows e comentários. |
 | `server-patches/src/http/socialAuth.js` | Autenticação e conta revogada. |
 | `server-patches/src/http/moderationRoutes.js` | Denúncia, bloqueio e painel de moderação. |
@@ -357,13 +388,18 @@ realmente foi publicado.
 | `test/communityNavigation.test.js` | Aba, stacks e destinos de compartilhamento. |
 | `test/communityRooms.test.js` | Classificação dos pares no app. |
 | `test/communityServerContract.test.js` | Paridade entre app e backend versionado. |
+| `test/skyAlignment*.test.js` | Motor, estados, interação, idiomas e navegação do 3S. |
+| `tests/e2e/sky-alignment.spec.js` | Gesto, acessibilidade, estados e deep link em artefato real. |
+| `scripts/e2e-regression.js` | Portão oficial da abertura fria da rota canônica antes do deploy. |
 | `docs/tradicao/02-aspectos-e-sinastria.md` | Base doutrinária; não transformar signo solar em veredito. |
 
 ---
 
 ## 8. Estado desta noite
 
-A Community V1 foi implementada no commit `8179785`, com backend em schema 19 e
-publicação web concluída depois do ajuste `5a502b2`. O mecanismo 3S **Alinhe seu céu**
-continua **DECIDIDO / NÃO IMPLEMENTADO**, assim como os lotes B, C e D ainda não
-entregues. Esta distinção deve permanecer explícita em qualquer próxima sessão.
+A Community V1 foi publicada no commit `8179785`. O mecanismo 3S **Alinhe seu céu**
+foi publicado em `9f9986e`, com o deep link corrigido em `2b4d783`, backend release
+`20260824-151514`, web `dpl_CtWHToDHH4ijNwtCeykqS3KZP75j` e **1689/1689 testes**.
+A rota canônica é `/cosmic-guide/alinhe-seu-ceu`. O próximo trabalho é o **Lote B**;
+os lotes B, C e D continuam **DECIDIDOS / NÃO IMPLEMENTADOS** até seus respectivos
+códigos, verificações e publicações.

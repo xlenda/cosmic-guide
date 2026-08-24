@@ -1,6 +1,7 @@
 # Contexto para agente — Cosmic Guide
 
-> Handoff iniciado em 19/08/2026 e atualizado para a Fase 3 em 23/08/2026.
+> Handoff iniciado em 19/08/2026 e atualizado em 24/08/2026 depois da publicação
+> da Community V1 e do gatilho 3S **Alinhe seu céu**.
 > Leia isto ANTES de tocar em qualquer arquivo. Datas e números abaixo são
 > fotografias do momento em que foram medidos, não garantias sobre produção.
 
@@ -35,10 +36,20 @@ Baseline de **19/08/2026** (histórico, não reutilize como status atual):
 - **Projeto Android naquele dia:** `npx expo prebuild --platform android` sem aviso
 - **Deploy daquele baseline:** backend e web publicados; migrações 016 e 017 aplicadas
 
-A **Fase 3** foi preparada depois desse baseline. Este documento não afirma que
-ela já está em produção: confira `git status`, rode a suíte e os exports e, se
-for publicar, use os scripts oficiais na ordem backend → web e confirme com
-probes reais.
+A **Fase 3** foi preparada depois desse baseline. O snapshot medido mais recente é:
+
+- feature 3S em `9f9986e` e correção do deep link em `2b4d783`;
+- backend publicado primeiro, release `20260824-151514`;
+- web `READY` no deploy `dpl_CtWHToDHH4ijNwtCeykqS3KZP75j`;
+- **1689/1689 testes do app** e 272 testes do backend aprovados, com 1 teste
+  documental ignorado;
+- URL canônica validada em contexto limpo:
+  `https://cosmicguide.cloud/cosmic-guide/alinhe-seu-ceu`;
+- próxima frente aprovada: **Lote B — personalização real do Tarô**.
+
+Ainda assim, remeça antes de afirmar: confira `git status`, rode a suíte e os
+exports e, se for publicar, use os scripts oficiais na ordem backend → web e
+confirme com probes reais.
 
 ### Contrato da Fase 3 — Órbi
 
@@ -51,9 +62,11 @@ probes reais.
 - Conversas trazidas de versões anteriores ficam legíveis como histórico
   importado local. Elas não são reenviadas à Anthropic e não são atribuídas a
   Órbi.
-- **Voz neural e comunidade não fazem parte desta Fase 3.** Não anuncie essas
-  duas capacidades como entregues. A voz neural está planejada para a Fase 6;
-  comunidade depende de escopo próprio.
+- **Voz neural não faz parte desta Fase 3 e continua não entregue.** Ela depende
+  de provedor, chave, custo, cache e privacidade; Anthropic não gera áudio.
+- A **Community V1 foi publicada depois em um escopo próprio**. Não a atribua à
+  Fase 3 original; consulte `MEMORIA-PROXIMA-SESSAO.md` para o contrato social,
+  as limitações e o estado real.
 - Fontes de verdade: `screens/ChatScreen.js`, `lib/orbiConversation.js`,
   `server-patches/src/application/chatContext.js` e
   `server-patches/src/infrastructure/AnthropicChatProvider.js`.
@@ -255,6 +268,14 @@ screenshot não vende nada.
 | Arquivo | Por quê |
 |---|---|
 | `lib/i18n.js` | 3 dicionários. Chaves novas entram no bloco do fim. Um agente por vez. |
+| `App.js` + `routes.js` | Abas, stacks, chunks lazy e rotas canônicas; a base web `/cosmic-guide` é explícita. |
+| `screens/HomeScreen.js` | Catálogo completo e entradas editoriais da Community e do 3S. |
+| `screens/SkyAlignmentScreen.js` | Estados honestos, palco e Recibo Cósmico do 3S. |
+| `components/SkyAlignmentStage.js` | Discos, gesto, encaixe, haptics e fallback acessível. |
+| `lib/skyAlignment.js` + `lib/personalSky.js` | Efemérides, encontro/recibo e dados natais validados. |
+| `hooks/useReducedMotion.js` | Movimento reduzido no web e no nativo. |
+| `test/skyAlignment*.test.js` + `tests/e2e/sky-alignment.spec.js` | Contrato do motor, tela, gesto e deep link frio. |
+| `scripts/e2e-regression.js` | Portão oficial que bloqueia regressões críticas antes do deploy web. |
 | `screens/ChatScreen.js` + `lib/orbiConversation.js` | Órbi, histórico local/importado e montagem do contexto explícito |
 | `lib/supabaseClient.js` | Login, deep link, o Map de promessas do PKCE |
 | `lib/purchases.js` + `.web.js` | Compra na loja, atrás do gate. Extensão de plataforma. |
@@ -286,10 +307,12 @@ screenshot não vende nada.
 
 ## 11. Próxima sessão
 
-O plano aprovado para retomar em **25/08/2026** está em
-[`MEMORIA-PROXIMA-SESSAO.md`](./MEMORIA-PROXIMA-SESSAO.md). Ele registra a
-Comunidade visível, as salas de conversas entre signos, o 3S/gatilho próprio e os
-próximos lotes.
+O estado consolidado para retomar em **25/08/2026** está em
+[`MEMORIA-PROXIMA-SESSAO.md`](./MEMORIA-PROXIMA-SESSAO.md). A Community V1 e o
+3S **Alinhe seu céu** estão **PUBLICADOS**; o 3S corresponde aos commits `9f9986e`
+e `2b4d783`, backend `20260824-151514`, web
+`dpl_CtWHToDHH4ijNwtCeykqS3KZP75j` e **1689/1689 testes**. Sua rota canônica é
+`https://cosmicguide.cloud/cosmic-guide/alinhe-seu-ceu`.
 
-**Atenção:** esse arquivo é roadmap, não confirmação de funcionalidades já
-publicadas. Respeite a legenda de estado antes de relatar ou fazer deploy.
+A próxima sessão começa pelo **Lote B**. Os lotes B, C e D permanecem roadmap e
+só podem ser chamados de prontos quando mudarem para **PUBLICADO** na memória.
