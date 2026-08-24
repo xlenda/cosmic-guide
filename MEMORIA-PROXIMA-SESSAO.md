@@ -224,22 +224,47 @@ Frase de diferenciação: **“Tarô raspa. Cosmic Guide alinha.”**
 
 ### Lote B — personalização real do Tarô
 
-1. Escrever a camada carta × tema de verdade, começando pelos 22 Arcanos Maiores
+1. Corrigir e testar a entrada pelos 12 signos: a próxima tela deve usar o signo
+   realmente escolhido, sem texto preso ao primeiro signo, cache antigo ou cópia
+   genérica. Cobrir os 12 signos em PT/ES/EN e também em contexto limpo.
+2. Escrever a camada carta × tema de verdade, começando pelos 22 Arcanos Maiores
    e depois os 56 Menores, em PT/ES/EN. Hoje o mesmo texto entre temas ainda é
    semelhante demais.
-2. Mudar a ordem da experiência: raspar → interpretação individual imediata →
+3. Mudar a ordem da experiência: raspar → interpretação individual imediata →
    próxima carta; síntese somente depois da terceira.
-3. Perguntas inteligentes depois do primeiro valor, não um onboarding longo.
+4. Refazer a raspagem como gesto premium: carta maior e em foco, remoção progressiva
+   exatamente sob o dedo, textura elegante, haptics discretos e conclusão sem
+   animação robótica. Incluir botão acessível “Revelar”, teclado/web e movimento
+   reduzido; o gesto nunca finge escolher a carta ou sentir energia.
+5. Perguntas inteligentes depois do primeiro valor, não um onboarding longo.
    Cada resposta precisa alterar de verdade tema, pergunta sugerida, tiragem, CTA
    ou plano — nunca apenas repetir o que o lead quer ouvir.
-4. Permitir estruturas como Passado–Presente–Futuro e
+6. Permitir estruturas como Passado–Presente–Futuro e
    Situação–Tensão–Próximo passo, persistindo a chave da tiragem.
-5. Não prometer “resposta da IA” quando o resultado for regra/template.
+7. Não prometer “resposta da IA” quando o resultado for regra/template.
+
+#### Entrada de Órbi antes das perguntas
+
+**DECIDIDO / NÃO IMPLEMENTADO — roteiro-base:**
+
+1. O céu escuro ganha um único ponto de luz; Órbi desperta sem falar demais.
+2. Órbi: **“Antes das cartas, vamos dar nome ao que está pedindo clareza.”**
+3. Órbi: **“Eu não decido por você. Organizo símbolos, perguntas e caminhos para
+   você enxergar sua própria escolha.”**
+4. A primeira pergunta aparece integrada à cena, sem abrir outro formulário.
+5. Órbi: **“São poucas respostas. Cada uma precisa mudar o caminho que vou mostrar.”**
+6. CTA: **“Começar meu caminho.”**
+
+O roteiro final deve ser curto, gravável com voz humana licenciada, legendado em
+PT/ES/EN e coerente com o código entregue. Não dizer que Órbi sentiu energia,
+conhece a pessoa ou já criou um plano antes de as respostas realmente alterarem o fluxo.
 
 ### Lote C — Álbum 2.0 e Explorar
 
 - Álbum: PT/ES/EN, busca, filtros, favoritos e estudo com posição normal/invertida,
   cena, conselho, primeira/última aparição e quantidade de encontros.
+- Na área “Tarô por tema”, todo elemento com aparência de card precisa ser
+  clicável e levar a uma ação real. O que for apenas decorativo não pode parecer botão.
 - Registrar a carta quando ela é revelada, não apenas no fim da tiragem.
 - Diferenciar “nova no Álbum” de “novo encontro com esta carta”.
 - Criar destino permanente **Explorar** antes de voltar a recolher o catálogo da Home.
