@@ -239,10 +239,10 @@ export default function HomeScreen() {
   const [onboardingProfile, setOnboardingProfileState] = useState(null);
   const [journalCount, setJournalCount] = useState(null);
   const [orbiFocused, setOrbiFocused] = useState(false);
-  // A Home nasce com o caminho pessoal, o pensamento e as ações do dia. O
-  // catálogo completo continua no mesmo fluxo, atrás de um controle explícito
-  // de um toque: reduz ruído sem apagar nenhuma feature nem criar outra rota.
-  const [exploreOpen, setExploreOpen] = useState(false);
+  // A Home precisa nascer inteira. Quando o catálogo começa recolhido, as
+  // experiências parecem ter sumido — foi exatamente o que aconteceu em
+  // produção. O controle continua disponível para quem quiser recolher.
+  const [exploreOpen, setExploreOpen] = useState(true);
   useFocusEffect(
     useCallback(() => {
       let active = true;

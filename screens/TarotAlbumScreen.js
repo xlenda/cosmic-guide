@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
@@ -136,9 +137,11 @@ function Recibo({ rotulo, linhas }) {
 
 export default function TarotAlbumScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { t, lang } = useLanguage();
   const [seenSet, setSeenSet] = useState(new Set());
   const [selected, setSelected] = useState(null);
+  const [hiddenPromptOpen, setHiddenPromptOpen] = useState(false);
 
   // Chrome das duas features, no idioma de quem lê.
   const UI = chromeDaTela(lang);
@@ -201,6 +204,16 @@ export default function TarotAlbumScreen() {
     Haptics.selectionAsync();
     setDecanatoAberto(false);
     setSelected(card);
+  };
+
+  const openHiddenCard = () => {
+    Haptics.selectionAsync();
+    setHiddenPromptOpen(true);
+  };
+
+  const goToDraw = () => {
+    setHiddenPromptOpen(false);
+    navigation.navigate(ROUTES.TAROT_MAIN);
   };
 
   // Mesma cadeia de IdadeRealScreen.js e MitosScreen.js: Share do react-native
@@ -526,12 +539,11 @@ export default function TarotAlbumScreen() {
                   const seen = seenSet.has(card.id);
                   const temNota = CARTAS_COM_HISTORIA.has(card.id);
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={card.id}
-                      style={styles.thumb}
-                      activeOpacity={0.85}
-                      disabled={!seen}
-                      onPress={() => openCard(card)}
+                      testID={seen ? 'album-card-seen' : 'album-card-hidden'}
+                      style={({ pressed }) => [styles.thumb, pressed && styles.thumbPressed]}
+                      onPress={() => (seen ? openCard(card) : openHiddenCard())}
                       accessibilityRole="button"
                       accessibilityLabel={
                         seen
@@ -540,6 +552,7 @@ export default function TarotAlbumScreen() {
                             : getCardName(card, lang)
                           : t('album.cardHidden')
                       }
+                      accessibilityHint={seen ? undefined : t('album.cardHiddenHint')}
                     >
                       {seen ? (
                         <>
@@ -559,9 +572,12 @@ export default function TarotAlbumScreen() {
                         // também, manter iguais pro verso ser reconhecível.
                         <LinearGradient colors={['#2A1D52', '#1A1235']} style={styles.thumbBack}>
                           <Ionicons name="sparkles" size={18} color={colors.purple} />
+                          <View style={styles.hiddenLock} pointerEvents="none">
+                            <Ionicons name="lock-closed" size={9} color={colors.gold} />
+                          </View>
                         </LinearGradient>
                       )}
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -718,6 +734,68 @@ export default function TarotAlbumScreen() {
               </ScrollView>
             </Pressable>
           )}
+        </Pressable>
+      </Modal>
+
+      {/* Uma carta não vista preserva o mistério, mas nunca vira um toque
+          morto. A folha explica a regra da coleção e leva à ação que realmente
+          pode revelá-la — sem nome, imagem ou posição do baralho como spoiler. */}
+      <Modal
+        visible={hiddenPromptOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setHiddenPromptOpen(false)}
+      >
+        <Pressable style={styles.hiddenOverlay} onPress={() => setHiddenPromptOpen(false)}>
+          <Pressable
+            style={styles.hiddenSheet}
+            onPress={() => {}}
+            accessibilityViewIsModal
+            testID="album-hidden-modal"
+          >
+            <LinearGradient
+              colors={['rgba(155, 116, 255, 0.24)', 'rgba(18, 11, 39, 0.96)']}
+              style={styles.hiddenHero}
+            >
+              <View style={styles.hiddenCardPreview}>
+                <LinearGradient colors={['#342260', '#17102F']} style={styles.hiddenCardPreviewInner}>
+                  <Ionicons name="sparkles" size={28} color={colors.purple} />
+                  <View style={styles.hiddenHeroLock}>
+                    <Ionicons name="lock-closed" size={15} color="#21153E" />
+                  </View>
+                </LinearGradient>
+              </View>
+              <Text style={styles.hiddenEyebrow}>{t('album.cardHidden')}</Text>
+            </LinearGradient>
+
+            <View style={[styles.hiddenCopy, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
+              <Text style={styles.hiddenTitle}>{t('album.cardHiddenTitle')}</Text>
+              <Text style={styles.hiddenBody}>{t('album.cardHiddenBody')}</Text>
+
+              <Pressable
+                testID="album-hidden-draw"
+                style={({ pressed }) => [styles.hiddenCtaWrap, pressed && styles.hiddenButtonPressed]}
+                onPress={goToDraw}
+                accessibilityRole="button"
+                accessibilityLabel={t('album.drawCta')}
+              >
+                <LinearGradient colors={gradients.gold} style={styles.hiddenCta}>
+                  <Ionicons name="sparkles" size={16} color="#21153E" />
+                  <Text style={styles.hiddenCtaText}>{t('album.drawCta')}</Text>
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable
+                testID="album-hidden-close"
+                style={({ pressed }) => [styles.hiddenSecondary, pressed && styles.hiddenButtonPressed]}
+                onPress={() => setHiddenPromptOpen(false)}
+                accessibilityRole="button"
+                accessibilityLabel={t('album.continueCta')}
+              >
+                <Text style={styles.hiddenSecondaryText}>{t('album.continueCta')}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </View>
@@ -923,8 +1001,22 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
+  thumbPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
   thumbImage: { width: '100%', height: '100%' },
   thumbBack: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+  hiddenLock: {
+    position: 'absolute',
+    right: 6,
+    bottom: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.gold + '29',
+    borderWidth: 1,
+    borderColor: colors.gold + '59',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   selo: {
     position: 'absolute',
     top: 3,
@@ -977,6 +1069,77 @@ const styles = StyleSheet.create({
   },
   modalName: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 4, textAlign: 'center' },
   modalHint: { color: colors.textMuted, fontSize: 12, marginTop: 6, textAlign: 'center' },
+
+  // ---- resposta premium da carta ainda não revelada ----
+  hiddenOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(7, 3, 18, 0.88)',
+    justifyContent: 'flex-end',
+  },
+  hiddenSheet: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: 'rgba(155, 116, 255, 0.32)',
+    overflow: 'hidden',
+  },
+  hiddenHero: { alignItems: 'center', paddingTop: 24, paddingBottom: 18, gap: 12 },
+  hiddenCardPreview: {
+    width: 88,
+    aspectRatio: 0.66,
+    borderRadius: 14,
+    padding: 2,
+    backgroundColor: colors.gold + '94',
+    shadowColor: colors.purple,
+    shadowOpacity: 0.42,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  hiddenCardPreviewInner: {
+    flex: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hiddenHeroLock: {
+    position: 'absolute',
+    bottom: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hiddenEyebrow: {
+    color: colors.gold,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  hiddenCopy: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 28, gap: 12 },
+  hiddenTitle: { color: colors.text, fontSize: 22, lineHeight: 28, fontWeight: '800', textAlign: 'center' },
+  hiddenBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  hiddenCtaWrap: { borderRadius: 14, overflow: 'hidden', marginTop: 6 },
+  hiddenCta: {
+    minHeight: 50,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  hiddenCtaText: { color: '#21153E', fontSize: 14, fontWeight: '900' },
+  hiddenSecondary: { minHeight: 42, alignItems: 'center', justifyContent: 'center' },
+  hiddenSecondaryText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+  hiddenButtonPressed: { opacity: 0.76 },
 
   blocoModal: {
     width: '100%',

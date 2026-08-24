@@ -62,8 +62,7 @@ test('usuário novo recebe o primeiro caminho sem perder a Home', async ({ page 
   await expect(page.getByText('Olá, Touro')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Seu primeiro caminho')).toBeVisible();
   await expect(page.getByTestId('home-explore-toggle')).toBeVisible();
-  await expect(page.getByTestId('card-tarot')).toHaveCount(0);
-  await page.getByTestId('home-explore-toggle').click();
+  await expect(page.getByTestId('home-explore-toggle')).toContainText('Recolher o catálogo');
   await expect(page.getByTestId('card-tarot')).toBeVisible();
   await expect(page.getByText('Pensamento cósmico do dia')).toBeVisible();
 });
@@ -79,6 +78,45 @@ test('atalho de signo mostra a leitura do signo tocado antes da Home', async ({ 
   await expect(page.getByText(/Áries é fogo cardinal/)).toHaveCount(0);
 });
 
+test('carta oculta do Álbum responde ao toque sem revelar o segredo', async ({ page }, testInfo) => {
+  testInfo.setTimeout(60_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('app-language', 'pt');
+    window.localStorage.setItem(
+      'userSign',
+      JSON.stringify({ nome: 'Áries', name: 'Áries', signo: 'Áries' })
+    );
+  });
+  await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
+
+  await page.getByTestId('card-tarot').click();
+  const albumOpen = page.getByTestId('tarot-album-open');
+  await expect(albumOpen).toBeVisible({ timeout: 20_000 });
+  const hiddenCards = page.getByTestId('album-card-hidden');
+  // O servidor estático do E2E é single-thread e o chunk lazy do Álbum é
+  // grande. Se o primeiro clique cair antes da hidratação, tenta de novo até
+  // a rota realmente montar — o mesmo cuidado dos testes do Mapa Astral.
+  await expect(async () => {
+    if ((await hiddenCards.count()) !== 78) {
+      if (await albumOpen.isVisible().catch(() => false)) {
+        await albumOpen.click({ timeout: 5_000 }).catch(() => {});
+      }
+      throw new Error('o Álbum ainda não montou');
+    }
+  }).toPass({ timeout: 35_000, intervals: [500, 1_000, 2_000] });
+  await hiddenCards.first().click();
+
+  const prompt = page.getByTestId('album-hidden-modal');
+  await expect(prompt).toBeVisible();
+  await expect(prompt).toContainText('Esta carta ainda está guardada');
+  await expect(prompt).toContainText('depois de aparecer em uma tiragem');
+  await expect(prompt).not.toContainText(/O Louco|O Mago|A Sacerdotisa/);
+
+  await page.getByTestId('album-hidden-draw').click();
+  await expect(page.getByTestId('tarot-draw')).toBeVisible({ timeout: 20_000 });
+});
+
 test('a primeira tiragem revela três cartas grandes em sequência', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
@@ -90,7 +128,6 @@ test('a primeira tiragem revela três cartas grandes em sequência', async ({ pa
   });
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
-  await page.getByTestId('home-explore-toggle').click();
   await page.getByTestId('card-tarot').click();
   await expect(page.getByTestId('tarot-draw')).toBeVisible({ timeout: 20_000 });
   await page.getByTestId('tarot-draw').click();
@@ -126,6 +163,11 @@ test('a primeira tiragem revela três cartas grandes em sequência', async ({ pa
 
   await expect(page.getByTestId('tarot-personal-synthesis')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId('tarot-community-card')).toBeVisible();
+
+  // A terceira revelação só conclui depois de persistir o Álbum. Abrir sem
+  // sair e voltar precisa mostrar exatamente as três cartas recém-vistas.
+  await page.getByTestId('tarot-album-open').click();
+  await expect(page.getByTestId('album-card-seen')).toHaveCount(3);
 });
 
 test('perfil adaptativo muda a primeira ferramenta e abre a rota prometida', async ({ page }) => {
@@ -179,7 +221,7 @@ test('Órbi sai do catálogo e sugere perguntas a partir do perfil completo', as
   await expect(page.getByTestId('orbi-suggestions')).toContainText('Existe distância ou dúvida');
   await expect(page.getByTestId('orbi-suggestions')).toContainText('Sair com um próximo passo');
   await expect(page.getByTestId('orbi-suggestions')).toContainText('Touro');
-  await expect(page.getByText(/Luna|Arcano|Chat Espiritual/)).toHaveCount(0);
+  await expect(page.getByText(/^(Luna|Arcano|Chat Espiritual)$/)).toHaveCount(0);
 });
 
 test('Órbi mantém a primeira ação visível e o foco perceptível em tela pequena', async ({ page }) => {

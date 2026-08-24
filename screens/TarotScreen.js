@@ -461,7 +461,10 @@ export default function TarotScreen() {
         completionId: readingCompletionId,
       });
       setJournalEntryId(entryId);
-      recordCardsSeen(drawn.map((card) => card.id));
+      // A conclusão só fica pronta depois que o Álbum recebeu as cartas. Sem
+      // aguardar esta gravação, abrir o Álbum logo após a terceira revelação
+      // podia mostrar 0/78 até a pessoa sair e voltar.
+      await recordCardsSeen(drawn.map((card) => card.id));
       await clearPendingTarotReading();
     } catch {
       // O snapshot continua no aparelho. Ao voltar para a tela, a conclusão é
@@ -473,9 +476,16 @@ export default function TarotScreen() {
   const reveal = async (i) => {
     funnel.scratchReveal('tarot', String(POSITIONS[i] || i).toLowerCase());
     const next = revealed.map((value, index) => (index === i ? true : value));
+    // Persiste a coleção antes de publicar o estado final na tela. Assim o
+    // botão Álbum, que continua disponível no cabeçalho, nunca vence a escrita
+    // da terceira carta. recordCardsSeen é idempotente e completeReading
+    // repete a chamada para também cobrir uma tiragem retomada do snapshot.
+    if (next.every(Boolean) && drawn) {
+      await recordCardsSeen(drawn.map((card) => card.id));
+    }
     setRevealed(next);
     await updatePendingTarotRevealed(next);
-    if (next.every(Boolean)) completeReading();
+    if (next.every(Boolean)) await completeReading();
   };
 
   useEffect(() => {
@@ -595,6 +605,7 @@ export default function TarotScreen() {
             onPress={() => navigation.navigate(ROUTES.TAROT_ALBUM)}
             accessibilityRole="button"
             accessibilityLabel={t('tarot.albumA11y')}
+            testID="tarot-album-open"
           >
             <Ionicons name="albums" size={20} color="#fff" />
             <Text style={styles.albumBtnText}>{t('tarot.album')}</Text>
