@@ -100,6 +100,10 @@ const ChatScreen = lazy(() => import('./screens/ChatScreen'));
 // lazy porque só precisam carregar quando a pessoa realmente os abre.
 const HoroscopeScreen = lazy(() => import('./screens/HoroscopeScreen'));
 const BirthChartScreen = lazy(() => import('./screens/BirthChartScreen'));
+// Alinhe seu céu — a assinatura gestual do produto. A Home mostra apenas a
+// entrada editorial; palco, cálculo e recibo ficam num chunk próprio para quem
+// realmente abrir a experiência.
+const SkyAlignmentScreen = lazy(() => import('./screens/SkyAlignmentScreen'));
 const CompatibilityScreen = lazy(() => import('./screens/CompatibilityScreen'));
 const DreamScreen = lazy(() => import('./screens/DreamScreen'));
 const PalmScreen = lazy(() => import('./screens/PalmScreen'));
@@ -258,7 +262,14 @@ const DOCUMENT_TITLE = Object.freeze({ formatter: () => 'Cosmic Guide' });
 //   · Chat   — a linha de digitar mora colada no pé, com o botão de enviar
 //              exatamente no canto direito
 //   · Quiz   — a barra Voltar/Continuar fecha o rolo no mesmo lugar
-const ROTAS_SEM_PILL = new Set([ROUTES.PLANOS, ROUTES.CHAT_TAB, ROUTES.QUIZ]);
+const ROTAS_SEM_PILL = new Set([
+  ROUTES.PLANOS,
+  ROUTES.CHAT_TAB,
+  ROUTES.QUIZ,
+  // O alinhamento é um gesto de foco. A oferta flutuante não pode cobrir o
+  // palco nem disputar o toque com o fallback acessível da experiência.
+  ROUTES.SKY_ALIGNMENT,
+]);
 
 const TRANSICAO_STACK = {
   ...TransitionPresets.SlideFromRightIOS,
@@ -299,6 +310,7 @@ const linking = {
         screens: {
           [ROUTES.HOME_MAIN]: '',
           [ROUTES.QUIZ]: 'quiz',
+          [ROUTES.SKY_ALIGNMENT]: 'alinhe-seu-ceu',
           [ROUTES.CALENDARIO_COSMICO]: 'calendario',
           [ROUTES.RITUAIS]: 'rituais',
           [ROUTES.JORNADA]: 'jornada',
@@ -402,6 +414,7 @@ function HomeStack({ initialRouteName = ROUTES.HOME_MAIN } = {}) {
         <Stack.Screen name={ROUTES.HOME_MAIN} component={HomeScreen} />
         <Stack.Screen name={ROUTES.HOROSCOPE} component={HoroscopeScreen} />
         <Stack.Screen name={ROUTES.BIRTH_CHART} component={BirthChartScreen} />
+        <Stack.Screen name={ROUTES.SKY_ALIGNMENT} component={SkyAlignmentScreen} />
         <Stack.Screen name={ROUTES.DREAM} component={DreamScreen} />
         <Stack.Screen name={ROUTES.PALM} component={PalmScreen} />
         <Stack.Screen name={ROUTES.LUNAR_CALENDAR} component={LunarCalendarScreen} />

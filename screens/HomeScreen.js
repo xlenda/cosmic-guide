@@ -239,6 +239,7 @@ export default function HomeScreen() {
   const [onboardingProfile, setOnboardingProfileState] = useState(null);
   const [journalCount, setJournalCount] = useState(null);
   const [orbiFocused, setOrbiFocused] = useState(false);
+  const [alignmentFocused, setAlignmentFocused] = useState(false);
   // A Home precisa nascer inteira. Quando o catálogo começa recolhido, as
   // experiências parecem ter sumido — foi exatamente o que aconteceu em
   // produção. O controle continua disponível para quem quiser recolher.
@@ -1155,6 +1156,50 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* ALINHE SEU CÉU — assinatura gestual em uma porta editorial própria.
+            Ela não entra no grid nem recolhe qualquer parte da Home. O caminho
+            inicial continua primeiro, mas esta porta nunca some: esconder o
+            gesto justamente de quem acabou de chegar quebraria seu papel de
+            encantamento e repetiria o incidente da Home incompleta. */}
+          <Pressable
+            testID="home-sky-alignment"
+            style={({ pressed }) => [
+              styles.skyAlignmentCard,
+              alignmentFocused && styles.keyboardFocus,
+              pressed && styles.firstPathPressed,
+            ]}
+            onPress={() => navigation.navigate(ROUTES.SKY_ALIGNMENT)}
+            onFocus={() => setAlignmentFocused(true)}
+            onBlur={() => setAlignmentFocused(false)}
+            accessibilityRole="button"
+          >
+            <LinearGradient
+              colors={['#2A1A2D', '#171019', '#302027']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.skyAlignmentInner}
+            >
+              <View style={styles.skyAlignmentTop}>
+                <Text style={styles.skyAlignmentTitle}>{t('home.alignment.title')}</Text>
+                <View pointerEvents="none" style={styles.skyAlignmentVisual} accessible={false}>
+                  <View style={styles.skyAlignmentNatalDisc}>
+                    <Ionicons name="compass-outline" size={19} color={colors.gold} />
+                  </View>
+                  <View style={styles.skyAlignmentCurrentDisc}>
+                    <Ionicons name="planet-outline" size={18} color={colors.text} />
+                  </View>
+                  <View style={styles.skyAlignmentAxis} />
+                </View>
+              </View>
+              <Text style={styles.skyAlignmentInstruction}>{t('home.alignment.instruction')}</Text>
+              <Text style={styles.skyAlignmentBody}>{t('home.alignment.body')}</Text>
+              <View style={styles.skyAlignmentCta}>
+                <Text style={styles.skyAlignmentCtaText}>{t('home.alignment.cta')}</Text>
+                <Ionicons name="arrow-forward" size={17} color={colors.gold} />
+              </View>
+            </LinearGradient>
+          </Pressable>
+
         {/* Órbi sai do catálogo genérico: é continuidade do caminho, não mais
             uma leitura concorrendo com outras dezenas de cards. No primeiro
             acesso o passo dominante continua sozinho; depois, esta porta
@@ -1895,6 +1940,48 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10,
   },
   forYouSecondaryText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  skyAlignmentCard: {
+    marginHorizontal: 20,
+    marginTop: 4,
+    marginBottom: 4,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.gold + '55',
+    backgroundColor: colors.surface,
+  },
+  skyAlignmentInner: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 19, overflow: 'hidden' },
+  skyAlignmentTop: { minHeight: 72, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  skyAlignmentTitle: {
+    flex: 1,
+    color: colors.text,
+    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', web: 'Georgia', default: 'serif' }),
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: '700',
+    letterSpacing: -0.45,
+    paddingTop: 5,
+  },
+  skyAlignmentVisual: { width: 94, height: 72, position: 'relative' },
+  skyAlignmentNatalDisc: {
+    position: 'absolute', left: 0, bottom: 0, width: 62, height: 62, borderRadius: 31,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.gold + 'AA',
+    backgroundColor: '#211623',
+  },
+  skyAlignmentCurrentDisc: {
+    position: 'absolute', right: 0, top: 0, width: 54, height: 54, borderRadius: 27,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.purple + 'AA',
+    backgroundColor: '#3A2940',
+  },
+  skyAlignmentAxis: {
+    position: 'absolute', left: 45, top: 35, width: 5, height: 5, borderRadius: 3,
+    backgroundColor: colors.gold,
+  },
+  skyAlignmentInstruction: { color: colors.text, fontSize: 16, lineHeight: 22, fontWeight: '800', marginTop: 8, maxWidth: 330 },
+  skyAlignmentBody: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 7, maxWidth: 340 },
+  skyAlignmentCta: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 16 },
+  skyAlignmentCtaText: { color: colors.gold, fontSize: 12, fontWeight: '800' },
   // Gutter 20 da reforma pra filhos que já trazem marginHorizontal 16 próprio
   // (NotifPromptCard, linhas do CardGrid): 4 + 16 = 20, sem tocar nos
   // componentes.

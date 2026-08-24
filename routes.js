@@ -13,6 +13,7 @@ export const ROUTES = {
   HOME_MAIN: 'HomeMain',
   HOROSCOPE: 'Horoscope',
   BIRTH_CHART: 'BirthChart',
+  SKY_ALIGNMENT: 'SkyAlignment',
   DREAM: 'Dream',
   PALM: 'Palm',
   LUNAR_CALENDAR: 'LunarCalendar',
