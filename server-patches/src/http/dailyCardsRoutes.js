@@ -24,6 +24,7 @@ const {
   escolherDoPool,
   decidirCardDoDia,
 } = require("../application/dailyCardsPool");
+const { applyPublicImagePolicy } = require("../application/publicImagePolicy");
 
 const DIR_CARDS = path.join(__dirname, "..", "..", "data", "daily-cards");
 const DIR_POOL = path.join(DIR_CARDS, "pool");
@@ -110,7 +111,7 @@ dailyCardsRouter.get("/img/pool/:nome", (req, res) => {
   }
   // Imutável de verdade: o conteúdo de pool-*-N.png nunca muda — o que muda
   // com o dia é QUAL deles o manifesto aponta.
-  res.set("Cache-Control", "public, max-age=86400, immutable");
+  applyPublicImagePolicy(res);
   res.sendFile(arquivo);
 });
 
@@ -125,7 +126,7 @@ dailyCardsRouter.get("/img/:date/:nome", (req, res) => {
   }
   // Imutável de verdade: o PNG de um dia nunca é regravado depois de servido
   // (o --forcar do script é ferramenta de bancada, não de produção).
-  res.set("Cache-Control", "public, max-age=86400, immutable");
+  applyPublicImagePolicy(res);
   res.sendFile(arquivo);
 });
 
