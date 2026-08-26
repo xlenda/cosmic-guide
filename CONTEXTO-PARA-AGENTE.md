@@ -1,8 +1,8 @@
 # Contexto para agente — Cosmic Guide
 
-> Handoff iniciado em 19/08/2026 e atualizado em 24/08/2026 depois da publicação
-> da Community V1, do gatilho 3S **Alinhe seu céu**, do Lote B do Tarô e da
-> operação humana de moderação.
+> Handoff iniciado em 19/08/2026 e atualizado em 26/08/2026 depois da publicação
+> da Community V1, do gatilho 3S **Alinhe seu céu**, dos Lotes B e C do Tarô,
+> dos artefatos premium e da voz neural ElevenLabs.
 > Leia isto ANTES de tocar em qualquer arquivo. Datas e números abaixo são
 > fotografias do momento em que foram medidos, não garantias sobre produção.
 
@@ -39,19 +39,24 @@ Baseline de **19/08/2026** (histórico, não reutilize como status atual):
 
 O snapshot medido mais recente é:
 
-- Lote B + moderação em `c96250c`; portão E2E estabilizado em `306fd5d`;
-- backend publicado primeiro, release `20260824-180243`, schema 20 e
+- Lote C, artefatos premium, política pública e voz neural no commit `af6afc2`;
+- backend publicado primeiro, release `20260826-160253`, schema 21 e
   `quick_check = ok`;
-- web `READY` no deploy `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3`;
-- **1758/1758 testes do app** e 283 testes do backend, com 282 aprovados,
+- web `READY` no deploy `dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75`, com alias
+  `https://cosmicguide.cloud`;
+- **1805/1805 testes do app** e 306 testes do backend, com 305 aprovados,
   zero falhas e 1 teste documental ignorado;
-- exports web/Android, nove cenários E2E limpos e regressão oficial aprovados;
-- probes externos: web `200`, app `200`, health `200`, Comunidade sem sessão
+- Expo Doctor **18/18**, exports web/Android, dez cenários E2E e regressão oficial
+  aprovados;
+- probes externos: raiz/app/Explorar/Privacidade `200`, health `200`, voz
+  disponível em `pt,es,en`, síntese sem sessão `401`, Comunidade sem sessão
   `401`, moderação inválida `400` e painel admin sem credencial `401`;
-- produção limpa em 390 × 844: Home percorreu `4897 px` até o fim sem overflow,
-  Touro permaneceu Touro, três cartas foram reveladas, síntese apenas na terceira,
-  convite da Comunidade visível e zero erros JavaScript;
-- próxima frente de produto: **Lote C — Álbum 2.0 e Explorar**.
+- canário real da ElevenLabs gerou MP3 válido nas três línguas; a chave existe
+  somente no `.env` da VPS, agora com permissão `600`;
+- produção limpa em 390 × 844: onboarding do Órbi, Home e Explorar abriram sem
+  overflow horizontal e sem erro JavaScript; `/cosmic-guide/explorar` permaneceu
+  canônico;
+- escopo aprovado concluído sem vídeo premium, DMs, match ou cobrança nova.
 
 Ainda assim, remeça antes de afirmar: confira `git status`, rode a suíte e os
 exports e, se for publicar, use os scripts oficiais na ordem backend → web e
@@ -68,8 +73,10 @@ confirme com probes reais.
 - Conversas trazidas de versões anteriores ficam legíveis como histórico
   importado local. Elas não são reenviadas à Anthropic e não são atribuídas a
   Órbi.
-- **Voz neural não faz parte desta Fase 3 e continua não entregue.** Ela depende
-  de provedor, chave, custo, cache e privacidade; Anthropic não gera áudio.
+- **Voz neural foi entregue depois da Fase 3**, em 26/08/2026, pela ElevenLabs.
+  Ela exige conta com e-mail confirmado, usa voz escolhida no servidor, cota
+  pessoal e global, MP3 privado sem cache HTTP e cache físico de no máximo 24h.
+  Não existe fallback para a voz robótica do navegador/aparelho.
 - No Tarô, a entrada compacta de Órbi e os 15 caminhos são conteúdo editorial
   local e determinístico. Não os apresente como resposta da Anthropic. O chat é
   a superfície que realmente chama a IA.
@@ -239,7 +246,7 @@ Detalhe completo em **`play-store/PENDENCIAS-CONHECIDAS.md`**. Resumo:
 ## 7. Só o dono pode fazer
 
 1. **Recarregar os créditos da Anthropic.** Os logs do release
-   `20260824-180243` devolveram `credit balance is too low`. Remeça antes de
+   `20260826-160253` devolveram `credit balance is too low`. Remeça antes de
    repetir no futuro, mas hoje o chat do Órbi pode falhar. O backend retorna erro
    explícito; não documente um fallback genérico como resposta real da IA.
 2. **Conta no Play Console** (US$ 25). Ele tem CNPJ + D‑U‑N‑S → abrir como
@@ -282,7 +289,8 @@ screenshot não vende nada.
 |---|---|
 | `lib/i18n.js` | 3 dicionários. Chaves novas entram no bloco do fim. Um agente por vez. |
 | `App.js` + `routes.js` | Abas, stacks, chunks lazy e rotas canônicas; a base web `/cosmic-guide` é explícita. |
-| `screens/HomeScreen.js` | Catálogo completo e entradas editoriais da Community e do 3S. |
+| `screens/HomeScreen.js` | Home curta: caminho do dia, 3S, porta de Explorar e conteúdo atual. |
+| `screens/ExploreScreen.js` | Catálogo permanente virtualizado, com todos os destinos reais. |
 | `screens/SkyAlignmentScreen.js` | Estados honestos, palco e Recibo Cósmico do 3S. |
 | `components/SkyAlignmentStage.js` | Discos, gesto, encaixe, haptics e fallback acessível. |
 | `lib/skyAlignment.js` + `lib/personalSky.js` | Efemérides, encontro/recibo e dados natais validados. |
@@ -291,6 +299,10 @@ screenshot não vende nada.
 | `scripts/e2e-regression.js` | Portão oficial que bloqueia regressões críticas antes do deploy web. |
 | `screens/TarotScreen.js` | Ritual do Lote B: guia, signo real, duas estruturas, raspagem sequencial, síntese e Comunidade. |
 | `components/ScratchRevealCard.js` + `lib/scratchReveal.js` | Gesto premium, gate de área, fallback acessível, haptics e movimento reduzido. |
+| `screens/TarotAlbumScreen.js` + `lib/tarotAlbum2.js` | Álbum 2.0, encontros, favoritos, repetição, orientação, busca, filtros e Espelho. |
+| `lib/cosmicMirror.js` | Espelho calculado somente a partir de tiragens reais do Diário. |
+| `components/PremiumCosmicCard.js` + `lib/cosmicShareCard*` | PNG 1080 × 1920 para Tarô, Espelho e Alinhamento, sem campos privados. |
+| `components/BotaoOuvir.js` + `lib/voiceClient.js` + `lib/useVoicePlayback.*` | Cliente neural, cancelamento e reprodução web/nativa sem TTS do sistema. |
 | `lib/tarotRitualGuide.js` | Cinco temas, 15 focos, 12 signos e duas estruturas em PT/ES/EN. |
 | `lib/tarotMajorThemeLenses.js` + `lib/tarotMinorThemeLenses.js` | Acesso às 1170 lentes carta × tema × idioma. |
 | `lib/tarotPendingReading.js` + `lib/tarotDrawCommit.js` | Snapshot durável e consumo transacional de Leitura Bônus. |
@@ -304,6 +316,11 @@ screenshot não vende nada.
 | `server-patches/src/http/adminRoutes.js` + `painelRoutes.js` | Suspensão, reversão, histórico e painel fail-closed. |
 | `server-patches/src/infrastructure/SocialModerationCleanup.js` | Limpeza transacional de UGC. |
 | `server-patches/src/infrastructure/migrations/020_add_moderation_actions.sql` | Histórico append-only de moderação. |
+| `server-patches/src/http/voiceRoutes.js` + `VoiceSynthesisService.js` | Status e síntese neural autenticada, validação, cota e erros estáveis. |
+| `server-patches/src/infrastructure/ElevenLabsVoiceProvider.js` | Chamada ElevenLabs; chave e IDs nunca chegam ao cliente. |
+| `server-patches/src/infrastructure/VoiceAudioCache.js` + `VoiceQuota.js` | Cache temporário, deduplicação e limites pessoal/global. |
+| `server-patches/src/infrastructure/migrations/021_add_voice_usage.sql` | Contagem diária de voz; apagada junto com a conta. |
+| `public/privacidade.html` | Política pública estática em PT/ES/EN, acessível sem JS ou login. |
 | `docs/OPERACAO-MODERACAO.md` | Procedimento humano obrigatório em dois turnos diários. |
 | `server-patches/src/application/chatContext.js` | Allowlist do contexto enviado ao Órbi; nunca ampliar sem alinhar privacidade e testes |
 | `server-patches/src/infrastructure/AnthropicChatProvider.js` | Prompt e chamada Anthropic; identidade atual da conversa é Órbi |
@@ -328,13 +345,14 @@ screenshot não vende nada.
 
 ## 11. Próxima sessão
 
-O estado consolidado para retomar em **25/08/2026** está em
-[`MEMORIA-PROXIMA-SESSAO.md`](./MEMORIA-PROXIMA-SESSAO.md). Community V1, 3S e
-Lote B estão **PUBLICADOS**. O snapshot atual é `c96250c` + `306fd5d`, backend
-`20260824-180243`, schema 20, web `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3` e
-**1758/1758 testes do app**.
+O estado consolidado para retomar depois de **26/08/2026** está em
+[`MEMORIA-PROXIMA-SESSAO.md`](./MEMORIA-PROXIMA-SESSAO.md). Community V1, 3S,
+Lotes B/C, cartões premium e voz ElevenLabs estão **PUBLICADOS**. O snapshot é
+`af6afc2`, backend `20260826-160253`, schema 21, web
+`dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75` e **1805/1805 testes do app**.
 
-A próxima sessão começa pelo **Lote C — Álbum 2.0 e Explorar**, mantendo em
-paralelo os dois turnos diários de moderação humana. Lote D continua roadmap.
-Créditos da Anthropic e a caixa `contato@cosmicguide.cloud` seguem como ações
-externas do dono; não anunciar nenhum dos dois como operacional sem medir.
+Não há outro lote de código autorizado pendente nesta entrega. Antes de anunciar
+a voz nativa como validada em aparelho, fazer uma escuta real no Android. Manter
+dois turnos diários de moderação. Créditos da Anthropic e a caixa
+`contato@cosmicguide.cloud` seguem como ações externas do dono; o log do release
+de 26/08 ainda mostrou saldo Anthropic insuficiente.

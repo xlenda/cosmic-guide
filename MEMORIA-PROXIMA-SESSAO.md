@@ -1,8 +1,8 @@
 # Estado consolidado e próximos lotes — Cosmic Guide
 
-> Registrado em **24/08/2026** e atualizado depois da publicação da Community V1,
-> do gatilho 3S **Alinhe seu céu**, do **Lote B do Tarô** e da operação de
-> moderação humana da Comunidade.
+> Registrado em **24/08/2026** e atualizado em **26/08/2026** depois da publicação
+> da Community V1, do gatilho 3S **Alinhe seu céu**, dos **Lotes B e C do Tarô**,
+> dos artefatos premium e da voz neural ElevenLabs.
 >
 > Este arquivo é uma **memória de produto e execução**. Tudo que estiver marcado
 > como **DECIDIDO / NÃO IMPLEMENTADO** ainda precisa ser construído, testado e
@@ -68,7 +68,25 @@
   revelou três cartas, só exibiu a síntese após a terceira, mostrou o convite
   da Comunidade e terminou com zero erros JavaScript.
 
-Pendência externa revalidada nos logs do release `20260824-180243`: a Anthropic
+**PUBLICADO — Lote C + artefatos premium + voz: commit `af6afc2`**
+
+- Backend publicado primeiro pelo script oficial: release `20260826-160253`.
+- Banco em `user_version = 21`, `quick_check = ok`; migration
+  `021_add_voice_usage.sql` aplicada.
+- Suíte remota: **306 testes**, **305 aprovados**, zero falhas e 1 teste
+  documental ignorado. Suíte do app: **1805/1805 aprovada**.
+- Expo Doctor **18/18**, exports web/Android e dez cenários E2E aprovados.
+- Web de produção: `dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75`, estado `READY`, alias
+  `https://cosmicguide.cloud`.
+- Probes externos: raiz, app, Explorar e Privacidade `200`; API health `200`;
+  voz disponível em PT/ES/EN; síntese e Comunidade sem sessão `401`; denúncia
+  inválida `400`.
+- Canário real gerou MP3 válido nas três vozes ElevenLabs. A chave permanece só
+  no `.env` da VPS, com permissão `600`; nunca foi versionada ou enviada ao app.
+- Navegador limpo em 390 × 844 abriu onboarding, Home e Explorar sem overflow ou
+  erro JavaScript. A política pública funciona sem JavaScript.
+
+Pendência externa revalidada nos logs do release `20260826-160253`: a Anthropic
 está configurada para texto, mas a conta retorna **crédito insuficiente**. O chat
 do Órbi pode falhar até o dono recarregar o saldo. Isso não é falha do fluxo visual
 e não deve ser mascarado por fallback que prometa resposta de IA real.
@@ -331,9 +349,8 @@ abertura fria dessa rota para impedir que ela volte silenciosamente à Home.
   pessoa. Poucas escolhas mudam de verdade o caminho mostrado.
 - O recibo após a escolha confirma o foco com linguagem específica e explica o
   plano antes de tirar as cartas.
-- O texto existe em PT/ES/EN. **Nenhuma voz foi prometida ou adicionada:** uma
-  gravação humana só poderá entrar quando houver arquivo licenciado aprovado;
-  voz dinâmica continua no Lote D e depende de provedor próprio.
+- O texto existe em PT/ES/EN. A voz não pertencia ao Lote B original; foi
+  adicionada depois, no commit `af6afc2`, usando ElevenLabs no backend.
 
 #### Integridade entregue
 
@@ -346,31 +363,34 @@ abertura fria dessa rota para impedir que ela volte silenciosamente à Home.
 - Verificação final: **1758/1758 testes**, exports web e Android, 9/9 cenários
   limpos de Playwright e regressão oficial aprovados; produção validada sem erro JS.
 
-### Lote C — Álbum 2.0 e Explorar
+### Lote C — **PUBLICADO** em `af6afc2`
 
-- Álbum: PT/ES/EN, busca, filtros, favoritos e estudo com posição normal/invertida,
-  cena, conselho, primeira/última aparição e quantidade de encontros.
-- Na área “Tarô por tema”, todo elemento com aparência de card precisa ser
-  clicável e levar a uma ação real. O que for apenas decorativo não pode parecer botão.
-- Registrar a carta quando ela é revelada, não apenas no fim da tiragem.
-- Diferenciar “nova no Álbum” de “novo encontro com esta carta”.
-- Criar destino permanente **Explorar** antes de voltar a recolher o catálogo da Home.
-- “Continuar” deve usar uma atividade realmente inacabada, não um estado inventado.
+- Álbum 2.0 em PT/ES/EN com busca, filtros, favoritos, encontros, repetição,
+  posição normal/invertida, primeira/última aparição e estudo real.
+- Cada carta é registrada quando é revelada; `occurrenceId` estável impede toque
+  duplo, retomada e concorrência de inflarem a coleção.
+- Cartas ainda ocultas aparecem em grupos anônimos clicáveis. O app não expõe os
+  slots canônicos nem deixa um card decorativo parecer uma ação quebrada.
+- **Espelho Cósmico** usa somente tiragens reais do Diário, declara empate e
+  estado vazio e nunca mostra pergunta/reflexão privada.
+- **Explorar** é um destino permanente, virtualizado, com 29 experiências e URL
+  canônica. A Home ficou curta sem perder portas reais.
+- Tarô, Espelho e Alinhamento geram cards premium 1080 × 1920. A allowlist exclui
+  pergunta, reflexão, nascimento, cidade, IDs e outros dados privados.
 
-### Lote D — Diário, receita, voz e acabamento
+### Lote D — **PARCIALMENTE PUBLICADO** em `af6afc2`
 
-- Diário: editar, pesquisar o próprio texto, exportar e sincronizar com merge
-  idempotente/união; nunca deixar vazio do servidor sobrescrever conteúdo local.
-- Receita: webhook RevenueCat antes de chave/produtos Android; preço exibido vem
-  da fonte oficial da loja; instrumentar eventos do funil de pagamento.
-- Voz dinâmica real: somente depois de provedor, chave, custo, cache e privacidade.
-  Anthropic gera texto, não áudio. Uma introdução fixa de Órbi pode usar gravação
-  humana antes, se houver licença e arquivo aprovados.
-- Visual: tipografia editorial, menos gradientes/cores, estados consistentes,
-  movimento premium e ilustrações com intenção — sem aparência de template de IA.
-- Backend: a fonte local reproduzível, dependências, migrations e testes foram
-  incorporados a `server-patches/`; continuar rodando a suíte do servidor antes
-  de reiniciar e não confundi-la com a suíte do app.
+**Entregue nesta frente:** voz neural ElevenLabs PT/ES/EN, privacidade estática,
+cache temporário de até 24h, cotas pessoal/global, reprodução web/nativa e cards
+premium estáticos. Não há fallback para TTS robótico.
+
+**Permanece fora deste escopo, de propósito:**
+
+- vídeo premium — o dono explicitamente disse que não precisava;
+- DMs, match e ativação automática por compatibilidade na Comunidade;
+- cobrança/RevenueCat novo — webhook deve existir antes de ligar chave/produtos;
+- edição, busca, exportação e sincronização remota do Diário;
+- teste físico da reprodução longa/interrupções no Android, que exige aparelho.
 
 ---
 
@@ -378,12 +398,13 @@ abertura fria dessa rota para impedir que ela volte silenciosamente à Home.
 
 1. Ler `CONTEXTO-PARA-AGENTE.md` e este arquivo inteiro.
 2. Conferir `git status`, branch, HEAD e produção antes de alterar qualquer coisa.
-3. Confirmar o baseline publicado em `306fd5d`, backend `20260824-180243`, web
-   `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3` e o total atual de 1758 testes.
+3. Confirmar o baseline publicado em `af6afc2`, backend `20260826-160253`, web
+   `dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75` e o total atual de 1805 testes.
 4. **Rotina diária paralela:** revisar a fila humana de moderação em dois turnos,
    seguindo `docs/OPERACAO-MODERACAO.md`; isso não é substituído por automação.
-5. **Próxima frente de produto: Lote C — Álbum 2.0 e Explorar.** Depois seguir
-   para o Lote D.
+5. Não existe novo lote de código autorizado nesta entrega. Primeiro validar a
+   voz em aparelho Android real; depois o dono decide qual item remanescente do
+   Lote D vira uma frente própria.
 6. Ações do dono: recarregar créditos da Anthropic e configurar/testar a caixa
    `contato@cosmicguide.cloud` antes de prometer chat ou recurso por e-mail.
 
@@ -411,7 +432,8 @@ realmente foi publicado.
 |---|---|
 | `App.js` | `CommunityStack`, quarta aba, rota lazy do 3S e base web dos deep links. |
 | `routes.js` | Rotas canônicas da Comunidade, Seguindo, Diretrizes e `SkyAlignment`. |
-| `screens/HomeScreen.js` | Entradas editoriais da Comunidade e de **Alinhe seu céu**. |
+| `screens/HomeScreen.js` | Home curta: caminho do dia, **Alinhe seu céu**, Explorar e conteúdo atual. |
+| `screens/ExploreScreen.js` | Catálogo permanente, virtualizado e com destinos reais. |
 | `screens/SkyAlignmentScreen.js` | Estados honestos, palco, resultado e Recibo Cósmico. |
 | `components/SkyAlignmentStage.js` | Dois discos, arraste, encaixe, haptics e fallback acessível. |
 | `hooks/useReducedMotion.js` | Preferência de movimento reduzido no web e no nativo. |
@@ -419,6 +441,10 @@ realmente foi publicado.
 | `lib/personalSky.js` | Leitura validada dos dados natais locais usados pelo motor. |
 | `screens/TarotScreen.js` | Seleção guiada, duas estruturas, ritual sequencial, síntese e ponte explícita para a Comunidade. |
 | `components/ScratchRevealCard.js` + `lib/scratchReveal.js` | Foil premium, gesto contínuo, gate de área, acessibilidade, haptics e movimento reduzido. |
+| `screens/TarotAlbumScreen.js` + `lib/tarotAlbum2.js` | Álbum 2.0, cartas ocultas agrupadas, encontros, favoritos e Espelho. |
+| `lib/cosmicMirror.js` | Padrões calculados apenas de tiragens reais. |
+| `components/PremiumCosmicCard.js` + `lib/cosmicShareCard*` | PNG premium compartilhável sem campos privados. |
+| `components/BotaoOuvir.js` + `lib/voiceClient.js` + `lib/useVoicePlayback.*` | Cliente ElevenLabs e reprodução web/nativa sem TTS local. |
 | `lib/tarotRitualGuide.js` | Contrato dos 5 temas, 15 focos, 12 signos e duas estruturas. |
 | `lib/tarotMajorThemeLenses.js` + `lib/tarotMinorThemeLenses.js` | Acesso às 1170 lentes carta × tema × idioma. |
 | `lib/tarotPendingReading.js` + `lib/tarotDrawCommit.js` | Snapshot durável e consumo transacional da Leitura Bônus. |
@@ -437,6 +463,11 @@ realmente foi publicado.
 | `server-patches/src/infrastructure/migrations/018_version_social_foundation.sql` | Fundação social versionada. |
 | `server-patches/src/infrastructure/migrations/019_add_community_rooms.sql` | Salas, signo público e relações da Community V1. |
 | `server-patches/src/infrastructure/migrations/020_add_moderation_actions.sql` | Histórico append-only de ações e reversões administrativas. |
+| `server-patches/src/http/voiceRoutes.js` + `src/application/VoiceSynthesisService.js` | Síntese autenticada, validação, cache e erros estáveis. |
+| `server-patches/src/infrastructure/ElevenLabsVoiceProvider.js` | Provedor server-only; chave/IDs não chegam ao cliente. |
+| `server-patches/src/infrastructure/VoiceAudioCache.js` + `VoiceQuota.js` | Retenção máxima, temporários e cotas pessoal/global. |
+| `server-patches/src/infrastructure/migrations/021_add_voice_usage.sql` | Contagem diária removida com a conta. |
+| `public/privacidade.html` | Política PT/ES/EN estática, pública e sem JavaScript. |
 | `docs/OPERACAO-MODERACAO.md` | Rotina humana em dois turnos, severidade, recurso e protocolo de indisponibilidade. |
 | `server-patches/test/communityRooms.http.test.js` | Contrato HTTP das salas. |
 | `server-patches/test/socialLifecycle.http.test.js` | Ciclo social e exclusão de conta. |
@@ -454,14 +485,12 @@ realmente foi publicado.
 
 ## 8. Estado desta noite
 
-A Community V1, o 3S **Alinhe seu céu** e o **Lote B do Tarô** estão publicados.
-O snapshot mais recente é `c96250c` + `306fd5d`, backend release
-`20260824-180243`, schema 20, web `dpl_AzQKsGMsKd3axWHkePo1ZvpN3AU3` e
-**1758/1758 testes do app**. Os probes externos e o ritual completo em navegador
-limpo passaram.
+Community V1, 3S **Alinhe seu céu**, Lotes B/C, cards premium e voz ElevenLabs
+estão publicados. O snapshot é `af6afc2`, backend `20260826-160253`, schema 21,
+web `dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75` e **1805/1805 testes do app**. Probes,
+canários das três vozes e navegador limpo passaram.
 
-A próxima frente de produto é o **Lote C — Álbum 2.0 e Explorar**. O Lote D
-continua **DECIDIDO / NÃO IMPLEMENTADO**. Em paralelo, a fila da Comunidade exige
-moderação humana duas vezes por dia. Créditos da Anthropic e a caixa de e-mail do
-domínio continuam dependências externas do dono; não tratar nenhum dos dois como
-operacional até medir de novo.
+Não existe outro lote de código autorizado pendente. Faltam o teste físico da
+voz no Android e as rotinas/ações externas do dono: moderação humana duas vezes
+ao dia, créditos Anthropic e caixa de e-mail do domínio. Vídeo premium, DMs,
+match e nova cobrança ficaram fora de propósito; não anunciá-los como existentes.
