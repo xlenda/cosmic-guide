@@ -239,6 +239,7 @@ export default function HomeScreen() {
   const [journalCount, setJournalCount] = useState(null);
   const [orbiFocused, setOrbiFocused] = useState(false);
   const [alignmentFocused, setAlignmentFocused] = useState(false);
+  const [exploreFocused, setExploreFocused] = useState(false);
   // O catálogo completo agora tem uma casa permanente própria (Explore).
   // A Home mostra apenas a porta: nenhuma lista enorme monta na primeira
   // pintura e nenhuma experiência foi removida.
@@ -1140,25 +1141,54 @@ export default function HomeScreen() {
             </LinearGradient>
           </Pressable>
 
-        {/* A biblioteca inteira mora numa rota própria. Esta é a segunda
-            ação da abertura: curta, permanente e sem montar dezenas de cards
-            dentro da Home. */}
+        {/* A biblioteca inteira mora numa rota própria. Esta porta é o mapa
+            principal do produto: ganha presença editorial sem montar dezenas
+            de cards dentro da Home nem competir com a leitura personalizada. */}
         <View style={styles.exploreGate}>
           <Pressable
             testID="home-explore-toggle"
-            style={({ pressed }) => [styles.exploreToggle, pressed && styles.firstPathPressed]}
+            style={({ pressed }) => [
+              styles.explorePortal,
+              exploreFocused && styles.keyboardFocus,
+              pressed && styles.firstPathPressed,
+            ]}
             onPress={() => navigation.navigate(ROUTES.EXPLORE)}
+            onFocus={() => setExploreFocused(true)}
+            onBlur={() => setExploreFocused(false)}
             accessibilityRole="button"
             accessibilityLabel={`${t('home.explore.open')}. ${t('home.explore.hint')}`}
           >
-            <View style={styles.exploreToggleIcon}>
-              <Ionicons name="compass-outline" size={20} color={colors.gold} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.exploreToggleTitle}>{t('home.explore.open')}</Text>
-              <Text style={styles.exploreToggleHint}>{t('home.explore.hint')}</Text>
-            </View>
-            <Ionicons name="arrow-forward" size={18} color={colors.textMuted} />
+            <LinearGradient
+              colors={['#382713', '#251622', '#171019']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.explorePortalInner}
+            >
+              <View pointerEvents="none" style={styles.exploreOrbitArtwork} accessible={false}>
+                <View style={styles.exploreOrbitLarge} />
+                <View style={styles.exploreOrbitSmall} />
+                <View style={[styles.exploreStar, styles.exploreStarOne]} />
+                <View style={[styles.exploreStar, styles.exploreStarTwo]} />
+                <View style={[styles.exploreStar, styles.exploreStarThree]} />
+              </View>
+
+              <View style={styles.explorePortalTop}>
+                <Text style={styles.explorePortalEyebrow}>{t('explore.eyebrow')}</Text>
+                <View style={styles.explorePortalCompass}>
+                  <Ionicons name="compass-outline" size={22} color={colors.gold} />
+                </View>
+              </View>
+
+              <Text style={styles.explorePortalTitle}>{t('home.explore.open')}</Text>
+              <Text style={styles.explorePortalHint}>{t('home.explore.hint')}</Text>
+
+              <View style={styles.explorePortalCta}>
+                <Text style={styles.explorePortalCtaText}>{t('home.explore.cta')}</Text>
+                <View style={styles.explorePortalArrow}>
+                  <Ionicons name="arrow-forward" size={17} color="#21151A" />
+                </View>
+              </View>
+            </LinearGradient>
           </Pressable>
         </View>
 
@@ -1852,15 +1882,86 @@ const styles = StyleSheet.create({
   // (NotifPromptCard, linhas do CardGrid): 4 + 16 = 20, sem tocar nos
   // componentes.
   gutterWrap: { paddingHorizontal: 4 },
-  exploreGate: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 14 },
-  exploreToggle: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 15,
-    borderWidth: 1, borderColor: colors.border,
+  exploreGate: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18 },
+  explorePortal: {
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.gold + 'A8',
   },
-  exploreToggleIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold + '16' },
-  exploreToggleTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  exploreToggleHint: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 3 },
+  explorePortalInner: {
+    minHeight: 210,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 19,
+    overflow: 'hidden',
+  },
+  exploreOrbitArtwork: {
+    position: 'absolute',
+    right: -40,
+    top: -54,
+    width: 190,
+    height: 190,
+  },
+  exploreOrbitLarge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 95,
+    borderWidth: 1,
+    borderColor: colors.gold + '35',
+  },
+  exploreOrbitSmall: {
+    position: 'absolute',
+    left: 34,
+    top: 34,
+    width: 122,
+    height: 122,
+    borderRadius: 61,
+    borderWidth: 1,
+    borderColor: colors.gold + '28',
+  },
+  exploreStar: { position: 'absolute', width: 5, height: 5, borderRadius: 3, backgroundColor: colors.gold },
+  exploreStarOne: { left: 28, top: 103 },
+  exploreStarTwo: { right: 23, top: 72, width: 3, height: 3 },
+  exploreStarThree: { left: 92, bottom: 8, width: 4, height: 4 },
+  explorePortalTop: { minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  explorePortalEyebrow: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 1.25, textTransform: 'uppercase' },
+  explorePortalCompass: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#171019CC',
+    borderWidth: 1,
+    borderColor: colors.gold + '66',
+  },
+  explorePortalTitle: {
+    color: colors.text,
+    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', web: 'Georgia', default: 'serif' }),
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: '700',
+    letterSpacing: -0.45,
+    marginTop: 9,
+    maxWidth: 285,
+  },
+  explorePortalHint: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 8, maxWidth: 300 },
+  explorePortalCta: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 17 },
+  explorePortalCtaText: { color: colors.gold, fontSize: 13, fontWeight: '800' },
+  explorePortalArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+  },
   loader: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
   firstPathCard: {
     marginHorizontal: 20,

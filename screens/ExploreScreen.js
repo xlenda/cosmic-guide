@@ -88,44 +88,44 @@ export default function ExploreScreen() {
   });
 
   const readings = [
-    item('horoscope', 'home.card.horoscope.title', 'home.card.horoscope.subtitle', 'planet-outline', ROUTES.HOROSCOPE, { params: { sign } }),
-    item('comovoceta', 'home.card.comovoceta.title', 'home.card.comovoceta.subtitle', 'heart-half-outline', ROUTES.COMO_VOCE_TA),
-    item('birthchart', 'home.card.birthchart.title', 'home.card.birthchart.subtitle', 'compass-outline', ROUTES.BIRTH_CHART),
-    item('tarot', 'home.card.tarot.title', 'home.card.tarot.subtitle', 'sparkles-outline', ROUTES.TAROT_TAB, { tab: true }),
-    item('compatibility', 'home.card.compatibility.title', 'home.card.compatibility.subtitle', 'heart-outline', ROUTES.COMPATIBILITY),
-    item('dream', 'home.card.dream.title', 'home.card.dream.subtitle', 'moon-outline', ROUTES.DREAM),
-    item('palm', 'home.card.palm.title', 'home.card.palm.subtitle', 'hand-left-outline', ROUTES.PALM),
-    item('coffee', 'home.card.coffee.title', 'home.card.coffee.subtitle', 'cafe-outline', ROUTES.COFFEE),
-    item('profeccoes', 'home.card.profeccoes.title', 'home.card.profeccoes.subtitle', 'refresh-circle-outline', ROUTES.PROFECCOES),
+    item('horoscope', 'home.card.horoscope.title', 'explore.item.horoscope.description', 'planet-outline', ROUTES.HOROSCOPE, { params: { sign } }),
+    item('comovoceta', 'home.card.comovoceta.title', 'explore.item.comovoceta.description', 'heart-half-outline', ROUTES.COMO_VOCE_TA),
+    item('birthchart', 'home.card.birthchart.title', 'explore.item.birthchart.description', 'compass-outline', ROUTES.BIRTH_CHART),
+    item('tarot', 'home.card.tarot.title', 'explore.item.tarot.description', 'sparkles-outline', ROUTES.TAROT_TAB, { tab: true }),
+    item('compatibility', 'home.card.compatibility.title', 'explore.item.compatibility.description', 'heart-outline', ROUTES.COMPATIBILITY),
+    item('dream', 'home.card.dream.title', 'explore.item.dream.description', 'moon-outline', ROUTES.DREAM),
+    item('palm', 'explore.item.palm.title', 'explore.item.palm.description', 'hand-left-outline', ROUTES.PALM),
+    item('coffee', 'home.card.coffee.title', 'explore.item.coffee.description', 'cafe-outline', ROUTES.COFFEE),
+    item('profeccoes', 'home.card.profeccoes.title', 'explore.item.profeccoes.description', 'refresh-circle-outline', ROUTES.PROFECCOES),
   ];
 
   const practices = [
     {
       key: 'alignment',
       title: t('home.alignment.title'),
-      subtitle: t('home.alignment.body'),
+      subtitle: t('explore.item.alignment.description'),
       icon: 'aperture-outline',
       destination: ROUTES.SKY_ALIGNMENT,
     },
-    item('grounding', 'home.card.grounding.title', 'home.card.grounding.subtitle', 'leaf-outline', ROUTES.GROUNDING),
-    item('rituais', 'home.card.rituais.title', 'home.card.rituais.subtitle', 'flame-outline', ROUTES.RITUAIS),
-    item('jornada', 'home.card.jornada.title', 'home.card.jornada.subtitle', 'footsteps-outline', ROUTES.JORNADA),
-    item('diary', 'home.card.diary.title', 'home.card.diary.subtitle', 'book-outline', ROUTES.DIARY),
+    item('grounding', 'home.card.grounding.title', 'explore.item.grounding.description', 'leaf-outline', ROUTES.GROUNDING),
+    item('rituais', 'home.card.rituais.title', 'explore.item.rituais.description', 'flame-outline', ROUTES.RITUAIS),
+    item('jornada', 'home.card.jornada.title', 'explore.item.jornada.description', 'footsteps-outline', ROUTES.JORNADA),
+    item('diary', 'home.card.diary.title', 'explore.item.diary.description', 'book-outline', ROUTES.DIARY),
   ];
 
   const skyAndTime = [
-    item('lunarCalendar', 'home.card.lunarCalendar.title', 'home.card.lunarCalendar.subtitle', 'moon-outline', ROUTES.LUNAR_CALENDAR),
-    item('calendario', 'home.card.calendario.title', 'home.card.calendario.subtitle', 'calendar-outline', ROUTES.CALENDARIO_COSMICO),
-    item('zodiacbody', 'home.card.zodiacbody.title', 'home.card.zodiacbody.subtitle', 'body-outline', ROUTES.ZODIAC_BODY),
-    item('retrolua', 'home.card.retrolua.title', 'home.card.retrolua.subtitle', 'stats-chart-outline', ROUTES.RETRO_LUA),
+    item('lunarCalendar', 'home.card.lunarCalendar.title', 'explore.item.lunarCalendar.description', 'moon-outline', ROUTES.LUNAR_CALENDAR),
+    item('calendario', 'home.card.calendario.title', 'explore.item.calendario.description', 'calendar-outline', ROUTES.CALENDARIO_COSMICO),
+    item('zodiacbody', 'home.card.zodiacbody.title', 'explore.item.zodiacbody.description', 'body-outline', ROUTES.ZODIAC_BODY),
+    item('retrolua', 'home.card.retrolua.title', 'explore.item.retrolua.description', 'stats-chart-outline', ROUTES.RETRO_LUA),
   ];
 
   const discoveries = [
-    item('mitos', 'home.card.mitos.title', 'home.card.mitos.subtitle', 'library-outline', ROUTES.MITOS),
-    item('quizcosmico', 'home.card.quizcosmico.title', 'home.card.quizcosmico.subtitle', 'help-circle-outline', ROUTES.QUIZ_COSMICO),
-    item('wallpaper', 'home.card.wallpaper.title', 'home.card.wallpaper.subtitle', 'image-outline', ROUTES.WALLPAPER),
-    item('idadereal', 'home.card.idadereal.title', 'home.card.idadereal.subtitle', 'hourglass-outline', ROUTES.IDADE_REAL),
-    item('social', 'home.card.social.title', 'home.card.social.subtitle', 'people-outline', ROUTES.COMMUNITY_TAB, {
+    item('mitos', 'home.card.mitos.title', 'explore.item.mitos.description', 'library-outline', ROUTES.MITOS),
+    item('quizcosmico', 'home.card.quizcosmico.title', 'explore.item.quizcosmico.description', 'help-circle-outline', ROUTES.QUIZ_COSMICO),
+    item('wallpaper', 'home.card.wallpaper.title', 'explore.item.wallpaper.description', 'image-outline', ROUTES.WALLPAPER),
+    item('idadereal', 'home.card.idadereal.title', 'explore.item.idadereal.description', 'hourglass-outline', ROUTES.IDADE_REAL),
+    item('social', 'home.card.social.title', 'explore.item.social.description', 'people-outline', ROUTES.COMMUNITY_TAB, {
       tab: true,
       params: { screen: ROUTES.COMMUNITY_MAIN },
     }),
@@ -133,13 +133,13 @@ export default function ExploreScreen() {
 
   const coupleItems = [
     ...(isCouple
-      ? [item('timeline', 'home.card.timeline.title', 'home.card.timeline.subtitle', 'time-outline', ROUTES.TIMELINE)]
+      ? [item('timeline', 'home.card.timeline.title', 'explore.item.timeline.description', 'time-outline', ROUTES.TIMELINE)]
       : []),
-    item('reconectar', 'home.card.reconectar.title', 'home.card.reconectar.subtitle', 'heart-circle-outline', ROUTES.RECONECTAR),
-    item('descobrir', 'home.card.descobrir.title', 'home.card.descobrir.subtitle', 'telescope-outline', ROUTES.DESCOBRIR),
-    item('agir', 'home.card.agir.title', 'home.card.agir.subtitle', 'flash-outline', ROUTES.AGIR),
-    item('progresso', 'home.card.progresso.title', 'home.card.progresso.subtitle', 'trophy-outline', ROUTES.PROGRESSO),
-    item('retrospectiva', 'home.card.retrospectiva.title', 'home.card.retrospectiva.subtitle', 'gift-outline', ROUTES.RETROSPECTIVA),
+    item('reconectar', 'home.card.reconectar.title', 'explore.item.reconectar.description', 'heart-circle-outline', ROUTES.RECONECTAR),
+    item('descobrir', 'home.card.descobrir.title', 'explore.item.descobrir.description', 'telescope-outline', ROUTES.DESCOBRIR),
+    item('agir', 'home.card.agir.title', 'explore.item.agir.description', 'flash-outline', ROUTES.AGIR),
+    item('progresso', 'home.card.progresso.title', 'explore.item.progresso.description', 'trophy-outline', ROUTES.PROGRESSO),
+    item('retrospectiva', 'home.card.retrospectiva.title', 'explore.item.retrospectiva.description', 'gift-outline', ROUTES.RETROSPECTIVA),
   ].map((experience) => ({
     ...experience,
     locked: !isOwnerAccount
@@ -336,11 +336,11 @@ const styles = StyleSheet.create({
   },
   sectionFooter: { height: 28 },
   experienceRow: {
-    minHeight: 78,
+    minHeight: 88,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 13,
+    paddingVertical: 14,
     paddingLeft: 0,
     paddingRight: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   experienceCopy: { flex: 1, minWidth: 0 },
   experienceTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   experienceTitle: { color: colors.text, fontSize: 15, lineHeight: 20, fontWeight: '700' },
-  experienceSubtitle: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 3 },
+  experienceSubtitle: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 5, maxWidth: 520 },
   lockLabel: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -9,6 +9,7 @@ const HOME = fs.readFileSync(path.join(ROOT, 'screens', 'HomeScreen.js'), 'utf8'
 const EXPLORE = fs.readFileSync(path.join(ROOT, 'screens', 'ExploreScreen.js'), 'utf8');
 const FEATURE_GATE = fs.readFileSync(path.join(ROOT, 'components', 'FeatureGate.js'), 'utf8');
 const I18N = fs.readFileSync(path.join(ROOT, 'lib', 'i18n.js'), 'utf8');
+const { _DICTS_FOR_TESTS } = require('../lib/i18n.js');
 
 test('Explorar é uma rota lazy, permanente e com URL canônica', () => {
   assert.match(APP, /const ExploreScreen = lazy\(\(\) => import\('\.\/screens\/ExploreScreen'\)\)/);
@@ -18,7 +19,7 @@ test('Explorar é uma rota lazy, permanente e com URL canônica', () => {
   assert.match(APP, /deep\) navigation\.navigate\(ROUTES\.HOME_TAB, \{ screen: ROUTES\.HOME_MAIN \}\)/);
 });
 
-test('a primeira dobra preserva uma ação dominante e só duas portas secundárias', () => {
+test('a primeira dobra preserva o caminho personalizado e duas portas permanentes', () => {
   assert.doesNotMatch(HOME, /personalizedItems|forYouSecondaryRow/);
   const primary = HOME.indexOf('testID="home-first-path"');
   const alignment = HOME.indexOf('testID="home-sky-alignment"');
@@ -49,6 +50,37 @@ test('a biblioteca preserva todas as entradas do catálogo com destinos reais', 
   assert.match(EXPLORE, /navigation\.getParent\(\)\?\.navigate\(tab, params\)/);
 });
 
+test('cada experiência explica o que a pessoa encontrará em PT, ES e EN', () => {
+  const keys = [
+    'horoscope', 'comovoceta', 'birthchart', 'tarot', 'compatibility', 'dream',
+    'palm', 'coffee', 'profeccoes', 'alignment', 'grounding', 'rituais',
+    'jornada', 'diary', 'lunarCalendar', 'calendario', 'zodiacbody', 'retrolua',
+    'mitos', 'quizcosmico', 'wallpaper', 'idadereal', 'social', 'timeline',
+    'reconectar', 'descobrir', 'agir', 'progresso', 'retrospectiva',
+  ];
+
+  for (const key of keys) {
+    const descriptionKey = `explore.item.${key}.description`;
+    assert.ok(EXPLORE.includes(`'${descriptionKey}'`), `${key} não usa a descrição detalhada`);
+    assert.equal(I18N.split(`'${descriptionKey}'`).length - 1, 3, `${descriptionKey} precisa existir em PT/ES/EN`);
+    for (const lang of ['pt', 'es', 'en']) {
+      const description = _DICTS_FOR_TESTS[lang][descriptionKey];
+      assert.equal(typeof description, 'string', `${lang}/${descriptionKey} ausente`);
+      assert.ok(description.trim().length >= 40, `${lang}/${descriptionKey} continua curto demais`);
+      assert.ok(description.trim().length <= 125, `${lang}/${descriptionKey} ficou longo demais para o catálogo`);
+    }
+  }
+
+  assert.doesNotMatch(
+    EXPLORE,
+    /item\('[^']+', 'home\.card\.[^']+\.title', 'home\.card\.[^']+\.subtitle'/,
+    'o catálogo não deve voltar aos slogans curtos da Home'
+  );
+
+  assert.equal(I18N.split("'explore.item.palm.title'").length - 1, 3);
+  assert.match(EXPLORE, /item\('palm', 'explore\.item\.palm\.title'/);
+});
+
 test('Explorar usa lista virtualizada, Pressable, safe area e não adiciona movimento obrigatório', () => {
   assert.match(EXPLORE, /useSafeAreaInsets\(\)/);
   assert.match(EXPLORE, /<SectionList/);
@@ -68,6 +100,14 @@ test('copy de Explorar descreve a mudança sem prometer que o catálogo ficou na
   assert.doesNotMatch(I18N, /Nada some da sua Home|Nada desaparece de tu inicio|Nothing disappears from Home/i);
   assert.match(I18N, /o catálogo completo mora em Explorar/);
   assert.match(I18N, /the full library lives in Explore/);
+});
+
+test('a porta principal de Explorar tem chamada própria nos três idiomas', () => {
+  assert.match(HOME, /<LinearGradient[\s\S]*?style=\{styles\.explorePortalInner\}/);
+  assert.match(HOME, /t\('home\.explore\.cta'\)/);
+  assert.match(HOME, /onFocus=\{\(\) => setExploreFocused\(true\)\}/);
+  assert.match(HOME, /exploreFocused && styles\.keyboardFocus/);
+  assert.equal(I18N.split("'home.explore.cta'").length - 1, 3);
 });
 
 test('os seis gates de casal resolvem título e descrição no idioma atual', () => {
