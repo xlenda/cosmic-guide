@@ -2,12 +2,22 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const path = require("node:path");
 
 const { SubscriptionRepository } = require("../infrastructure/SubscriptionRepository");
 const { HotmartPaymentProvider } = require("../infrastructure/HotmartPaymentProvider");
 const { AnthropicChatProvider } = require("../infrastructure/AnthropicChatProvider");
 const { PushSubscriptionRepository } = require("../infrastructure/PushSubscriptionRepository");
 const { ConversionTrackingProvider } = require("../infrastructure/ConversionTrackingProvider");
+const { ElevenLabsVoiceProvider } = require("../infrastructure/ElevenLabsVoiceProvider");
+const { VoiceAudioCache } = require("../infrastructure/VoiceAudioCache");
+const { VoiceQuota } = require("../infrastructure/VoiceQuota");
+const {
+  VoiceSynthesisService,
+  VoiceSynthesisError,
+  DEFAULT_MAX_TEXT_CHARACTERS,
+} = require("../application/VoiceSynthesisService");
+const { buildVoiceRouter } = require("./voiceRoutes");
 const { socialRouter } = require("./socialRoutes");
 const { moderationRouter } = require("./moderationRoutes");
 const { buildAdminRouter } = require("./adminRoutes");
@@ -193,12 +203,76 @@ const aiLimiter = rateLimit({
   message: { error: "Muitas requisições — tente novamente em alguns minutos." },
 });
 
+// Voz neural custa por caractere. Além da cota diária POR CONTA, este freio
+// por IP segura rajadas de tokens inválidos e múltiplas contas atrás do mesmo
+// cliente. O status tem balde próprio para não bloquear uma geração legítima.
+const voiceSynthesisLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Muitas solicitações de voz — tente novamente em alguns minutos.", code: "voice_rate_limited" },
+});
+const voiceStatusLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Muitas consultas — tente novamente em alguns minutos." },
+});
+
 // Contador diário de chamadas de IA (tabela ai_usage, migração 006) — cada
 // chamada custa dinheiro real na Anthropic; sem contar, não dá pra saber se
 // o preço da assinatura cobre o uso (viabilidade) nem quando oferecer pacote
 // de tokens pra usuário pesado. Best-effort: falha de contagem NUNCA derruba
 // a chamada em si.
 const { db: usageDb } = require("../infrastructure/db");
+
+// ELEVENLABS_API_KEY existe SOMENTE no ambiente do backend. Os IDs públicos
+// são escolhidos pelo servidor (defaults auditados ou overrides de ambiente),
+// nunca pelo cliente. Sem chave, /status não anuncia voz e /synthesize fecha
+// em 503 — nenhuma voz do aparelho é usada como substituta silenciosa.
+let voiceService;
+try {
+  const voiceProvider = new ElevenLabsVoiceProvider();
+  const dataDir = process.env.DATA_DIR || path.join(__dirname, "..", "..", "data");
+  const voiceCache = new VoiceAudioCache({
+    directory: process.env.VOICE_CACHE_DIR || path.join(dataDir, "voice-cache"),
+    maxFileBytes: voiceProvider.maxAudioBytes,
+  });
+  voiceService = new VoiceSynthesisService({
+    provider: voiceProvider,
+    cache: voiceCache,
+    quota: new VoiceQuota({ db: usageDb }),
+  });
+} catch (error) {
+  console.error("[voice] inicialização desativada com segurança:", error && error.name);
+  voiceService = {
+    maxTextCharacters: DEFAULT_MAX_TEXT_CHARACTERS,
+    status: () => ({
+      available: false,
+      languages: [],
+      maxCharacters: DEFAULT_MAX_TEXT_CHARACTERS,
+      requiresLogin: true,
+      requiresVerifiedEmail: true,
+    }),
+    synthesize: async () => {
+      throw new VoiceSynthesisError("voice_unavailable", { retryable: true });
+    },
+  };
+}
+
+app.use(
+  "/api/voice",
+  buildVoiceRouter({
+    service: voiceService,
+    requireAuth,
+    requireVerifiedEmail,
+    synthesisLimiter: voiceSynthesisLimiter,
+    statusLimiter: voiceStatusLimiter,
+  })
+);
+
 const countAiUsageStmt = usageDb.prepare(
   `INSERT INTO ai_usage (day, endpoint, count) VALUES (?, ?, 1)
    ON CONFLICT(day, endpoint) DO UPDATE SET count = count + 1`
@@ -356,6 +430,8 @@ const publicReadLimiter = rateLimit({
 //                     provar que a conta morreu de fato —, entao apagar aqui virava
 //                     reset infinito do paywall por curl. Sobra um uuid opaco de
 //                     conta inexistente, sem dado pessoal.
+//   voice_usage_daily → contagem diária ligada ao user_id. Apagada na mesma
+//                       transação; não é recibo fiscal nem trava vitalícia.
 //   social_*        → perfil, posts, comentários, curtidas, follows e bloqueios
 //                     apagados na mesma transação da desvinculação. Denúncias
 //                     ficam sem ids/conteúdo da conta apagada; denúncia válida

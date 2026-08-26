@@ -8,6 +8,7 @@ import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '../lib/supportContact';
+import { voicePrivacyCopy } from '../lib/voiceCopy';
 
 function PrivacyRow({ icon, text, last }) {
   return (
@@ -43,6 +44,9 @@ function PrivacyRow({ icon, text, last }) {
 //     de ai_usage (endpoint + contagem). Por isso o texto promete só o que dá
 //     pra provar aqui ("o NOSSO servidor não guarda") e não afirma nada sobre o
 //     que a Anthropic mantém, que não está sob o nosso controle.
+//   · Voz neural: ao tocar em Ouvir, o texto da leitura vai ao nosso backend e
+//     à ElevenLabs. A conta precisa estar confirmada; guardamos a contagem
+//     diária e um cache temporário do MP3 identificado por hash por até 24h.
 //   · Denúncia e bloqueio (moderationRoutes.js, migrações 016/018): a denúncia
 //     grava o motivo, o conteúdo necessário e os ids enquanto a conta existe.
 //     SocialAccountCleanup apaga os bloqueios e anonimiza a denúncia em relação
@@ -53,7 +57,8 @@ function PrivacyRow({ icon, text, last }) {
 export default function PrivacyScreen() {
   const navigation = useNavigation();
   const { clearAll } = useCouple();
-  const { t } = useLanguage();
+  const { t, lang = 'pt' } = useLanguage();
+  const voicePrivacy = voicePrivacyCopy(lang);
 
   // O e-mail no corpo do texto é pintado de cor de link mas não é tocável —
   // este botão abre o app de e-mail de verdade (mesma correção do
@@ -131,6 +136,8 @@ export default function PrivacyScreen() {
             <Text style={styles.paragraph}>{t('privacy.use.exceptionCity')}</Text>
             <Text style={styles.paragraph}>{t('privacy.use.account')}</Text>
             <Text style={styles.paragraph}>{t('privacy.use.ai')}</Text>
+            <Text style={styles.paragraph}>{voicePrivacy.data}</Text>
+            <Text style={styles.paragraph}>{voicePrivacy.process}</Text>
             <Text style={styles.paragraph}>{t('privacy.use.social')}</Text>
             <Text style={styles.paragraph}>{t('privacy.use.report')}</Text>
             <Text style={[styles.paragraph, { marginBottom: 0 }]}>{t('privacy.use.push')}</Text>

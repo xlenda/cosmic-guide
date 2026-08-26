@@ -32,7 +32,6 @@ import WaveDivider from '../components/WaveDivider';
 // do teste acima não se movem), só o fundo embaixo deles muda. Tons e
 // porquês no cabeçalho de components/BandaSection.js.
 import BandaSection from '../components/BandaSection';
-import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import DailyMissionsCard from '../components/DailyMissionsCard';
 import OrbiGuide from '../components/OrbiGuide';
@@ -240,10 +239,9 @@ export default function HomeScreen() {
   const [journalCount, setJournalCount] = useState(null);
   const [orbiFocused, setOrbiFocused] = useState(false);
   const [alignmentFocused, setAlignmentFocused] = useState(false);
-  // A Home precisa nascer inteira. Quando o catálogo começa recolhido, as
-  // experiências parecem ter sumido — foi exatamente o que aconteceu em
-  // produção. O controle continua disponível para quem quiser recolher.
-  const [exploreOpen, setExploreOpen] = useState(true);
+  // O catálogo completo agora tem uma casa permanente própria (Explore).
+  // A Home mostra apenas a porta: nenhuma lista enorme monta na primeira
+  // pintura e nenhuma experiência foi removida.
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -857,52 +855,12 @@ export default function HomeScreen() {
   );
   const firstPathItem = pathItems.find((item) => item.key === firstPathKeys[0]) || null;
   const firstPathFeature = firstPathItem?.key === 'tarot' ? t('tab.tarot') : firstPathItem?.title;
-  const personalizedItems = firstPathKeys
-    .map((key) => pathItems.find((item) => item.key === key))
-    .filter(Boolean)
-    .slice(0, 3);
-  // Só simplifica a Home para quem realmente respondeu à nova pergunta.
-  // Perfis antigos não têm essa chave e continuam vendo o catálogo completo.
+  // A trilha dominante só aparece para quem realmente respondeu à pergunta.
+  // Perfis antigos continuam com a abertura editorial e encontram todas as
+  // experiências na porta permanente de Explore.
   const hasOnboardingChoice = !!(onboardingProfile || onboardingIntent);
   const showFirstPath = journalCount === 0 && hasOnboardingChoice && !!firstPathItem && !!intentDefinition;
   const showPersistentPath = !showFirstPath && hasOnboardingChoice && !!firstPathItem && !!intentDefinition;
-
-  // Separação visual pedida pelo Lenda (25/07/2026): desde que solo também
-  // assina (as 9 leituras individuais), fica confuso misturar no mesmo grid
-  // features que solo pode assinar direto com as 5 que exigem formar casal —
-  // duas seções com título/subtítulo próprios em vez de um grid só.
-  const COUPLE_SECTION_KEYS = [...COUPLE_ONLY, ...LOCKED_KEYS];
-  const individualCardItems = cardItems.filter((c) => !COUPLE_SECTION_KEYS.includes(c.key));
-  const coupleCardItems = cardItems.filter((c) => COUPLE_SECTION_KEYS.includes(c.key));
-
-  // SUBDIVISÃO DO GRID INDIVIDUAL — mesma jogada que já tinha sido feita entre
-  // individual e casal, agora dentro do individual.
-  //
-  // O grid foi de 12 pra 15 cards no mesmo bloco "Explore", sem subdivisão
-  // nenhuma: oito fileiras de dois, chapadas. E as posições novas caíram na
-  // metade de baixo — rituais em 10º e jornada em 11º de 15 —, justamente as
-  // duas features de HÁBITO, as que precisam ser descobertas pra que a linha de
-  // hoje um dia tenha o que mostrar. Quinze cards chapados é a definição do
-  // problema que o dono apontou.
-  //
-  // Três grupos, por NATUREZA do que se faz ali: Leituras (o que o app conta
-  // sobre você), Práticas (o que você faz com a mão) e Datas (o que o céu faz,
-  // com dia e hora). Quem não cai em Práticas nem Datas fica em Leituras — o
-  // grupo padrão —, então card novo nunca some do grid por esquecimento.
-  // Curiosidades: a leva de 31/07 menos o roteador — mitos, quiz e papel de
-  // parede são compartilhamento/curiosidade gratuitos, não leitura sobre a
-  // pessoa nem coisa que se "assine e use sem limite". Sem este grupo os
-  // quatro caíam todos em Leituras pelo grupo-padrão, inflando-o pra 13 cards
-  // — a escala menor do mesmo problema que a subdivisão em grupos resolveu.
-  const PRATICAS_KEYS = ['grounding', 'rituais', 'jornada'];
-  const DATAS_KEYS = ['lunarCalendar', 'calendario', 'zodiacbody', 'retrolua'];
-  const CURIOSIDADES_KEYS = ['mitos', 'quizcosmico', 'wallpaper'];
-  const praticasCardItems = individualCardItems.filter((c) => PRATICAS_KEYS.includes(c.key));
-  const datasCardItems = individualCardItems.filter((c) => DATAS_KEYS.includes(c.key));
-  const curiosidadesCardItems = individualCardItems.filter((c) => CURIOSIDADES_KEYS.includes(c.key));
-  const leiturasCardItems = individualCardItems.filter(
-    (c) => !PRATICAS_KEYS.includes(c.key) && !DATAS_KEYS.includes(c.key) && !CURIOSIDADES_KEYS.includes(c.key)
-  );
 
   // Determinístico por data (lib/dailyThought.js) — mesmo pensamento-base pra
   // todo mundo que abrir o app hoje, muda sozinho à meia-noite. Desde
@@ -1135,24 +1093,6 @@ export default function HomeScreen() {
               <Ionicons name="arrow-forward" size={18} color={colors.gold} />
             </Pressable>
 
-            {personalizedItems.length > 1 && (
-              <>
-                <Text style={styles.forYouNext}>{t('home.forYou.next')}</Text>
-                <View style={styles.forYouSecondaryRow}>
-                  {personalizedItems.slice(1).map((item) => (
-                    <Pressable
-                      key={item.key}
-                      style={({ pressed }) => [styles.forYouSecondary, pressed && styles.firstPathPressed]}
-                      onPress={item.onPress}
-                      accessibilityRole="button"
-                    >
-                      <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
-                      <Text style={styles.forYouSecondaryText} numberOfLines={2}>{item.title}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </>
-            )}
           </View>
         )}
 
@@ -1200,40 +1140,27 @@ export default function HomeScreen() {
             </LinearGradient>
           </Pressable>
 
-        {/* Órbi sai do catálogo genérico: é continuidade do caminho, não mais
-            uma leitura concorrendo com outras dezenas de cards. No primeiro
-            acesso o passo dominante continua sozinho; depois, esta porta
-            contextual aparece sem obrigar a abrir “Explore”. */}
-        {!showFirstPath && (
+        {/* A biblioteca inteira mora numa rota própria. Esta é a segunda
+            ação da abertura: curta, permanente e sem montar dezenas de cards
+            dentro da Home. */}
+        <View style={styles.exploreGate}>
           <Pressable
-            testID="home-orbi-chat"
-            style={({ pressed }) => [
-              styles.orbiContinuity,
-              orbiFocused && styles.keyboardFocus,
-              pressed && styles.firstPathPressed,
-            ]}
-            onPress={() => {
-              navigation.getParent()?.navigate(ROUTES.CHAT_TAB);
-            }}
-            onFocus={() => setOrbiFocused(true)}
-            onBlur={() => setOrbiFocused(false)}
+            testID="home-explore-toggle"
+            style={({ pressed }) => [styles.exploreToggle, pressed && styles.firstPathPressed]}
+            onPress={() => navigation.navigate(ROUTES.EXPLORE)}
             accessibilityRole="button"
-            accessibilityLabel={`${t('orbi.home.title')}. ${t('orbi.home.cta')}`}
+            accessibilityLabel={`${t('home.explore.open')}. ${t('home.explore.hint')}`}
           >
-            <View style={styles.orbiContinuityVisual}>
-              <OrbiGuide size={78} pose="pointing" testID="home-orbi-pointing" />
+            <View style={styles.exploreToggleIcon}>
+              <Ionicons name="compass-outline" size={20} color={colors.gold} />
             </View>
-            <View style={styles.orbiContinuityCopy}>
-              <Text style={styles.orbiContinuityEyebrow}>{t('orbi.home.eyebrow')}</Text>
-              <Text style={styles.orbiContinuityTitle}>{t('orbi.home.title')}</Text>
-              <Text style={styles.orbiContinuityBody}>{t('orbi.home.body')}</Text>
-              <View style={styles.orbiContinuityCta}>
-                <Text style={styles.orbiContinuityCtaText}>{t('orbi.home.cta')}</Text>
-                <Ionicons name="arrow-forward" size={16} color={colors.gold} />
-              </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.exploreToggleTitle}>{t('home.explore.open')}</Text>
+              <Text style={styles.exploreToggleHint}>{t('home.explore.hint')}</Text>
             </View>
+            <Ionicons name="arrow-forward" size={18} color={colors.textMuted} />
           </Pressable>
-        )}
+        </View>
 
         {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
             explícito: não ficar escondido junto dos outros cards do grid). */}
@@ -1430,6 +1357,40 @@ export default function HomeScreen() {
             <Text style={styles.todayLineCta}>{todayLineCta}</Text>
             <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
           </TouchableOpacity>
+        )}
+
+        {/* Órbi continua acessível, mas depois do bloco de hoje. Assim ele não
+            disputa a primeira dobra com o caminho dominante, o alinhamento e
+            a porta de Explore. */}
+        {!showFirstPath && (
+          <Pressable
+            testID="home-orbi-chat"
+            style={({ pressed }) => [
+              styles.orbiContinuity,
+              orbiFocused && styles.keyboardFocus,
+              pressed && styles.firstPathPressed,
+            ]}
+            onPress={() => {
+              navigation.getParent()?.navigate(ROUTES.CHAT_TAB);
+            }}
+            onFocus={() => setOrbiFocused(true)}
+            onBlur={() => setOrbiFocused(false)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('orbi.home.title')}. ${t('orbi.home.cta')}`}
+          >
+            <View style={styles.orbiContinuityVisual}>
+              <OrbiGuide size={78} pose="pointing" testID="home-orbi-pointing" />
+            </View>
+            <View style={styles.orbiContinuityCopy}>
+              <Text style={styles.orbiContinuityEyebrow}>{t('orbi.home.eyebrow')}</Text>
+              <Text style={styles.orbiContinuityTitle}>{t('orbi.home.title')}</Text>
+              <Text style={styles.orbiContinuityBody}>{t('orbi.home.body')}</Text>
+              <View style={styles.orbiContinuityCta}>
+                <Text style={styles.orbiContinuityCtaText}>{t('orbi.home.cta')}</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.gold} />
+              </View>
+            </View>
+          </Pressable>
         )}
 
         {/* Som do céu — logo DEPOIS do Pensamento do dia e das Missões, de
@@ -1769,97 +1730,9 @@ export default function HomeScreen() {
 
         </BandaSection>
 
-        {/* ZONA DO EXPLORE [AUTO-DECISION: onda 3 REMOVIDA] — o catálogo
-            inteiro (Explore/Práticas/Datas/Curiosidades/Casal) vira UMA faixa
-            'claro': os subgrupos são capítulos do mesmo assunto e dividem o
-            mesmo chão, pelo mesmo motivo que nunca houve onda entre eles —
-            quatro faixas em sequência virariam papel de parede. A borda de
-            cima da zona é o corte que a onda 3 fazia. O título logo abaixo
-            mantém o marginTop 6 (sectionTitleAposOnda): o paddingTop da zona
-            é o respiro, e somar os 28 de sempre viraria buraco. */}
-        <View style={styles.exploreGate}>
-          <Pressable
-            testID="home-explore-toggle"
-            style={({ pressed }) => [styles.exploreToggle, pressed && styles.firstPathPressed]}
-            onPress={() => setExploreOpen((open) => !open)}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: exploreOpen }}
-          >
-            <View style={styles.exploreToggleIcon}>
-              <Ionicons name="compass-outline" size={20} color={colors.gold} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.exploreToggleTitle}>{t(exploreOpen ? 'home.explore.close' : 'home.explore.open')}</Text>
-              {!exploreOpen && <Text style={styles.exploreToggleHint}>{t('home.explore.hint')}</Text>}
-            </View>
-            <Ionicons name={exploreOpen ? 'chevron-up' : 'chevron-down'} size={19} color={colors.textMuted} />
-          </Pressable>
-        </View>
-
-        {exploreOpen && <BandaSection tom="claro">
-
-          {/* Feature grid — individual (solo ou casal, assina direto), em quatro
-              grupos: Leituras, Práticas, Datas e Curiosidades. Ver o porquê
-              acima, onde as listas são montadas. */}
-          <Text style={[styles.sectionTitle, styles.sectionTitleAposOnda]}>{t('home.sectionExplore')}</Text>
-          <Text style={styles.sectionSubtitle}>{t('home.sectionExploreSubtitle')}</Text>
-          {/* As linhas do CardGrid trazem marginHorizontal 16 interno; o wrapper
-              soma 4 pro gutter 20 da reforma (mesma jogada do NotifPromptCard). */}
-          <View style={styles.gutterWrap}>
-            <CardGrid items={leiturasCardItems} />
-          </View>
-
-          {praticasCardItems.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>{t('home.sectionPraticas')}</Text>
-              <Text style={styles.sectionSubtitle}>{t('home.sectionPraticasSubtitle')}</Text>
-              <View style={styles.gutterWrap}>
-                <CardGrid items={praticasCardItems} />
-              </View>
-            </>
-          )}
-
-          {datasCardItems.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>{t('home.sectionDatas')}</Text>
-              <Text style={styles.sectionSubtitle}>{t('home.sectionDatasSubtitle')}</Text>
-              <View style={styles.gutterWrap}>
-                <CardGrid items={datasCardItems} />
-              </View>
-            </>
-          )}
-
-          {curiosidadesCardItems.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>{t('home.sectionCuriosidades')}</Text>
-              <Text style={styles.sectionSubtitle}>{t('home.sectionCuriosidadesSubtitle')}</Text>
-              <View style={styles.gutterWrap}>
-                <CardGrid items={curiosidadesCardItems} />
-              </View>
-            </>
-          )}
-
-          {/* Feature grid — exclusivo de casal (só desbloqueia formando casal) */}
-          {coupleCardItems.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>{t('home.sectionCouple')}</Text>
-              <Text style={styles.sectionSubtitle}>{t('home.sectionCoupleSubtitle')}</Text>
-              <View style={styles.gutterWrap}>
-                <CardGrid items={coupleCardItems} />
-              </View>
-            </>
-          )}
-
-        </BandaSection>}
-
-        {/* ONDA 4 [AUTO-DECISION: MANTIDA — a única das quatro] — é a
-            transição pra FORA da última zona, de volta pro céu escuro onde o
-            EPÍLOGO mora, então aqui não há dupla-borda: a borda da zona corta
-            o catálogo e a colina abre o cenário do fim. E ela tem função que
-            nenhuma borda de zona cobre — com o de-box logo abaixo, o texto do
-            Evento cósmico flutua sobre a própria colina, a imagem mais
-            literal de "conteúdo no cenário" que a Home tem. Mesma compensação
-            de sempre no título (sectionTitleAposOnda). */}
+        {/* A única onda preservada separa o conteúdo pessoal do epílogo sobre
+            o céu de hoje. O catálogo completo saiu deste rolo e vive na rota
+            Explore, acessível pela porta permanente no topo. */}
         <WaveDivider />
 
         {/* Cosmic event */}
@@ -1933,13 +1806,6 @@ const styles = StyleSheet.create({
   forYouCopy: { flex: 1 },
   forYouTitle: { color: colors.text, fontSize: 16, lineHeight: 21, fontWeight: '800' },
   forYouBody: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 3 },
-  forYouNext: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginTop: 13, marginBottom: 8 },
-  forYouSecondaryRow: { flexDirection: 'row', gap: 9 },
-  forYouSecondary: {
-    flex: 1, minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: colors.surfaceElevated, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10,
-  },
-  forYouSecondaryText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   skyAlignmentCard: {
     marginHorizontal: 20,
     marginTop: 4,

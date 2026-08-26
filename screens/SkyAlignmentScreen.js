@@ -25,7 +25,13 @@ import { getAnyBirthData } from '../lib/birthData';
 import { buildSkyAlignment } from '../lib/skyAlignment';
 import CosmicScene from '../components/CosmicScene';
 import GradientHeader from '../components/GradientHeader';
+import PremiumCosmicCard from '../components/PremiumCosmicCard';
 import SkyAlignmentStage from '../components/SkyAlignmentStage';
+import {
+  buildCosmicShareCardContent,
+  cosmicShareCardPack,
+  sharePremiumCosmicCard,
+} from '../lib/cosmicShareCard';
 
 const LOCALES = { pt: 'pt-BR', es: 'es-ES', en: 'en-US' };
 
@@ -190,9 +196,12 @@ export default function SkyAlignmentScreen() {
   const [snapshot, setSnapshot] = useState({ loading: true, result: null });
   const [revealed, setRevealed] = useState(false);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const [shareStatus, setShareStatus] = useState('idle');
   const [retryKey, setRetryKey] = useState(0);
   const appStateRef = useRef(AppState.currentState);
   const calculatedMinuteRef = useRef(null);
+  const shareCardRef = useRef(null);
+  const sharePack = useMemo(() => cosmicShareCardPack(lang), [lang]);
 
   useFocusEffect(
     useCallback(() => {
@@ -200,6 +209,7 @@ export default function SkyAlignmentScreen() {
       setSnapshot({ loading: true, result: null });
       setRevealed(false);
       setSourcesExpanded(false);
+      setShareStatus('idle');
 
       getAnyBirthData().then((birth) => {
         if (!active) return;
@@ -368,6 +378,86 @@ export default function SkyAlignmentScreen() {
           label: t('alignment.action.map'),
           route: ROUTES.BIRTH_CHART,
         };
+
+  const shareCardContent = useMemo(() => {
+    if (!hasSky) return null;
+
+    if (result?.status === 'aspect' && encounter) {
+      const title = encounter.content?.callout
+        || `${encounter.transitPlanetLabel} · ${encounter.aspectLabel} · ${encounter.natalPlanetLabel}`;
+      const detail = sharePack.aspectDetail({
+        transit: encounter.transitPlanetLabel,
+        aspect: encounter.aspectLabel,
+        natal: encounter.natalPlanetLabel,
+      });
+      return buildCosmicShareCardContent({
+        brand: sharePack.brand,
+        edition: sharePack.edition,
+        eyebrow: sharePack.alignmentEyebrow,
+        glyph: stageEncounter?.glyph,
+        title,
+        subtitle: encounter.content?.shortLine,
+        detail,
+        meta: sharePack.aspectMeta({
+          phase: encounter.phaseLabel,
+          orb: degreeLabel(encounter.orbDegrees, lang),
+        }),
+        footer: sharePack.footer,
+        shareText: sharePack.shareText({ title, detail }),
+        fileName: sharePack.fileName,
+      });
+    }
+
+    if (result?.status === 'next_event' && result.fallbackEvent) {
+      const title = result.fallbackEvent.title;
+      const detail = sharePack.nextEventDetail({ date: nextEventDate });
+      return buildCosmicShareCardContent({
+        brand: sharePack.brand,
+        edition: sharePack.edition,
+        eyebrow: sharePack.alignmentEyebrow,
+        glyph: stageEncounter?.glyph,
+        title,
+        subtitle: t('alignment.noAspect.body'),
+        detail,
+        meta: sharePack.nextEventMeta,
+        footer: sharePack.footer,
+        shareText: sharePack.shareText({ title, detail }),
+        fileName: sharePack.fileName,
+      });
+    }
+
+    return null;
+  }, [encounter, hasSky, lang, nextEventDate, result, sharePack, stageEncounter?.glyph, t]);
+
+  const handleShareCard = useCallback(async () => {
+    if (!shareCardContent || shareStatus === 'preparing') return;
+    setShareStatus('preparing');
+    try {
+      const outcome = await sharePremiumCosmicCard({
+        cardRef: shareCardRef,
+        content: shareCardContent,
+        dialogTitle: sharePack.dialogTitle,
+      });
+      if (outcome?.status === 'cancelled') {
+        setShareStatus('idle');
+      } else if (outcome?.status === 'shared' || outcome?.status === 'downloaded') {
+        setShareStatus(outcome.status);
+      } else {
+        setShareStatus('unavailable');
+      }
+    } catch {
+      setShareStatus('unavailable');
+    }
+  }, [shareCardContent, sharePack.dialogTitle, shareStatus]);
+
+  const shareFeedback = shareStatus === 'shared'
+    ? sharePack.shared
+    : shareStatus === 'downloaded'
+      ? sharePack.downloaded
+      : shareStatus === 'unavailable'
+        ? sharePack.unavailable
+        : '';
+  const shareBusy = shareStatus === 'preparing';
 
   return (
     <View style={styles.root}>
@@ -540,6 +630,58 @@ export default function SkyAlignmentScreen() {
                   testID="sky-alignment-receipt-limit"
                 />
 
+                {shareCardContent ? (
+                  <View style={styles.shareSection} testID="sky-alignment-share-card-section">
+                    <View style={styles.shareHeader}>
+                      <View style={styles.shareSeal}>
+                        <Ionicons name="image-outline" size={18} color={colors.gold} />
+                      </View>
+                      <View style={styles.shareHeaderCopy}>
+                        <Text style={styles.shareTitle}>{sharePack.shareTitle}</Text>
+                        <Text style={styles.shareBody}>{sharePack.shareBody}</Text>
+                      </View>
+                    </View>
+
+                    <PremiumCosmicCard
+                      ref={shareCardRef}
+                      content={shareCardContent}
+                      style={styles.sharePreview}
+                      testID="sky-alignment-share-card-preview"
+                    />
+
+                    <Pressable
+                      accessibilityHint={sharePack.shareA11yHint}
+                      accessibilityLabel={sharePack.shareButton}
+                      accessibilityRole="button"
+                      accessibilityState={{ busy: shareBusy, disabled: shareBusy }}
+                      disabled={shareBusy}
+                      onPress={handleShareCard}
+                      style={({ pressed }) => [
+                        styles.shareButton,
+                        pressed ? styles.pressed : null,
+                        shareBusy ? styles.shareButtonDisabled : null,
+                      ]}
+                      testID="sky-alignment-share-card-button"
+                    >
+                      {shareBusy ? (
+                        <ActivityIndicator color="#21151A" size="small" />
+                      ) : (
+                        <Ionicons name="share-social-outline" size={18} color="#21151A" />
+                      )}
+                      <Text style={styles.shareButtonText}>
+                        {shareBusy ? sharePack.preparing : sharePack.shareButton}
+                      </Text>
+                    </Pressable>
+
+                    <Text style={styles.sharePrivacy}>{sharePack.privacyNote}</Text>
+                    {shareFeedback ? (
+                      <Text accessibilityLiveRegion="polite" style={styles.shareFeedback}>
+                        {shareFeedback}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
+
                 <PrimaryAction
                   icon={nextAction.icon}
                   label={nextAction.label}
@@ -667,6 +809,44 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.025)',
   },
+  shareSection: {
+    gap: 14,
+    paddingTop: 20,
+    marginTop: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(227,184,95,0.28)',
+  },
+  shareHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  shareSeal: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(227,184,95,0.09)',
+    borderWidth: 1,
+    borderColor: 'rgba(227,184,95,0.3)',
+  },
+  shareHeaderCopy: { flex: 1, gap: 2 },
+  shareTitle: { color: colors.text, fontFamily: displayFont, fontSize: 18, lineHeight: 23, fontWeight: '700' },
+  shareBody: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  sharePreview: { width: '72%', maxWidth: 260, alignSelf: 'center' },
+  shareButton: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    paddingHorizontal: 18,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    backgroundColor: colors.gold,
+  },
+  shareButtonDisabled: { opacity: 0.7 },
+  shareButtonText: { color: '#21151A', fontSize: 14, lineHeight: 19, fontWeight: '900' },
+  sharePrivacy: { color: colors.textMuted, fontSize: 11, lineHeight: 17, textAlign: 'center' },
+  shareFeedback: { color: '#EBD49E', fontSize: 12, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
   actionShell: { width: '100%', borderRadius: 24, overflow: 'hidden', marginTop: 18 },
   action: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 18 },
   actionText: { flex: 1, color: '#21151A', fontSize: 14, lineHeight: 19, fontWeight: '900', textAlign: 'center' },

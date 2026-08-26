@@ -53,15 +53,15 @@ test('a entrada é editorial, sempre visível e não recolhe a Home', () => {
   );
   assert.match(HOME, /testID="home-sky-alignment"/);
   assert.match(HOME, /navigation\.navigate\(ROUTES\.SKY_ALIGNMENT\)/);
-  assert.match(HOME, /const \[exploreOpen, setExploreOpen\] = useState\(true\)/);
+  assert.doesNotMatch(HOME, /exploreOpen|setExploreOpen/);
 
   const persistentPath = HOME.indexOf('{showPersistentPath && (');
   const alignment = HOME.indexOf('testID="home-sky-alignment"');
   const orbi = HOME.indexOf('testID="home-orbi-chat"');
   const explore = HOME.indexOf('testID="home-explore-toggle"');
   assert.ok(persistentPath >= 0 && persistentPath < alignment, 'a trilha personalizada deve vir antes');
-  assert.ok(alignment < orbi, 'o alinhamento deve entrar antes da continuidade do Órbi');
-  assert.ok(alignment < explore, 'o catálogo segue inteiro depois da nova entrada');
+  assert.ok(alignment < explore, 'a entrada de alinhamento deve vir antes de Explorar');
+  assert.ok(explore < orbi, 'Órbi deve ficar fora da primeira dobra, depois da porta de Explorar');
 });
 
 test('a porta do alinhamento usa somente texto traduzido e as quatro copies existem em PT/ES/EN', () => {

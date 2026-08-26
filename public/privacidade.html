@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="robots" content="index, follow" />
+  <meta
+    name="description"
+    content="Política de Privacidade do Cosmic Guide: dados no aparelho, serviços utilizados, retenção, direitos e exclusão."
+  />
+  <link rel="canonical" href="https://cosmicguide.cloud/cosmic-guide/privacidade" />
+  <link rel="alternate" hreflang="pt-BR" href="https://cosmicguide.cloud/cosmic-guide/privacidade#pt" />
+  <link rel="alternate" hreflang="es" href="https://cosmicguide.cloud/cosmic-guide/privacidade#es" />
+  <link rel="alternate" hreflang="en" href="https://cosmicguide.cloud/cosmic-guide/privacidade#en" />
+  <title>Política de Privacidade — Cosmic Guide</title>
+  <!--
+    Documento público independente do app: não carrega bundle, não depende de
+    sessão, localStorage ou JavaScript. scripts/deploy-vercel.sh reescreve a
+    URL canônica /cosmic-guide/privacidade para este arquivo antes do fallback
+    da SPA. Alterar o arquivo gerado em deploy-vercel/ não sobrevive ao deploy.
+
+    O texto abaixo foi conferido em 26/08/2026 contra PrivacyScreen.js,
+    lib/i18n.js, lib/funnel.js, lib/webPush.js, lib/socialClient.js,
+    lib/supabaseClient.js, lib/aiClient.js, App.js e o fluxo de exclusão.
+    Texto legal que promete mais que o código é tratado como defeito.
+  -->
+  <style>
+    :root {
+      --ink: #f7f2ff;
+      --muted: #c8bddf;
+      --quiet: #968aaa;
+      --night: #0b0718;
+      --night-soft: #130d26;
+      --plum: #211638;
+      --line: rgba(228, 208, 255, 0.15);
+      --gold: #e8bd72;
+      --gold-soft: rgba(232, 189, 114, 0.11);
+      --violet: #b995e8;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(900px 520px at 50% -180px, rgba(104, 66, 158, 0.38), transparent 74%),
+        var(--night);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--gold); text-underline-offset: 3px; }
+    a:hover { color: #f7d99d; }
+    a:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; border-radius: 4px; }
+
+    .skip-link {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 5;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--ink);
+      color: var(--night);
+      transform: translateY(-150%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .shell { width: min(100% - 32px, 820px); margin: 0 auto; }
+
+    header { padding: 64px 0 34px; text-align: center; }
+
+    .brand {
+      margin: 0 0 28px;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .seal {
+      display: grid;
+      width: 54px;
+      height: 54px;
+      margin: 0 auto 20px;
+      place-items: center;
+      border: 1px solid rgba(232, 189, 114, 0.45);
+      border-radius: 50%;
+      background: var(--gold-soft);
+      color: var(--gold);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 25px;
+    }
+
+    h1, h2, h3 { text-wrap: balance; }
+
+    h1 {
+      max-width: 680px;
+      margin: 0 auto;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(35px, 7vw, 58px);
+      font-weight: 500;
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+    }
+
+    .lede {
+      max-width: 630px;
+      margin: 20px auto 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .updated { margin: 12px 0 0; color: var(--quiet); font-size: 13px; }
+
+    .language-nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 9px;
+      margin: 30px 0 0;
+    }
+
+    .language-nav a {
+      min-width: 96px;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.025);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .language-nav a:first-child { border-color: rgba(232, 189, 114, 0.45); color: var(--gold); }
+
+    main { padding-bottom: 72px; }
+
+    .policy {
+      scroll-margin-top: 18px;
+      padding: 32px clamp(20px, 5vw, 46px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(33, 22, 56, 0.92), rgba(19, 13, 38, 0.96));
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.22);
+    }
+
+    .policy + .policy { margin-top: 24px; }
+
+    .language-label {
+      margin: 0 0 8px;
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(27px, 5vw, 38px);
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    h3 { margin: 34px 0 9px; font-size: 18px; line-height: 1.35; }
+
+    p { margin: 0 0 14px; color: var(--muted); }
+    strong { color: var(--ink); }
+
+    ul { margin: 10px 0 18px; padding-left: 22px; }
+    li { margin: 7px 0; color: var(--muted); }
+    li::marker { color: var(--gold); }
+
+    .summary {
+      margin: 22px 0 28px;
+      padding: 18px 20px;
+      border-left: 3px solid var(--gold);
+      border-radius: 4px 14px 14px 4px;
+      background: var(--gold-soft);
+    }
+
+    .summary p:last-child, .notice p:last-child { margin-bottom: 0; }
+
+    .notice {
+      margin: 18px 0;
+      padding: 17px 19px;
+      border: 1px solid rgba(185, 149, 232, 0.24);
+      border-radius: 14px;
+      background: rgba(185, 149, 232, 0.07);
+    }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 1px solid rgba(232, 189, 114, 0.42);
+      border-radius: 12px;
+      background: var(--gold-soft);
+      color: var(--gold);
+      font-size: 14px;
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .button.secondary { border-color: var(--line); background: transparent; color: var(--muted); }
+
+    footer { padding: 28px 0 48px; text-align: center; }
+    footer p { color: var(--quiet); font-size: 13px; }
+
+    @media (max-width: 520px) {
+      header { padding-top: 46px; }
+      .shell { width: min(100% - 22px, 820px); }
+      .policy { border-radius: 20px; }
+      .actions { flex-direction: column; }
+      .button { justify-content: center; width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      .skip-link, .language-nav, .actions { display: none; }
+      .shell { width: 100%; }
+      header { padding-top: 0; }
+      .brand, .seal, .language-label, a { color: #47345f; }
+      .policy { break-before: page; border: 0; box-shadow: none; background: #fff; }
+      .policy:first-child { break-before: auto; }
+      p, li, .lede, .updated { color: #333; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#pt">Ir para a política</a>
+
+  <header class="shell">
+    <p class="brand">Cosmic Guide</p>
+    <div class="seal" aria-hidden="true">☾</div>
+    <h1>Política de Privacidade</h1>
+    <p class="lede">
+      O que fica no seu aparelho, o que precisa sair dele para cada função e
+      como você pode acessar ou excluir seus dados.
+    </p>
+    <p class="updated">Atualizada em 26 de agosto de 2026</p>
+    <nav class="language-nav" aria-label="Escolher idioma">
+      <a href="#pt" lang="pt-BR">Português</a>
+      <a href="#es" lang="es">Español</a>
+      <a href="#en" lang="en">English</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <article class="policy" id="pt" lang="pt-BR" aria-labelledby="titulo-pt">
+      <p class="language-label">Português</p>
+      <h2 id="titulo-pt">Como o Cosmic Guide trata seus dados</h2>
+      <p>
+        Esta política se aplica ao app Cosmic Guide, à versão web em
+        <strong>cosmicguide.cloud</strong> e à API em <strong>api.cosmicguide.cloud</strong>.
+        O responsável pelo tratamento descrito aqui é o Cosmic Guide.
+      </p>
+
+      <div class="summary">
+        <p>
+          <strong>Em resumo:</strong> os dados natais, o Diário e boa parte da
+          personalização ficam no aparelho. Conta, pagamentos, Comunidade,
+          notificações, medição de uso e recursos de IA precisam usar servidores
+          nas situações explicadas abaixo. O Cosmic Guide não vende dados pessoais.
+        </p>
+      </div>
+
+      <h3>1. O que fica no aparelho</h3>
+      <p>Conforme as funções que você usa, o app pode guardar localmente:</p>
+      <ul>
+        <li>nomes, datas e horários de nascimento, cidade e signos;</li>
+        <li>tema, situação e objetivo escolhidos para o primeiro caminho;</li>
+        <li>leituras salvas, entradas do Diário Cósmico e transcrições de reflexões;</li>
+        <li>histórico da conversa com Órbi, inclusive histórico antigo importado;</li>
+        <li>preferências, sequência de uso e progresso no app.</li>
+      </ul>
+      <p>
+        Esses dados permanecem no armazenamento do app ou do navegador até você
+        apagá-los, limpar os dados do app/navegador ou desinstalar o app. O Diário
+        tem exclusão própria: apagar a conta não apaga automaticamente suas entradas
+        locais.
+      </p>
+
+      <h3>2. Quando algum dado sai do aparelho</h3>
+      <ul>
+        <li>
+          <strong>Conta.</strong> E-mail e senha são enviados ao Supabase, que
+          mantém o login; a senha não fica visível para o Cosmic Guide. Se você
+          escolher Google, o Google confirma sua identidade e envia ao Supabase
+          o nome e o e-mail da conta.
+        </li>
+        <li>
+          <strong>Busca da cidade de nascimento.</strong> O texto pesquisado, a
+          data e a hora de nascimento informadas passam pelo nosso servidor para
+          encontrar coordenadas e fuso. A busca não é anexada ao seu perfil; logs
+          técnicos de acesso podem existir por um período operacional.
+        </li>
+        <li>
+          <strong>Assinatura.</strong> Na compra pela web, seu e-mail, o plano e,
+          no modo casal, os dois nomes passam pelo nosso servidor e pela Hotmart,
+          que processa o pagamento.
+        </li>
+        <li>
+          <strong>Leituras de IA.</strong> A foto ou o texto enviado em Palma,
+          Rosto, Pé, Pintas, Café, Sonhos, Órbi, Insight da Semana e “Lapidar com
+          IA” passa pelo nosso servidor e segue para a Anthropic, que gera a
+          resposta. Nosso servidor não grava o conteúdo da chamada; mantém a
+          contagem diária de uso. O tratamento feito pela Anthropic segue a
+          política dela.
+        </li>
+        <li>
+          <strong>Comunidade.</strong> Nome de exibição, @usuário, emoji,
+          publicações e comentários ficam no nosso servidor e podem ser vistos
+          por outras pessoas no app. Curtidas, relações de seguir e bloqueios
+          também ficam no servidor para a Comunidade funcionar.
+        </li>
+        <li>
+          <strong>Denúncias.</strong> Motivo, cópia do conteúdo denunciado e os
+          identificadores necessários para análise ficam no servidor. Uma
+          denúncia de resposta de IA pode ser enviada sem conta.
+        </li>
+        <li>
+          <strong>Lembrete diário na web.</strong> Se você ativar, guardamos o
+          endereço de notificação do navegador, signo, sequência e a data — nunca
+          o texto — do último registro no Diário. Desativar remove a inscrição.
+        </li>
+      </ul>
+
+      <!-- VOICE-PROCESSING-START: manter alinhado ao endpoint e à retenção reais de voz. -->
+      <div class="notice" id="voz-atual-pt">
+        <p>
+          <strong>Reflexão ditada hoje.</strong> O reconhecimento de fala é
+          oferecido pelo navegador ou sistema do aparelho, que pode processar o
+          áudio conforme as próprias regras. O Cosmic Guide salva localmente o
+          texto transcrito. Esse texto só passa pelo nosso servidor e pela
+          Anthropic se você escolher “Lapidar com IA”; o app atual não envia o
+          arquivo de áudio ao nosso servidor.
+        </p>
+        <p>
+          <strong>Ouvir uma leitura.</strong> Quando essa opção estiver disponível
+          e você tocar em “Ouvir”, o texto da leitura passa pelo nosso servidor e
+          é enviado à ElevenLabs, que gera o áudio conforme a política dela. O
+          recurso exige uma conta verificada. Para controlar o uso e evitar gerar
+          de novo o mesmo áudio, nosso servidor mantém a contagem diária e pode
+          guardar o áudio em cache, identificado por um hash, por até 24 horas.
+        </p>
+      </div>
+      <!-- VOICE-PROCESSING-END -->
+
+      <h3>3. Medição de uso e infraestrutura web</h3>
+      <p>
+        Nosso funil próprio registra passos como abrir o app, ver uma leitura ou
+        chegar aos planos, um código aleatório do aparelho e o país deduzido do
+        endereço de internet. Não registra nomes, datas de nascimento, leituras,
+        Diário ou conversas; o endereço de internet não é salvo nesse funil. Esse
+        histórico é apagado automaticamente depois de 90 dias.
+      </p>
+      <p>
+        Na versão web, a Vercel hospeda as páginas e o Vercel Analytics mede
+        visitas. Vercel e outros provedores de infraestrutura podem tratar dados
+        técnicos de rede necessários para entregar, proteger e medir o serviço,
+        conforme suas próprias políticas.
+      </p>
+
+      <h3>4. Com quem os dados são compartilhados</h3>
+      <p>Somente quando a função correspondente é usada:</p>
+      <ul>
+        <li><strong>Anthropic:</strong> gera as leituras de IA;</li>
+        <li><strong>ElevenLabs:</strong> transforma o texto da leitura em áudio quando você escolhe “Ouvir”;</li>
+        <li><strong>Hotmart:</strong> processa a assinatura comprada na web;</li>
+        <li><strong>Supabase:</strong> mantém a conta de login;</li>
+        <li><strong>Google:</strong> confirma a identidade quando você escolhe login Google;</li>
+        <li><strong>Vercel e infraestrutura técnica:</strong> hospedam, entregam e protegem a versão web.</li>
+      </ul>
+      <p>O Cosmic Guide não vende dados pessoais nem publica automaticamente Diário, perguntas privadas, dados natais ou contexto de casal.</p>
+
+      <h3>5. Por quanto tempo guardamos</h3>
+      <ul>
+        <li>dados locais permanecem até serem apagados no aparelho;</li>
+        <li>conta e dados identificáveis da Comunidade permanecem até exclusão pela pessoa ou moderação;</li>
+        <li>o histórico do funil próprio é apagado automaticamente depois de 90 dias;</li>
+        <li>a inscrição de notificação permanece até ser desativada ou os dados do aparelho serem limpos;</li>
+        <li>o áudio gerado para “Ouvir” pode ficar no cache do nosso servidor, identificado por hash, por até 24 horas;</li>
+        <li>denúncias necessárias à moderação podem permanecer sem prazo definido; após exclusão da conta, ficam anonimizadas em relação a ela;</li>
+        <li>recibos de pagamento podem ser mantidos pelo prazo necessário a obrigações fiscais, estornos e contestações, sem vínculo com a conta excluída;</li>
+        <li>a contagem antiabuso de leituras grátis pode permanecer ligada somente ao UUID opaco de uma conta já inexistente, sem e-mail ou perfil.</li>
+      </ul>
+
+      <h3>6. Seus direitos e suas escolhas</h3>
+      <p>
+        Você pode pedir confirmação do tratamento, acesso, correção e eliminação
+        de dados tratados com consentimento. Também pode não criar conta, não
+        entrar na Comunidade, não enviar conteúdo à IA e não ativar notificações.
+        Serviços essenciais a uma função deixam de funcionar se os dados exigidos
+        para ela não forem enviados.
+      </p>
+
+      <h3>7. Exclusão de dados e da conta</h3>
+      <p>
+        Em <strong>Perfil &gt; Privacidade</strong>, “Apagar os dados deste aparelho”
+        limpa os dados locais cobertos pelo botão e remove do servidor o histórico
+        anônimo desse aparelho e sua inscrição de notificação. Esse botão não
+        apaga o Diário nem a conta.
+      </p>
+      <p>
+        Em <strong>Perfil &gt; Deletar conta</strong>, o app remove o login, desfaz
+        o vínculo da assinatura e apaga perfil, publicações, comentários, curtidas,
+        relações de seguir e bloqueios ligados à conta. Denúncias necessárias podem
+        permanecer anonimizadas, além dos recibos e da contagem antiabuso descritos
+        acima. Excluir a conta não cancela uma cobrança ativa: cancele antes na
+        Hotmart ou no Google Play, conforme o local da compra.
+      </p>
+
+      <h3>8. Segurança, alterações e contato</h3>
+      <p>
+        Usamos conexões HTTPS e controles de acesso nas rotas autenticadas. Nenhum
+        sistema é totalmente isento de risco. Podemos atualizar esta política quando
+        funções ou fornecedores mudarem; a data no início indica a revisão vigente.
+      </p>
+      <p>
+        Para dúvidas ou para exercer seus direitos, use
+        <a href="mailto:contato@cosmicguide.cloud">contato@cosmicguide.cloud</a>.
+      </p>
+      <div class="actions">
+        <a class="button" href="/excluir-conta">Ver instruções de exclusão</a>
+        <a class="button secondary" href="/cosmic-guide/">Abrir o Cosmic Guide</a>
+      </div>
+    </article>
+
+    <article class="policy" id="es" lang="es" aria-labelledby="titulo-es">
+      <p class="language-label">Español</p>
+      <h2 id="titulo-es">Cómo trata tus datos Cosmic Guide</h2>
+      <p>
+        Esta política se aplica a la app Cosmic Guide, a la versión web en
+        <strong>cosmicguide.cloud</strong> y a la API en <strong>api.cosmicguide.cloud</strong>.
+        Cosmic Guide es el responsable del tratamiento descrito aquí.
+      </p>
+
+      <div class="summary">
+        <p>
+          <strong>En resumen:</strong> los datos natales, el Diario y gran parte de
+          la personalización quedan en el dispositivo. La cuenta, los pagos, la
+          Comunidad, las notificaciones, la medición y las funciones de IA usan
+          servidores en los casos explicados abajo. Cosmic Guide no vende datos personales.
+        </p>
+      </div>
+
+      <h3>1. Qué queda en el dispositivo</h3>
+      <p>Según las funciones que uses, la app puede guardar localmente:</p>
+      <ul>
+        <li>nombres, fechas y horas de nacimiento, ciudad y signos;</li>
+        <li>tema, situación y objetivo elegidos para el primer camino;</li>
+        <li>lecturas guardadas, entradas del Diario Cósmico y transcripciones de reflexiones;</li>
+        <li>historial de conversación con Órbi, incluido el historial anterior importado;</li>
+        <li>preferencias, racha y progreso en la app.</li>
+      </ul>
+      <p>
+        Quedan en el almacenamiento de la app o del navegador hasta que los borres,
+        limpies los datos o desinstales la app. El Diario se borra por separado:
+        eliminar la cuenta no elimina automáticamente sus entradas locales.
+      </p>
+
+      <h3>2. Cuándo salen datos del dispositivo</h3>
+      <ul>
+        <li><strong>Cuenta.</strong> El correo y la contraseña van a Supabase. Si eliges Google, Google confirma tu identidad y envía a Supabase el nombre y correo de la cuenta.</li>
+        <li><strong>Búsqueda de ciudad natal.</strong> La búsqueda, fecha y hora de nacimiento pasan por nuestro servidor para obtener coordenadas y zona horaria. No se adjuntan a tu perfil; pueden existir registros técnicos temporales.</li>
+        <li><strong>Suscripción.</strong> En la compra web, tu correo, el plan y, en modo pareja, ambos nombres pasan por nuestro servidor y por Hotmart.</li>
+        <li><strong>Lecturas de IA.</strong> La foto o el texto de Palma, Rostro, Pie, Lunares, Café, Sueños, Órbi, Insight Semanal y “Pulir con IA” pasa por nuestro servidor y se envía a Anthropic. Nuestro servidor no guarda el contenido de la llamada; conserva el conteo diario. El tratamiento de Anthropic sigue su política.</li>
+        <li><strong>Comunidad.</strong> Nombre visible, @usuario, emoji, publicaciones y comentarios quedan en nuestro servidor y pueden ser públicos dentro de la app. También guardamos Me gusta, relaciones de seguimiento y bloqueos.</li>
+        <li><strong>Reportes.</strong> Motivo, copia del contenido e identificadores necesarios para revisarlo quedan en el servidor. Se puede reportar una respuesta de IA sin cuenta.</li>
+        <li><strong>Recordatorio diario web.</strong> Si lo activas, guardamos la dirección de notificación, signo, racha y la fecha — nunca el texto — de la última entrada del Diario. Desactivarlo elimina la suscripción.</li>
+      </ul>
+
+      <!-- VOICE-PROCESSING-START: mantener alineado con el endpoint y la retención reales de voz. -->
+      <div class="notice" id="voz-atual-es">
+        <p>
+          <strong>Reflexión dictada actualmente.</strong> El reconocimiento de voz
+          lo ofrece el navegador o el sistema, que puede procesar el audio según
+          sus propias reglas. Cosmic Guide guarda localmente el texto transcrito.
+          Solo pasa por nuestro servidor y Anthropic si eliges “Pulir con IA”; la
+          app actual no envía el archivo de audio a nuestro servidor.
+        </p>
+        <p>
+          <strong>Escuchar una lectura.</strong> Cuando esta opción esté disponible
+          y toques “Escuchar”, el texto de la lectura pasa por nuestro servidor y
+          se envía a ElevenLabs, que genera el audio según su política. La función
+          exige una cuenta verificada. Para controlar el uso y evitar generar de
+          nuevo el mismo audio, nuestro servidor mantiene el conteo diario y puede
+          guardar el audio en caché, identificado por un hash, hasta 24 horas.
+        </p>
+      </div>
+      <!-- VOICE-PROCESSING-END -->
+
+      <h3>3. Medición e infraestructura web</h3>
+      <p>
+        Nuestro embudo registra pasos de uso, un código aleatorio del dispositivo
+        y el país inferido de la dirección de internet. No registra nombres, datos
+        de nacimiento, lecturas, Diario ni conversaciones, y no guarda la dirección
+        de internet en ese embudo. Se elimina automáticamente después de 90 días.
+      </p>
+      <p>
+        En la web, Vercel aloja las páginas y Vercel Analytics mide visitas. Vercel
+        y otros proveedores técnicos pueden tratar datos de red necesarios para
+        entregar, proteger y medir el servicio según sus propias políticas.
+      </p>
+
+      <h3>4. Con quién se comparten</h3>
+      <ul>
+        <li><strong>Anthropic:</strong> lecturas de IA;</li>
+        <li><strong>ElevenLabs:</strong> convierte el texto de una lectura en audio cuando eliges “Escuchar”;</li>
+        <li><strong>Hotmart:</strong> suscripciones compradas en la web;</li>
+        <li><strong>Supabase:</strong> cuenta de acceso;</li>
+        <li><strong>Google:</strong> solo si eliges iniciar sesión con Google;</li>
+        <li><strong>Vercel e infraestructura técnica:</strong> alojamiento, entrega y protección de la web.</li>
+      </ul>
+      <p>Cosmic Guide no vende datos personales ni publica automáticamente el Diario, preguntas privadas, datos natales o contexto de pareja.</p>
+
+      <h3>5. Plazos de conservación</h3>
+      <ul>
+        <li>los datos locales quedan hasta que los borres en el dispositivo;</li>
+        <li>la cuenta y los datos identificables de la Comunidad quedan hasta que se eliminen por la persona o por moderación;</li>
+        <li>el embudo propio se borra después de 90 días y las notificaciones quedan hasta desactivarlas;</li>
+        <li>el audio generado para “Escuchar” puede quedar en la caché de nuestro servidor, identificado por un hash, hasta 24 horas;</li>
+        <li>los reportes necesarios pueden quedar sin plazo; tras eliminar la cuenta se anonimizan respecto de ella;</li>
+        <li>los comprobantes de pago pueden conservarse por obligaciones fiscales, reembolsos y disputas, sin vínculo con la cuenta eliminada;</li>
+        <li>el conteo antiabuso puede quedar ligado solo al UUID opaco de una cuenta inexistente, sin correo ni perfil.</li>
+      </ul>
+
+      <h3>6. Tus derechos y elecciones</h3>
+      <p>
+        Puedes pedir confirmación, acceso, corrección y eliminación de datos
+        tratados con consentimiento. También puedes no crear cuenta, no entrar en
+        la Comunidad, no enviar contenido a IA y no activar notificaciones. Una
+        función no puede operar sin los datos imprescindibles para prestarla.
+      </p>
+
+      <h3>7. Borrar datos y la cuenta</h3>
+      <p>
+        En <strong>Perfil &gt; Privacidad</strong>, “Borrar los datos de este
+        dispositivo” limpia los datos locales cubiertos por el botón, el historial
+        anónimo de ese dispositivo en nuestro servidor y su suscripción de
+        notificación. No borra el Diario ni la cuenta.
+      </p>
+      <p>
+        En <strong>Perfil &gt; Eliminar cuenta</strong>, se elimina el acceso, se
+        deshace el vínculo de la suscripción y se borran perfil, publicaciones,
+        comentarios, Me gusta, relaciones y bloqueos. Pueden quedar reportes
+        anonimizados, comprobantes y el conteo antiabuso descrito arriba. Eliminar
+        la cuenta no cancela el cobro: cancela antes en Hotmart o Google Play.
+      </p>
+
+      <h3>8. Seguridad, cambios y contacto</h3>
+      <p>
+        Usamos HTTPS y controles de acceso en las rutas autenticadas, aunque ningún
+        sistema está libre de riesgo. Podemos actualizar esta política cuando cambien
+        funciones o proveedores; la fecha inicial indica la revisión vigente.
+      </p>
+      <p>Para dudas o ejercer tus derechos, escribe a <a href="mailto:contato@cosmicguide.cloud">contato@cosmicguide.cloud</a>.</p>
+      <div class="actions">
+        <a class="button" href="/excluir-conta">Ver instrucciones de eliminación</a>
+        <a class="button secondary" href="/cosmic-guide/">Abrir Cosmic Guide</a>
+      </div>
+    </article>
+
+    <article class="policy" id="en" lang="en" aria-labelledby="titulo-en">
+      <p class="language-label">English</p>
+      <h2 id="titulo-en">How Cosmic Guide handles your data</h2>
+      <p>
+        This policy applies to the Cosmic Guide app, the web version at
+        <strong>cosmicguide.cloud</strong>, and the API at <strong>api.cosmicguide.cloud</strong>.
+        Cosmic Guide is responsible for the processing described here.
+      </p>
+
+      <div class="summary">
+        <p>
+          <strong>In short:</strong> birth details, the Diary, and much of your
+          personalization stay on the device. Accounts, payments, Community,
+          notifications, usage measurement, and AI features use servers in the
+          cases below. Cosmic Guide does not sell personal data.
+        </p>
+      </div>
+
+      <h3>1. What stays on the device</h3>
+      <p>Depending on the features you use, the app may store locally:</p>
+      <ul>
+        <li>names, birth dates and times, city, and signs;</li>
+        <li>the theme, situation, and goal selected for your first path;</li>
+        <li>saved readings, Cosmic Diary entries, and reflection transcripts;</li>
+        <li>your Órbi conversation history, including imported previous history;</li>
+        <li>preferences, streak, and app progress.</li>
+      </ul>
+      <p>
+        These remain in app or browser storage until you delete them, clear that
+        storage, or uninstall the app. The Diary has its own deletion controls:
+        deleting the account does not automatically delete local Diary entries.
+      </p>
+
+      <h3>2. When data leaves the device</h3>
+      <ul>
+        <li><strong>Account.</strong> Email and password go to Supabase. If you choose Google, Google confirms your identity and sends the account name and email to Supabase.</li>
+        <li><strong>Birth-city search.</strong> Your query, birth date, and birth time pass through our server to obtain coordinates and a time zone. They are not attached to your profile; temporary technical access logs may exist.</li>
+        <li><strong>Subscription.</strong> For a web purchase, your email, plan, and both names in couple mode pass through our server and Hotmart.</li>
+        <li><strong>AI readings.</strong> The photo or text used in Palm, Face, Foot, Moles, Coffee, Dreams, Órbi, Weekly Insight, and “Polish with AI” passes through our server and is sent to Anthropic. Our server does not store the call content; it retains a daily usage count. Anthropic handles data under its own policy.</li>
+        <li><strong>Community.</strong> Your display name, @handle, emoji, posts, and comments stay on our server and may be seen by other app users. Likes, follow relationships, and blocks also remain on the server.</li>
+        <li><strong>Reports.</strong> The reason, a copy of reported content, and identifiers needed for review remain on the server. An AI response may be reported without an account.</li>
+        <li><strong>Web daily reminder.</strong> If enabled, we store the browser notification address, sign, streak, and the date — never the text — of the latest Diary entry. Disabling it removes the subscription.</li>
+      </ul>
+
+      <!-- VOICE-PROCESSING-START: keep aligned with the real voice endpoint and retention. -->
+      <div class="notice" id="voz-atual-en">
+        <p>
+          <strong>Dictated reflection today.</strong> Speech recognition is
+          provided by the browser or device system, which may process audio under
+          its own rules. Cosmic Guide stores the resulting transcript locally.
+          That text only passes through our server and Anthropic if you select
+          “Polish with AI”; the current app does not send the audio file to our server.
+        </p>
+        <p>
+          <strong>Listening to a reading.</strong> When this option is available
+          and you tap “Listen,” the reading text passes through our server and is
+          sent to ElevenLabs, which generates audio under its own policy. The
+          feature requires a verified account. To control usage and avoid
+          regenerating the same audio, our server keeps a daily count and may cache
+          the audio, identified by a hash, for up to 24 hours.
+        </p>
+      </div>
+      <!-- VOICE-PROCESSING-END -->
+
+      <h3>3. Usage measurement and web infrastructure</h3>
+      <p>
+        Our own funnel records steps such as opening the app or reaching the plans,
+        a random device code, and the country inferred from the internet address.
+        It does not record names, birth details, readings, Diary entries, or
+        conversations, and the funnel does not store the internet address itself.
+        This history is automatically deleted after 90 days.
+      </p>
+      <p>
+        On the web, Vercel hosts the pages and Vercel Analytics measures visits.
+        Vercel and other infrastructure providers may process technical network
+        data needed to deliver, protect, and measure the service under their own policies.
+      </p>
+
+      <h3>4. Who data is shared with</h3>
+      <ul>
+        <li><strong>Anthropic:</strong> generates AI readings;</li>
+        <li><strong>ElevenLabs:</strong> turns reading text into audio when you select “Listen”;</li>
+        <li><strong>Hotmart:</strong> processes subscriptions purchased on the web;</li>
+        <li><strong>Supabase:</strong> holds login accounts;</li>
+        <li><strong>Google:</strong> only when you choose Google sign-in;</li>
+        <li><strong>Vercel and technical infrastructure:</strong> host, deliver, and protect the web version.</li>
+      </ul>
+      <p>Cosmic Guide does not sell personal data or automatically publish Diary entries, private questions, birth details, or couple context.</p>
+
+      <h3>5. How long data is kept</h3>
+      <ul>
+        <li>local data remains until it is deleted on the device;</li>
+        <li>the account and identifiable Community data remain until deletion by the person or moderation;</li>
+        <li>our own funnel history is deleted after 90 days, and notification subscriptions remain until disabled;</li>
+        <li>audio generated for “Listen” may remain in our server cache, identified by a hash, for up to 24 hours;</li>
+        <li>reports needed for moderation may remain with no set expiry; after account deletion they are anonymized in relation to that account;</li>
+        <li>payment receipts may be kept for tax obligations, refunds, and disputes without a link to the deleted account;</li>
+        <li>the anti-abuse count may remain tied only to the opaque UUID of an account that no longer exists, without an email or profile.</li>
+      </ul>
+
+      <h3>6. Your rights and choices</h3>
+      <p>
+        You may ask for confirmation, access, correction, and deletion of data
+        handled with consent. You may also choose not to create an account, join
+        the Community, send content to AI, or enable notifications. A feature
+        cannot operate without the data required to provide it.
+      </p>
+
+      <h3>7. Deleting data and the account</h3>
+      <p>
+        In <strong>Profile &gt; Privacy</strong>, “Erase the data on this device”
+        clears the local data covered by the button, that device’s anonymous funnel
+        history on our server, and its notification subscription. It does not delete
+        the Diary or the account.
+      </p>
+      <p>
+        In <strong>Profile &gt; Delete account</strong>, the app removes the login,
+        unlinks the subscription, and deletes the profile, posts, comments, likes,
+        follow relationships, and blocks linked to the account. Anonymized reports,
+        receipts, and the anti-abuse count described above may remain. Account
+        deletion does not cancel active billing: cancel first through Hotmart or
+        Google Play, depending on where you purchased.
+      </p>
+
+      <h3>8. Security, changes, and contact</h3>
+      <p>
+        We use HTTPS connections and access controls on authenticated routes,
+        although no system is entirely risk-free. We may update this policy when
+        features or providers change; the date at the top identifies the current revision.
+      </p>
+      <p>For questions or to exercise your rights, email <a href="mailto:contato@cosmicguide.cloud">contato@cosmicguide.cloud</a>.</p>
+      <div class="actions">
+        <a class="button" href="/excluir-conta">View deletion instructions</a>
+        <a class="button secondary" href="/cosmic-guide/">Open Cosmic Guide</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="shell">
+    <p>Cosmic Guide · Documento público acessível sem conta e sem JavaScript.</p>
+  </footer>
+</body>
+</html>

@@ -271,6 +271,15 @@ ssh -o ConnectTimeout=25 "$REMOTE" "
     echo 'ERRO: a rota da Comunidade não respondeu com o contrato de autenticação esperado.' >&2
     exit 1
   fi
+  VOICE_STATUS_JSON=\$(curl -fsS --max-time 8 http://127.0.0.1:3005/api/voice/status)
+  VOICE_STATUS_JSON="\$VOICE_STATUS_JSON" node -e \"const status=JSON.parse(process.env.VOICE_STATUS_JSON);const languages=[...(status.languages||[])].sort().join(',');if(status.available!==true||languages!=='en,es,pt'||status.maxCharacters!==10000||status.requiresLogin!==true||status.requiresVerifiedEmail!==true){console.error('status de voz fora do contrato');process.exit(1)}\"
+  echo '  rota Voz: disponível em PT/ES/EN, limite 10000, login e e-mail confirmado obrigatórios'
+  VOICE_SYNTH_STATUS=\$(curl -sS --max-time 8 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:3005/api/voice/synthesize)
+  echo \"  rota Voz sem sessão: HTTP \$VOICE_SYNTH_STATUS\"
+  if [ \"\$VOICE_SYNTH_STATUS\" != '401' ]; then
+    echo 'ERRO: a síntese de voz não exigiu a autenticação esperada.' >&2
+    exit 1
+  fi
   MODERATION_STATUS=\$(curl -sS --max-time 8 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:3005/api/moderation/report)
   echo \"  rota Moderação com corpo inválido: HTTP \$MODERATION_STATUS\"
   if [ \"\$MODERATION_STATUS\" != '400' ]; then

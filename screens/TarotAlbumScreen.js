@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Pressable,
   Share,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,8 +19,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
-import { getCollection, COLLECTION_GROUPS, COLLECTION_TOTAL } from '../lib/tarotCollection';
-import { getCardName } from '../lib/tarotThemes';
+import { getAlbumState, toggleAlbumFavorite, COLLECTION_GROUPS, COLLECTION_TOTAL } from '../lib/tarotCollection';
+import { getCardName, getLocalizedCard } from '../lib/tarotThemes';
 import { getCardById } from '../lib/tarotDeck';
 import { getTarotImage } from '../lib/tarotImages';
 import { useLanguage } from '../context/LanguageContext';
@@ -42,12 +43,20 @@ import { decanatoDaCarta, porqueEsteDecanato } from '../lib/decanatoPorque';
 import { PACK as DECANATO_PT } from '../lib/traducoes/decanatoPorque.pt';
 import { PACK as DECANATO_ES } from '../lib/traducoes/decanatoPorque.es';
 import { PACK as DECANATO_EN } from '../lib/traducoes/decanatoPorque.en';
+import { getJournalEntries } from '../lib/journal';
+import { buildCosmicMirror, cosmicMirrorPack } from '../lib/cosmicMirror';
+import { cardMatchesAlbumFilter, formatAlbumDate, tarotAlbum2Pack } from '../lib/tarotAlbum2';
+import PremiumCosmicCard from '../components/PremiumCosmicCard';
+import {
+  buildCosmicShareCardContent,
+  cosmicShareCardPack,
+  sharePremiumCosmicCard,
+} from '../lib/cosmicShareCard';
 
 // Álbum das 78 Cartas — mostra a coleção de cartas que a pessoa JÁ VIU em
-// tiragens reais (lib/tarotCollection.js). Carta nunca vista aparece como
-// verso genérico, sem revelar qual é: o mistério de "qual carta falta" é o
-// que dá vontade de voltar pra tirar de novo — mostrar silhueta/nome mataria
-// a graça e ainda daria spoiler do baralho.
+// tiragens reais (lib/tarotCollection.js). As nunca vistas ficam reunidas em
+// um único bloco anônimo por grupo: nenhum verso ocupa a posição canônica de
+// uma carta, portanto a ordem não entrega qual arcano ou número ainda falta.
 //
 // ===========================================================================
 // DUAS FEATURES DE TRADIÇÃO MORAM AQUI DENTRO. LEIA OS DOIS MOTORES ANTES DE
@@ -114,9 +123,10 @@ const CARTAS_COM_HISTORIA = new Set(cartasComHistoria());
 // Rótulo curto de uma seção do álbum, para os ganchos da linha do tempo. Usa
 // exatamente o mesmo `label` que o cabeçalho da seção já mostra — a tela não
 // inventa um segundo nome para a mesma caixa.
-function rotuloDoGrupo(key) {
+function rotuloDoGrupo(key, lang = 'pt') {
   const g = COLLECTION_GROUPS.find((x) => x.key === key);
-  return g ? g.label : key;
+  const label = tarotAlbum2Pack(lang).groups[key];
+  return label || (g ? g.label : key);
 }
 
 // O recibo — obra, autor e datação, já montados pelo motor no idioma. A tela
@@ -140,12 +150,25 @@ export default function TarotAlbumScreen() {
   const insets = useSafeAreaInsets();
   const { t, lang } = useLanguage();
   const [seenSet, setSeenSet] = useState(new Set());
+  const [encounterStats, setEncounterStats] = useState({});
+  const [favoriteSet, setFavoriteSet] = useState(new Set());
+  const [journalEntries, setJournalEntries] = useState([]);
+  const [mode, setMode] = useState('album');
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [mirrorPeriod, setMirrorPeriod] = useState(30);
+  const [mirrorShareStatus, setMirrorShareStatus] = useState('idle');
+  const [studyOrientation, setStudyOrientation] = useState('upright');
   const [selected, setSelected] = useState(null);
   const [hiddenPromptOpen, setHiddenPromptOpen] = useState(false);
+  const mirrorShareCardRef = useRef(null);
 
   // Chrome das duas features, no idioma de quem lê.
   const UI = chromeDaTela(lang);
   const DEC = chromeDoDecanato(lang);
+  const ALBUM = tarotAlbum2Pack(lang);
+  const MIRROR = cosmicMirrorPack(lang);
+  const SHARE = cosmicShareCardPack(lang);
 
   // A idade é CONTA, não tabela: a abertura calcula "X anos de leitura" contra
   // o ano corrente. Recalcula a cada foco (tique) em vez de congelar no mount —
@@ -167,8 +190,13 @@ export default function TarotAlbumScreen() {
     useCallback(() => {
       let active = true;
       setTique((n) => n + 1);
-      getCollection().then(({ seenIds }) => {
-        if (active) setSeenSet(new Set(seenIds));
+      setMirrorShareStatus('idle');
+      Promise.all([getAlbumState(), getJournalEntries()]).then(([albumState, entries]) => {
+        if (!active) return;
+        setSeenSet(new Set(albumState.seenIds));
+        setEncounterStats(albumState.encounterStats || {});
+        setFavoriteSet(new Set(albumState.favoriteIds || []));
+        setJournalEntries(Array.isArray(entries) ? entries : []);
       });
       return () => {
         active = false;
@@ -186,6 +214,53 @@ export default function TarotAlbumScreen() {
   const mitos = useMemo(() => oQueNaoSeSustenta(lang), [lang]);
   const paralelo = useMemo(() => paraleloDaAntiguidade(lang), [lang]);
   const bibliografia = useMemo(() => bibliografiaDaHistoria(lang), [lang]);
+  const mirror = useMemo(
+    () => buildCosmicMirror(journalEntries, { period: mirrorPeriod, lang }),
+    [journalEntries, mirrorPeriod, lang]
+  );
+  const mirrorShareCardContent = useMemo(() => {
+    if (!mirror || mirror.status === 'empty') return null;
+    const title = mirror.topCard
+      ? `${mirror.topCard.name} · ${mirror.topCard.count}×`
+      : mirror.status === 'first'
+        ? MIRROR.firstTitle
+        : MIRROR.developingTitle;
+    const detail = [
+      mirror.topSuit ? mirror.suitLabel : null,
+      mirror.topTheme ? mirror.themeLabel : null,
+    ].filter(Boolean).join(' · ');
+    return buildCosmicShareCardContent({
+      brand: SHARE.brand,
+      edition: SHARE.mirrorEdition,
+      eyebrow: SHARE.mirrorEyebrow,
+      glyph: '✦',
+      title,
+      subtitle: mirror.body,
+      detail,
+      meta: SHARE.mirrorMeta({ readings: mirror.readingCount, period: mirror.periodLabel }),
+      footer: SHARE.mirrorFooter,
+      shareText: SHARE.mirrorShareText({ title, detail: mirror.body }),
+      fileName: SHARE.mirrorFileName,
+    });
+  }, [MIRROR.developingTitle, MIRROR.firstTitle, SHARE, mirror]);
+
+  const filteredGroups = useMemo(
+    () =>
+      COLLECTION_GROUPS.map((group) => ({
+        ...group,
+        cards: group.cards.filter((card) =>
+          cardMatchesAlbumFilter(card, {
+            filter,
+            search,
+            seenIds: seenSet,
+            favoriteIds: favoriteSet,
+            stats: encounterStats,
+            name: getCardName(card, lang),
+          })
+        ),
+      })).filter((group) => group.cards.length > 0),
+    [encounterStats, favoriteSet, filter, lang, search, seenSet]
+  );
 
   // Dentro do modal: a nota da carta (null nas 71 sem nota pesquisada) e o
   // decanato (null nas 42 cartas que não são numeradas de 2 a 10).
@@ -195,6 +270,9 @@ export default function TarotAlbumScreen() {
     () => (selected && temDecanato ? porqueEsteDecanato(selected.id, lang) : null),
     [selected, temDecanato, lang]
   );
+  const selectedLocalized = useMemo(() => (selected ? getLocalizedCard(selected, lang) : null), [selected, lang]);
+  const selectedStats = selected ? encounterStats[selected.id] || null : null;
+  const selectedFavorite = selected ? favoriteSet.has(selected.id) : false;
 
   const seenTotal = seenSet.size;
   const missing = COLLECTION_TOTAL - seenTotal;
@@ -203,7 +281,21 @@ export default function TarotAlbumScreen() {
   const openCard = (card) => {
     Haptics.selectionAsync();
     setDecanatoAberto(false);
+    setStudyOrientation('upright');
     setSelected(card);
+  };
+
+  const changeFavorite = async () => {
+    if (!selected) return;
+    const next = await toggleAlbumFavorite(selected.id);
+    if (typeof next !== 'boolean') return;
+    setFavoriteSet((current) => {
+      const updated = new Set(current);
+      if (next) updated.add(selected.id);
+      else updated.delete(selected.id);
+      return updated;
+    });
+    Haptics.selectionAsync();
   };
 
   const openHiddenCard = () => {
@@ -244,17 +336,193 @@ export default function TarotAlbumScreen() {
     setRecado(copiou ? UI.copiado : UI.naoCopiou);
   }
 
+  async function compartilharEspelho() {
+    if (!mirrorShareCardContent || mirrorShareStatus === 'preparing') return;
+    setMirrorShareStatus('preparing');
+    try {
+      const outcome = await sharePremiumCosmicCard({
+        cardRef: mirrorShareCardRef,
+        content: mirrorShareCardContent,
+        dialogTitle: SHARE.mirrorDialogTitle,
+      });
+      if (outcome?.status === 'cancelled') setMirrorShareStatus('idle');
+      else if (outcome?.status === 'shared' || outcome?.status === 'downloaded') setMirrorShareStatus(outcome.status);
+      else setMirrorShareStatus('unavailable');
+    } catch {
+      setMirrorShareStatus('unavailable');
+    }
+  }
+
+  const mirrorShareFeedback = mirrorShareStatus === 'shared'
+    ? SHARE.shared
+    : mirrorShareStatus === 'downloaded'
+      ? SHARE.downloaded
+      : mirrorShareStatus === 'unavailable'
+        ? SHARE.unavailable
+        : '';
+
   return (
     <View style={styles.root}>
       <GradientHeader
-        title="Álbum das 78 Cartas"
-        subtitle="Sua coleção de cartas reveladas"
+        title={ALBUM.title}
+        subtitle={ALBUM.subtitle}
         onBack={() => navigation.goBack()}
       />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.modeTabs} accessibilityRole="tablist">
+          {['album', 'mirror'].map((item) => {
+            const active = mode === item;
+            return (
+              <Pressable
+                key={item}
+                testID={`album-mode-${item}`}
+                style={({ pressed }) => [styles.modeTab, active && styles.modeTabActive, pressed && styles.controlPressed]}
+                onPress={() => setMode(item)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <Ionicons name={item === 'album' ? 'albums-outline' : 'sparkles-outline'} size={16} color={active ? '#261A17' : colors.textSecondary} />
+                <Text style={[styles.modeTabText, active && styles.modeTabTextActive]}>{ALBUM.tabs[item]}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {mode === 'mirror' ? (
+          <View testID="cosmic-mirror">
+            <LinearGradient colors={['#291A2D', '#17101D', '#0E0A12']} style={styles.mirrorHero}>
+              <View style={styles.mirrorOrb}>
+                <Ionicons name="sparkles" size={28} color={colors.gold} />
+              </View>
+              <Text style={styles.mirrorEyebrow}>{MIRROR.eyebrow}</Text>
+              <Text style={styles.mirrorTitle}>{MIRROR.title}</Text>
+              <Text style={styles.mirrorSubtitle}>{MIRROR.subtitle}</Text>
+            </LinearGradient>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.periodRow}
+            >
+              {[7, 30, 'all'].map((period) => {
+                const active = mirrorPeriod === period;
+                return (
+                  <Pressable
+                    key={period}
+                    style={({ pressed }) => [styles.periodChip, active && styles.periodChipActive, pressed && styles.controlPressed]}
+                    onPress={() => {
+                      setMirrorPeriod(period);
+                      setMirrorShareStatus('idle');
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text style={[styles.periodChipText, active && styles.periodChipTextActive]}>{MIRROR.periods[period]}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {mirror.status === 'empty' ? (
+              <View style={styles.mirrorEmpty}>
+                <Ionicons name="moon-outline" size={30} color={colors.gold} />
+                <Text style={styles.mirrorEmptyTitle}>{MIRROR.emptyTitle}</Text>
+                <Text style={styles.mirrorEmptyBody}>{mirror.body}</Text>
+                <Pressable
+                  style={({ pressed }) => [styles.mirrorCta, pressed && styles.controlPressed]}
+                  onPress={() => navigation.navigate(ROUTES.TAROT_MAIN)}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.mirrorCtaText}>{MIRROR.emptyCta}</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#251910" />
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <View style={styles.mirrorReading}>
+                  <Text style={styles.mirrorReadingTitle}>
+                    {mirror.status === 'first'
+                      ? MIRROR.firstTitle
+                      : mirror.status === 'developing'
+                        ? MIRROR.developingTitle
+                        : MIRROR.title}
+                  </Text>
+                  <Text style={styles.mirrorReadingBody}>{mirror.body}</Text>
+                  {mirror.trend ? <Text style={styles.mirrorTrend}>{mirror.trend}</Text> : null}
+                </View>
+
+                <View style={styles.metricGrid}>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricValue}>{mirror.readingCount}</Text>
+                    <Text style={styles.metricLabel}>{MIRROR.metrics.readings}</Text>
+                  </View>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricValue}>{mirror.uniqueCardCount}</Text>
+                    <Text style={styles.metricLabel}>{MIRROR.metrics.unique}</Text>
+                  </View>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricValue}>{mirror.reversedPct}%</Text>
+                    <Text style={styles.metricLabel}>{MIRROR.metrics.reversed}</Text>
+                  </View>
+                  <View style={[styles.metricCard, styles.metricCardWide]}>
+                    <Text style={styles.metricValueSmall}>{mirror.suitLabel}</Text>
+                    <Text style={styles.metricLabel}>{MIRROR.metrics.suit}</Text>
+                  </View>
+                  <View style={[styles.metricCard, styles.metricCardWide]}>
+                    <Text style={styles.metricValueSmall}>{mirror.themeLabel}</Text>
+                    <Text style={styles.metricLabel}>{MIRROR.metrics.theme}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.mirrorReceipt}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color={colors.gold} />
+                  <View style={styles.mirrorReceiptCopy}>
+                    <Text style={styles.mirrorReceiptTitle}>{MIRROR.receiptTitle}</Text>
+                    <Text style={styles.mirrorReceiptBody}>{mirror.receipt}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.mirrorArtifact} testID="cosmic-mirror-card-section">
+                  <Text style={styles.mirrorArtifactTitle}>{SHARE.mirrorTitle}</Text>
+                  <Text style={styles.mirrorArtifactBody}>{SHARE.mirrorBody}</Text>
+                  <PremiumCosmicCard
+                    ref={mirrorShareCardRef}
+                    content={mirrorShareCardContent}
+                    style={styles.mirrorArtifactPreview}
+                    testID="cosmic-mirror-premium-card"
+                  />
+                  <View style={styles.mirrorArtifactPrivacy}>
+                    <Ionicons name="lock-closed-outline" size={14} color={colors.gold} />
+                    <Text style={styles.mirrorArtifactPrivacyText}>{SHARE.mirrorPrivacyNote}</Text>
+                  </View>
+                </View>
+
+                <Pressable
+                  testID="cosmic-mirror-share"
+                  style={({ pressed }) => [styles.mirrorShare, pressed && styles.controlPressed]}
+                  onPress={compartilharEspelho}
+                  accessibilityRole="button"
+                  accessibilityLabel={MIRROR.share}
+                >
+                  <Ionicons name="share-social-outline" size={18} color="#251910" />
+                  <Text style={styles.mirrorShareText}>
+                    {mirrorShareStatus === 'preparing' ? SHARE.preparing : SHARE.mirrorButton}
+                  </Text>
+                </Pressable>
+                {mirrorShareFeedback ? <Text style={styles.mirrorShareFeedback}>{mirrorShareFeedback}</Text> : null}
+              </>
+            )}
+          </View>
+        ) : (
+          <>
         <View style={styles.progressCard}>
           <View style={styles.progressHeader}>
-            <Text style={styles.progressCount}>{seenTotal}/{COLLECTION_TOTAL}</Text>
+            <Text style={styles.progressCount}>{ALBUM.progress({ seen: seenTotal, total: COLLECTION_TOTAL })}</Text>
             <Text style={styles.progressPct}>{pct}%</Text>
           </View>
           <View style={styles.progressTrack}>
@@ -269,29 +537,21 @@ export default function TarotAlbumScreen() {
             )}
           </View>
           <Text style={styles.incentive}>
-            {missing > 0
-              ? `Faltam ${missing} ${missing === 1 ? 'carta' : 'cartas'} pra completar seu álbum — cada tiragem pode revelar cartas novas.`
-              : 'Álbum completo! Todas as 78 cartas do baralho já passaram pelas suas mãos.'}
+            {missing > 0 ? ALBUM.progressMissing({ count: missing }) : ALBUM.progressComplete}
           </Text>
-          {missing > 0 && (
-            <Text style={styles.bonusNote}>
-              Complete os 22 Arcanos Maiores (+100 tokens) ou um naipe inteiro (+50 tokens) — o prêmio cai sozinho na hora.
-            </Text>
-          )}
           {/* Os dois textos acima PEDEM tiragens e não ofereciam nenhuma — a
               única saída da tela era o botão voltar. TarotMain mora no mesmo
               TarotStack. */}
           {missing > 0 && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.drawBtnWrap}
+            <Pressable
+              style={({ pressed }) => [styles.drawBtnWrap, pressed && styles.controlPressed]}
               onPress={() => navigation.navigate(ROUTES.TAROT_MAIN)}
             >
               <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.drawBtn}>
-                <Ionicons name="sparkles" size={17} color="#fff" />
-                <Text style={styles.drawBtnText}>{t('album.drawCta')}</Text>
+                <Ionicons name="sparkles" size={17} color="#251910" />
+                <Text style={styles.drawBtnText}>{ALBUM.draw}</Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
 
@@ -404,7 +664,7 @@ export default function TarotAlbumScreen() {
                                     <View style={styles.chipRow}>
                                       {m.album.grupos.map((g) => (
                                         <Text key={g} style={styles.chip}>
-                                          {rotuloDoGrupo(g)}
+                                          {rotuloDoGrupo(g, lang)}
                                         </Text>
                                       ))}
                                       {m.album.cartas.map((c) => (
@@ -497,16 +757,76 @@ export default function TarotAlbumScreen() {
           ) : null}
         </View>
 
-        {COLLECTION_GROUPS.map((group) => {
-          const groupSeen = group.cards.filter((card) => seenSet.has(card.id)).length;
+        <View style={styles.albumTools}>
+          <View style={styles.searchBox}>
+            <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder={ALBUM.searchPlaceholder}
+              placeholderTextColor={colors.textMuted}
+              style={styles.searchInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              accessibilityLabel={ALBUM.searchPlaceholder}
+              testID="album-search"
+            />
+            {search ? (
+              <Pressable
+                onPress={() => setSearch('')}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={UI.fechar}
+              >
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+              </Pressable>
+            ) : null}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {Object.keys(ALBUM.filters).map((key) => {
+              const active = filter === key;
+              return (
+                <Pressable
+                  key={key}
+                  testID={`album-filter-${key}`}
+                  style={({ pressed }) => [styles.filterChip, active && styles.filterChipActive, pressed && styles.controlPressed]}
+                  onPress={() => setFilter(key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{ALBUM.filters[key]}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {filteredGroups.length === 0 ? (
+          <View style={styles.albumEmpty}>
+            <Ionicons name="albums-outline" size={26} color={colors.gold} />
+            <Text style={styles.albumEmptyTitle}>{ALBUM.noResultsTitle}</Text>
+            <Text style={styles.albumEmptyBody}>{ALBUM.noResultsBody}</Text>
+          </View>
+        ) : null}
+
+        {filteredGroups.map((group) => {
+          const sourceGroup = COLLECTION_GROUPS.find((item) => item.key === group.key) || group;
+          const groupSeen = sourceGroup.cards.filter((card) => seenSet.has(card.id)).length;
+          // Cartas ainda ocultas não ocupam seus slots canônicos. Mostrar um
+          // verso por posição permitiria deduzir o arcano/número pelos
+          // vizinhos. A grade exibe as reveladas e resume todas as demais em
+          // um único bloco sem correspondência entre placeholder e carta.
+          const revealedCards = group.cards.filter((card) => seenSet.has(card.id));
+          const hiddenCount = group.cards.length - revealedCards.length;
           const notaAberta = grupoAberto === group.key;
           const nota = notaAberta ? historiaDoGrupo(group.key, lang) : null;
           return (
             <View key={group.key} style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name={groupIcon(group)} size={16} color={colors.gold} />
-                <Text style={styles.sectionTitle}>{group.label}</Text>
-                <Text style={styles.sectionCount}>{groupSeen}/{group.cards.length}</Text>
+                <Text style={styles.sectionTitle}>{ALBUM.groups[group.key] || group.label}</Text>
+                <Text style={styles.sectionCount}>{groupSeen}/{sourceGroup.cards.length}</Text>
                 {/* A nota histórica da seção — lib/tarotHistoria.js. */}
                 <TouchableOpacity
                   onPress={() => setGrupoAberto(notaAberta ? null : group.key)}
@@ -535,55 +855,56 @@ export default function TarotAlbumScreen() {
               ) : null}
 
               <View style={styles.grid}>
-                {group.cards.map((card) => {
-                  const seen = seenSet.has(card.id);
+                {revealedCards.map((card) => {
                   const temNota = CARTAS_COM_HISTORIA.has(card.id);
                   return (
                     <Pressable
                       key={card.id}
-                      testID={seen ? 'album-card-seen' : 'album-card-hidden'}
+                      testID="album-card-seen"
                       style={({ pressed }) => [styles.thumb, pressed && styles.thumbPressed]}
-                      onPress={() => (seen ? openCard(card) : openHiddenCard())}
+                      onPress={() => openCard(card)}
                       accessibilityRole="button"
-                      accessibilityLabel={
-                        seen
-                          ? temNota
-                            ? `${getCardName(card, lang)} — ${UI.seloHistoria}`
-                            : getCardName(card, lang)
-                          : t('album.cardHidden')
-                      }
-                      accessibilityHint={seen ? undefined : t('album.cardHiddenHint')}
+                      accessibilityLabel={temNota ? `${getCardName(card, lang)} — ${UI.seloHistoria}` : getCardName(card, lang)}
                     >
-                      {seen ? (
-                        <>
-                          <Image source={getTarotImage(card.id)} style={styles.thumbImage} resizeMode="cover" />
-                          {/* Selo de carta com nota de história — só nas 7 que
-                              a pesquisa achou, e só depois de revelada (marcar
-                              carta não vista seria spoiler). */}
-                          {temNota ? (
-                            <View style={styles.selo} pointerEvents="none" testID={`album-selo-${card.id}`}>
-                              <Ionicons name="bookmark" size={9} color="#1F1640" />
-                            </View>
-                          ) : null}
-                        </>
-                      ) : (
-                        // Mesmo visual do verso das cartas no TarotScreen
-                        // (gradiente escuro + sparkles) — cores hardcoded lá
-                        // também, manter iguais pro verso ser reconhecível.
-                        <LinearGradient colors={['#2A1D52', '#1A1235']} style={styles.thumbBack}>
-                          <Ionicons name="sparkles" size={18} color={colors.purple} />
-                          <View style={styles.hiddenLock} pointerEvents="none">
-                            <Ionicons name="lock-closed" size={9} color={colors.gold} />
-                          </View>
-                        </LinearGradient>
-                      )}
+                      <Image source={getTarotImage(card.id)} style={styles.thumbImage} resizeMode="cover" />
+                      {/* Selo de carta com nota de história — só nas 7 que
+                          a pesquisa achou, e só depois de revelada (marcar
+                          carta não vista seria spoiler). */}
+                      {temNota ? (
+                        <View style={styles.selo} pointerEvents="none" testID={`album-selo-${card.id}`}>
+                          <Ionicons name="bookmark" size={9} color="#1F1640" />
+                        </View>
+                      ) : null}
                     </Pressable>
                   );
                 })}
+                {hiddenCount > 0 ? (
+                  <Pressable
+                    key={`hidden-group-${group.key}`}
+                    testID={`album-hidden-group-${group.key}`}
+                    style={({ pressed }) => [styles.hiddenGroup, pressed && styles.thumbPressed]}
+                    onPress={openHiddenCard}
+                    accessibilityRole="button"
+                    accessibilityLabel={ALBUM.hiddenGroupCount({ count: hiddenCount })}
+                    accessibilityHint={ALBUM.hiddenGroupHint}
+                  >
+                    <LinearGradient colors={['#2A1D52', '#1A1235']} style={styles.hiddenGroupSeal}>
+                      <Ionicons name="sparkles" size={20} color={colors.purple} />
+                      <Ionicons name="lock-closed" size={11} color={colors.gold} />
+                    </LinearGradient>
+                    <View style={styles.hiddenGroupCopy}>
+                      <Text style={styles.hiddenGroupTitle}>{ALBUM.hiddenGroupCount({ count: hiddenCount })}</Text>
+                      <Text style={styles.hiddenGroupBody}>{ALBUM.hiddenGroupHint}</Text>
+                    </View>
+                    <Ionicons name="arrow-forward" size={17} color={colors.gold} />
+                  </Pressable>
+                ) : null}
               </View>
             </View>
           );
         })}
+          </>
+        )}
       </ScrollView>
 
       <Modal
@@ -608,9 +929,103 @@ export default function TarotAlbumScreen() {
                 <Ionicons name="close" size={20} color={colors.text} />
               </TouchableOpacity>
 
-              <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              <ScrollView
+                contentContainerStyle={styles.modalScroll}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
                 <Image source={getTarotImage(selected.id)} style={styles.modalImage} resizeMode="cover" />
-                <Text style={styles.modalName}>{getCardName(selected, lang)}</Text>
+                <View style={styles.modalTitleRow}>
+                  <Text style={styles.modalName}>{getCardName(selected, lang)}</Text>
+                  <Pressable
+                    testID="album-favorite"
+                    style={({ pressed }) => [styles.favoriteButton, selectedFavorite && styles.favoriteButtonActive, pressed && styles.controlPressed]}
+                    onPress={changeFavorite}
+                    accessibilityRole="button"
+                    accessibilityLabel={selectedFavorite ? ALBUM.unfavorite : ALBUM.favorite}
+                    accessibilityState={{ selected: selectedFavorite }}
+                  >
+                    <Ionicons name={selectedFavorite ? 'heart' : 'heart-outline'} size={20} color={selectedFavorite ? '#251910' : colors.gold} />
+                  </Pressable>
+                </View>
+
+                <View style={styles.encounterCard} testID="album-encounters">
+                  <Text style={styles.encounterTitle}>{ALBUM.encountersTitle}</Text>
+                  {selectedStats ? (
+                    <>
+                      <Text style={styles.encounterCount}>{ALBUM.encountersCount({ count: selectedStats.count })}</Text>
+                      <Text style={styles.encounterMeta}>
+                        {ALBUM.encountersOrientation({
+                          upright: selectedStats.uprightCount || 0,
+                          reversed: selectedStats.reversedCount || 0,
+                        })}
+                      </Text>
+                      <Text style={styles.encounterMeta}>
+                        {ALBUM.firstSeen({ date: formatAlbumDate(selectedStats.firstSeenAt, lang) })}
+                      </Text>
+                      <Text style={styles.encounterMeta}>
+                        {ALBUM.lastSeen({ date: formatAlbumDate(selectedStats.lastSeenAt, lang) })}
+                      </Text>
+                      {selectedStats.legacyBaseline ? <Text style={styles.encounterLegacy}>{ALBUM.legacyBaseline}</Text> : null}
+                    </>
+                  ) : (
+                    <Text style={styles.encounterLegacy}>{ALBUM.legacyHistory}</Text>
+                  )}
+                </View>
+
+                {selectedLocalized ? (
+                  <View style={styles.studyCard} testID="album-study">
+                    <Text style={styles.studyTitle}>{ALBUM.studyTitle}</Text>
+                    <Text style={styles.studySubtitle}>{ALBUM.studySubtitle}</Text>
+                    <View style={styles.orientationTabs}>
+                      {['upright', 'reversed'].map((orientation) => {
+                        const active = studyOrientation === orientation;
+                        return (
+                          <Pressable
+                            key={orientation}
+                            style={({ pressed }) => [styles.orientationTab, active && styles.orientationTabActive, pressed && styles.controlPressed]}
+                            onPress={() => setStudyOrientation(orientation)}
+                            accessibilityRole="tab"
+                            accessibilityState={{ selected: active }}
+                          >
+                            <Text style={[styles.orientationTabText, active && styles.orientationTabTextActive]}>
+                              {ALBUM[orientation]}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+
+                    {Array.isArray(selectedLocalized.keywords) && selectedLocalized.keywords.length > 0 ? (
+                      <View style={styles.studySection}>
+                        <Text style={styles.studyLabel}>{ALBUM.keywords}</Text>
+                        <Text style={styles.studyCopy}>{selectedLocalized.keywords.join(' · ')}</Text>
+                      </View>
+                    ) : null}
+                    {selectedLocalized.cena ? (
+                      <View style={styles.studySection}>
+                        <Text style={styles.studyLabel}>{ALBUM.scene}</Text>
+                        <Text style={styles.studyCopy}>{selectedLocalized.cena}</Text>
+                      </View>
+                    ) : null}
+                    <View style={styles.studySection}>
+                      <Text style={styles.studyLabel}>{ALBUM.meaning}</Text>
+                      <Text style={styles.studyCopy}>
+                        {studyOrientation === 'reversed'
+                          ? selectedLocalized.reversedMeaning
+                          : selectedLocalized.uprightMeaning}
+                      </Text>
+                    </View>
+                    <View style={styles.studySection}>
+                      <Text style={styles.studyLabel}>{ALBUM.advice}</Text>
+                      <Text style={styles.studyCopy}>
+                        {studyOrientation === 'reversed'
+                          ? selectedLocalized.conselhoInvertido
+                          : selectedLocalized.conselho}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
 
                 {/* A nota histórica DESTA carta — null nas 71 sem nota. */}
                 {notaDaCarta ? (
@@ -805,6 +1220,159 @@ export default function TarotAlbumScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 40 },
+  controlPressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
+  modeTabs: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 16,
+    gap: 4,
+  },
+  modeTab: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  modeTabActive: { backgroundColor: colors.gold },
+  modeTabText: { color: colors.textSecondary, fontSize: 13, fontWeight: '800' },
+  modeTabTextActive: { color: '#261A17' },
+
+  mirrorHero: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.gold + '55',
+    paddingHorizontal: 22,
+    paddingVertical: 28,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  mirrorOrb: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.gold + '16',
+    borderWidth: 1,
+    borderColor: colors.gold + '66',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  mirrorEyebrow: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' },
+  mirrorTitle: { color: colors.text, fontSize: 28, lineHeight: 34, fontWeight: '900', textAlign: 'center', marginTop: 5 },
+  mirrorSubtitle: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 7, maxWidth: 330 },
+  periodRow: { paddingVertical: 16, gap: 8 },
+  periodChip: {
+    minHeight: 38,
+    paddingHorizontal: 15,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  periodChipActive: { borderColor: colors.gold, backgroundColor: colors.gold + '18' },
+  periodChipText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  periodChipTextActive: { color: colors.gold },
+  mirrorEmpty: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    padding: 24,
+    alignItems: 'center',
+    gap: 9,
+  },
+  mirrorEmptyTitle: { color: colors.text, fontSize: 19, lineHeight: 25, fontWeight: '900', textAlign: 'center' },
+  mirrorEmptyBody: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, textAlign: 'center' },
+  mirrorCta: {
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: colors.gold,
+    paddingHorizontal: 18,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  mirrorCtaText: { color: '#251910', fontSize: 13, fontWeight: '900' },
+  mirrorReading: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    padding: 18,
+    gap: 8,
+  },
+  mirrorReadingTitle: { color: colors.text, fontSize: 18, lineHeight: 24, fontWeight: '900' },
+  mirrorReadingBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  mirrorTrend: { color: colors.gold, fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  metricCard: {
+    minWidth: 96,
+    flexBasis: '30%',
+    flexGrow: 1,
+    minHeight: 94,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: 13,
+    justifyContent: 'space-between',
+  },
+  metricCardWide: { flexBasis: '46%' },
+  metricValue: { color: colors.gold, fontSize: 25, lineHeight: 30, fontWeight: '900' },
+  metricValueSmall: { color: colors.gold, fontSize: 16, lineHeight: 21, fontWeight: '900' },
+  metricLabel: { color: colors.textMuted, fontSize: 10, lineHeight: 14, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 },
+  mirrorReceipt: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.gold + '42',
+    backgroundColor: colors.gold + '0D',
+    padding: 14,
+    marginTop: 10,
+  },
+  mirrorReceiptCopy: { flex: 1, gap: 3 },
+  mirrorReceiptTitle: { color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '900' },
+  mirrorReceiptBody: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  mirrorArtifact: {
+    marginTop: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.gold + '35',
+    backgroundColor: '#140D19',
+    padding: 16,
+    alignItems: 'center',
+  },
+  mirrorArtifactTitle: { color: colors.text, fontSize: 17, lineHeight: 22, fontWeight: '900', textAlign: 'center' },
+  mirrorArtifactBody: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 4 },
+  mirrorArtifactPreview: { width: '76%', maxWidth: 270, marginTop: 15, borderRadius: 22 },
+  mirrorArtifactPrivacy: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 12, width: '100%' },
+  mirrorArtifactPrivacyText: { flex: 1, color: colors.gold, fontSize: 10, lineHeight: 16 },
+  mirrorShare: {
+    minHeight: 50,
+    borderRadius: 14,
+    backgroundColor: colors.gold,
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  mirrorShareText: { color: '#251910', fontSize: 14, fontWeight: '900' },
+  mirrorShareFeedback: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 7 },
+
   progressCard: {
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -822,7 +1390,7 @@ const styles = StyleSheet.create({
   bonusNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 6 },
   drawBtnWrap: { marginTop: 14, borderRadius: 12, overflow: 'hidden' },
   drawBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 13, gap: 8 },
-  drawBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  drawBtnText: { color: '#251910', fontWeight: '900', fontSize: 14 },
 
   // ---- (A) A história real deste baralho ----
   historiaCard: {
@@ -974,6 +1542,45 @@ const styles = StyleSheet.create({
   marca: { color: colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 4 },
 
   // ---- seções do álbum ----
+  albumTools: { marginBottom: 18, gap: 10 },
+  searchBox: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    backgroundColor: colors.card,
+    paddingHorizontal: 14,
+  },
+  searchInput: { flex: 1, color: colors.text, fontSize: 14, paddingVertical: 10 },
+  filterRow: { gap: 8 },
+  filterChip: {
+    minHeight: 38,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterChipActive: { borderColor: colors.gold, backgroundColor: colors.gold + '18' },
+  filterChipText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  filterChipTextActive: { color: colors.gold },
+  albumEmpty: {
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    backgroundColor: colors.card,
+    padding: 22,
+    gap: 8,
+    marginBottom: 20,
+  },
+  albumEmptyTitle: { color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  albumEmptyBody: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
   section: { marginBottom: 22 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
@@ -1003,20 +1610,22 @@ const styles = StyleSheet.create({
   },
   thumbPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
   thumbImage: { width: '100%', height: '100%' },
-  thumbBack: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
-  hiddenLock: {
-    position: 'absolute',
-    right: 6,
-    bottom: 6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.gold + '29',
+  hiddenGroup: {
+    width: '100%',
+    minHeight: 82,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: colors.gold + '59',
+    borderColor: colors.gold + '35',
+    backgroundColor: '#171020',
+    padding: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 11,
   },
+  hiddenGroupSeal: { width: 46, height: 58, borderRadius: 10, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  hiddenGroupCopy: { flex: 1 },
+  hiddenGroupTitle: { color: colors.text, fontSize: 13, lineHeight: 18, fontWeight: '900' },
+  hiddenGroupBody: { color: colors.textMuted, fontSize: 10, lineHeight: 15, marginTop: 2 },
   selo: {
     position: 'absolute',
     top: 3,
@@ -1068,6 +1677,50 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.25)',
   },
   modalName: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 4, textAlign: 'center' },
+  modalTitleRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  favoriteButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: colors.gold + '66',
+    backgroundColor: colors.gold + '12',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  favoriteButtonActive: { backgroundColor: colors.gold, borderColor: colors.gold },
+  encounterCard: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: colors.gold + '42',
+    borderRadius: 16,
+    backgroundColor: colors.gold + '0D',
+    padding: 14,
+    gap: 5,
+  },
+  encounterTitle: { color: colors.gold, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 },
+  encounterCount: { color: colors.text, fontSize: 14, lineHeight: 20, fontWeight: '800' },
+  encounterMeta: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+  encounterLegacy: { color: colors.textMuted, fontSize: 11, lineHeight: 17, fontStyle: 'italic' },
+  studyCard: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    backgroundColor: colors.card,
+    padding: 15,
+    gap: 10,
+  },
+  studyTitle: { color: colors.text, fontSize: 16, lineHeight: 22, fontWeight: '900' },
+  studySubtitle: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  orientationTabs: { flexDirection: 'row', borderRadius: 12, padding: 3, gap: 3, backgroundColor: colors.surface },
+  orientationTab: { flex: 1, minHeight: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  orientationTabActive: { backgroundColor: colors.gold },
+  orientationTabText: { color: colors.textSecondary, fontSize: 12, fontWeight: '800' },
+  orientationTabTextActive: { color: '#251910' },
+  studySection: { gap: 4, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 9 },
+  studyLabel: { color: colors.gold, fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.8 },
+  studyCopy: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
   modalHint: { color: colors.textMuted, fontSize: 12, marginTop: 6, textAlign: 'center' },
 
   // ---- resposta premium da carta ainda não revelada ----

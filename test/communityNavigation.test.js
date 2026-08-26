@@ -11,7 +11,7 @@ const parser = require('@babel/parser');
 const { ROUTES } = require('../routes.js');
 
 const APP_SOURCE = fs.readFileSync(path.join(__dirname, '..', 'App.js'), 'utf8');
-const HOME_SOURCE = fs.readFileSync(path.join(__dirname, '..', 'screens', 'HomeScreen.js'), 'utf8');
+const EXPLORE_SOURCE = fs.readFileSync(path.join(__dirname, '..', 'screens', 'ExploreScreen.js'), 'utf8');
 const TAROT_SOURCE = fs.readFileSync(path.join(__dirname, '..', 'screens', 'TarotScreen.js'), 'utf8');
 const DIARY_SOURCE = fs.readFileSync(path.join(__dirname, '..', 'screens', 'DiaryScreen.js'), 'utf8');
 const APP_AST = parser.parse(APP_SOURCE, {
@@ -225,11 +225,11 @@ test('a Comunidade recebe um ícone próprio nos estados ativo e inativo', () =>
   assert.deepEqual(iconNames.sort(), ['people', 'people-outline'].sort());
 });
 
-test('os atalhos de Home, Tarô e Diário convergem para a aba Comunidade', () => {
+test('os atalhos de Explorar, Tarô e Diário convergem para a aba Comunidade', () => {
   assert.match(
-    HOME_SOURCE,
-    /key: 'social'[\s\S]*?ROUTES\.COMMUNITY_TAB,[\s\S]*?\{ screen: ROUTES\.COMMUNITY_MAIN \}/,
-    'o card da Home voltou a abrir o feed legado dentro da pilha da Home'
+    EXPLORE_SOURCE,
+    /item\('social'[\s\S]*?ROUTES\.COMMUNITY_TAB,[\s\S]*?\{ screen: ROUTES\.COMMUNITY_MAIN \}/,
+    'o card de Explorar voltou a abrir o feed legado dentro da pilha da Home'
   );
   assert.match(
     TAROT_SOURCE,
@@ -241,7 +241,7 @@ test('os atalhos de Home, Tarô e Diário convergem para a aba Comunidade', () =
     /ROUTES\.COMMUNITY_TAB,[\s\S]*?\{ screen: ROUTES\.SOCIAL \}/,
     'o Diário não troca para a aba Comunidade depois de compartilhar'
   );
-  assert.match(HOME_SOURCE, /const SOLO_ONLY = \[\]/, 'a Comunidade sumiu no modo casal');
+  assert.match(EXPLORE_SOURCE, /const discoveries = \[/, 'a Comunidade sumiu da biblioteca comum');
 });
 
 test('o feed Seguindo existe apenas dentro da pilha da Comunidade', () => {

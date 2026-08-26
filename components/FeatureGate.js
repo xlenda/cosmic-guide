@@ -182,12 +182,15 @@ export function withFeatureGate(Screen, options = {}) {
     // assinatura SOLO, que não deve desbloquear estas 5 telas exclusivas de
     // casal (ver comentário em CoupleContext.js).
     const { coupleData, hasCoupleAccess, isOwnerAccount } = useCouple();
+    const { t } = useLanguage();
     const isCouple = !!coupleData;
 
     if (isOwnerAccount || hasCoupleAccess) return <Screen {...props} />;
 
     if (!isCouple) {
-      return <SoloTeaser title={options.title} description={options.description} />;
+      const title = options.titleKey ? t(options.titleKey) : options.title;
+      const description = options.descriptionKey ? t(options.descriptionKey) : options.description;
+      return <SoloTeaser title={title} description={description} />;
     }
 
     return (

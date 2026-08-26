@@ -29,6 +29,7 @@ test.describe('Paywall — 1 uso grátis do Horóscopo', () => {
   test('primeira visita libera a leitura e marca como usada; segunda visita bloqueia', async ({ page }) => {
     await page.goto('/cosmic-guide/');
 
+    await page.getByTestId('home-explore-toggle').click();
     const horoscopeCard = page.getByTestId('card-horoscope');
     await expect(horoscopeCard).toBeVisible({ timeout: 15000 });
     await horoscopeCard.click();
@@ -53,6 +54,7 @@ test.describe('Paywall — 1 uso grátis do Horóscopo', () => {
     // raiz é a forma correta de simular reabrir o app, e preserva o
     // localStorage (mesmo contexto de browser).
     await page.goto('/cosmic-guide/');
+    await page.getByTestId('home-explore-toggle').click();
     await expect(horoscopeCard).toBeVisible({ timeout: 15000 });
     await horoscopeCard.click();
 

@@ -99,6 +99,7 @@ const ChatScreen = lazy(() => import('./screens/ChatScreen'));
 // ver components/AlertHost.js/lib/installPrompt.js). Chat e Comunidade seguem
 // lazy porque só precisam carregar quando a pessoa realmente os abre.
 const HoroscopeScreen = lazy(() => import('./screens/HoroscopeScreen'));
+const ExploreScreen = lazy(() => import('./screens/ExploreScreen'));
 const BirthChartScreen = lazy(() => import('./screens/BirthChartScreen'));
 // Alinhe seu céu — a assinatura gestual do produto. A Home mostra apenas a
 // entrada editorial; palco, cálculo e recibo ficam num chunk próprio para quem
@@ -174,32 +175,31 @@ const MonthlyWrappedScreen = lazy(() => import('./screens/MonthlyWrappedScreen')
 // anti-padrão que a doc do React Navigation nomeia ("don't define components
 // during render").
 //
-// Nada aqui depende de render: os títulos e descrições são strings PT literais,
-// nenhuma passa por t(). Então içar é mudança de zero comportamento — só some
-// o remount.
+// Nada aqui depende de render. As opções guardam CHAVES de tradução; o HOC
+// resolve o idioma dentro do componente sem mudar a identidade da rota.
 const TimelineGated = withFeatureGate(TimelineScreen, {
-  title: 'Linha do Tempo é pra fazer em casal',
-  description: 'Guardem memórias e cápsulas do tempo juntos — chame seu par pra começarem a linha do tempo de vocês.',
+  titleKey: 'gate.timeline.title',
+  descriptionKey: 'gate.timeline.description',
 });
 const ReconectarGated = withFeatureGate(ReconectarScreen, {
-  title: 'Reconectar é pra fazer em casal',
-  description: 'Rotas guiadas de reconexão pro casal — chame seu par pra percorrerem juntos.',
+  titleKey: 'gate.reconnect.title',
+  descriptionKey: 'gate.reconnect.description',
 });
 const DescobrirGated = withFeatureGate(DescobrirScreen, {
-  title: 'Descobrir é pra fazer em casal',
-  description: 'Jogos e quizzes pra se conhecerem melhor — chame seu par pra jogarem juntos.',
+  titleKey: 'gate.discover.title',
+  descriptionKey: 'gate.discover.description',
 });
 const AgirGated = withFeatureGate(AgirScreen, {
-  title: 'Agir é pra fazer em casal',
-  description: 'Ideias de encontro e metas da semana pro casal — chame seu par pra colocarem em prática.',
+  titleKey: 'gate.act.title',
+  descriptionKey: 'gate.act.description',
 });
 const ProgressoGated = withFeatureGate(ProgressoScreen, {
-  title: 'Progresso é pra fazer em casal',
-  description: 'Acompanhem juntos a evolução da relação de vocês — chame seu par pra começarem.',
+  titleKey: 'gate.progress.title',
+  descriptionKey: 'gate.progress.description',
 });
 const RetrospectivaGated = withFeatureGate(RetrospectivaScreen, {
-  title: 'Retrospectiva é pra fazer em casal',
-  description: 'Revivam os melhores momentos de vocês juntos — chame seu par pra desbloquearem isso.',
+  titleKey: 'gate.recap.title',
+  descriptionKey: 'gate.recap.description',
 });
 
 function LoadingFallback() {
@@ -308,6 +308,7 @@ const linking = {
         path: Platform.OS === 'web' ? 'cosmic-guide' : '',
         screens: {
           [ROUTES.HOME_MAIN]: '',
+          [ROUTES.EXPLORE]: 'explorar',
           [ROUTES.QUIZ]: 'quiz',
           [ROUTES.SKY_ALIGNMENT]: 'alinhe-seu-ceu',
           [ROUTES.CALENDARIO_COSMICO]: 'calendario',
@@ -411,6 +412,7 @@ function HomeStack({ initialRouteName = ROUTES.HOME_MAIN } = {}) {
         screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}
       >
         <Stack.Screen name={ROUTES.HOME_MAIN} component={HomeScreen} />
+        <Stack.Screen name={ROUTES.EXPLORE} component={ExploreScreen} />
         <Stack.Screen name={ROUTES.HOROSCOPE} component={HoroscopeScreen} />
         <Stack.Screen name={ROUTES.BIRTH_CHART} component={BirthChartScreen} />
         <Stack.Screen name={ROUTES.SKY_ALIGNMENT} component={SkyAlignmentScreen} />
@@ -715,7 +717,18 @@ function Gate() {
           },
         })}
       >
-        <Tab.Screen name={ROUTES.HOME_TAB} component={HomeStack} options={{ tabBarLabel: t('tab.home') }} />
+        <Tab.Screen
+          name={ROUTES.HOME_TAB}
+          component={HomeStack}
+          options={{ tabBarLabel: t('tab.home') }}
+          listeners={({ navigation }) => ({
+            tabPress: () => {
+              const tab = navigation.getState().routes.find((route) => route.name === ROUTES.HOME_TAB);
+              const deep = tab?.state?.index > 0;
+              if (deep) navigation.navigate(ROUTES.HOME_TAB, { screen: ROUTES.HOME_MAIN });
+            },
+          })}
+        />
         {/* O Tarô continua como leitura direta na navegação principal. O Chat
             segue funcional por contexto, mas não ocupa uma aba do produto. */}
         <Tab.Screen

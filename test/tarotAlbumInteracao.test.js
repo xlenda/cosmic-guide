@@ -5,10 +5,12 @@ const path = require('node:path');
 
 const raiz = path.join(__dirname, '..');
 
-test('carta oculta do Álbum aceita toque e abre uma resposta sem spoiler', () => {
+test('grupo de cartas ocultas aceita toque sem expor o slot canônico', () => {
   const fonte = fs.readFileSync(path.join(raiz, 'screens', 'TarotAlbumScreen.js'), 'utf8');
   assert.doesNotMatch(fonte, /disabled=\{!seen\}/);
-  assert.match(fonte, /seen \? openCard\(card\) : openHiddenCard\(\)/);
+  assert.match(fonte, /testID=\{`album-hidden-group-\$\{group\.key\}`\}/);
+  assert.match(fonte, /onPress=\{openHiddenCard\}/);
+  assert.doesNotMatch(fonte, /testID="album-card-hidden"/);
   assert.match(fonte, /testID="album-hidden-modal"/);
   assert.match(fonte, /testID="album-hidden-draw"/);
 });

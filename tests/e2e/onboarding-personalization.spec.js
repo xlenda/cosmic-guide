@@ -62,9 +62,36 @@ test('usuário novo recebe o primeiro caminho sem perder a Home', async ({ page 
   await expect(page.getByText('Olá, Touro')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Seu primeiro caminho')).toBeVisible();
   await expect(page.getByTestId('home-explore-toggle')).toBeVisible();
-  await expect(page.getByTestId('home-explore-toggle')).toContainText('Recolher o catálogo');
+  await expect(page.getByTestId('home-explore-toggle')).toContainText('Explorar todas as experiências');
+  await expect(page.getByTestId('card-tarot')).toHaveCount(0);
+  await page.getByTestId('home-explore-toggle').click();
+  await expect(page.getByText('Escolha o que você quer fazer.')).toBeVisible();
   await expect(page.getByTestId('card-tarot')).toBeVisible();
+  await page.getByTestId('explore-back').click();
   await expect(page.getByText('Pensamento cósmico do dia')).toBeVisible();
+});
+
+test('deep link frio de Explorar volta para a Home e a aba Início reseta sua pilha', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('app-language', 'pt');
+    window.localStorage.setItem(
+      'userSign',
+      JSON.stringify({ name: 'Touro', pt: 'Touro', icon: '♉', color: '#5FD98C' })
+    );
+    window.localStorage.setItem('cosmic-onboarding-intent-v1', 'self');
+  });
+
+  await page.goto('/cosmic-guide/explorar', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('Escolha o que você quer fazer.')).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId('explore-back').click();
+  await expect(page.getByTestId('home-today-line')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByTestId('home-explore-toggle').click();
+  await page.getByTestId('card-tarot').click();
+  await expect(page.getByTestId('tarot-draw')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('tab', { name: 'Início' }).click();
+  await expect(page.getByTestId('home-today-line')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('Escolha o que você quer fazer.')).toHaveCount(0);
 });
 
 test('atalho de signo mostra a leitura do signo tocado antes da Home', async ({ page }) => {
@@ -90,27 +117,28 @@ test('carta oculta do Álbum responde ao toque sem revelar o segredo', async ({ 
   });
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
+  await page.getByTestId('home-explore-toggle').click();
   await page.getByTestId('card-tarot').click();
   const albumOpen = page.getByTestId('tarot-album-open');
   await expect(albumOpen).toBeVisible({ timeout: 20_000 });
-  const hiddenCards = page.getByTestId('album-card-hidden');
+  const hiddenGroups = page.getByTestId(/^album-hidden-group-/);
   // O servidor estático do E2E é single-thread e o chunk lazy do Álbum é
   // grande. Se o primeiro clique cair antes da hidratação, tenta de novo até
   // a rota realmente montar — o mesmo cuidado dos testes do Mapa Astral.
   await expect(async () => {
-    if ((await hiddenCards.count()) !== 78) {
+    if ((await hiddenGroups.count()) !== 5) {
       if (await albumOpen.isVisible().catch(() => false)) {
         await albumOpen.click({ timeout: 5_000 }).catch(() => {});
       }
       throw new Error('o Álbum ainda não montou');
     }
   }).toPass({ timeout: 35_000, intervals: [500, 1_000, 2_000] });
-  await hiddenCards.first().click();
+  await hiddenGroups.first().click();
 
   const prompt = page.getByTestId('album-hidden-modal');
   await expect(prompt).toBeVisible();
-  await expect(prompt).toContainText('Esta carta ainda está guardada');
-  await expect(prompt).toContainText('depois de aparecer em uma tiragem');
+  await expect(prompt).toContainText('Estas cartas ainda estão guardadas');
+  await expect(prompt).toContainText('depois de aparecerem em uma tiragem');
   await expect(prompt).not.toContainText(/O Louco|O Mago|A Sacerdotisa/);
 
   await page.getByTestId('album-hidden-draw').click();
@@ -128,6 +156,7 @@ test('a primeira tiragem revela três cartas grandes em sequência', async ({ pa
   });
   await page.goto('/cosmic-guide/', { waitUntil: 'domcontentloaded' });
 
+  await page.getByTestId('home-explore-toggle').click();
   await page.getByTestId('card-tarot').click();
   await expect(page.getByTestId('tarot-draw')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('tarot-sign-lens')).toContainText('Áries');

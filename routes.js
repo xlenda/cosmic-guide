@@ -11,6 +11,7 @@ export const ROUTES = {
   ONBOARDING_CHOICE: 'OnboardingChoice',
 
   HOME_MAIN: 'HomeMain',
+  EXPLORE: 'Explore',
   HOROSCOPE: 'Horoscope',
   BIRTH_CHART: 'BirthChart',
   SKY_ALIGNMENT: 'SkyAlignment',

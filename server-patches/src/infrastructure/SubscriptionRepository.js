@@ -382,7 +382,7 @@ class SubscriptionRepository {
   forgetAccountData({ supabaseUserId }) {
     const userId = typeof supabaseUserId === "string" ? supabaseUserId.trim() : "";
     if (!userId) {
-      return { unlinkedSubscriptions: 0, social: emptySocialDeletion() };
+      return { unlinkedSubscriptions: 0, clearedVoiceUsage: 0, social: emptySocialDeletion() };
     }
     const now = new Date().toISOString();
     const forget = db.transaction(() => {
@@ -403,6 +403,12 @@ class SubscriptionRepository {
       // sem apagar uma denúncia válida feita contra outra pessoa.
       const social = deleteSocialAccountRows(db, { userId, now, deleteSuspension: true });
 
+      // A contagem diária da voz é ligada diretamente ao sub da conta e não
+      // tem valor fiscal nem antifraude depois da exclusão. Diferente da cota
+      // vitalícia de IA, removê-la não reabre benefício: a lápide abaixo
+      // impede que o mesmo token volte a sintetizar.
+      const voiceUsage = db.prepare("DELETE FROM voice_usage_daily WHERE user_id = ?").run(userId);
+
       // A LÁPIDE VEM POR ÚLTIMO, dentro da MESMA transação. A partir do instante
       // em que ela existe, requireAuth (socialAuth.js) recusa esse token. Se
       // qualquer limpeza acima falhar, o rollback preserva tudo e a requisição
@@ -415,7 +421,7 @@ class SubscriptionRepository {
         new Date(Date.now() - REVOKED_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
       );
 
-      return { unlinkedSubscriptions: result.changes, social };
+      return { unlinkedSubscriptions: result.changes, clearedVoiceUsage: voiceUsage.changes, social };
     });
 
     return forget();

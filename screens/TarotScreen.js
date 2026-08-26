@@ -20,7 +20,7 @@ import { useCouple } from '../context/CoupleContext';
 import { useAuth } from '../context/AuthContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { getBonusTarotReadings, consumeBonusTarotReading } from '../lib/cosmeticRewards';
-import { recordCardsSeen } from '../lib/tarotCollection';
+import { recordCardEncounter, recordCardsSeen } from '../lib/tarotCollection';
 import { ROUTES } from '../routes';
 import { useLanguage } from '../context/LanguageContext';
 import { translate } from '../lib/i18n';
@@ -73,6 +73,13 @@ import {
 import { getMajorThemeLens } from '../lib/tarotMajorThemeLenses';
 import { getMinorThemeLens } from '../lib/tarotMinorThemeLenses';
 import { commitTarotDrawSnapshot } from '../lib/tarotDrawCommit';
+import { buildTarotReceipt } from '../lib/tarotReceipt';
+import PremiumCosmicCard from '../components/PremiumCosmicCard';
+import {
+  buildCosmicShareCardContent,
+  cosmicShareCardPack,
+  sharePremiumCosmicCard,
+} from '../lib/cosmicShareCard';
 
 const FEATURE_KEY = 'tarot';
 
@@ -230,6 +237,7 @@ export default function TarotScreen() {
   const [reflectionSaving, setReflectionSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shared, setShared] = useState(false);
+  const [tarotShareStatus, setTarotShareStatus] = useState('idle');
   const completionInFlightRef = useRef(null);
   const activeReadingIdRef = useRef(null);
   const drawInFlightRef = useRef(false);
@@ -238,6 +246,7 @@ export default function TarotScreen() {
   const scrollRef = useRef(null);
   const ritualOffsetRef = useRef(0);
   const focusOnRitualLayoutRef = useRef(false);
+  const tarotShareCardRef = useRef(null);
   const focusRitual = useCallback((animated = true) => {
     const schedule = typeof requestAnimationFrame === 'function'
       ? requestAnimationFrame
@@ -455,7 +464,9 @@ export default function TarotScreen() {
         focusId: readingGuide?.focus?.id || null,
         focusLabel: readingGuide?.focus?.label || null,
         spreadId: readingSpread?.id || null,
+        spreadLabel: readingSpread?.label || null,
         signId: readingGuide?.signLens?.id || null,
+        signLabel: readingGuide?.signLens?.label || null,
         outcome: model.outcome,
         cards: drawn.map((card, index) => ({
           id: card.id,
@@ -485,6 +496,65 @@ export default function TarotScreen() {
   ]);
   const corpoDaTiragem = drawn && revealed.every(Boolean) ? readingArtifacts?.fullBody || '' : '';
   const slidesDaTiragem = useMemo(() => paraSlides(corpoDaTiragem), [corpoDaTiragem]);
+  const personalizationReceipt = useMemo(
+    () => (readingArtifacts ? buildTarotReceipt(readingArtifacts.readingDetails, readingLanguage) : null),
+    [readingArtifacts, readingLanguage]
+  );
+  const tarotSharePack = useMemo(() => cosmicShareCardPack(readingLanguage), [readingLanguage]);
+  const tarotShareCardContent = useMemo(() => {
+    if (!readingArtifacts?.readingDetails) return null;
+    const details = readingArtifacts.readingDetails;
+    const cardNames = Array.isArray(details.cards) ? details.cards.map((card) => card?.name).filter(Boolean) : [];
+    const title = readingTranslate('tarot.diary.title', { theme: readingArtifacts.themeLabel });
+    const detail = cardNames.join(' · ');
+    return buildCosmicShareCardContent({
+      brand: tarotSharePack.brand,
+      edition: tarotSharePack.tarotEdition,
+      eyebrow: tarotSharePack.tarotEyebrow,
+      glyph: '✦',
+      title,
+      // A ponte nasce somente das três cartas. Pergunta, foco, signo e
+      // reflexão não entram neste artefato público.
+      subtitle: readingArtifacts.bridge,
+      detail,
+      meta: tarotSharePack.tarotMeta({
+        theme: readingArtifacts.themeLabel,
+        spread: details.spreadLabel,
+      }),
+      footer: tarotSharePack.tarotFooter,
+      shareText: tarotSharePack.tarotShareText({ title, detail }),
+      fileName: tarotSharePack.tarotFileName,
+    });
+  }, [readingArtifacts, readingTranslate, tarotSharePack]);
+
+  useEffect(() => {
+    setTarotShareStatus('idle');
+  }, [readingCompletionId]);
+
+  const shareTarotCard = useCallback(async () => {
+    if (!tarotShareCardContent || tarotShareStatus === 'preparing') return;
+    setTarotShareStatus('preparing');
+    try {
+      const outcome = await sharePremiumCosmicCard({
+        cardRef: tarotShareCardRef,
+        content: tarotShareCardContent,
+        dialogTitle: tarotSharePack.tarotDialogTitle,
+      });
+      if (outcome?.status === 'cancelled') setTarotShareStatus('idle');
+      else if (outcome?.status === 'shared' || outcome?.status === 'downloaded') setTarotShareStatus(outcome.status);
+      else setTarotShareStatus('unavailable');
+    } catch {
+      setTarotShareStatus('unavailable');
+    }
+  }, [tarotShareCardContent, tarotSharePack.tarotDialogTitle, tarotShareStatus]);
+
+  const tarotShareFeedback = tarotShareStatus === 'shared'
+    ? tarotSharePack.shared
+    : tarotShareStatus === 'downloaded'
+      ? tarotSharePack.downloaded
+      : tarotShareStatus === 'unavailable'
+        ? tarotSharePack.unavailable
+        : '';
 
   // Todo tema libera só 1 tiragem por dia (ver lib/tarotDailyLimit) — recheca
   // sempre que o tema muda, já que a resposta é assíncrona (AsyncStorage).
@@ -847,9 +917,20 @@ export default function TarotScreen() {
       if (activeReadingIdRef.current === targetReadingId) {
         setJournalEntryId(entryId);
       }
-      // A conclusão só fica pronta depois que o Álbum recebeu as cartas. Sem
-      // aguardar esta gravação, abrir o Álbum logo após a terceira revelação
-      // podia mostrar 0/78 até a pessoa sair e voltar.
+      // Cada posição tem um id estável. A repetição aqui cobre uma tiragem
+      // retomada já totalmente revelada sem duplicar contagens: o Álbum 2.0
+      // ignora occurrenceIds que já foram registrados durante a raspagem.
+      await Promise.all(
+        drawn.map((card, index) =>
+          recordCardEncounter({
+            cardId: card.id,
+            reversed: orientations[index] === true,
+            occurredAt: readingCreatedAt,
+            occurrenceId: `${targetReadingId}:card:${index}`,
+          })
+        )
+      );
+      // Compatibilidade com versões antigas do álbum e com os bônus de naipe.
       await recordCardsSeen(drawn.map((card) => card.id));
       // A limpeza e condicional e deve acontecer mesmo quando a UI ja mudou.
       // Assim a leitura antiga completa nao reaparece; uma nova nunca e apagada.
@@ -870,19 +951,22 @@ export default function TarotScreen() {
     readingQuestion,
     readingCompletionId,
     readingCreatedAt,
+    orientations,
     readingTranslate,
   ]);
 
   const reveal = async (i) => {
+    if (!drawn?.[i] || revealed[i]) return;
     funnel.scratchReveal('tarot', String(readingPositions[i]?.id || POSITIONS[i] || i).toLowerCase());
     const next = revealed.map((value, index) => (index === i ? true : value));
-    // Persiste a coleção antes de publicar o estado final na tela. Assim o
-    // botão Álbum, que continua disponível no cabeçalho, nunca vence a escrita
-    // da terceira carta. recordCardsSeen é idempotente e completeReading
-    // repete a chamada para também cobrir uma tiragem retomada do snapshot.
-    if (next.every(Boolean) && drawn) {
-      await recordCardsSeen(drawn.map((card) => card.id));
-    }
+    // O encontro nasce quando ESTA carta é revelada — não apenas ao terminar
+    // as três. O id estável impede toque duplo e retomada de inflarem o álbum.
+    await recordCardEncounter({
+      cardId: drawn[i].id,
+      reversed: orientations[i] === true,
+      occurredAt: readingCreatedAt,
+      occurrenceId: `${readingCompletionId}:card:${i}`,
+    });
     const persisted = await updatePendingTarotRevealed(next);
     setRevealed(next);
     if (!persisted && !next.every(Boolean)) {
@@ -1485,9 +1569,55 @@ export default function TarotScreen() {
                   <Ionicons name="compass-outline" size={18} color={theme.color} />
                   <Text style={styles.personalPromptText}>{readingArtifacts.reflectionPrompt}</Text>
                 </View>
+                {personalizationReceipt ? (
+                  <View style={styles.personalReceipt} testID="tarot-personal-receipt">
+                    <View style={styles.personalReceiptHeader}>
+                      <Ionicons name="shield-checkmark-outline" size={17} color={colors.gold} />
+                      <Text style={styles.personalReceiptTitle}>{personalizationReceipt.title}</Text>
+                    </View>
+                    {personalizationReceipt.rows.map((row) => (
+                      <View key={row.id} style={styles.personalReceiptRow}>
+                        <Text style={styles.personalReceiptLabel}>{row.label}</Text>
+                        <Text style={styles.personalReceiptValue}>{row.value}</Text>
+                      </View>
+                    ))}
+                    <Text style={styles.personalReceiptPrivacy}>{personalizationReceipt.privacy}</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.personalDisclaimer}>{t('tarot.personal.disclaimer')}</Text>
               </View>
             )}
+
+            {ritualComplete && tarotShareCardContent ? (
+              <View style={styles.tarotArtifact} testID="tarot-premium-card-section">
+                <Text style={styles.tarotArtifactTitle}>{tarotSharePack.tarotTitle}</Text>
+                <Text style={styles.tarotArtifactBody}>{tarotSharePack.tarotBody}</Text>
+                <PremiumCosmicCard
+                  ref={tarotShareCardRef}
+                  content={tarotShareCardContent}
+                  style={styles.tarotArtifactPreview}
+                  testID="tarot-premium-card"
+                />
+                <View style={styles.tarotArtifactPrivacy}>
+                  <Ionicons name="lock-closed-outline" size={14} color={colors.gold} />
+                  <Text style={styles.tarotArtifactPrivacyText}>{tarotSharePack.tarotPrivacyNote}</Text>
+                </View>
+                <Pressable
+                  testID="tarot-premium-card-share"
+                  style={({ pressed }) => [styles.tarotArtifactButton, pressed && styles.communityPressed]}
+                  onPress={shareTarotCard}
+                  accessibilityRole="button"
+                  accessibilityLabel={tarotSharePack.tarotButton}
+                  accessibilityHint={tarotSharePack.shareA11yHint}
+                >
+                  <Ionicons name="share-social-outline" size={17} color="#21152D" />
+                  <Text style={styles.tarotArtifactButtonText}>
+                    {tarotShareStatus === 'preparing' ? tarotSharePack.preparing : tarotSharePack.tarotButton}
+                  </Text>
+                </Pressable>
+                {tarotShareFeedback ? <Text style={styles.tarotArtifactFeedback}>{tarotShareFeedback}</Text> : null}
+              </View>
+            ) : null}
 
             {revealed.every(Boolean) && (
               <TouchableOpacity
@@ -2367,7 +2497,37 @@ const styles = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, padding: 13, backgroundColor: 'rgba(255,255,255,0.025)',
   },
   personalPromptText: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 21, fontWeight: '600' },
+  personalReceipt: {
+    marginTop: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.gold + '32',
+    backgroundColor: colors.gold + '09',
+    padding: 12,
+    gap: 8,
+  },
+  personalReceiptHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 2 },
+  personalReceiptTitle: { flex: 1, color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '900' },
+  personalReceiptRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  personalReceiptLabel: { width: 92, color: colors.textMuted, fontSize: 10, lineHeight: 15, fontWeight: '800', textTransform: 'uppercase' },
+  personalReceiptValue: { flex: 1, color: colors.textSecondary, fontSize: 11, lineHeight: 16 },
+  personalReceiptPrivacy: { color: colors.gold, fontSize: 10, lineHeight: 16, marginTop: 2 },
   personalDisclaimer: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 12 },
+  tarotArtifact: {
+    backgroundColor: '#140D19', borderRadius: 22, padding: 17, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.gold + '38', alignItems: 'center',
+  },
+  tarotArtifactTitle: { color: colors.text, fontSize: 17, lineHeight: 22, fontWeight: '900', textAlign: 'center' },
+  tarotArtifactBody: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 4, textAlign: 'center' },
+  tarotArtifactPreview: { width: '76%', maxWidth: 270, marginTop: 15, borderRadius: 22 },
+  tarotArtifactPrivacy: { width: '100%', flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 12 },
+  tarotArtifactPrivacyText: { flex: 1, color: colors.gold, fontSize: 10, lineHeight: 16 },
+  tarotArtifactButton: {
+    width: '100%', minHeight: 48, borderRadius: 14, marginTop: 13,
+    backgroundColor: colors.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  tarotArtifactButtonText: { color: '#21152D', fontSize: 13, fontWeight: '900' },
+  tarotArtifactFeedback: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 7, textAlign: 'center' },
   meaningCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
   meaningIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   meaningPos: { color: colors.text, fontSize: 15, fontWeight: '800' },

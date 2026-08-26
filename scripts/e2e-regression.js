@@ -18,6 +18,15 @@ const BASE = `http://localhost:${PORT}/cosmic-guide/`;
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.ttf': 'font/ttf', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' };
 
+// Espelho dos rewrites ESTÁTICOS que scripts/deploy-vercel.sh grava no
+// vercel.json. O fallback genérico abaixo não consegue distinguir um documento
+// público da SPA; sem este mapa o portão local aceitaria o onboarding como se
+// fosse a política (o defeito exato que este cenário precisa impedir).
+const STATIC_REWRITES = new Map([
+  ['/excluir-conta', '/cosmic-guide/excluir-conta.html'],
+  ['/cosmic-guide/privacidade', '/cosmic-guide/privacidade.html'],
+]);
+
 // Servidor estático mínimo com o MESMO fallback SPA do vercel.json — arquivo
 // real quando existe, senão o index do app (regressão do "F5 dava 404").
 function serve() {
@@ -32,7 +41,8 @@ function serve() {
         res.writeHead(404);
         return res.end('not found');
       }
-      let filePath = path.join(ROOT, urlPath);
+      const rewrittenPath = STATIC_REWRITES.get(urlPath) || urlPath;
+      let filePath = path.join(ROOT, rewrittenPath);
       if (urlPath.endsWith('/')) filePath = path.join(filePath, 'index.html');
       if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
         filePath = path.join(ROOT, 'cosmic-guide', 'index.html');
@@ -92,6 +102,24 @@ async function openExplore(page) {
   const toggle = page.getByTestId('home-explore-toggle');
   await toggle.scrollIntoViewIfNeeded();
   if (/explorar/i.test(await toggle.innerText())) await toggle.click();
+  await page.getByTestId('explore-back').waitFor({ state: 'visible' });
+}
+
+async function openExploreExperience(page, testId) {
+  await openExplore(page);
+  const card = page.getByTestId(testId);
+  if ((await card.count()) === 0) {
+    // O catálogo usa SectionList: itens das últimas seções só entram na árvore
+    // quando a lista se aproxima deles. Rolar o contêiner identificado testa a
+    // mesma navegação real sem depender do tamanho da janela de virtualização.
+    await page.getByTestId('explore-list').evaluate((list) => {
+      list.scrollTop = list.scrollHeight;
+      list.dispatchEvent(new Event('scroll', { bubbles: true }));
+    });
+    await page.waitForTimeout(500);
+  }
+  await card.scrollIntoViewIfNeeded();
+  await card.click();
 }
 
 (async () => {
@@ -278,8 +306,7 @@ async function openExplore(page) {
   console.log('\n[6] Telas de casal pro solo (bug: cartão duplicado + ícone sobreposto, 26/07)');
   {
     const { context, page } = await newSoloPage(browser);
-    await openExplore(page);
-    await page.getByTestId('card-reconectar').click();
+    await openExploreExperience(page, 'card-reconectar');
     await page.waitForTimeout(1400);
     const body = await page.evaluate(() => document.body.innerText);
     check('cartão único (sem "Complete o quiz" duplicado)', !body.includes('Complete o quiz do casal primeiro'));
@@ -316,8 +343,7 @@ async function openExplore(page) {
     });
     await page.goto(BASE);
     await page.waitForTimeout(2500);
-    await openExplore(page);
-    await page.getByTestId('card-reconectar').click();
+    await openExploreExperience(page, 'card-reconectar');
     await page.waitForTimeout(1400);
     const body = await page.evaluate(() => document.body.innerText);
     check('conteúdo real + SubscribeTeaser', /O resto desta tela está logo aí embaixo|Continue com a assinatura/.test(body));
@@ -355,6 +381,37 @@ async function openExplore(page) {
       page.url()
     );
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
+    await context.close();
+  }
+
+  console.log('\n[10] Privacidade pública: abertura fria sem JavaScript');
+  {
+    // Contexto novo, sem storage e com JS realmente desligado. Se o rewrite
+    // sumir, a SPA devolve o splash/onboarding e esta prova falha mesmo com 200.
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+    const response = await page.goto(`http://localhost:${PORT}/cosmic-guide/privacidade`);
+    const body = await page.locator('body').innerText();
+    const heading = await page.getByRole('heading', { name: 'Política de Privacidade', exact: true }).count();
+    const scriptCount = await page.locator('script').count();
+    check(
+      'URL pública responde 200 com a política estática (não onboarding)',
+      response.status() === 200 && heading === 1 && body.includes('Como o Cosmic Guide trata seus dados') && !body.includes('7 dias grátis'),
+      JSON.stringify({ status: response.status(), heading, url: page.url() })
+    );
+    check(
+      'documento inclui PT, ES e EN sem depender de JavaScript',
+      body.includes('Cómo trata tus datos Cosmic Guide') && body.includes('How Cosmic Guide handles your data') && scriptCount === 0,
+      JSON.stringify({ scriptCount })
+    );
+    check(
+      'pathname canônico permanece /cosmic-guide/privacidade',
+      new URL(page.url()).pathname === '/cosmic-guide/privacidade',
+      page.url()
+    );
     await context.close();
   }
 
