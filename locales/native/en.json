@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Cosmic Guide",
+    "NSCameraUsageDescription": "Allow camera access to photograph the palm, face, foot, moles, or coffee grounds you choose to analyze.",
+    "NSPhotoLibraryUsageDescription": "Allow photo access to choose an image for a symbolic reading."
+  },
+  "android": {
+    "app_name": "Cosmic Guide"
+  }
+}

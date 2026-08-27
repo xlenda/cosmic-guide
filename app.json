@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "cloud.cosmicguide.app"
+      "bundleIdentifier": "cloud.cosmicguide.app",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,6 +33,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "locales": {
+      "pt": "./locales/native/pt.json",
+      "es": "./locales/native/es.json",
+      "en": "./locales/native/en.json"
     },
     "experiments": {
       "baseUrl": "/cosmic-guide"

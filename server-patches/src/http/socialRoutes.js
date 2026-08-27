@@ -9,6 +9,7 @@ const rateLimit = require("express-rate-limit");
 const { db } = require("../infrastructure/db");
 const { requireAuth } = require("./socialAuth");
 const { stripControlChars } = require("../infrastructure/textSanitize");
+const { assessCommunityContent } = require("../application/communityContentSafety");
 const { deleteSocialAccountData } = require("../infrastructure/SocialAccountCleanup");
 const {
   COMMUNITY_GUIDELINES_VERSION,
@@ -115,6 +116,18 @@ function codedError(res, status, code, error) {
   return res.status(status).json({ code, error });
 }
 
+function rejectUnsafeContent(res, ...values) {
+  const assessment = assessCommunityContent(...values);
+  if (assessment.allowed) return false;
+  codedError(
+    res,
+    422,
+    "community_content_rejected",
+    "o conteúdo não atende às Diretrizes da Comunidade"
+  );
+  return true;
+}
+
 // Bloqueio vale nos DOIS sentidos (migração 016 / src/http/moderationRoutes.js):
 // quem bloqueia deixa de ver E deixa de ser visto. Só um sentido faria o
 // bloqueio esconder o incômodo de quem bloqueou e manter a pessoa exposta a
@@ -166,6 +179,7 @@ router.put("/profile", writeLimiter, (req, res) => {
   if (taken) return res.status(409).json({ error: "username já está em uso" });
 
   const cleanDisplayName = stripControlChars(displayName.trim()).slice(0, 60);
+  if (rejectUnsafeContent(res, cleanDisplayName)) return;
   const existing = profileRecordOrNull(req.userId);
   const ts = nowIso();
   if (existing) {
@@ -310,6 +324,7 @@ router.post("/community/posts", writeLimiter, (req, res) => {
   if (title.length > TITLE_MAX || body.length > BODY_MAX) {
     return codedError(res, 400, "post_too_long", `title deve ter no máximo ${TITLE_MAX} e body ${BODY_MAX} caracteres`);
   }
+  if (rejectUnsafeContent(res, title, body)) return;
 
   const resolved = resolveCommunityPostMetadata({
     roomId: payload.roomId,
@@ -494,15 +509,21 @@ router.post("/posts", writeLimiter, (req, res) => {
   if (!title || typeof title !== "string" || !body || typeof body !== "string") {
     return res.status(400).json({ error: "title e body são obrigatórios" });
   }
-  if (title.length > TITLE_MAX || body.length > BODY_MAX) {
+  const cleanTitle = stripControlChars(title).trim();
+  const cleanBody = stripControlChars(body).trim();
+  if (!cleanTitle || !cleanBody) {
+    return res.status(400).json({ error: "title e body são obrigatórios" });
+  }
+  if (cleanTitle.length > TITLE_MAX || cleanBody.length > BODY_MAX) {
     return res.status(400).json({ error: `title deve ter no máximo ${TITLE_MAX} e body ${BODY_MAX} caracteres` });
   }
+  if (rejectUnsafeContent(res, cleanTitle, cleanBody)) return;
   const info = db
     .prepare(
       `INSERT INTO social_posts (user_id, reading_type, title, body, created_at, visibility)
        VALUES (?, ?, ?, ?, ?, 'followers')`
     )
-    .run(req.userId, readingType || null, stripControlChars(title), stripControlChars(body), nowIso());
+    .run(req.userId, readingType || null, cleanTitle, cleanBody, nowIso());
   res.status(201).json({ id: info.lastInsertRowid });
 });
 
@@ -593,14 +614,16 @@ router.post("/posts/:id/comments", writeLimiter, (req, res) => {
       ? codedError(res, 400, "invalid_comment_content", "body é obrigatório")
       : res.status(400).json({ error: "body é obrigatório" });
   }
-  if (body.length > COMMENT_MAX) {
+  const cleanBody = stripControlChars(body.trim());
+  if (cleanBody.length > COMMENT_MAX) {
     return post.visibility === "community"
       ? codedError(res, 400, "comment_too_long", `body deve ter no máximo ${COMMENT_MAX} caracteres`)
       : res.status(400).json({ error: `body deve ter no máximo ${COMMENT_MAX} caracteres` });
   }
+  if (rejectUnsafeContent(res, cleanBody)) return;
   const info = db
     .prepare("INSERT INTO social_comments (post_id, user_id, body, created_at) VALUES (?, ?, ?, ?)")
-    .run(req.params.id, req.userId, stripControlChars(body.trim()), nowIso());
+    .run(req.params.id, req.userId, cleanBody, nowIso());
   res.status(201).json({ id: info.lastInsertRowid });
 });
 

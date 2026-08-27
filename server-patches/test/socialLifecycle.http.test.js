@@ -64,6 +64,7 @@ async function post(userId, title = "Título") {
 }
 
 test.after(() => {
+  if (db.open) db.close();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 

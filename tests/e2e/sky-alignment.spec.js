@@ -80,14 +80,39 @@ async function openAlignmentFromHome(page) {
   await expect(page.getByTestId('sky-alignment-stage')).toBeVisible({ timeout: 30_000 });
 }
 
+async function boundingBoxAfterNavigationSettles(locator) {
+  let previousGeometry = '';
+  let stableSamples = 0;
+
+  await expect.poll(async () => {
+    const box = await locator.boundingBox();
+    if (!box) return false;
+    const geometry = [box.x, box.y, box.width, box.height]
+      .map((value) => Math.round(value * 10) / 10)
+      .join(':');
+    stableSamples = geometry === previousGeometry ? stableSamples + 1 : 0;
+    previousGeometry = geometry;
+    return stableSamples >= 2;
+  }, {
+    message: 'o disco deve parar de se mover com a transição da tela antes do arrasto',
+    timeout: 5_000,
+    intervals: [50, 80, 120, 160],
+  }).toBe(true);
+
+  return locator.boundingBox();
+}
+
 test('arrastar os dois discos revela o recibo calculado sem criar overflow', async ({ page }) => {
   await seedKnownUser(page);
   await openAlignmentFromHome(page);
 
   const current = page.getByTestId('sky-alignment-stage-current-sky');
   const natal = page.getByTestId('sky-alignment-stage-my-map');
-  const currentBox = await current.boundingBox();
-  const natalBox = await natal.boundingBox();
+  // A rota entra com uma transição horizontal. `visible` pode ser verdadeiro
+  // enquanto a geometria ainda está mudando; arrastar nesse frame faria o
+  // Playwright mirar uma coordenada antiga que nenhum usuário enxerga parada.
+  const currentBox = await boundingBoxAfterNavigationSettles(current);
+  const natalBox = await boundingBoxAfterNavigationSettles(natal);
   expect(currentBox).not.toBeNull();
   expect(natalBox).not.toBeNull();
 

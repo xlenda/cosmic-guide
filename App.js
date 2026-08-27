@@ -691,9 +691,9 @@ function Gate() {
             borderRadius: 32,
             marginHorizontal: 12,
             marginBottom: 10,
-            height: 64,
-            paddingBottom: 8,
-            paddingTop: 6,
+            height: 68,
+            paddingBottom: 5,
+            paddingTop: 5,
             shadowColor: '#000',
             shadowOpacity: 0.35,
             shadowRadius: 16,
@@ -705,7 +705,12 @@ function Gate() {
           // A aba ativa ganha um leito arredondado próprio dentro da pílula —
           // o realce que o dock do concorrente usa (tinta + fundo suave).
           tabBarActiveBackgroundColor: colors.accent + '2E',
-          tabBarItemStyle: { borderRadius: 24, marginHorizontal: 5, marginVertical: 5 },
+          tabBarItemStyle: {
+            borderRadius: 24,
+            marginHorizontal: 5,
+            marginVertical: 4,
+            minHeight: 44,
+          },
           tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
           tabBarIcon: ({ color, size, focused }) => {
             let icon = 'planet';

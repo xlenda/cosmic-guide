@@ -59,6 +59,7 @@ const ERROR_KEY_BY_CODE = Object.freeze({
   public_zodiac_sign_required: 'community.error.community_public_sign_required',
   room_mismatch: 'community.error.community_room_mismatch',
   community_suspended: 'community.error.community_suspended',
+  community_content_rejected: 'community.error.community_content_rejected',
 });
 
 const COMMUNITY_SUSPENDED_ERROR_KEY = ERROR_KEY_BY_CODE.community_suspended;

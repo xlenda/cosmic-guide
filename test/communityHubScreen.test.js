@@ -275,6 +275,10 @@ test('cÃ³digos estÃ¡veis do servidor escolhem traduÃ§Ãµes sem exibir a m
     communityErrorKey({ code: 'community_suspended' }),
     'community.error.community_suspended'
   );
+  assert.equal(
+    communityErrorKey({ code: 'community_content_rejected' }),
+    'community.error.community_content_rejected'
+  );
   assert.equal(communityErrorKey({ code: 'unknown_new_code' }), 'community.error.generic');
 });
 

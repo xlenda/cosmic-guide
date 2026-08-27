@@ -25,6 +25,7 @@
 // Como rodar (dentro de /root/forja-backend ou de uma cópia):
 //   node --experimental-test-module-mocks --test test/aiQuota.http.test.js
 const { mock } = require("node:test");
+const path = require("node:path");
 
 // requireAuth (socialAuth.js) verifica o JWT contra o JWKS real do Supabase —
 // mesmo mock de socialRoutes.http.test.js: token "user:<id>" vira um payload
@@ -49,14 +50,26 @@ mock.module("jose", {
   },
 });
 
-const path = require("node:path");
-
 // A IA de verdade custa dinheiro e não pode ser chamada por teste nenhum.
 let chamadasDeIa = 0;
 const chamadasChat = [];
-mock.module(path.join(__dirname, "..", "src", "infrastructure", "AnthropicChatProvider.js"), {
-  namedExports: {
-    AnthropicChatProvider: class {
+// `mock.module()` ainda não intercepta com consistência um `require()`
+// CommonJS no Node 22. Pré-carregar o cache do CommonJS mantém este teste
+// completamente offline e garante que uma mudança no runner nunca gaste a
+// API real por acidente.
+function mockCommonJsModule(resolvedPath, exports) {
+  require.cache[resolvedPath] = {
+    id: resolvedPath,
+    filename: resolvedPath,
+    loaded: true,
+    exports,
+    children: [],
+    paths: module.paths,
+  };
+}
+
+mockCommonJsModule(require.resolve("../src/infrastructure/AnthropicChatProvider.js"), {
+  AnthropicChatProvider: class {
       async chat(args) {
         chamadasDeIa += 1;
         chamadasChat.push(args);
@@ -98,16 +111,13 @@ mock.module(path.join(__dirname, "..", "src", "infrastructure", "AnthropicChatPr
         chamadasDeIa += 1;
         return { title: "t", body: "b" };
       }
-    },
   },
 });
 
 // compressImage roda sharp de verdade — nos testes a "foto" é uma string
 // qualquer, então o compressor vira identidade.
-mock.module(path.join(__dirname, "..", "src", "infrastructure", "imageProcessing.js"), {
-  namedExports: {
-    compressImage: async (imageBase64, mediaType) => ({ imageBase64, mediaType: mediaType || "image/jpeg" }),
-  },
+mockCommonJsModule(require.resolve("../src/infrastructure/imageProcessing.js"), {
+  compressImage: async (imageBase64, mediaType) => ({ imageBase64, mediaType: mediaType || "image/jpeg" }),
 });
 
 const fs = require("node:fs");
@@ -133,6 +143,7 @@ const { db } = require("../src/infrastructure/db");
 const { limits } = require("../src/http/aiQuota");
 
 test.after(() => {
+  if (db.open) db.close();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 

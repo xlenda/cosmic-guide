@@ -463,8 +463,15 @@ export default function SkyAlignmentStage({
         runOnJS(emitHaptic)('magnetic');
       }
     })
-    .onEnd(() => {
-      const isInMagneticZone = progress.get() >= MAGNET_PROGRESS;
+    .onEnd((event) => {
+      // `progress` é derivado de translateX. No navegador, o último frame do
+      // pointer pode chegar no mesmo tick do onEnd e o derived value ainda
+      // refletir o frame anterior. Calcular pelo evento final elimina essa
+      // corrida sem mudar o gesto nativo nem o limiar magnético.
+      const finalX = clamp(gestureStartX.get() + event.translationX, -travel, 8);
+      const finalProgress = travel > 0 ? clamp((-finalX) / travel, 0, 1) : 0;
+      const isInMagneticZone = finalProgress >= MAGNET_PROGRESS;
+      translateX.set(finalX);
       if (reducedMotion) lift.set(0);
       else {
         lift.set(withTiming(0, {

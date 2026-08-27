@@ -55,6 +55,7 @@ app.use((err, _req, res, _next) => {
 });
 
 test.after(() => {
+  if (db.open) db.close();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 

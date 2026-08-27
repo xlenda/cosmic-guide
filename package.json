@@ -1,6 +1,9 @@
 {
   "name": "cosmic-oracle-seu-guia-c-smico",
   "version": "1.1.0",
+  "engines": {
+    "node": "22.x"
+  },
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -13,7 +16,10 @@
     "aso:export": "node play-store/metadata/export-listings.js",
     "aso:assets": "node play-store/assets/loja-shots.js --all",
     "build:android": "npx --yes eas-cli@latest build --platform android --profile production",
-    "submit:android": "npx --yes eas-cli@latest submit --platform android --profile production"
+    "submit:android": "npx --yes eas-cli@latest submit --platform android --profile production",
+    "build:ios": "npx --yes eas-cli@latest build --platform ios --profile production",
+    "submit:ios": "npx --yes eas-cli@latest submit --platform ios --profile production",
+    "build:stores": "npx --yes eas-cli@latest build --platform all --profile production"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -21,15 +27,15 @@
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.112.4",
     "@vercel/analytics": "^2.0.1",
     "astronomy-engine": "^2.1.19",
     "expo": "~54.0.37",
     "expo-asset": "~12.0.13",
     "expo-audio": "~1.1.1",
     "expo-constants": "~18.0.14",
-    "expo-font": "~14.0.12",
     "expo-file-system": "~19.0.24",
+    "expo-font": "~14.0.12",
     "expo-haptics": "~15.0.8",
     "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.11",
@@ -58,8 +64,8 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/register": "^7.29.7",
-    "@playwright/test": "^1.61.1",
-    "babel-preset-expo": "~54.0.0",
-    "sharp": "^0.35.3"
+    "@playwright/test": "^1.62.1",
+    "babel-preset-expo": "~54.0.12",
+    "sharp": "^0.35.4"
   }
 }

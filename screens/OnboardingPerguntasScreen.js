@@ -748,7 +748,10 @@ const styles = StyleSheet.create({
   barras: { flexDirection: 'row', gap: 4 },
   barra: { flex: 1, height: 3, borderRadius: 2, borderCurve: 'continuous', backgroundColor: colors.gold },
   barraFutura: { opacity: 0.3 },
-  voltarRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, alignSelf: 'flex-start' },
+  voltarRow: {
+    flexDirection: 'row', alignItems: 'center', marginTop: 12, alignSelf: 'flex-start',
+    minHeight: 44, paddingHorizontal: 4,
+  },
   voltarTexto: { color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 },
 
   // paddingBottom 160 ≥ 140: lei do dvh — o botão do pé nunca morre atrás de
@@ -942,7 +945,7 @@ const styles = StyleSheet.create({
   atalho: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 10, marginTop: 6 },
   atalhoTexto: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
   coupleLink: {
-    minHeight: 42,
+    minHeight: 44,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',

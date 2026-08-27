@@ -2071,6 +2071,7 @@ const styles = StyleSheet.create({
   todayLine: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginHorizontal: 20, marginTop: -6, marginBottom: 14, paddingVertical: 2,
+    minHeight: 44,
   },
   todayLineText: { color: colors.textSecondary, fontSize: 13, flex: 1 },
   todayLineCta: { color: colors.teal, fontSize: 13, fontWeight: '800' },
@@ -2120,6 +2121,7 @@ const styles = StyleSheet.create({
   lovePhraseBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     backgroundColor: '#fff', borderRadius: 12, paddingVertical: 10, marginTop: 14, alignSelf: 'flex-start', paddingHorizontal: 18,
+    minHeight: 44,
   },
   lovePhraseBtnText: { color: colors.accent, fontSize: 13, fontWeight: '800' },
   // (peekCard saiu junto com a Espiada de Amanhã — a remoção das Temporadas do

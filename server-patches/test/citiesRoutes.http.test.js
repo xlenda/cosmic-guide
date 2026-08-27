@@ -65,6 +65,9 @@ test.after(() => {
   // Fecha o handle do SQLite ANTES de apagar o diretório: no Windows um
   // arquivo aberto não pode ser removido (EPERM) e a limpeza derrubaria a
   // suíte inteira no fim, mesmo com todos os testes verdes.
+  const appDbPath = require.resolve("../src/infrastructure/db");
+  const appDb = require.cache[appDbPath]?.exports?.db;
+  if (appDb?.open) appDb.close();
   try {
     _resetCitiesDb();
   } catch (_) {

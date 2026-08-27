@@ -72,6 +72,7 @@ function communityPost(userId, payload) {
 }
 
 test.after(() => {
+  if (db.open) db.close();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
@@ -250,6 +251,27 @@ test("post community aceita like sem follow; comentário exige aceite vigente", 
     .set(auth("inter_reader"))
     .send({ body: "Olá" })
     .expect(201);
+});
+
+test("filtro pré-publicação recusa ameaça em post e comentário", async () => {
+  await createProfile("safe_author").expect(200);
+  await createProfile("safe_reader").expect(200);
+  await acceptGuidelines("safe_author").expect(200);
+  await acceptGuidelines("safe_reader").expect(200);
+
+  const refusedPost = await communityPost("safe_author", {
+    roomId: "plaza",
+    body: "Eu vou te matar",
+  }).expect(422);
+  assert.equal(refusedPost.body.code, "community_content_rejected");
+
+  const created = await communityPost("safe_author", { roomId: "plaza" }).expect(201);
+  const refusedComment = await supertest(app)
+    .post(`/api/social/posts/${created.body.id}/comments`)
+    .set(auth("safe_reader"))
+    .send({ body: "I will hurt you" })
+    .expect(422);
+  assert.equal(refusedComment.body.code, "community_content_rejected");
 });
 
 test("bloqueio remove posts community nos dois sentidos", async () => {

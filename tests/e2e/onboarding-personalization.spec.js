@@ -89,7 +89,9 @@ test('deep link frio de Explorar volta para a Home e a aba Início reseta sua pi
   await page.getByTestId('home-explore-toggle').click();
   await page.getByTestId('card-tarot').click();
   await expect(page.getByTestId('tarot-draw')).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('tab', { name: 'Início' }).click();
+  // Bottom tabs do React Navigation viram links semânticos na web. `tab`
+  // era um seletor antigo e falhava mesmo com a navegação visível e funcional.
+  await page.getByRole('link', { name: /Início/ }).click();
   await expect(page.getByTestId('home-today-line')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Escolha o que você quer fazer.')).toHaveCount(0);
 });

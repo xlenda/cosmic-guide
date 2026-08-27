@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Cosmic Guide",
+    "NSCameraUsageDescription": "Permita o acesso à câmera para fotografar a mão, o rosto, o pé, as pintas ou a borra de café que você escolher analisar.",
+    "NSPhotoLibraryUsageDescription": "Permita o acesso às fotos para escolher uma imagem para uma leitura simbólica."
+  },
+  "android": {
+    "app_name": "Cosmic Guide"
+  }
+}

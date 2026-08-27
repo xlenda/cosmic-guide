@@ -53,6 +53,13 @@ test('o palco usa gesto na UI thread sem bloquear a rolagem vertical', () => {
   assert.doesNotMatch(STAGE, /PanResponder/);
 });
 
+test('o fim do gesto usa a posição do evento final, sem corrida com derived value', () => {
+  assert.match(STAGE, /\.onEnd\(\(event\) =>/);
+  assert.match(STAGE, /gestureStartX\.get\(\) \+ event\.translationX/);
+  assert.match(STAGE, /const finalProgress = travel > 0/);
+  assert.doesNotMatch(STAGE, /const isInMagneticZone = progress\.get\(\)/);
+});
+
 test('o encaixe tem três marcos táteis, fallback e caminho de acessibilidade', () => {
   for (const stage of ['pickup', 'magnetic', 'aligned']) {
     assert.match(STAGE, new RegExp(`emitHaptic\\)\\('${stage}'\\)|emitHaptic\\('${stage}'\\)`), stage);
