@@ -147,7 +147,7 @@ test('Mapa Astral · resumo — a identidade solar abre; recibo do instante e fo
   quenteAbre(
     bloco,
     'styles.heroHalo',
-    ['formatDateBR(chart.date)', 'formatOffset(chart.zone.offset)', 'testID="birthchart-editar"'],
+    ['formatBirthDate(chart.date, lang)', 'formatOffset(chart.zone.offset)', 'testID="birthchart-editar"'],
     'BirthChartScreen/resumo'
   );
   assert.ok(
@@ -322,7 +322,7 @@ test('a ficha continua na tela — descer não é apagar', () => {
         '{chart.profeccao.origemRotulo}',
         // ONDA B: a linha do instante de nascimento desceu pra baixo do trio —
         // e é ela que prova que a conta usou o fuso e o horário de verão certos.
-        'formatDateBR(chart.date)',
+        'formatBirthDate(chart.date, lang)',
         'formatOffset(chart.zone.offset)',
       ],
     ],
