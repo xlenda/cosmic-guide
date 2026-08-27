@@ -81,10 +81,16 @@ test('a tela e a página pública descrevem a Memória Cósmica opcional nos tr�
   for (const lang of LANGUAGES) {
     assert.ok(DICTS[lang]['privacy.ai.memory'], `privacy.ai.memory ausente em ${lang}`);
     assert.ok(DICTS[lang]['privacy.use.memory'], `privacy.use.memory ausente em ${lang}`);
+    assert.match(DICTS[lang]['privacy.use.memory'], /300/);
+    assert.match(DICTS[lang]['privacy.use.memory'], /1[.,]600/);
+    assert.match(DICTS[lang]['privacy.use.memory'], /480/);
   }
   for (const marker of ['Memória Cósmica', 'Memoria Cósmica', 'Cosmic Memory']) {
     assert.ok(politica.includes(marker), `política não contém ${marker}`);
   }
+  assert.equal((politica.match(/300/g) || []).length >= 3, true);
+  assert.equal((politica.match(/1[.,]600/g) || []).length >= 3, true);
+  assert.equal((politica.match(/480/g) || []).length >= 3, true);
 });
 
 // privacy.rights.sharing tem que nomear TODOS os terceiros, e o Google entrou

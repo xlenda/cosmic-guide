@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const Database = require("better-sqlite3");
-const { CosmicMemoryRepository } = require("../src/infrastructure/CosmicMemoryRepository");
+const { CosmicMemoryRepository, MAX_STORED_MEMORIES } = require("../src/infrastructure/CosmicMemoryRepository");
 
 function makeRepository() {
   const database = new Database(":memory:");
@@ -72,11 +72,11 @@ test("apaga item, apaga tudo e remove preferência junto com a conta", (t) => {
   assert.equal(repository.preference("pessoa").enabled, false);
 });
 
-test("lista todas as sessenta lembrancas permitidas", (t) => {
+test("lista todas as trezentas lembrancas permitidas", (t) => {
   const { database, repository } = makeRepository();
   t.after(() => database.close());
   repository.setConsent({ userId: "pessoa", enabled: true });
-  for (let index = 0; index < 65; index += 1) {
+  for (let index = 0; index < MAX_STORED_MEMORIES + 5; index += 1) {
     repository.rememberChatMessage({
       userId: "pessoa",
       message: `Esta e a lembranca util e diferente de numero ${index} para testar o limite.`,
@@ -84,7 +84,7 @@ test("lista todas as sessenta lembrancas permitidas", (t) => {
     });
   }
   const memories = repository.list({ userId: "pessoa" });
-  assert.equal(memories.length, 60);
-  assert.match(memories[0].content, /64/);
+  assert.equal(memories.length, MAX_STORED_MEMORIES);
+  assert.match(memories[0].content, /304/);
   assert.doesNotMatch(memories.at(-1).content, /numero [0-4]\b/);
 });

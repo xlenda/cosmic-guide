@@ -465,7 +465,7 @@ app.get("/api/subscription/:correlationCode", publicReadLimiter, (req, res) => {
   res.json(result);
 });
 
-// Mesmo limite do maxLength={500} do TextInput em ChatScreen.js — o client já
+// Mesmo limite do maxLength={1600} do TextInput em ChatScreen.js — o client já
 // trava a digitação nesse tamanho, isso aqui é a garantia server-side (um
 // cliente alterado ou uma chamada direta à API não deve conseguir gastar
 // tokens da Anthropic com uma mensagem gigante).
@@ -478,7 +478,7 @@ function langDoPedido(req) {
   return lang === "es" || lang === "en" ? lang : "pt";
 }
 
-const CHAT_MESSAGE_MAX_LENGTH = 500;
+const CHAT_MESSAGE_MAX_LENGTH = 1600;
 
 app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "IA não configurada no servidor" });
@@ -503,6 +503,16 @@ app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req,
         console.error("[cosmic-memory] recuperação indisponível");
       }
     }
+    if (req.userId) {
+      try {
+        // A recuperação acontece antes, então a mensagem atual nunca consegue
+        // se citar como lembrança. Persistir agora preserva o que a pessoa
+        // escreveu mesmo quando a Anthropic fica temporariamente indisponível.
+        memoryRepository.rememberChatMessage({ userId: req.userId, message, contexto });
+      } catch {
+        console.error("[cosmic-memory] gravação indisponível");
+      }
+    }
     const reply = await aiProvider.chat({
       personaId,
       message,
@@ -511,15 +521,6 @@ app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req,
       memorias,
       lang: langDoPedido(req),
     });
-    if (req.userId) {
-      try {
-        // Só persiste depois de uma resposta real da Anthropic. Falha, cota ou
-        // timeout não transformam uma tentativa solta em lembrança permanente.
-        memoryRepository.rememberChatMessage({ userId: req.userId, message, contexto });
-      } catch {
-        console.error("[cosmic-memory] gravação indisponível");
-      }
-    }
     console.log("[api/chat] sucesso");
     // Único endpoint que o canary chama — ver ehCanary() acima.
     countAiUsage(ehCanary(req) ? `chat${CANARY_SUFFIX}` : "chat");

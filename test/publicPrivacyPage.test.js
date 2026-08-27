@@ -39,6 +39,8 @@ test('política pública entrega o contrato essencial em PT, ES e EN', () => {
     'Memória Cósmica',
     'Memoria Cósmica',
     'Cosmic Memory',
+    '300',
+    '480',
     'contato@cosmicguide.cloud',
   ]) {
     assert.ok(html.includes(marker), `política pública não contém: ${marker}`);

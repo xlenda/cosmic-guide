@@ -430,7 +430,7 @@ export default function ChatScreen() {
           placeholder={t('orbi.chat.placeholder')}
           placeholderTextColor={colors.textMuted}
           multiline
-          maxLength={500}
+          maxLength={1600}
           editable={interactionReady && !isTyping}
           onFocus={() => setFocusedControl('input')}
           onBlur={() => setFocusedControl(null)}

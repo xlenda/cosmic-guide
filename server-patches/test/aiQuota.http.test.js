@@ -442,11 +442,16 @@ test("teto agregado da conta limita o total, mesmo espalhando entre features dif
   }
 });
 
+test("chat aceita mensagem de 1.600 caracteres", async () => {
+  const resp = await chat(novoIp(), { token: novoUsuario(), mensagem: "x".repeat(1600) });
+  assert.equal(resp.status, 200);
+});
+
 test("chamada que FALHA não gasta cota (a reserva é estornada) — nem o balde, nem o total", async () => {
   const user = novoUsuario();
   const ip = novoIp();
   // 400: message acima de CHAT_MESSAGE_MAX_LENGTH.
-  const resp = await chat(ip, { token: user, mensagem: "x".repeat(501) });
+  const resp = await chat(ip, { token: user, mensagem: "x".repeat(1601) });
   assert.equal(resp.status, 400);
   await respira();
   assert.equal(cotaUsada(user, "chat"), 0, "erro de validação não pode consumir leitura grátis");

@@ -41,7 +41,7 @@ function PrivacyRow({ icon, text, last }) {
 //   · Leitura de IA: as rotas de IA (server-patches/src/http/server.js) mandam a
 //     foto/texto pra Anthropic e devolvem a interpretação — não gravam nada em
 //     banco nem em disco por padrão, e o log só diz "sucesso". Quando a pessoa
-//     ativa a Memória Cósmica, uma cópia curta das NOVAS mensagens dela ao Órbi
+//     ativa a Memória Cósmica, um trecho das NOVAS mensagens dela ao Órbi
 //     pode ficar no backend até ser apagada; nunca o Diário nem a resposta da IA.
 //   · Voz neural: ao tocar em Ouvir, o texto da leitura vai ao nosso backend e
 //     à ElevenLabs. A conta precisa estar confirmada; guardamos a contagem

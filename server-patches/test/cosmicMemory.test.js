@@ -4,8 +4,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   MAX_MEMORY_CHARACTERS,
+  MAX_PROMPT_MEMORY_CHARACTERS,
   MAX_RETRIEVED_MEMORIES,
   memoryCandidateFromMessage,
+  excerptForPrompt,
   rankMemories,
   memoriesToPrompt,
 } = require("../src/application/cosmicMemory");
@@ -58,6 +60,17 @@ test("nao recupera lembranca recente sem relacao com a pergunta", () => {
     contexto: { intent: "general" },
   });
   assert.deepEqual(ranked, []);
+});
+
+test("guarda mensagem longa, mas envia apenas o trecho ligado a pergunta", () => {
+  const start = "No começo eu estava pensando em outras possibilidades. ".repeat(20);
+  const end = "Depois disso também anotei outros detalhes da minha trajetória. ".repeat(20);
+  const content = `${start}Meu objetivo profissional agora é abrir meu próprio estúdio. ${end}`;
+  const candidate = memoryCandidateFromMessage({ message: content, contexto: { intent: "work" } });
+  assert.equal(Array.from(candidate.content).length, MAX_MEMORY_CHARACTERS);
+  const excerpt = excerptForPrompt(candidate.content, "Como sigo com meu estúdio profissional?");
+  assert.ok(Array.from(excerpt).length <= MAX_PROMPT_MEMORY_CHARACTERS + 2);
+  assert.match(excerpt, /estúdio/i);
 });
 
 test("prompt trata lembranças como citação, limita itens e neutraliza tags", () => {

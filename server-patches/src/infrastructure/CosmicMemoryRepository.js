@@ -8,7 +8,7 @@ const {
   rankMemories,
 } = require("../application/cosmicMemory");
 
-const MAX_STORED_MEMORIES = 60;
+const MAX_STORED_MEMORIES = 300;
 
 function cleanUserId(value) {
   return typeof value === "string" ? value.trim() : "";

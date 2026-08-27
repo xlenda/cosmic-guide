@@ -1,8 +1,9 @@
 "use strict";
 
-const MAX_MEMORY_CHARACTERS = 360;
+const MAX_MEMORY_CHARACTERS = 1600;
+const MAX_PROMPT_MEMORY_CHARACTERS = 480;
 const MAX_RETRIEVED_MEMORIES = 4;
-const MEMORY_CONSENT_VERSION = "2026-08-27-v1";
+const MEMORY_CONSENT_VERSION = "2026-08-27-v2";
 
 const TOPICS = new Set(["love", "decision", "self", "work", "curiosity", "general"]);
 const STOP_WORDS = new Set([
@@ -55,6 +56,29 @@ function searchTokens(value) {
   );
 }
 
+function excerptForPrompt(value, query, max = MAX_PROMPT_MEMORY_CHARACTERS) {
+  const content = normalizeText(value);
+  const characters = Array.from(content);
+  const safeMax = Math.max(80, Math.min(MAX_PROMPT_MEMORY_CHARACTERS, Number(max) || MAX_PROMPT_MEMORY_CHARACTERS));
+  if (characters.length <= safeMax) return content;
+
+  const queryTokens = searchTokens(query);
+  let anchor = 0;
+  if (queryTokens.size) {
+    const words = content.matchAll(/[A-Za-zÀ-ÖØ-öø-ÿ0-9]+/g);
+    for (const word of words) {
+      if (queryTokens.has(normalizeForSearch(word[0]))) {
+        anchor = Array.from(content.slice(0, word.index)).length;
+        break;
+      }
+    }
+  }
+
+  const start = Math.max(0, Math.min(characters.length - safeMax, anchor - Math.floor(safeMax * 0.35)));
+  const excerpt = characters.slice(start, start + safeMax).join("").trim();
+  return `${start > 0 ? "…" : ""}${excerpt}${start + safeMax < characters.length ? "…" : ""}`;
+}
+
 function rankMemories(memories, { query, contexto, limit = MAX_RETRIEVED_MEMORIES } = {}) {
   const queryTokens = searchTokens(query);
   const topic = topicFromContext(contexto);
@@ -76,14 +100,14 @@ function rankMemories(memories, { query, contexto, limit = MAX_RETRIEVED_MEMORIE
     .map(({ memory }) => memory);
 }
 
-function memoriesToPrompt(memories) {
+function memoriesToPrompt(memories, { query } = {}) {
   const clean = (Array.isArray(memories) ? memories : []).slice(0, MAX_RETRIEVED_MEMORIES);
   if (!clean.length) return "";
   const lines = clean.map((memory) => {
     const date = String(memory.updatedAt || memory.updated_at || memory.createdAt || memory.created_at || "").slice(0, 10);
     // A lembrança é dado não confiável: neutralizar marcadores impede que um
     // texto antigo feche a tag e tente se promover a instrução persistente.
-    const quotedContent = clipCharacters(memory.content).replace(/[<>]/g, (character) => character === "<" ? "‹" : "›");
+    const quotedContent = excerptForPrompt(memory.content, query).replace(/[<>]/g, (character) => character === "<" ? "‹" : "›");
     return `- ${date || "data não disponível"} · tema ${memory.topic || "general"}: ${JSON.stringify(quotedContent)}`;
   });
   return [
@@ -96,12 +120,14 @@ function memoriesToPrompt(memories) {
 
 module.exports = {
   MAX_MEMORY_CHARACTERS,
+  MAX_PROMPT_MEMORY_CHARACTERS,
   MAX_RETRIEVED_MEMORIES,
   MEMORY_CONSENT_VERSION,
   normalizeText,
   normalizeForSearch,
   topicFromContext,
   memoryCandidateFromMessage,
+  excerptForPrompt,
   rankMemories,
   memoriesToPrompt,
 };

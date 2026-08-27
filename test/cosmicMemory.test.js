@@ -44,3 +44,12 @@ test('cliente não aceita item sem id inteiro e conteúdo textual', () => {
   assert.match(client, /Authorization: `Bearer \$\{token\}`/);
   assert.match(client, /AbortController/);
 });
+
+test('chat e memória aceitam o mesmo limite de 1.600 caracteres', () => {
+  const screen = fs.readFileSync(path.join(ROOT, 'screens', 'ChatScreen.js'), 'utf8');
+  const server = fs.readFileSync(path.join(ROOT, 'server-patches', 'src', 'http', 'server.js'), 'utf8');
+  const memory = fs.readFileSync(path.join(ROOT, 'server-patches', 'src', 'application', 'cosmicMemory.js'), 'utf8');
+  assert.match(screen, /maxLength=\{1600\}/);
+  assert.match(server, /CHAT_MESSAGE_MAX_LENGTH = 1600/);
+  assert.match(memory, /MAX_MEMORY_CHARACTERS = 1600/);
+});

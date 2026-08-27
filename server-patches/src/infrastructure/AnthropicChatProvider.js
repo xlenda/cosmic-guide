@@ -1380,7 +1380,7 @@ class AnthropicChatProvider {
     // mensagens e mandava TODAS a cada mensagem nova, então uma conversa
     // longa custava ~5x mais por mensagem que uma curta. Janela das últimas
     // 12 + teto de tamanho por item (o /api/chat já limita a mensagem NOVA a
-    // 500 chars, mas os itens do histórico chegavam sem limite nenhum — um
+    // 1600 chars, mas os itens do histórico chegavam sem limite nenhum — um
     // client alterado podia inflar o custo à vontade).
     const HISTORY_MAX_ITEMS = 12;
     const HISTORY_ITEM_MAX_CHARS = 600;
@@ -1396,7 +1396,7 @@ class AnthropicChatProvider {
     // garante que nem uma chamada interna consegue anexar pergunta, nota,
     // tiragem ou Diário contornando a allowlist da rota HTTP.
     const ctx = chatContextToPrompt(contexto);
-    const memoryBlock = memoriesToPrompt(memorias);
+    const memoryBlock = memoriesToPrompt(memorias, { query: message });
     const idioma = diretrizDeIdioma(lang);
     // O chat monta o turno na mão (tem histórico), então repete o que
     // userContent faz pelas outras rotas. A diretriz vai só na ÚLTIMA
