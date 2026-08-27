@@ -1,113 +1,122 @@
-# Ficha da Loja — Cosmic Guide (Google Play)
+# Ficha das lojas — Cosmic Guide
 
-> Copiar e colar no Play Console. Idioma padrao: Portugues (Brasil).
-> Regra do projeto respeitada: beneficio como CONVITE, nunca promessa.
-> Sem promessa de sorte, saude, cura ou previsao de futuro (o Google reprova, e a
-> doutrina do app tambem).
+> Atualizada em 26/08/2026. Os textos completos e localizados vivem em
+> `metadata/store-listings.js`; não editar cópias soltas.
 
----
+## Pacote pronto para copiar
 
-## Nome do app (30 caracteres)
-```
-Cosmic Guide
+```powershell
+npm run aso:validate
+npm run aso:export
 ```
 
-## Descricao curta (80 caracteres)
-```
-Mapa astral, tarot e leituras diarias — sozinho ou com quem voce ama.
-```
-(69 caracteres)
+O segundo comando gera em `D:\Projetos\Cosmic Guide Store\release-final\metadata` os arquivos
+de Google Play (PT-BR, ES-419, EN-US), App Store (PT-BR, ES-MX, EN-US) e os
+textos das screenshots.
 
-## Descricao completa (ate 4000 caracteres)
-```
-Cosmic Guide e um espaco de leitura simbolica para quem gosta de se olhar por dentro —
-sozinho ou junto de alguem.
+## Títulos escolhidos
 
-O QUE VOCE ENCONTRA
+| Idioma | Título da loja | Limite |
+|---|---|---:|
+| PT-BR | `Cosmic Guide: Mapa Astral` | 25/30 |
+| ES-419 | `Cosmic Guide: Carta Astral` | 26/30 |
+| EN-US | `Cosmic Guide: Birth Chart` | 25/30 |
 
-Mapa astral completo
-Seu Sol, sua Lua e seu Ascendente calculados a partir da data, hora e cidade do seu
-nascimento. Com a explicacao de cada um em linguagem de gente, sem jargao.
+O nome interno/launcher continua `Cosmic Guide`. O identificador continua
+`cloud.cosmicguide.app`.
 
-Compatibilidade a dois
-Convide quem voce ama e vejam os dois mapas lado a lado: os encontros, os atritos e as
-conversas que valem a pena ter.
+## Google Play — PT-BR
 
-Leituras do dia
-Uma carta, um ceu e uma reflexao curta para comecar o dia. Todo dia diferente.
+**Nome do app**
 
-Tarot
-Tiragens guiadas com interpretacao carta por carta.
-
-Leituras simbolicas por foto
-Palma da mao, rosto, pe e borra de cafe — leituras de tradicao, feitas por
-inteligencia artificial, sempre com a origem de cada simbolo declarada.
-
-Diario e constancia
-Registre o que cada leitura despertou em voce e acompanhe sua propria sequencia.
-E a parte mais util do app, e a mais silenciosa.
-
-Comunidade
-Compartilhe uma leitura quando quiser e veja o que outras pessoas estao vivendo.
-
----
-
-O QUE ESTE APP NAO E
-
-Cosmic Guide e entretenimento e autoconhecimento simbolico. Nao e diagnostico,
-nao e conselho medico, financeiro ou juridico, e nao preve o futuro. Nenhuma leitura
-aqui substitui um profissional de saude. Quando a leitura tocar em algo serio,
-a gente diz isso na cara — nao vende esperanca.
-
----
-
-IDIOMAS
-Portugues, Espanhol e Ingles.
-
-PRIVACIDADE
-Sua data, hora e cidade de nascimento sao usadas para calcular seu mapa. A politica
-completa esta em cosmicguide.cloud/cosmic-guide/privacidade — e a exclusao da sua conta
-pode ser feita dentro do proprio app, a qualquer momento.
+```text
+Cosmic Guide: Mapa Astral
 ```
 
----
+**Descrição breve**
 
-## Categoria
-- **Categoria:** Estilo de vida
-- **Tags:** astrologia, tarot, autoconhecimento, horoscopo, mapa astral
-
-## Classificacao de conteudo (questionario)
-Respostas esperadas:
-- Violencia: nao
-- Sexualidade: nao
-- Linguagem impropria: nao
-- Substancias controladas: nao
-- **Conteudo gerado por usuario: SIM** (o feed social) — vai perguntar se ha
-  denuncia e moderacao. Responder SIM (estamos construindo).
-- Jogos de azar: nao
-- Resultado provavel: **Livre** ou **10+**
-
-## Publico-alvo
-- **18 anos ou mais** (evita as regras pesadas de app infantil)
-
-## Politica de privacidade (URL)
-```
-https://cosmicguide.cloud/cosmic-guide/privacidade
+```text
+Tarô para raspar, horóscopo diário, compatibilidade e astrologia com fontes.
 ```
 
-## URL de solicitacao de exclusao de conta
+A descrição completa pronta para colar é gerada em
+`D:\Projetos\Cosmic Guide Store\release-final\metadata\google-play\pt-BR\listing.txt`.
+
+## App Store — PT-BR
+
+**Name**
+
+```text
+Cosmic Guide: Mapa Astral
 ```
-(preencher — sendo criada agora pelos agentes)
+
+**Subtitle**
+
+```text
+Tarô, signos e horóscopo
 ```
 
----
+**Keywords — 99/100 bytes**
 
-## Assets visuais (eu gero, voce sobe)
+```text
+ascendente,lua,compatibilidade,sinastria,natal,casas,planetas,efemerides,transitos,fases,calendario
+```
 
-| Asset | Tamanho | Status |
+Promotional Text e Description são gerados em
+`D:\Projetos\Cosmic Guide Store\release-final\metadata\app-store\pt-BR\listing.txt`.
+
+No espanhol, usar **es-419 no Google Play** e **es-MX na App Store**.
+
+## Campos compartilhados
+
+- Categoria Google Play: **Estilo de vida / Lifestyle**.
+- Categoria primária App Store: **Lifestyle**.
+- Categoria secundária App Store: **Entertainment**.
+- Política de privacidade: `https://cosmicguide.cloud/privacidade`.
+- Exclusão de conta: `https://cosmicguide.cloud/excluir-conta`.
+- Público configurado: **18 anos ou mais**.
+- Conteúdo gerado por usuário: **sim**, na Comunidade.
+
+No questionário de conteúdo gerado por usuário, informar somente o que existe:
+login, regras aceitas, denúncia, bloqueio e remoção. A rotina humana de moderação
+continua sendo uma obrigação operacional, não uma função automática do app.
+
+## Assets visuais
+
+| Asset | Formato | Estado em 26/08 |
 |---|---|---|
-| Icone da loja | 512x512 PNG | PRONTO: assets/icone-loja-512.png |
-| Grafico de destaque | 1024x500 PNG | PRONTO: assets/feature-graphic.png |
-| Screenshots celular | min 2, max 8 | PRONTO: 8 em 1080x1920, ver assets/COMO-USAR.md |
-| Screenshot tablet | opcional | pular na v1 |
+| Ícone Google Play | 512×512 PNG | existente; revisar no aparelho |
+| Feature graphic | 1024×500 PNG sem alfa | **pronto** em `D:\Projetos\Cosmic Guide Store\release-final\google-play\<idioma>` |
+| Screenshots Android | 8 por idioma, 1080×1920 | **24 prontos** no mesmo pacote (PT-BR, ES-419 e EN-US) |
+| Screenshots iPhone | 1–10 por idioma/tamanho | ainda não geradas |
+| Screenshots iPad 13\" | exigidas porque `supportsTablet=true` | ainda não geradas |
+| Vídeo | opcional | fora do escopo por decisão do dono |
 
+A ordem e os textos localizados das oito imagens ficam em
+`metadata/store-listings.js` e em `ASO-ESTRATEGIA.md`.
+
+## Bloqueios externos honestos
+
+1. **Support URL da App Store:** falta um canal que realmente receba mensagens.
+   Não usar `contato@cosmicguide.cloud` enquanto a caixa não funcionar.
+2. **Comunidade na App Store:** ainda falta filtro pré-publicação de material
+   ofensivo e um canal/rotina real de resposta rápida. Denúncia e bloqueio já
+   existem, mas não bastam para a App Review Guideline 1.2.
+3. **Compra nativa Android:** não anunciar assinatura na Play enquanto o webhook
+   do RevenueCat não estiver implementado e validado.
+4. **Publicação:** conta de loja, assinatura de contratos, classificação e upload
+   final dependem do dono.
+5. **Imagens:** o pacote Android foi gerado da produção atual; ainda precisa da
+   conferência final em aparelho real antes do upload.
+
+## Próximos testes de conversão
+
+Após existir tráfego suficiente, testar uma variável por rodada:
+
+1. primeira screenshot `Alinhe seu céu` versus `Mapa Astral`;
+2. descrição breve focada em método versus benefício emocional;
+3. feature graphic com cálculo versus gesto de raspar;
+4. somente depois, título híbrido versus título mais descritivo.
+
+Não trocar o nome principal por intuição. A decisão de futuro deve vir dos dados
+de aquisição e retenção descritos em `ASO-ESTRATEGIA.md`.

@@ -53,7 +53,8 @@ import PillTabs from '../components/PillTabs';
 import BotaoOuvir from '../components/BotaoOuvir';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
-import { horoscopeFor, resumoDoDia } from '../lib/dailyHoroscope';
+import { horoscopeFor } from '../lib/dailyHoroscope';
+import { datasDoSigno, nomeDoSigno } from '../lib/synastry';
 // O MASCOTE (08/08/2026) — o signo vira personagem: lib/ilustracoes.js devolve
 // o asset 256px do pack de arte, ou null — e null cai no glifo de fonte de
 // sempre. A arte é upgrade, nunca dependência.
@@ -86,6 +87,19 @@ const ELEMENT_LABEL_KEYS = {
   'Água': 'horoscope.elementName.agua',
 };
 
+const PHASE_LABEL_KEYS = {
+  'Lua Nova': 'rituais.fase.luaNova',
+  'Lua Crescente': 'rituais.fase.luaCrescente',
+  'Quarto Crescente': 'rituais.fase.quartoCrescente',
+  'Lua Gibosa Crescente': 'rituais.fase.gibosaCrescente',
+  'Lua Cheia': 'rituais.fase.luaCheia',
+  'Lua Gibosa Minguante': 'rituais.fase.gibosaMinguante',
+  'Quarto Minguante': 'rituais.fase.quartoMinguante',
+  'Lua Minguante': 'rituais.fase.luaMinguante',
+};
+
+const ZODIAC_NAMES = new Set(zodiacSigns.map((sign) => sign.name));
+
 function isoDate(d) {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
@@ -109,14 +123,29 @@ function dateForTab(tab) {
 // lib/dailyHoroscope.js devolve vars que podem ser string (nome de signo, graus)
 // ou { i18n: 'chave' } (nome de planeta, dia da semana). O módulo é puro e não
 // conhece idioma; a resolução acontece aqui, onde o `t` do idioma ativo existe.
-function resolveVars(vars, t) {
+function localizeAstroValue(value, t, lang) {
+  if (value && typeof value === 'object' && value.i18n) return t(value.i18n);
+  if (typeof value !== 'string') return value;
+  if (ZODIAC_NAMES.has(value)) return nomeDoSigno(value, lang);
+  return PHASE_LABEL_KEYS[value] ? t(PHASE_LABEL_KEYS[value]) : value;
+}
+
+function resolveVars(vars, t, lang) {
   if (!vars) return undefined;
   const out = {};
   for (const k of Object.keys(vars)) {
-    const v = vars[k];
-    out[k] = v && typeof v === 'object' && v.i18n ? t(v.i18n) : v;
+    out[k] = localizeAstroValue(vars[k], t, lang);
   }
   return out;
+}
+
+function resumoLocalizadoDoDia(signName, date, t, lang) {
+  const leitura = horoscopeFor(signName, date);
+  if (!leitura.available) return null;
+  const primeiraLinha = leitura.blocks
+    .flatMap((bloco) => bloco.lines)
+    .find((line) => line.role !== 'metodo');
+  return primeiraLinha ? t(primeiraLinha.key, resolveVars(primeiraLinha.vars, t, lang)) : null;
 }
 
 export default function HoroscopeScreen() {
@@ -125,7 +154,7 @@ export default function HoroscopeScreen() {
   // hasAccess já cobre casal E solo (CoupleContext.js checa os dois em
   // paralelo) — corrigido na origem, não precisa mais recombinar isCouple aqui.
   const { hasAccess, accessConfirmed } = useCouple();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [sign, setSign] = useState(route.params?.sign || zodiacSigns[0]);
   const [tab, setTab] = useState('Hoje');
   const [showPicker, setShowPicker] = useState(false);
@@ -140,6 +169,7 @@ export default function HoroscopeScreen() {
   // useMemo evita até o trabalho de remontar os blocos a cada render — a tela
   // re-renderiza no toque do seletor de signo e na troca de aba.
   const leitura = useMemo(() => horoscopeFor(sign.name, dateForTab(tab)), [sign.name, tab]);
+  const signLabel = nomeDoSigno(sign.name, lang);
   const f = leitura.facts;
   // O mascote do signo selecionado — null quando o pack não tem a arte, e aí
   // o glifo de fonte segue no posto (fallback obrigatório, nunca buraco).
@@ -171,23 +201,23 @@ export default function HoroscopeScreen() {
 
   // Vira entrada no Diário Cósmico 1x por dia (não a cada troca de aba/signo,
   // senão o Diário enche de quase-duplicatas). O corpo agora é o resumo do céu
-  // REAL do dia — se o motor de efeméride não responder, resumoDoDia devolve
-  // null e o Diário simplesmente não recebe entrada, em vez de guardar uma
-  // frase inventada para sempre.
+  // REAL do dia — se o motor de efeméride não responder, o resumo localizado
+  // devolve null e o Diário simplesmente não recebe entrada, em vez de guardar
+  // uma frase inventada para sempre.
   useEffect(() => {
     const today = todayISO();
     AsyncStorage.getItem(DIARY_RECORDED_KEY).then((lastDate) => {
       if (lastDate === today) return;
-      const resumo = resumoDoDia(sign.name, new Date());
+      const resumo = resumoLocalizadoDoDia(sign.name, new Date(), t, lang);
       if (!resumo) return;
       recordReadingCompletion({
         type: 'horoscope',
         typeLabel: t('home.card.horoscope.title'),
-        title: t('horoscope.diary.title', { sign: sign.pt }),
+        title: t('horoscope.diary.title', { sign: signLabel }),
         body: resumo,
       }).then(() => AsyncStorage.setItem(DIARY_RECORDED_KEY, today));
     });
-  }, [sign]);
+  }, [sign, signLabel, t]);
 
   const pickSign = async (z) => {
     Haptics.selectionAsync();
@@ -210,7 +240,7 @@ export default function HoroscopeScreen() {
       <CosmicScene />
       <GradientHeader
         title={t('home.card.horoscope.title')}
-        subtitle={sign.pt}
+        subtitle={signLabel}
         onBack={() => navigation.goBack()}
         right={
           <TouchableOpacity onPress={() => setShowPicker(!showPicker)}>
@@ -241,7 +271,7 @@ export default function HoroscopeScreen() {
                     ) : (
                       <Text style={[styles.pickerGlyph, { color: z.color }]}>{z.icon}</Text>
                     )}
-                    <Text style={styles.pickerName}>{z.pt}</Text>
+                    <Text style={styles.pickerName}>{nomeDoSigno(z.name, lang)}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -262,8 +292,8 @@ export default function HoroscopeScreen() {
               )}
             </View>
             <View style={styles.signInfo}>
-              <Text style={styles.bigName}>{sign.pt}</Text>
-              <Text style={styles.bigDates}>{sign.dates}</Text>
+              <Text style={styles.bigName}>{signLabel}</Text>
+              <Text style={styles.bigDates}>{datasDoSigno(sign.dates, lang)}</Text>
               <View style={styles.elementRow}>
                 <Ionicons name="flash" size={12} color={sign.color} />
                 <Text style={[styles.element, { color: sign.color }]}>{t('horoscope.element', { element: ELEMENT_LABEL_KEYS[sign.element] ? t(ELEMENT_LABEL_KEYS[sign.element]) : sign.element })}</Text>
@@ -312,7 +342,7 @@ export default function HoroscopeScreen() {
               // mesmas linhas de leitura, resolvidas pelo mesmo t() — o método
               // (recolhido) fica fora da fala como fica fora da primeira vista.
               const textoFalado = leituraLinhas
-                .map((line) => t(line.key, resolveVars(line.vars, t)))
+                .map((line) => t(line.key, resolveVars(line.vars, t, lang)))
                 .join(' ');
               return (
                 <View key={bloco.id}>
@@ -344,7 +374,7 @@ export default function HoroscopeScreen() {
                   <View style={styles.blockCard} testID={`horoscope-block-${bloco.id}`}>
                     {leituraLinhas.map((line, i) => (
                       <Text key={line.key + i} style={[styles.line, i > 0 && styles.lineSpaced]}>
-                        {t(line.key, resolveVars(line.vars, t))}
+                        {t(line.key, resolveVars(line.vars, t, lang))}
                       </Text>
                     ))}
                     {metodoLinhas.length > 0 && (
@@ -371,7 +401,7 @@ export default function HoroscopeScreen() {
                               style={[styles.methodLine, i > 0 && styles.lineSpaced]}
                               testID={`horoscope-method-${bloco.id}`}
                             >
-                              {t(line.key, resolveVars(line.vars, t))}
+                              {t(line.key, resolveVars(line.vars, t, lang))}
                             </Text>
                           ))}
                       </>
@@ -380,7 +410,7 @@ export default function HoroscopeScreen() {
                   {/* O céu bruto do dia, logo depois da primeira leitura: os
                       mesmos três fatos de sempre (nada foi apagado), agora no
                       lugar de recibo. */}
-                  {indice === 0 && <FichaDoCeu f={f} t={t} />}
+                  {indice === 0 && <FichaDoCeu f={f} t={t} lang={lang} />}
                 </View>
               );
             })}
@@ -423,7 +453,7 @@ function slugPlaneta(planeta) {
 // Virou componente em 04/08/2026 só para poder DESCER sem perder nada: ela é
 // renderizada depois do primeiro bloco de leitura, e o arquivo a declara aqui
 // embaixo para que a ordem do código-fonte conte a mesma história que a tela.
-function FichaDoCeu({ f, t }) {
+function FichaDoCeu({ f, t, lang }) {
   return (
     <>
       <Text style={styles.sub}>{t('horoscope.sky.factsTitle')}</Text>
@@ -432,13 +462,13 @@ function FichaDoCeu({ f, t }) {
           icon="moon"
           color={colors.teal}
           label={t('horoscope.sky.fact.moon')}
-          value={`${f.luaEmoji || ''} ${f.luaSigno}`.trim()}
+          value={`${f.luaEmoji || ''} ${nomeDoSigno(f.luaSigno, lang)}`.trim()}
         />
         <FactItem
           icon="ellipse"
           color={colors.gold}
           label={t('horoscope.sky.fact.phase')}
-          value={`${f.faseEmoji || ''} ${f.faseNome}`.trim()}
+          value={`${f.faseEmoji || ''} ${localizeAstroValue(f.faseNome, t, lang)}`.trim()}
           hint={typeof f.iluminacao === 'number' ? t('horoscope.sky.fact.illum', { pct: String(f.iluminacao) }) : null}
         />
         <FactItem

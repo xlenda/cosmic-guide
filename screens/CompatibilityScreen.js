@@ -11,7 +11,7 @@ import GradientHeader from '../components/GradientHeader';
 // root mantém colors.background por baixo (ver o cabeçalho do componente).
 import CosmicScene from '../components/CosmicScene';
 import { compatibility } from '../lib/signs.js';
-import { DIMENSOES_VIDA_REAL, ecoDoCaminho, rotuloDoCaminho } from '../lib/synastry.js';
+import { DIMENSOES_VIDA_REAL, datasDoSigno, ecoDoCaminho, nomeDoSigno, rotuloDoCaminho } from '../lib/synastry.js';
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
@@ -142,6 +142,8 @@ export default function CompatibilityScreen() {
   // quiser, e o botão "Trocar" segue ali. O que muda é de onde ela PARTE.
   const [signA, setSignA] = useState(zodiacSigns[0]);
   const [signB, setSignB] = useState(zodiacSigns[5]);
+  const signALabel = nomeDoSigno(signA.name, lang);
+  const signBLabel = nomeDoSigno(signB.name, lang);
   // Uma vez só: depois que a pessoa mexeu num seletor, o contexto não pode
   // mais puxar de volta pro casal salvo no meio da comparação dela.
   const [semeado, setSemeado] = useState(false);
@@ -256,7 +258,7 @@ export default function CompatibilityScreen() {
       // No idioma da leitura, como o body logo abaixo (t(d.chaveTitulo)) — o
       // Diário guarda o que a pessoa leu, e ela leu no idioma dela.
       typeLabel: t('compat.header.title'),
-      title: `${signA.pt} + ${signB.pt} — ${compat.aspecto} (${compat.categoria})`,
+      title: `${signALabel} + ${signBLabel} — ${compat.aspecto} (${compat.categoria})`,
       // O que vai pro Diário é o BLOCO 1, não o texto da fonte: é o que a
       // pessoa leu, é o que ela quer reler, e é o que faz sentido reencontrar
       // meses depois. A fonte continua a um toque na tela; guardar o verbatim
@@ -334,7 +336,7 @@ export default function CompatibilityScreen() {
             {zodiacSigns.map((z) => (
               <TouchableOpacity key={z.name} style={[styles.pickerItem, { borderColor: z.color + '55' }]} onPress={() => pick(z)}>
                 <Text style={[styles.pickerGlyph, { color: z.color }]}>{z.icon}</Text>
-                <Text style={styles.pickerName}>{z.pt}</Text>
+                <Text style={styles.pickerName}>{nomeDoSigno(z.name, lang)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -428,7 +430,7 @@ export default function CompatibilityScreen() {
                   história. Só estado da tela (signA/signB), nenhum texto novo
                   de i18n. O título da seção vira linha de apoio logo abaixo. */}
               <Text style={styles.realPair}>
-                {signA.pt} + {signB.pt}
+                {signALabel} + {signBLabel}
               </Text>
               <Text style={styles.realTitle}>{t('compat.real.title')}</Text>
               {/* O MODO HISTÓRIA — acima do texto: abre a MESMA leitura do
@@ -679,7 +681,7 @@ export default function CompatibilityScreen() {
       <StoriesReader
         visible={historiaAberta}
         slides={slidesDaLeitura}
-        titulo={`${signA.pt} + ${signB.pt}`}
+        titulo={`${signALabel} + ${signBLabel}`}
         onClose={() => setHistoriaAberta(false)}
       />
     </View>
@@ -687,7 +689,7 @@ export default function CompatibilityScreen() {
 }
 
 function SignSlot({ sign, onPress, active }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   // O signo como PERSONAGEM (08/08/2026): quando o pack tem o mascote, ele
   // toma o lugar do glifo de fonte no slot — redondo, com o fundo na cor do
   // signo virando aro da arte. Sem mascote (null), o glifo de sempre.
@@ -703,8 +705,8 @@ function SignSlot({ sign, onPress, active }) {
           <Text style={[styles.slotGlyph, { color: sign.color }]}>{sign.icon}</Text>
         </View>
       )}
-      <Text style={styles.slotName}>{sign.pt}</Text>
-      <Text style={styles.slotDates}>{sign.dates}</Text>
+      <Text style={styles.slotName}>{nomeDoSigno(sign.name, lang)}</Text>
+      <Text style={styles.slotDates}>{datasDoSigno(sign.dates, lang)}</Text>
       <View style={styles.changeRow}>
         <Ionicons name="swap-vertical" size={12} color={colors.accent} />
         <Text style={styles.changeText}>{t('compat.swap')}</Text>
@@ -719,6 +721,7 @@ function SignSlot({ sign, onPress, active }) {
 // arte é upgrade, nunca dependência. Nome via sign.pt, o mesmo dado dos
 // seletores: nenhum texto novo.
 function PlacarSigno({ sign }) {
+  const { lang } = useLanguage();
   const mascote = mascoteDoSigno(sign.name);
   return (
     <View style={styles.placarSigno}>
@@ -729,7 +732,7 @@ function PlacarSigno({ sign }) {
           <Text style={[styles.placarGlyph, { color: sign.color }]}>{sign.icon}</Text>
         )}
       </View>
-      <Text style={styles.placarNome}>{sign.pt}</Text>
+      <Text style={styles.placarNome}>{nomeDoSigno(sign.name, lang)}</Text>
     </View>
   );
 }

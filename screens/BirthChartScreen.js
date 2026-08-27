@@ -30,6 +30,8 @@ import { mascoteDoSigno, elementoImagem } from '../lib/ilustracoes';
 import { cityLabel, upgradeCityTimezone } from '../lib/cities';
 import { offsetHoursFor, formatOffset } from '../lib/timezone';
 import { getBirthData } from '../lib/coupleData';
+import { nomeDoSigno } from '../lib/synastry';
+import { rotuloDoAspecto, rotuloDoPlaneta } from '../lib/transitoFase';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 // ===========================================================================
@@ -102,10 +104,10 @@ function todayISODiary() {
 // nome de signo vindo de lib/signs.js — os nomes batem 1:1 nas duas listas
 // (ex.: "Áries"), só o shape do objeto é diferente (lib/signs.js não tem
 // .color/.icon), então este helper faz a ponte sem duplicar dados.
-function displaySign(name) {
+function displaySign(name, lang = 'pt') {
   if (!name) return null;
   const meta = zodiacSigns.find((z) => z.name === name);
-  return { name, glyph: meta ? meta.icon : '', color: meta ? meta.color : colors.textMuted };
+  return { name, label: nomeDoSigno(name, lang), glyph: meta ? meta.icon : '', color: meta ? meta.color : colors.textMuted };
 }
 
 // Monta o mapa real (Sol/Lua/Ascendente/Casas/Aspectos/Astrocartografia) a
@@ -129,15 +131,15 @@ function displaySign(name) {
 // Paulo, 120 de 240 combinações data×hora MUDAM DE SIGNO entre -3 e -2.
 function buildChart(date, time, city, lang = 'pt') {
   if (!date) return null;
-  const sun = displaySign(signoFromDate(date));
+  const sun = displaySign(signoFromDate(date), lang);
   // 3º argumento = a cidade, pelo mesmo motivo do 5º do Ascendente: sem ele,
   // moonSign/aspects liam a hora da maternidade como se fosse UTC e o mapa
   // ficava com DOIS instantes de nascimento (Ascendente às 04:00Z, Lua às
   // 02:00Z). Medido: 5,15% das Luas natais de São Paulo saíam com o signo
   // errado (16,6% em Tóquio, 22,6% em Auckland) e 43,9% das listas de aspectos
   // mudavam. `city` nulo mantém o comportamento antigo, sem fuso.
-  const moon = displaySign(moonSign(date, time, city || undefined)?.name);
-  const asc = time && city ? displaySign(ascendantSign(date, time, city.lat, city.lon, city)?.name) : null;
+  const moon = displaySign(moonSign(date, time, city || undefined)?.name, lang);
+  const asc = time && city ? displaySign(ascendantSign(date, time, city.lat, city.lon, city)?.name, lang) : null;
   const housesList = time && city ? houses(date, time, city.lat, city.lon, city) : null;
   const aspectsList = aspects(date, time, city || undefined);
   const astro = time && city ? astrocartographyCities(date, time, city) : null;
@@ -186,10 +188,33 @@ function pad2(n) {
 const readSecureItem = readSecureItemWithMirror;
 const writeSecureItem = writeSecureItemWithMirror;
 
-function formatDateBR(iso) {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
+const DATE_LOCALES = { pt: 'pt-BR', es: 'es-419', en: 'en-US' };
+
+function formatBirthDate(iso, lang = 'pt') {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return '';
+  const parsed = new Date(`${iso}T12:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return '';
+  try {
+    return parsed.toLocaleDateString(DATE_LOCALES[lang] || DATE_LOCALES.pt, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+const ASTRO_POINT_LABEL_KEYS = {
+  Ascendente: 'birthchart.astroPoint.ascendant',
+  Descendente: 'birthchart.astroPoint.descendant',
+  'Meio-do-Céu': 'birthchart.astroPoint.midHeaven',
+  'Fundo do Céu': 'birthchart.astroPoint.imumCoeli',
+};
+
+function rotuloDoPonto(ponto, t) {
+  return ASTRO_POINT_LABEL_KEYS[ponto] ? t(ASTRO_POINT_LABEL_KEYS[ponto]) : ponto;
 }
 
 // O rótulo de cada pílula é o PRÓPRIO título da seção que o app já tem em
@@ -606,12 +631,12 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', 
                   <Text style={[styles.heroGlyph, { color: corSol }]}>{chart.sun ? chart.sun.glyph : '—'}</Text>
                 )}
               </View>
-              <Text style={styles.heroNome}>{chart.sun ? chart.sun.name : '?'}</Text>
+              <Text style={styles.heroNome}>{chart.sun ? chart.sun.label : '?'}</Text>
             </>
           );
         })()}
         <Text style={[styles.summaryMeta, styles.summaryMetaRecibo]}>
-          {formatDateBR(chart.date)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
+          {formatBirthDate(chart.date, lang)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
           {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
           {chart.zone && chart.zone.dst ? ` · ${t('birthchart.dst')}` : ''}
         </Text>
@@ -659,7 +684,7 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', 
                     <Text style={[styles.trioGlyph, { color: cor }]}>{r.sign ? r.sign.glyph : '—'}</Text>
                   )}
                 </View>
-                <Text style={styles.trioSign}>{r.sign ? r.sign.name : '?'}</Text>
+                <Text style={styles.trioSign}>{r.sign ? r.sign.label : '?'}</Text>
               </View>
             );
           })}
@@ -706,7 +731,7 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', 
               <Ionicons name={r.icon} size={20} color={r.color} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.planetLabel}>{r.sign ? t('birthchart.positionIn', { label: t(r.labelKey), sign: r.sign.name }) : t(r.labelKey)}</Text>
+              <Text style={styles.planetLabel}>{r.sign ? t('birthchart.positionIn', { label: t(r.labelKey), sign: r.sign.label }) : t(r.labelKey)}</Text>
               <Text style={styles.planetDesc}>{r.sign ? t(r.descKey) : t(r.missingKey)}</Text>
               {!!seitaDoPlaneta && seitaDoPlaneta.disponivel && (
                 <Text style={styles.planetSeita} testID={`birthchart-seita-${r.key}`}>
@@ -817,7 +842,7 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', 
 // mesmo grau exato) — sem isso, mostra o mesmo tipo de aviso honesto já usado
 // pro Ascendente, nunca uma casa fabricada.
 function HousesSection({ housesList, isCouple, onFixTime, onFixCity }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   return (
     <>
       <Text style={styles.sub}>{t('chart.houses')}</Text>
@@ -827,7 +852,7 @@ function HousesSection({ housesList, isCouple, onFixTime, onFixCity }) {
             <View key={h.houseNumber} style={styles.houseCell}>
               <Text style={styles.houseNumber}>{t('birthchart.houseNumber', { n: h.houseNumber })}</Text>
               <Text style={[styles.houseSign, { color: (zodiacSigns.find((z) => z.name === h.sign.name) || {}).color || colors.text }]}>
-                {h.sign.emoji} {h.sign.name}
+                {h.sign.emoji} {nomeDoSigno(h.sign.name, lang)}
               </Text>
             </View>
           ))}
@@ -850,7 +875,7 @@ function HousesSection({ housesList, isCouple, onFixTime, onFixCity }) {
 // hora) — se lib/signs.js não conseguir calcular (ex.: astronomy-engine
 // indisponível), mostra aviso honesto em vez de lista vazia silenciosa.
 function AspectsSection({ aspectsList }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   return (
     <>
       <Text style={styles.sub}>{t('chart.aspects')}</Text>
@@ -859,7 +884,9 @@ function AspectsSection({ aspectsList }) {
           aspectsList.map((a, i) => (
             <View key={`${a.planetA}-${a.planetB}-${i}`} style={styles.aspectRow}>
               <Text style={styles.aspectText}>
-                {a.planetA} {a.aspectType.toLowerCase()} {a.planetB}
+                {rotuloDoPlaneta(a.planetA, lang) || a.planetA}{' '}
+                {(rotuloDoAspecto(a.aspectType, lang) || a.aspectType).toLocaleLowerCase()}{' '}
+                {rotuloDoPlaneta(a.planetB, lang) || a.planetB}
               </Text>
               <Text style={styles.aspectOrb}>{t('birthchart.orb', { deg: a.orb.toFixed(1) })}</Text>
             </View>
@@ -886,7 +913,7 @@ function AspectsSection({ aspectsList }) {
 // cidade de nascimento (pro fuso/instante UTC exato), mesma exigência do
 // Ascendente.
 function AstroCartographySection({ astro, isCouple, onFixTime, onFixCity }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   return (
     <>
       <Text style={styles.sub}>{t('chart.astrocarto')}</Text>
@@ -896,7 +923,11 @@ function AstroCartographySection({ astro, isCouple, onFixTime, onFixCity }) {
           astro.map((a, i) => (
             <View key={`${a.city}-${a.planet}-${a.point}-${i}`} style={styles.aspectRow}>
               <Text style={styles.aspectText}>
-                {t('birthchart.astroLine', { planet: a.planet, point: a.point, city: a.city })}
+                {t('birthchart.astroLine', {
+                  planet: rotuloDoPlaneta(a.planet, lang) || a.planet,
+                  point: rotuloDoPonto(a.point, t),
+                  city: a.city,
+                })}
               </Text>
               <Text style={styles.aspectOrb}>{t('birthchart.orb', { deg: a.orb.toFixed(1) })}</Text>
             </View>
@@ -1130,14 +1161,14 @@ export default function BirthChartScreen() {
       // Gravado no idioma ATUAL via t() — o Diário reexibe este texto depois,
       // então PT cravado aqui viraria entrada em português pra quem usa es/en.
       // Reusa birthchart.positionIn + os rótulos das rows (nenhuma chave nova);
-      // o NOME do signo é dado do motor e fica como veio.
+      // o nome exibido vem do `label` localizado, sem alterar o dado do motor.
       const partes = [
-        t('birthchart.positionIn', { label: t('birthchart.row.sun.label'), sign: activeChart.sun.name }),
+        t('birthchart.positionIn', { label: t('birthchart.row.sun.label'), sign: activeChart.sun.label }),
       ];
-      if (activeChart.moon?.name)
-        partes.push(t('birthchart.positionIn', { label: t('birthchart.row.moon.label'), sign: activeChart.moon.name }));
-      if (activeChart.asc?.name)
-        partes.push(t('birthchart.positionIn', { label: t('birthchart.row.asc.label'), sign: activeChart.asc.name }));
+      if (activeChart.moon?.label)
+        partes.push(t('birthchart.positionIn', { label: t('birthchart.row.moon.label'), sign: activeChart.moon.label }));
+      if (activeChart.asc?.label)
+        partes.push(t('birthchart.positionIn', { label: t('birthchart.row.asc.label'), sign: activeChart.asc.label }));
       recordReadingCompletion({
         type: 'birthchart',
         typeLabel: t('home.card.birthchart.title'),
@@ -1146,7 +1177,7 @@ export default function BirthChartScreen() {
       });
       AsyncStorage.setItem(DIARY_RECORDED_KEY, iso);
     });
-  }, [activeChart?.sun?.name, activeChart?.moon?.name, activeChart?.asc?.name]);
+  }, [activeChart?.sun?.label, activeChart?.moon?.label, activeChart?.asc?.label, t]);
 
   // DIAGRAMAÇÃO ESPELHO (09/08/2026): o formulário virou CONST porque agora
   // ele tem duas casas — sozinho na tela quando ainda NÃO há mapa (abertura de
@@ -1157,7 +1188,7 @@ export default function BirthChartScreen() {
     <View style={styles.formCard}>
       <Text style={styles.formTitle}>{t('chart.birthData')}</Text>
       <Text style={styles.dateReadout}>
-        {formatDateBR(selectedBirth.date)}{selectedBirth.time ? ` · ${selectedBirth.time}` : ` · ${t('birthchart.noTime')}`}
+        {formatBirthDate(selectedBirth.date, lang)}{selectedBirth.time ? ` · ${selectedBirth.time}` : ` · ${t('birthchart.noTime')}`}
       </Text>
       <TouchableOpacity style={styles.dateBtn} onPress={() => setCityPickerOpen(true)}>
         <Ionicons name="location" size={16} color={colors.textMuted} />
@@ -1174,7 +1205,7 @@ export default function BirthChartScreen() {
       <TouchableOpacity style={styles.dateBtn} onPress={() => setSoloDatePickerOpen(true)}>
         <Ionicons name="calendar" size={16} color={colors.textMuted} />
         <Text style={[styles.dateBtnText, !soloDate && styles.dateBtnPlaceholder]}>
-          {soloDate ? formatDateBR(soloDate) : t('birthchart.form.birthDate')}
+          {soloDate ? formatBirthDate(soloDate, lang) : t('birthchart.form.birthDate')}
         </Text>
       </TouchableOpacity>
 

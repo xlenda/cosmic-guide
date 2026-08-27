@@ -9,6 +9,9 @@
     "web": "expo start --web",
     "test": "node --max-old-space-size=4096 --require ./test/setup.js --test --test-concurrency=2 \"test/*.test.js\"",
     "test:e2e": "playwright test",
+    "aso:validate": "node --require ./test/setup.js --test test/storeMetadata.test.js",
+    "aso:export": "node play-store/metadata/export-listings.js",
+    "aso:assets": "node play-store/assets/loja-shots.js --all",
     "build:android": "npx --yes eas-cli@latest build --platform android --profile production",
     "submit:android": "npx --yes eas-cli@latest submit --platform android --profile production"
   },
