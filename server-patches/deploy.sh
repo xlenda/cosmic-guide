@@ -2,7 +2,7 @@
 # Deploy do backend corrigido do Cosmic Guide (forja-backend) na VPS.
 #
 # O que faz, nesta ordem:
-#   1. Envia uma cópia isolada para /tmp e liga as dependências já instaladas
+#   1. Envia uma cópia isolada para /tmp e instala o lockfile exato ali
 #   2. Faz backup consistente do banco e dos artefatos que serão promovidos
 #   3. Aplica as migrações NUMA CÓPIA do banco e roda a suíte completa
 #   4. Só então copia os arquivos validados e reinicia o pm2
@@ -70,6 +70,12 @@ rollback_remote() {
         [ ! -e 'src.failed-$TS' ] || exit 1
         [ ! -e src ] || mv src 'src.failed-$TS'
         mv 'src.bak-$TS' src || exit 1
+      fi
+
+      if [ -d 'node_modules.bak-$TS' ]; then
+        [ ! -e 'node_modules.failed-$TS' ] || exit 1
+        [ ! -e node_modules ] || mv node_modules 'node_modules.failed-$TS'
+        mv 'node_modules.bak-$TS' node_modules || exit 1
       fi
 
       for name in scripts test; do
@@ -174,9 +180,10 @@ scp -o ConnectTimeout=25 -r \
   "$REMOTE:$STAGE_DIR/"
 ssh -o ConnectTimeout=25 "$REMOTE" "
   set -e
-  ln -s '$APP_DIR/node_modules' '$STAGE_DIR/node_modules'
   mkdir -p '$STAGE_DIR/data'
   chmod 700 '$STAGE_DIR/data'
+  cd '$STAGE_DIR'
+  npm ci --no-audit --no-fund
   cd '$STAGE_DIR/scripts'
   for f in *.sh; do [ -f \"\$f\" ] && sed -i 's/\r$//' \"\$f\" && chmod +x \"\$f\"; done
 "
@@ -226,9 +233,19 @@ ssh -o ConnectTimeout=25 "$REMOTE" "
     echo 'ERRO: src.bak-$TS já existe.' >&2
     exit 1
   fi
+  if [ -e 'node_modules.bak-$TS' ]; then
+    echo 'ERRO: node_modules.bak-$TS já existe.' >&2
+    exit 1
+  fi
   mv src 'src.bak-$TS'
   if ! cp -r '$STAGE_DIR/src' src; then
     mv 'src.bak-$TS' src
+    exit 1
+  fi
+  mv node_modules 'node_modules.bak-$TS'
+  if ! mv '$STAGE_DIR/node_modules' node_modules; then
+    [ ! -e node_modules ] || mv node_modules 'node_modules.failed-$TS'
+    mv 'node_modules.bak-$TS' node_modules
     exit 1
   fi
   mkdir -p scripts test
@@ -312,4 +329,5 @@ echo " Se precisar reverter:"
 echo "   o rollback automático restaura o release e mantém as escritas atuais no banco"
 echo "   snapshot SQLite de emergência (restaurar apenas offline): data/backups/forja-pre-deploy-$TS.sqlite"
 echo "   backup auxiliar de scripts/package: $CODE_BACKUP_DIR"
+echo "   dependências anteriores: $APP_DIR/node_modules.bak-$TS"
 echo "=============================================="
