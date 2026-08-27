@@ -24,6 +24,7 @@ import Constants from 'expo-constants';
 import { supabase } from '../lib/supabaseClient';
 import { getTokenBalance } from '../lib/tokens';
 import { cardComoDecide } from '../lib/comoDecide';
+import { cosmicMemoryCopy } from '../lib/cosmicMemoryCopy';
 import { hasSeloCosmico, hasGoldTheme } from '../lib/cosmeticRewards';
 import { isGoldThemeActive, setGoldThemeActive } from '../theme';
 import { shareInvite } from '../lib/coupleInvite';
@@ -151,6 +152,7 @@ export default function ProfileScreen() {
   // pra quem ainda precisa comprar o plano de casal.
   const relevantAccess = coupleData ? hasCoupleAccess : hasAccess;
   const { lang, changeLanguage, t } = useLanguage();
+  const memoryCopy = cosmicMemoryCopy(lang);
   const [thoughtEnabled, setThoughtEnabled] = useState(false);
   const [webPushEnabled, setWebPushEnabled] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
@@ -563,6 +565,11 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
               <InfoRow icon="mail" label={t('profile.row.email')} value={user.email} />
+              <MenuRow
+                icon="sparkles"
+                label={memoryCopy.profileRow}
+                onPress={() => navigation.navigate(ROUTES.COSMIC_MEMORY)}
+              />
             </>
           ) : (
             /* Login opcional pra uso grátis — só vira obrigatório na hora de

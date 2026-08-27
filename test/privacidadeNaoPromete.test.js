@@ -73,6 +73,20 @@ test('a tela de Privacidade descreve denúncia e bloqueio nos três idiomas', ()
   }
 });
 
+test('a tela e a página pública descrevem a Memória Cósmica opcional nos três idiomas', () => {
+  const tela = fs.readFileSync(path.join(RAIZ, 'screens', 'PrivacyScreen.js'), 'utf8');
+  const politica = fs.readFileSync(path.join(RAIZ, 'public', 'privacidade.html'), 'utf8');
+  assert.match(tela, /t\('privacy\.ai\.memory'\)/);
+  assert.match(tela, /t\('privacy\.use\.memory'\)/);
+  for (const lang of LANGUAGES) {
+    assert.ok(DICTS[lang]['privacy.ai.memory'], `privacy.ai.memory ausente em ${lang}`);
+    assert.ok(DICTS[lang]['privacy.use.memory'], `privacy.use.memory ausente em ${lang}`);
+  }
+  for (const marker of ['Memória Cósmica', 'Memoria Cósmica', 'Cosmic Memory']) {
+    assert.ok(politica.includes(marker), `política não contém ${marker}`);
+  }
+});
+
 // privacy.rights.sharing tem que nomear TODOS os terceiros, e o Google entrou
 // quando o login com Google entrou (lib/supabaseClient.js: signInWithGoogle).
 test('privacy.rights.sharing nomeia os quatro terceiros', () => {
@@ -147,3 +161,9 @@ for (const contrato of CONTRATO_SOCIAL) {
     assert.ok(!PAGINA.includes(contrato.antigo), `${contrato.lang}: ainda diz que o feed sobrevive à exclusão`);
   });
 }
+
+test('excluir-conta inclui conteúdo e consentimento da memória nos três idiomas', () => {
+  for (const marker of ['Memória Cósmica', 'Memoria Cósmica', 'Cosmic Memory']) {
+    assert.ok(PAGINA.includes(marker), `página de exclusão não contém ${marker}`);
+  }
+});

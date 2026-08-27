@@ -68,6 +68,7 @@ export const ROUTES = {
   COMMUNITY_GUIDELINES: 'CommunityGuidelines',
 
   PROFILE_MAIN: 'ProfileMain',
+  COSMIC_MEMORY: 'CosmicMemory',
   PRIVACY: 'Privacy',
   DIARY: 'Diary',
   TOKENS: 'Tokens',

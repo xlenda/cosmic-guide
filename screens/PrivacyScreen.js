@@ -40,10 +40,9 @@ function PrivacyRow({ icon, text, last }) {
 //     inscrição do navegador.
 //   · Leitura de IA: as rotas de IA (server-patches/src/http/server.js) mandam a
 //     foto/texto pra Anthropic e devolvem a interpretação — não gravam nada em
-//     banco nem em disco, e o log só diz "sucesso". O que sobra é a linha diária
-//     de ai_usage (endpoint + contagem). Por isso o texto promete só o que dá
-//     pra provar aqui ("o NOSSO servidor não guarda") e não afirma nada sobre o
-//     que a Anthropic mantém, que não está sob o nosso controle.
+//     banco nem em disco por padrão, e o log só diz "sucesso". Quando a pessoa
+//     ativa a Memória Cósmica, uma cópia curta das NOVAS mensagens dela ao Órbi
+//     pode ficar no backend até ser apagada; nunca o Diário nem a resposta da IA.
 //   · Voz neural: ao tocar em Ouvir, o texto da leitura vai ao nosso backend e
 //     à ElevenLabs. A conta precisa estar confirmada; guardamos a contagem
 //     diária e um cache temporário do MP3 identificado por hash por até 24h.
@@ -104,6 +103,7 @@ export default function PrivacyScreen() {
           <PrivacyRow icon="cafe" text={t('privacy.ai.coffee')} />
           <PrivacyRow icon="moon" text={t('privacy.ai.dream')} />
           <PrivacyRow icon="chatbubbles" text={t('privacy.ai.chat')} />
+          <PrivacyRow icon="sparkles" text={t('privacy.ai.memory')} />
           <PrivacyRow icon="sparkles" text={t('privacy.ai.weekly')} />
           <PrivacyRow icon="mic" text={t('privacy.ai.voice')} last />
         </View>
@@ -136,6 +136,7 @@ export default function PrivacyScreen() {
             <Text style={styles.paragraph}>{t('privacy.use.exceptionCity')}</Text>
             <Text style={styles.paragraph}>{t('privacy.use.account')}</Text>
             <Text style={styles.paragraph}>{t('privacy.use.ai')}</Text>
+            <Text style={styles.paragraph}>{t('privacy.use.memory')}</Text>
             <Text style={styles.paragraph}>{voicePrivacy.data}</Text>
             <Text style={styles.paragraph}>{voicePrivacy.process}</Text>
             <Text style={styles.paragraph}>{t('privacy.use.social')}</Text>

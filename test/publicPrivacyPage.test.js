@@ -36,6 +36,9 @@ test('política pública entrega o contrato essencial em PT, ES e EN', () => {
     '90 dias',
     '24 horas',
     'Diário Cósmico',
+    'Memória Cósmica',
+    'Memoria Cósmica',
+    'Cosmic Memory',
     'contato@cosmicguide.cloud',
   ]) {
     assert.ok(html.includes(marker), `política pública não contém: ${marker}`);
@@ -51,6 +54,9 @@ test('política pública entrega o contrato essencial em PT, ES e EN', () => {
   assert.match(html, /reading text passes through our server and is\s+sent to ElevenLabs/);
   assert.match(html, /recurso exige uma conta verificada/);
   assert.match(html, /cache, identificado por um hash, por até 24 horas/);
+  assert.match(html, /começa desligada/i);
+  assert.match(html, /starts disabled/i);
+  assert.match(html, /excluir a conta apaga conteúdo e consentimento/i);
 });
 
 test('rewrite canônico aponta para o HTML e vem antes do fallback da SPA', () => {

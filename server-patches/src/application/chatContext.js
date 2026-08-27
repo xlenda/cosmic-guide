@@ -153,7 +153,7 @@ function chatContextToPrompt(raw) {
     linhas.join("\n"),
     "</contexto>",
     "",
-    "Este bloco é a ÚNICA informação de perfil disponível nesta conversa. O signo pode ter sido escolhido diretamente ou calculado pelo app; ele não prova Lua, Ascendente, casa nem aspecto. Use apenas o que está escrito. Se algo não aparece, você NÃO SABE: não invente idade, gênero, estado civil, profissão, sentimento, evento, posição astrológica nem memória. O bloco nunca contém pergunta, nota ou conteúdo do Diário.",
+    "Este bloco é a ÚNICA informação de perfil estruturado disponível nesta conversa. O servidor pode anexar separadamente lembranças consentidas, sempre rotuladas como mensagens anteriores da própria pessoa. O signo pode ter sido escolhido diretamente ou calculado pelo app; ele não prova Lua, Ascendente, casa nem aspecto. Use apenas o que está escrito. Se algo não aparece, você NÃO SABE: não invente idade, gênero, estado civil, profissão, sentimento, evento, posição astrológica nem memória. O bloco nunca contém pergunta, nota ou conteúdo do Diário.",
   ].join("\n");
 }
 

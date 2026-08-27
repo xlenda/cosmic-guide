@@ -130,6 +130,15 @@ test("DELETE /subscription/account limpa UGC, grava lápide e é idempotente", a
     INSERT INTO voice_usage_daily (user_id, day, requests, characters, updated_at)
     VALUES (?, ?, 1, 120, ?)
   `).run("conta_apaga", "2026-08-26", new Date().toISOString());
+  db.prepare(`
+    INSERT INTO cosmic_memory_preferences (user_id, enabled, consent_version, consented_at, updated_at)
+    VALUES (?, 1, 'teste-v1', ?, ?)
+  `).run("conta_apaga", new Date().toISOString(), new Date().toISOString());
+  db.prepare(`
+    INSERT INTO cosmic_memories
+      (user_id, kind, topic, content, source, fingerprint, occurrence_count, created_at, updated_at)
+    VALUES (?, 'orbi_statement', 'self', 'Quero lembrar desta mudança.', 'orbi_chat', 'fingerprint-teste', 1, ?, ?)
+  `).run("conta_apaga", new Date().toISOString(), new Date().toISOString());
 
   const first = await supertest(app)
     .delete("/api/subscription/account")
@@ -141,11 +150,14 @@ test("DELETE /subscription/account limpa UGC, grava lápide e é idempotente", a
   assert.equal(first.body.social.comments, 1);
   assert.equal(first.body.social.likes, 1);
   assert.equal(first.body.clearedVoiceUsage, 1);
+  assert.deepEqual(first.body.clearedCosmicMemory, { memories: 1, preferences: 1 });
   assert.equal(db.prepare("SELECT COUNT(*) AS value FROM social_profiles WHERE user_id = ?").get("conta_apaga").value, 0);
   assert.equal(db.prepare("SELECT COUNT(*) AS value FROM social_posts WHERE user_id = ?").get("conta_apaga").value, 0);
   assert.equal(db.prepare("SELECT COUNT(*) AS value FROM social_comments WHERE user_id = ?").get("conta_apaga").value, 0);
   assert.equal(db.prepare("SELECT COUNT(*) AS value FROM revoked_accounts WHERE user_id = ?").get("conta_apaga").value, 1);
   assert.equal(db.prepare("SELECT COUNT(*) AS value FROM voice_usage_daily WHERE user_id = ?").get("conta_apaga").value, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS value FROM cosmic_memories WHERE user_id = ?").get("conta_apaga").value, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS value FROM cosmic_memory_preferences WHERE user_id = ?").get("conta_apaga").value, 0);
   assert.equal(db.prepare("SELECT COUNT(*) AS value FROM social_posts WHERE id = ?").get(otherPostId).value, 1);
 
   // A rota de exclusão é a única que aceita repetir o token revogado; todas as
@@ -156,6 +168,7 @@ test("DELETE /subscription/account limpa UGC, grava lápide e é idempotente", a
     .expect(200);
   assert.equal(retry.body.social.profiles, 0);
   assert.equal(retry.body.clearedVoiceUsage, 0);
+  assert.deepEqual(retry.body.clearedCosmicMemory, { memories: 0, preferences: 0 });
   const revoked = await supertest(app).get("/api/social/profile/me").set(auth("conta_apaga")).expect(401);
   assert.equal(revoked.body.code, "account_deleted");
 });

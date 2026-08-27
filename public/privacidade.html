@@ -20,7 +20,7 @@
     URL canônica /cosmic-guide/privacidade para este arquivo antes do fallback
     da SPA. Alterar o arquivo gerado em deploy-vercel/ não sobrevive ao deploy.
 
-    O texto abaixo foi conferido em 26/08/2026 contra PrivacyScreen.js,
+    O texto abaixo foi conferido em 27/08/2026 contra PrivacyScreen.js,
     lib/i18n.js, lib/funnel.js, lib/webPush.js, lib/socialClient.js,
     lib/supabaseClient.js, lib/aiClient.js, App.js e o fluxo de exclusão.
     Texto legal que promete mais que o código é tratado como defeito.
@@ -253,7 +253,7 @@
       O que fica no seu aparelho, o que precisa sair dele para cada função e
       como você pode acessar ou excluir seus dados.
     </p>
-    <p class="updated">Atualizada em 26 de agosto de 2026</p>
+    <p class="updated">Atualizada em 27 de agosto de 2026</p>
     <nav class="language-nav" aria-label="Escolher idioma">
       <a href="#pt" lang="pt-BR">Português</a>
       <a href="#es" lang="es">Español</a>
@@ -319,9 +319,17 @@
           <strong>Leituras de IA.</strong> A foto ou o texto enviado em Palma,
           Rosto, Pé, Pintas, Café, Sonhos, Órbi, Insight da Semana e “Lapidar com
           IA” passa pelo nosso servidor e segue para a Anthropic, que gera a
-          resposta. Nosso servidor não grava o conteúdo da chamada; mantém a
-          contagem diária de uso. O tratamento feito pela Anthropic segue a
-          política dela.
+          resposta. Por padrão, nosso servidor não grava o conteúdo da chamada;
+          mantém a contagem diária de uso. O tratamento feito pela Anthropic
+          segue a política dela.
+        </li>
+        <li>
+          <strong>Memória Cósmica.</strong> Começa desligada. Se você ativar em
+          Perfil, nosso servidor pode guardar até 60 cópias curtas de novas
+          mensagens que você escrever ao Órbi. Até quatro lembranças relevantes
+          podem seguir com uma pergunta futura para a Anthropic. Não entram nessa
+          memória as respostas da IA, o Diário, dados natais, Comunidade ou
+          contexto de casal. Cada item pode ser visto e apagado no Perfil.
         </li>
         <li>
           <strong>Comunidade.</strong> Nome de exibição, @usuário, emoji,
@@ -393,6 +401,7 @@
       <ul>
         <li>dados locais permanecem até serem apagados no aparelho;</li>
         <li>conta e dados identificáveis da Comunidade permanecem até exclusão pela pessoa ou moderação;</li>
+        <li>a Memória Cósmica permanece enquanto a conta existir ou até você apagar os itens; desativar interrompe coleta e uso, e excluir a conta apaga conteúdo e consentimento;</li>
         <li>o histórico do funil próprio é apagado automaticamente depois de 90 dias;</li>
         <li>a inscrição de notificação permanece até ser desativada ou os dados do aparelho serem limpos;</li>
         <li>o áudio gerado para “Ouvir” pode ficar no cache do nosso servidor, identificado por hash, por até 24 horas;</li>
@@ -419,8 +428,8 @@
       </p>
       <p>
         Em <strong>Perfil &gt; Deletar conta</strong>, o app remove o login, desfaz
-        o vínculo da assinatura e apaga perfil, publicações, comentários, curtidas,
-        relações de seguir e bloqueios ligados à conta. Denúncias necessárias podem
+        o vínculo da assinatura e apaga a Memória Cósmica, o perfil, publicações,
+        comentários, curtidas, relações de seguir e bloqueios ligados à conta. Denúncias necessárias podem
         permanecer anonimizadas, além dos recibos e da contagem antiabuso descritos
         acima. Excluir a conta não cancela uma cobrança ativa: cancele antes na
         Hotmart ou no Google Play, conforme o local da compra.
@@ -480,7 +489,8 @@
         <li><strong>Cuenta.</strong> El correo y la contraseña van a Supabase. Si eliges Google, Google confirma tu identidad y envía a Supabase el nombre y correo de la cuenta.</li>
         <li><strong>Búsqueda de ciudad natal.</strong> La búsqueda, fecha y hora de nacimiento pasan por nuestro servidor para obtener coordenadas y zona horaria. No se adjuntan a tu perfil; pueden existir registros técnicos temporales.</li>
         <li><strong>Suscripción.</strong> En la compra web, tu correo, el plan y, en modo pareja, ambos nombres pasan por nuestro servidor y por Hotmart.</li>
-        <li><strong>Lecturas de IA.</strong> La foto o el texto de Palma, Rostro, Pie, Lunares, Café, Sueños, Órbi, Insight Semanal y “Pulir con IA” pasa por nuestro servidor y se envía a Anthropic. Nuestro servidor no guarda el contenido de la llamada; conserva el conteo diario. El tratamiento de Anthropic sigue su política.</li>
+        <li><strong>Lecturas de IA.</strong> La foto o el texto de Palma, Rostro, Pie, Lunares, Café, Sueños, Órbi, Insight Semanal y “Pulir con IA” pasa por nuestro servidor y se envía a Anthropic. Por defecto, nuestro servidor no guarda el contenido de la llamada; conserva el conteo diario. El tratamiento de Anthropic sigue su política.</li>
+        <li><strong>Memoria Cósmica.</strong> Comienza desactivada. Si la activas en Perfil, nuestro servidor puede guardar hasta 60 copias breves de mensajes nuevos que escribas a Órbi. Hasta cuatro recuerdos relevantes pueden acompañar una pregunta futura enviada a Anthropic. No entran respuestas de la IA, el Diario, datos natales, la Comunidad ni el contexto de pareja. Puedes ver y borrar cada elemento desde Perfil.</li>
         <li><strong>Comunidad.</strong> Nombre visible, @usuario, emoji, publicaciones y comentarios quedan en nuestro servidor y pueden ser públicos dentro de la app. También guardamos Me gusta, relaciones de seguimiento y bloqueos.</li>
         <li><strong>Reportes.</strong> Motivo, copia del contenido e identificadores necesarios para revisarlo quedan en el servidor. Se puede reportar una respuesta de IA sin cuenta.</li>
         <li><strong>Recordatorio diario web.</strong> Si lo activas, guardamos la dirección de notificación, signo, racha y la fecha — nunca el texto — de la última entrada del Diario. Desactivarlo elimina la suscripción.</li>
@@ -534,6 +544,7 @@
       <ul>
         <li>los datos locales quedan hasta que los borres en el dispositivo;</li>
         <li>la cuenta y los datos identificables de la Comunidad quedan hasta que se eliminen por la persona o por moderación;</li>
+        <li>la Memoria Cósmica queda mientras exista la cuenta o hasta que borres los elementos; desactivarla detiene la recopilación y el uso, y eliminar la cuenta borra contenido y consentimiento;</li>
         <li>el embudo propio se borra después de 90 días y las notificaciones quedan hasta desactivarlas;</li>
         <li>el audio generado para “Escuchar” puede quedar en la caché de nuestro servidor, identificado por un hash, hasta 24 horas;</li>
         <li>los reportes necesarios pueden quedar sin plazo; tras eliminar la cuenta se anonimizan respecto de ella;</li>
@@ -558,7 +569,7 @@
       </p>
       <p>
         En <strong>Perfil &gt; Eliminar cuenta</strong>, se elimina el acceso, se
-        deshace el vínculo de la suscripción y se borran perfil, publicaciones,
+        deshace el vínculo de la suscripción y se borran la Memoria Cósmica, el perfil, publicaciones,
         comentarios, Me gusta, relaciones y bloqueos. Pueden quedar reportes
         anonimizados, comprobantes y el conteo antiabuso descrito arriba. Eliminar
         la cuenta no cancela el cobro: cancela antes en Hotmart o Google Play.
@@ -615,7 +626,8 @@
         <li><strong>Account.</strong> Email and password go to Supabase. If you choose Google, Google confirms your identity and sends the account name and email to Supabase.</li>
         <li><strong>Birth-city search.</strong> Your query, birth date, and birth time pass through our server to obtain coordinates and a time zone. They are not attached to your profile; temporary technical access logs may exist.</li>
         <li><strong>Subscription.</strong> For a web purchase, your email, plan, and both names in couple mode pass through our server and Hotmart.</li>
-        <li><strong>AI readings.</strong> The photo or text used in Palm, Face, Foot, Moles, Coffee, Dreams, Órbi, Weekly Insight, and “Polish with AI” passes through our server and is sent to Anthropic. Our server does not store the call content; it retains a daily usage count. Anthropic handles data under its own policy.</li>
+        <li><strong>AI readings.</strong> The photo or text used in Palm, Face, Foot, Moles, Coffee, Dreams, Órbi, Weekly Insight, and “Polish with AI” passes through our server and is sent to Anthropic. By default, our server does not store the call content; it retains a daily usage count. Anthropic handles data under its own policy.</li>
+        <li><strong>Cosmic Memory.</strong> It starts disabled. If you enable it in Profile, our server may keep up to 60 short copies of new messages you write to Órbi. Up to four relevant memories may accompany a future question sent to Anthropic. AI responses, your Diary, birth data, Community content, and couple context do not enter this memory. You can view and delete every item from Profile.</li>
         <li><strong>Community.</strong> Your display name, @handle, emoji, posts, and comments stay on our server and may be seen by other app users. Likes, follow relationships, and blocks also remain on the server.</li>
         <li><strong>Reports.</strong> The reason, a copy of reported content, and identifiers needed for review remain on the server. An AI response may be reported without an account.</li>
         <li><strong>Web daily reminder.</strong> If enabled, we store the browser notification address, sign, streak, and the date — never the text — of the latest Diary entry. Disabling it removes the subscription.</li>
@@ -670,6 +682,7 @@
       <ul>
         <li>local data remains until it is deleted on the device;</li>
         <li>the account and identifiable Community data remain until deletion by the person or moderation;</li>
+        <li>Cosmic Memory remains while the account exists or until you delete its items; disabling stops collection and use, and account deletion removes both content and consent;</li>
         <li>our own funnel history is deleted after 90 days, and notification subscriptions remain until disabled;</li>
         <li>audio generated for “Listen” may remain in our server cache, identified by a hash, for up to 24 hours;</li>
         <li>reports needed for moderation may remain with no set expiry; after account deletion they are anonymized in relation to that account;</li>
@@ -694,7 +707,7 @@
       </p>
       <p>
         In <strong>Profile &gt; Delete account</strong>, the app removes the login,
-        unlinks the subscription, and deletes the profile, posts, comments, likes,
+        unlinks the subscription, and deletes Cosmic Memory, the profile, posts, comments, likes,
         follow relationships, and blocks linked to the account. Anonymized reports,
         receipts, and the anti-abuse count described above may remain. Account
         deletion does not cancel active billing: cancel first through Hotmart or

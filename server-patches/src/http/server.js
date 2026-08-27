@@ -10,6 +10,8 @@ const { AnthropicChatProvider } = require("../infrastructure/AnthropicChatProvid
 const { PushSubscriptionRepository } = require("../infrastructure/PushSubscriptionRepository");
 const { ConversionTrackingProvider } = require("../infrastructure/ConversionTrackingProvider");
 const { ElevenLabsVoiceProvider } = require("../infrastructure/ElevenLabsVoiceProvider");
+const { CosmicMemoryRepository } = require("../infrastructure/CosmicMemoryRepository");
+const { db } = require("../infrastructure/db");
 const { VoiceAudioCache } = require("../infrastructure/VoiceAudioCache");
 const { VoiceQuota } = require("../infrastructure/VoiceQuota");
 const {
@@ -18,6 +20,7 @@ const {
   DEFAULT_MAX_TEXT_CHARACTERS,
 } = require("../application/VoiceSynthesisService");
 const { buildVoiceRouter } = require("./voiceRoutes");
+const { buildMemoryRouter } = require("./memoryRoutes");
 const { socialRouter } = require("./socialRoutes");
 const { moderationRouter } = require("./moderationRoutes");
 const { buildAdminRouter } = require("./adminRoutes");
@@ -80,6 +83,7 @@ const paymentProvider = new HotmartPaymentProvider({
 });
 const repository = new SubscriptionRepository();
 const pushRepository = new PushSubscriptionRepository();
+const memoryRepository = new CosmicMemoryRepository({ database: db });
 
 const conversionTracker =
   FB_PIXEL_ID && FB_CONVERSIONS_API_TOKEN
@@ -450,6 +454,11 @@ app.use(
   buildAccountRouter({ getAccountSubscription, claimSubscription, requireAuth, requireVerifiedEmail, deleteAccountData })
 );
 
+app.use(
+  "/api/memory",
+  buildMemoryRouter({ repository: memoryRepository, requireAuth, requireVerifiedEmail })
+);
+
 app.get("/api/subscription/:correlationCode", publicReadLimiter, (req, res) => {
   const result = getSubscriptionStatus.execute({ correlationCode: req.params.correlationCode });
   if (!result) return res.status(404).json({ error: "não encontrado" });
@@ -484,13 +493,33 @@ app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req,
     // passam; pergunta, nota, Diário e qualquer texto livre falham antes da
     // chamada paga. O provider repete a validação como defesa em profundidade.
     const contexto = sanitizeChatContext(contextoBruto);
+    let memorias = [];
+    if (req.userId) {
+      try {
+        memorias = memoryRepository.relevant({ userId: req.userId, query: message, contexto });
+      } catch {
+        // Memória enriquece a resposta, mas nunca pode derrubar o chat. O log
+        // não inclui texto, id ou quantidade de itens privados.
+        console.error("[cosmic-memory] recuperação indisponível");
+      }
+    }
     const reply = await aiProvider.chat({
       personaId,
       message,
       history,
       contexto,
+      memorias,
       lang: langDoPedido(req),
     });
+    if (req.userId) {
+      try {
+        // Só persiste depois de uma resposta real da Anthropic. Falha, cota ou
+        // timeout não transformam uma tentativa solta em lembrança permanente.
+        memoryRepository.rememberChatMessage({ userId: req.userId, message, contexto });
+      } catch {
+        console.error("[cosmic-memory] gravação indisponível");
+      }
+    }
     console.log("[api/chat] sucesso");
     // Único endpoint que o canary chama — ver ehCanary() acima.
     countAiUsage(ehCanary(req) ? `chat${CANARY_SUFFIX}` : "chat");

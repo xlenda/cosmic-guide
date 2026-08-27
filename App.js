@@ -77,6 +77,7 @@ import { withFeatureGate } from './components/FeatureGate';
 // auditoria de performance, 19/07/2026). Cada Stack.Navigator que renderiza
 // alguma destas precisa de um <Suspense> ancestral (ver LoadingFallback).
 const PrivacyScreen = lazy(() => import('./screens/PrivacyScreen'));
+const CosmicMemoryScreen = lazy(() => import('./screens/CosmicMemoryScreen'));
 const TimelineScreen = lazy(() => import('./screens/TimelineScreen'));
 const ReconectarScreen = lazy(() => import('./screens/ReconectarScreen'));
 const DescobrirScreen = lazy(() => import('./screens/DescobrirScreen'));
@@ -518,6 +519,7 @@ function ProfileStack() {
     <Suspense fallback={<LoadingFallback />}>
       <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}>
         <Stack.Screen name={ROUTES.PROFILE_MAIN} component={ProfileScreen} />
+        <Stack.Screen name={ROUTES.COSMIC_MEMORY} component={CosmicMemoryScreen} />
         <Stack.Screen name={ROUTES.PRIVACY} component={PrivacyScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
         <Stack.Screen name={ROUTES.TOKENS} component={TokensScreen} />

@@ -382,7 +382,12 @@ class SubscriptionRepository {
   forgetAccountData({ supabaseUserId }) {
     const userId = typeof supabaseUserId === "string" ? supabaseUserId.trim() : "";
     if (!userId) {
-      return { unlinkedSubscriptions: 0, clearedVoiceUsage: 0, social: emptySocialDeletion() };
+      return {
+        unlinkedSubscriptions: 0,
+        clearedVoiceUsage: 0,
+        clearedCosmicMemory: { memories: 0, preferences: 0 },
+        social: emptySocialDeletion(),
+      };
     }
     const now = new Date().toISOString();
     const forget = db.transaction(() => {
@@ -409,6 +414,12 @@ class SubscriptionRepository {
       // impede que o mesmo token volte a sintetizar.
       const voiceUsage = db.prepare("DELETE FROM voice_usage_daily WHERE user_id = ?").run(userId);
 
+      // A Memória Cósmica é dado privado da conta, não recibo financeiro nem
+      // registro de moderação. Conteúdo e consentimento saem juntos, dentro da
+      // mesma transação que revoga a conta.
+      const cosmicMemories = db.prepare("DELETE FROM cosmic_memories WHERE user_id = ?").run(userId);
+      const cosmicPreferences = db.prepare("DELETE FROM cosmic_memory_preferences WHERE user_id = ?").run(userId);
+
       // A LÁPIDE VEM POR ÚLTIMO, dentro da MESMA transação. A partir do instante
       // em que ela existe, requireAuth (socialAuth.js) recusa esse token. Se
       // qualquer limpeza acima falhar, o rollback preserva tudo e a requisição
@@ -421,7 +432,15 @@ class SubscriptionRepository {
         new Date(Date.now() - REVOKED_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
       );
 
-      return { unlinkedSubscriptions: result.changes, clearedVoiceUsage: voiceUsage.changes, social };
+      return {
+        unlinkedSubscriptions: result.changes,
+        clearedVoiceUsage: voiceUsage.changes,
+        clearedCosmicMemory: {
+          memories: cosmicMemories.changes,
+          preferences: cosmicPreferences.changes,
+        },
+        social,
+      };
     });
 
     return forget();
