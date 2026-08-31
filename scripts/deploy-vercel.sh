@@ -86,6 +86,13 @@ EOF
 # oddpro.pro/cosmic-guide/ (redirect de topo, não iframe), então não precisa
 # ser mais restrito que isso.
 #
+# Permissions-Policy: microphone PRECISA ser (self). Allowlist vazia `()`
+# desliga o microfone até para a própria origem — foi assim que o ditado de
+# voz do VoiceInsightRecorder quebrou na web (SpeechRecognition dispara
+# onerror not-allowed sem nem pedir permissão à pessoa). Quem for endurecer
+# isto de novo: test/voiceIntegration.test.js trava a allowlist vazia NA REGRA
+# global `/(.*)`. Uma regra NOVA, com outro source, ele nao ve.
+#
 # Os primeiros rewrites (/excluir-conta e /cosmic-guide/privacidade) vêm ANTES
 # do coringa de propósito: são documentos públicos que precisam abrir sem
 # sessão e mesmo com JavaScript desligado. Ambos nascem em public/, são
@@ -122,7 +129,7 @@ cat > deploy-vercel/vercel.json << 'EOF'
         { "key": "Content-Security-Policy", "value": "frame-ancestors 'self'" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=()" }
+        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(self), geolocation=()" }
       ]
     }
   ]

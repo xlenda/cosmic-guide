@@ -71,3 +71,44 @@ test('app declara áudio compatível com Expo 54 sem pedir microfone', () => {
   assert.equal(audioPlugin[1].microphonePermission, false);
   assert.equal(audioPlugin[1].recordAudioAndroid, false);
 });
+
+// A contrapartida web do teste acima: no aparelho o app não PEDE microfone;
+// na web o deploy não pode DESLIGAR o microfone da própria origem. O commit
+// f462a50 pôs `microphone=()` (allowlist vazia) no Permissions-Policy de toda
+// a produção, num lote de "endurecer pra loja", e nada barrava — o ditado de
+// voz do VoiceInsightRecorder passou a dar not-allowed para sempre.
+test('deploy web não desliga o microfone da própria origem', () => {
+  const deploy = fs.readFileSync(path.join(root, 'scripts', 'deploy-vercel.sh'), 'utf8');
+  const gerado = deploy.match(/cat > deploy-vercel\/vercel\.json << 'EOF'\r?\n([\s\S]*?)\r?\nEOF/);
+  assert.ok(gerado, 'não achei o vercel.json gerado por scripts/deploy-vercel.sh');
+
+  const vercel = JSON.parse(gerado[1]);
+  const regra = vercel.headers.find((h) => h.source === '/(.*)');
+  assert.ok(regra, 'nenhuma regra de header cobre a produção inteira');
+  const policy = regra.headers.find((h) => h.key === 'Permissions-Policy');
+  assert.ok(policy, 'Permissions-Policy sumiu do deploy web');
+
+  assert.doesNotMatch(
+    policy.value,
+    /microphone\s*=\s*\(\s*\)/,
+    'microphone com allowlist VAZIA desliga o microfone até para a própria origem e mata o ditado de voz',
+  );
+  assert.match(
+    policy.value,
+    /microphone\s*=\s*\(\s*self/,
+    'microphone precisa liberar explicitamente a própria origem',
+  );
+});
+
+// E se a política do navegador barrar mesmo assim, o botão de ditar some (cai
+// no texto honesto voice.noMic) em vez de culpar a fala da pessoa com
+// voice.hearingError. Só vale onde o navegador expõe document.featurePolicy
+// (Chrome/Edge); no Safari o gate não tem como saber e o botão continua.
+test('botão de ditar consulta a Permissions Policy antes de se oferecer', () => {
+  const recorder = fs.readFileSync(path.join(root, 'components', 'VoiceInsightRecorder.js'), 'utf8');
+  assert.match(recorder, /featurePolicy\?\.allowsFeature\?\.\('microphone'\) !== false/);
+  // Intencao, nao formatacao: o gate do botao tem que consultar a politica do
+  // navegador. Quebrar a linha em duas ou trocar espacos NAO pode reprovar.
+  assert.match(recorder, /speechSupported\s*=[^;]*micAllowedByPolicy\(\)/s);
+  assert.match(recorder, /speechSupported \? t\('voice\.orWrite'\) : t\('voice\.noMic'\)/);
+});

@@ -26,9 +26,11 @@ IDs e decisões exclusivas daquele app.
 
 ## Armazenamento local
 
-- A cópia de trabalho existente está em
-  `C:\Users\XuXa\Downloads\Cosmic Guide`; não movê-la nem duplicá-la como efeito
-  colateral de outra tarefa.
+- A cópia de trabalho existente é **a raiz deste repositório**; não movê-la nem
+  duplicá-la como efeito colateral de outra tarefa. Caminho absoluto medido em
+  31/08/2026: `C:\Users\Sanches\Downloads\Cosmic Guide`. O perfil antigo
+  `C:\Users\XuXa` não existe mais: a máquina mudou. Caminho absoluto em documento
+  envelhece — confira o caminho real antes de repetir este.
 - Novos artefatos de build e desenvolvimento ficam em
   `D:\Projetos\CosmicGuide\artifacts`.
 - Temporários e exports descartáveis ficam em `D:\Temp\User`.

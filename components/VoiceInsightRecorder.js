@@ -23,6 +23,18 @@ function getSpeechRecognitionCtor() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
 
+// O construtor do SpeechRecognition continua existindo mesmo quando o deploy
+// serve `Permissions-Policy: microphone=()` — só que aí o start() dispara
+// onerror not-allowed sem nem pedir permissão, e a pessoa via "não consegui
+// ouvir" para sempre, levando a culpa por um cabeçalho de deploy (achado real,
+// 31/08/2026). Perguntando à Permissions Policy antes, o botão de ditar some e
+// cai no texto honesto de voice.noMic. `!== false` de propósito: navegador sem
+// document.featurePolicy (Safari) devolve undefined e não pode perder o ditado.
+function micAllowedByPolicy() {
+  if (typeof document === 'undefined') return true;
+  return document.featurePolicy?.allowsFeature?.('microphone') !== false;
+}
+
 const STEP = { IDLE: 'idle', RECORDING: 'recording', REVIEW: 'review', ENHANCING: 'enhancing', DONE: 'done' };
 
 // entryId: id da entrada já salva no Diário Cósmico (lib/journal.js) pra essa
@@ -44,7 +56,7 @@ export default function VoiceInsightRecorder({ entryId, readingType, readingTitl
   const [busy, setBusy] = useState(false);
   const recognitionRef = useRef(null);
 
-  const speechSupported = !!getSpeechRecognitionCtor();
+  const speechSupported = !!getSpeechRecognitionCtor() && micAllowedByPolicy();
 
   // Sem isso (achado real de auditoria, 18/07/2026), trocar de tema ou tirar
   // nova leitura enquanto step ainda é RECORDING desmontava o componente sem
