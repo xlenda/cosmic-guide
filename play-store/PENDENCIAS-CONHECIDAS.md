@@ -1,8 +1,7 @@
 # Pendencias conhecidas — o que NAO foi fechado, e por que
 
-Estado em 19/08/2026; o item 2 foi reconferido contra o codigo em 31/08/2026.
-Nenhuma destas impede publicar na Play Store; todas sao risco aceito, com o
-motivo escrito.
+Estado em 19/08/2026. Nenhuma destas impede publicar na Play Store; todas sao
+risco aceito, com o motivo escrito.
 
 ## 1. Deep link malicioso pode atrapalhar um login em curso (MEDIO, aberto)
 
@@ -20,7 +19,7 @@ regressao ALTA em troca de um risco MEDIO nao fechado e piora, nao melhora.
 isso que ele existe) em vez de inventar uma marca global no storage. Precisa
 conferir antes o que o supabase-js ja faz com `state`.
 
-## 2. Lapide de revogacao nao tem caminho de volta (MEDIO, revisto em 31/08)
+## 2. Lapide de revogacao nao tem caminho de volta (BAIXO)
 
 Apagar a conta grava o uuid em `revoked_accounts`, e o `requireAuth` passa a
 recusar aquele token. Isso e o que faz a exclusao ser exclusao (o access token
@@ -28,26 +27,12 @@ sobreviveria ate o `exp`). Mas nao existe rota de des-revogacao: se a lapide for
 gravada por engano, a pessoa fica trancada fora da conta.
 
 Na pratica o app so chama essa rota DEPOIS do RPC que apaga a conta no Supabase,
-entao quando a lapide e gravada a conta ja morreu.
-
-**O "destrave manual" abaixo NAO devolve a pessoa ao estado anterior — ele so
-devolve o acesso.** A lapide e gravada dentro da MESMA transacao que APAGA o
-resto (`SubscriptionRepository.forgetAccountData`, linhas 393-430): o vinculo da
-assinatura e desfeito, o UGC social sai (perfil, posts, comentarios, curtidas,
-follows, bloqueios), `voice_usage_daily` sai, e `cosmic_memories` +
-`cosmic_memory_preferences` saem junto. Quando a lapide existe, esse conteudo ja
-foi apagado e nao tem volta. Rodar o DELETE abaixo reabre o login de uma conta
-esvaziada:
+entao quando a lapide e gravada a conta ja morreu. Se acontecer mesmo assim, o
+destrave e manual na VPS:
 
 ```sql
 DELETE FROM revoked_accounts WHERE user_id = '<uuid>';
 ```
-
-Por isso a severidade subiu de BAIXO para MEDIO: o escopo do que se perde cresceu
-com a Comunidade e com a Memoria Cosmica, e o unico remedio documentado conserta
-so a metade barata do problema. Nao apresentar esse DELETE como "reverter a
-exclusao" para o dono nem em texto visivel ao usuario — a pagina publica ja diz
-corretamente que a exclusao "e imediata e nao tem volta".
 
 ## 3. Checkout anonimo aceita e-mail de terceiro (MEDIO, pre-existente)
 

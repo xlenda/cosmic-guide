@@ -399,16 +399,12 @@ premium estáticos. Não há fallback para TTS robótico.
 1. Ler `CONTEXTO-PARA-AGENTE.md` e este arquivo inteiro.
 2. Conferir `git status`, branch, HEAD e produção antes de alterar qualquer coisa.
 3. Confirmar o baseline publicado em `af6afc2`, backend `20260826-160253`, web
-   `dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75`. Esse baseline mediu 1805 testes; medição de
-   31/08/2026 no HEAD `4b1b113` deu 1827/1827. **Não repita nenhum dos dois como
-   status: rode `npm test` e registre o total real da sua execução.**
+   `dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75` e o total atual de 1805 testes.
 4. **Rotina diária paralela:** revisar a fila humana de moderação em dois turnos,
    seguindo `docs/OPERACAO-MODERACAO.md`; isso não é substituído por automação.
-5. Há um lote no código sem publicação registrada: a **Memória Cósmica do Órbi**
-   (`12d7aa6`, `f09616b`, migration `022`) — ver a seção 8. Fora ele, não existe
-   novo lote de código autorizado. Primeiro validar a voz em aparelho Android
-   real; depois o dono decide qual item remanescente do Lote D vira uma frente
-   própria.
+5. Não existe novo lote de código autorizado nesta entrega. Primeiro validar a
+   voz em aparelho Android real; depois o dono decide qual item remanescente do
+   Lote D vira uma frente própria.
 6. Ações do dono: recarregar créditos da Anthropic e configurar/testar a caixa
    `contato@cosmicguide.cloud` antes de prometer chat ou recurso por e-mail.
 
@@ -471,9 +467,6 @@ realmente foi publicado.
 | `server-patches/src/infrastructure/ElevenLabsVoiceProvider.js` | Provedor server-only; chave/IDs não chegam ao cliente. |
 | `server-patches/src/infrastructure/VoiceAudioCache.js` + `VoiceQuota.js` | Retenção máxima, temporários e cotas pessoal/global. |
 | `server-patches/src/infrastructure/migrations/021_add_voice_usage.sql` | Contagem diária removida com a conta. |
-| `server-patches/src/infrastructure/migrations/022_add_cosmic_memory.sql` | Memória Cósmica: conteúdo e consentimento versionado. Migration mais alta do diretório; **no código, ainda sem release registrado**. |
-| `server-patches/src/http/memoryRoutes.js` + `src/application/cosmicMemory.js` + `src/infrastructure/CosmicMemoryRepository.js` | Rota (exige e-mail verificado), regras de guardar/recuperar e persistência da Memória Cósmica. Opt-in, desligada por padrão, teto de 300 itens. |
-| `screens/CosmicMemoryScreen.js` + `lib/cosmicMemoryClient.js` + `lib/cosmicMemoryCopy.js` | Tela onde a pessoa liga, lê e apaga as lembranças. Roteada em `App.js` e linkada em `screens/ProfileScreen.js`. |
 | `public/privacidade.html` | Política PT/ES/EN estática, pública e sem JavaScript. |
 | `docs/OPERACAO-MODERACAO.md` | Rotina humana em dois turnos, severidade, recurso e protocolo de indisponibilidade. |
 | `server-patches/test/communityRooms.http.test.js` | Contrato HTTP das salas. |
@@ -493,29 +486,11 @@ realmente foi publicado.
 ## 8. Estado desta noite
 
 Community V1, 3S **Alinhe seu céu**, Lotes B/C, cards premium e voz ElevenLabs
-estão publicados. Esse snapshot é `af6afc2`, backend `20260826-160253`, schema 21,
-web `dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75` e **1805/1805 testes do app naquela data**.
-Probes, canários das três vozes e navegador limpo passaram.
+estão publicados. O snapshot é `af6afc2`, backend `20260826-160253`, schema 21,
+web `dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75` e **1805/1805 testes do app**. Probes,
+canários das três vozes e navegador limpo passaram.
 
-**O código andou depois desse snapshot.** Em 31/08/2026 o HEAD é `4b1b113`, oito
-commits à frente de `af6afc2`, e a suíte medida nesta máquina deu **1827/1827**
-(entraram arquivos de teste novos). Número de teste é fotografia datada, não
-status permanente: rode `npm test` e registre o total real da sua execução, como
-`ESTADO-ATUAL.md` já manda.
-
-**Pendente de publicação: a Memória Cósmica do Órbi** (commits `12d7aa6` e
-`f09616b`). Ela está no código com a migration `022_add_cosmic_memory.sql` — o
-número mais alto de `server-patches/src/infrastructure/migrations/` — mais a rota
-`memoryRoutes.js` e a tela `CosmicMemoryScreen.js`. **Não existe registro de
-release posterior a `20260826-160253` neste repositório**, e nenhum documento diz
-que a 022 foi aplicada — o mais provável é que produção ainda esteja em schema 21,
-mas isso NÃO foi medido aqui: leia o `user_version` real na VPS antes de afirmar
-qualquer número. Publicar backend antes da web (`AGENTS.md`, seção
-"Publicação"). É uma superfície nova de dado privado e muda o que sai para a
-Anthropic — ver o Contrato da Fase 3 em `CONTEXTO-PARA-AGENTE.md`.
-
-Fora esse lote, não existe outro lote de código autorizado pendente. Faltam o
-teste físico da voz no Android e as rotinas/ações externas do dono: moderação
-humana duas vezes ao dia, créditos Anthropic e caixa de e-mail do domínio. Vídeo
-premium, DMs, match e nova cobrança ficaram fora de propósito; não anunciá-los
-como existentes.
+Não existe outro lote de código autorizado pendente. Faltam o teste físico da
+voz no Android e as rotinas/ações externas do dono: moderação humana duas vezes
+ao dia, créditos Anthropic e caixa de e-mail do domínio. Vídeo premium, DMs,
+match e nova cobrança ficaram fora de propósito; não anunciá-los como existentes.

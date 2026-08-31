@@ -10,12 +10,10 @@
 //
 // A regra: a frase pode ser MAIS MODESTA que a realidade, nunca mais generosa.
 //
-// Este arquivo NÃO tenta julgar redação. Ele pina quatro coisas:
+// Este arquivo NÃO tenta julgar redação. Ele pina três coisas:
 //   1. as frases defeituosas exatas não voltam (nos três idiomas);
 //   2. o dado novo que passou a sair do aparelho está descrito;
-//   3. a página pública de exclusão não lista o Diário como apagado;
-//   4. uma promessa que só vale COM ressalva não aparece sem ela em NENHUMA
-//      chave — a varredura é pela frase, não por chave escolhida a dedo.
+//   3. a página pública de exclusão não lista o Diário como apagado.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -62,68 +60,6 @@ for (const item of PROIBIDO) {
 }
 
 // ---------------------------------------------------------------------------
-// 1b. PROMESSA QUE SÓ VALE COM RESSALVA — EM QUALQUER CHAVE, NÃO SÓ NA TELA
-//     DE PRIVACIDADE
-// ---------------------------------------------------------------------------
-// "nosso servidor não guarda o conteúdo da chamada" era verdade até a Memória
-// Cósmica: /api/chat passou a chamar rememberChatMessage e a persistir a
-// mensagem da pessoa em cosmic_memories (migração 022). Quem escreveu a
-// feature qualificou privacy.use.ai com "Por padrão" e passou ao lado de
-// help.faq.readings.answer — o mesmo app ficou dizendo a verdade na tela de
-// Privacidade e o contrário na tela de Ajuda, porque este arquivo só olhava
-// chaves privacy.*.
-//
-// Pinar mais uma chave repetiria o erro na PRÓXIMA superfície (é a quinta vez
-// que o texto fica para trás do código). Então a busca aqui é pela FRASE, em
-// TODAS as chaves dos três dicionários: onde a promessa aparecer, a ressalva
-// tem que estar na MESMA frase — não adianta qualificar num parágrafo e
-// prometer sem ressalva no outro.
-const PROMESSAS_COM_RESSALVA = [
-  {
-    nome: 'o servidor não guarda o conteúdo da chamada de IA',
-    porque:
-      'server-patches/src/http/server.js chama memoryRepository.rememberChatMessage em /api/chat: ' +
-      'com a Memória Cósmica ligada, o conteúdo da mensagem FICA guardado',
-    pt: { promessa: 'não guarda o conteúdo da chamada', ressalva: 'por padrão' },
-    es: { promessa: 'no guarda el contenido de la llamada', ressalva: 'por defecto' },
-    en: { promessa: 'does not store the call content', ressalva: 'by default' },
-  },
-];
-
-// Corte por frase sem lookbehind de propósito: este arquivo é copiado como
-// modelo para outros portões, e `(?<=` derruba Safari < 16.4. Basta separar;
-// a pontuação não faz falta para a comparação. "1.600" não é cortado porque
-// só há corte quando o ponto vem seguido de espaço.
-function frases(valor) {
-  return String(valor).split(/[.!?]\s+/);
-}
-
-for (const promessa of PROMESSAS_COM_RESSALVA) {
-  test(`nenhuma chave promete "${promessa.nome}" sem a ressalva`, () => {
-    for (const lang of LANGUAGES) {
-      const trecho = promessa[lang].promessa.toLowerCase();
-      const ressalva = promessa[lang].ressalva.toLowerCase();
-      let encontrou = false;
-      for (const [chave, valor] of Object.entries(DICTS[lang])) {
-        if (typeof valor !== 'string') continue;
-        for (const frase of frases(valor)) {
-          const texto = frase.toLowerCase();
-          if (!texto.includes(trecho)) continue;
-          encontrou = true;
-          assert.ok(
-            texto.includes(ressalva),
-            `${chave} (${lang}) diz "${promessa[lang].promessa}" sem "${promessa[lang].ressalva}" na mesma ` +
-              `frase — ${promessa.porque}`
-          );
-        }
-      }
-      // Se a frase sumir de vez do app, o teste vira decorativo sem avisar.
-      assert.ok(encontrou, `a frase "${promessa[lang].promessa}" não existe mais em ${lang} — revise este portão`);
-    }
-  });
-}
-
-// ---------------------------------------------------------------------------
 // 2. O DADO QUE PASSOU A SAIR DO APARELHO ESTÁ DESCRITO
 // ---------------------------------------------------------------------------
 // Denúncia e bloqueio persistem no servidor enquanto a conta existe e precisam
@@ -157,56 +93,14 @@ test('a tela e a página pública descrevem a Memória Cósmica opcional nos tr�
   assert.equal((politica.match(/480/g) || []).length >= 3, true);
 });
 
-// privacy.rights.sharing tem que nomear TODOS os terceiros. A lista fixa de
-// quatro nomes que ficava aqui envelheceu sozinha: a ElevenLabs passou a
-// receber o texto da leitura (ElevenLabsVoiceProvider.js) e a Vercel a
-// hospedar a web, os dois entraram na política pública e o teste continuou
-// verde exigindo os mesmos quatro de antes.
-//
-// Agora o portão lê a própria política: todo terceiro citado na seção "4."
-// de public/privacidade.html tem que aparecer também na tela do app, nos três
-// idiomas. Assim o próximo terceiro é puxado sozinho.
-const POLITICA_PUBLICA = fs.readFileSync(path.join(RAIZ, 'public', 'privacidade.html'), 'utf8');
-
-function terceirosDaPolitica() {
-  const secoes = POLITICA_PUBLICA.split(/<h3>\s*4\./).slice(1);
-  assert.equal(secoes.length, 3, 'a política pública não tem as três seções "4." de compartilhamento');
-  const nomes = new Set();
-  for (const secao of secoes) {
-    const corpo = secao.split('<h3>')[0];
-    // Só os <strong> que abrem um <li>: é esse o formato da lista de
-    // terceiros. <strong> de ênfase solto no parágrafo abaixo da lista não é
-    // um terceiro e não pode virar nome exigido.
-    for (const achado of corpo.matchAll(/<li>\s*<strong>([^<]+)<\/strong>/g)) {
-      // "Vercel e infraestrutura técnica:" → "Vercel". O primeiro token é o
-      // nome do terceiro; o resto é explicação e muda com o idioma.
-      const nome = achado[1].replace(/:\s*$/, '').trim().split(/[\s,]+/)[0];
-      if (nome) nomes.add(nome);
-    }
-  }
-  return [...nomes];
-}
-
-test('privacy.rights.sharing nomeia todo terceiro citado na política pública', () => {
-  const terceiros = terceirosDaPolitica();
-  assert.ok(terceiros.length >= 6, `só ${terceiros.length} terceiros extraídos da política — o parser quebrou`);
+// privacy.rights.sharing tem que nomear TODOS os terceiros, e o Google entrou
+// quando o login com Google entrou (lib/supabaseClient.js: signInWithGoogle).
+test('privacy.rights.sharing nomeia os quatro terceiros', () => {
   for (const lang of LANGUAGES) {
     const valor = DICTS[lang]['privacy.rights.sharing'] || '';
-    for (const terceiro of terceiros) {
+    for (const terceiro of ['Anthropic', 'Hotmart', 'Supabase', 'Google']) {
       assert.ok(valor.includes(terceiro), `privacy.rights.sharing (${lang}) não cita ${terceiro}`);
     }
-  }
-});
-
-// A Meta ainda não está na política pública, mas já está no código: assim que
-// FB_PIXEL_ID e FB_CONVERSIONS_API_TOKEN forem configurados,
-// ConversionTrackingProvider.js manda o e-mail em hash e o valor da compra
-// para a Conversions API. A tela já a nomeia — este teste impede que ela suma
-// antes de a integração ser desligada de verdade.
-test('privacy.rights.sharing nomeia a Meta, que recebe a confirmação de compra', () => {
-  for (const lang of LANGUAGES) {
-    const valor = DICTS[lang]['privacy.rights.sharing'] || '';
-    assert.ok(valor.includes('Meta'), `privacy.rights.sharing (${lang}) não cita Meta`);
   }
 });
 

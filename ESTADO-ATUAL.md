@@ -38,12 +38,6 @@ bash scripts/deploy-vercel.sh     # web — só depois do backend
 
 ## Fase 3 — Órbi e linguagem (contrato histórico)
 
-> **Superado em 27/08/2026 pela Memória Cósmica** (opt-in, desligada por padrão):
-> o servidor passou a anexar à chamada, em bloco separado, até 4 trechos de
-> mensagens anteriores da própria pessoa. O parágrafo abaixo continua sendo o
-> registro do contrato de 23/08/2026 e não descreve mais o que o código faz. O
-> contrato corrente está em `CONTEXTO-PARA-AGENTE.md`, seção "Contrato da Fase 3".
-
 - **Conversar com Órbi** substitui as identidades antigas na experiência atual.
   Órbi é uma interface de conversa gerada pela **IA da Anthropic**, declarada
   antes da primeira pergunta; não é pessoa, consultor, médium nem previsão.

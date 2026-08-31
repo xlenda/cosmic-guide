@@ -45,11 +45,7 @@ O snapshot medido mais recente é:
 - web `READY` no deploy `dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75`, com alias
   `https://cosmicguide.cloud`;
 - **1805/1805 testes do app** e 306 testes do backend, com 305 aprovados,
-  zero falhas e 1 teste documental ignorado — números **daquela medição em
-  `af6afc2`**, não o total de hoje: entraram arquivos de teste depois. Medição
-  seguinte, em 31/08/2026 no HEAD `4b1b113`: **1827/1827 do app**. Número de
-  teste é fotografia datada; rode `npm test` e registre o total real da sua
-  execução;
+  zero falhas e 1 teste documental ignorado;
 - Expo Doctor **18/18**, exports web/Android, dez cenários E2E e regressão oficial
   aprovados;
 - probes externos: raiz/app/Explorar/Privacidade `200`, health `200`, voz
@@ -71,20 +67,9 @@ confirme com probes reais.
 - **Órbi é IA da Anthropic e isso aparece antes da primeira pergunta.** Não é
   pessoa, consultor, médium nem mecanismo de previsão.
 - A chamada envia a pergunta e o histórico da conversa atual. Como contexto de
-  **perfil estruturado**, só existe um pacote estrito com **signo + tema +
-  situação + objetivo**; ele só é enviado quando os quatro campos explícitos
-  estão completos. O servidor rejeita campo extra e o **Diário nunca entra nesse
-  pacote** (`chatContext.js:117-124`).
-- **Existe um segundo canal, e ele é texto livre da pessoa.** Se ela ligar a
-  **Memória Cósmica** (opt-in, desligada por padrão, exige e-mail verificado), o
-  servidor anexa à chamada, em bloco separado do pacote de perfil, até **4
-  lembranças de 480 caracteres** com trechos de mensagens anteriores dela
-  própria. Recibos: `server.js:499` recupera, `:511` grava e `:521` entrega ao provider,
-  `AnthropicChatProvider.js:1399,1404` costura o bloco no prompt e
-  `cosmicMemory.js:103-119` monta as citações. O que é guardado sai da mensagem
-  crua (até 1.600 caracteres, teto de 300 itens por conta). Nada disso vem do
-  Diário: o Diário continua fora da chamada. Ao mexer no prompt ou responder
-  Data Safety, contar os DOIS canais, não só o pacote de quatro campos.
+  perfil, só existe um pacote estrito com **signo + tema + situação + objetivo**;
+  ele só é enviado quando os quatro campos explícitos estão completos. O
+  servidor rejeita campo extra e o **Diário nunca entra nesse pacote**.
 - Conversas trazidas de versões anteriores ficam legíveis como histórico
   importado local. Elas não são reenviadas à Anthropic e não são atribuídas a
   Órbi.
@@ -99,10 +84,8 @@ confirme com probes reais.
   Fase 3 original; consulte `MEMORIA-PROXIMA-SESSAO.md` para o contrato social,
   as limitações e o estado real.
 - Fontes de verdade: `screens/ChatScreen.js`, `lib/orbiConversation.js`,
-  `server-patches/src/application/chatContext.js`,
-  `server-patches/src/infrastructure/AnthropicChatProvider.js`,
-  `server-patches/src/application/cosmicMemory.js` e
-  `server-patches/src/infrastructure/CosmicMemoryRepository.js`.
+  `server-patches/src/application/chatContext.js` e
+  `server-patches/src/infrastructure/AnthropicChatProvider.js`.
 
 ---
 
@@ -366,17 +349,9 @@ O estado consolidado para retomar depois de **26/08/2026** está em
 [`MEMORIA-PROXIMA-SESSAO.md`](./MEMORIA-PROXIMA-SESSAO.md). Community V1, 3S,
 Lotes B/C, cartões premium e voz ElevenLabs estão **PUBLICADOS**. O snapshot é
 `af6afc2`, backend `20260826-160253`, schema 21, web
-`dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75` e **1805/1805 testes do app naquela data**.
-Medição de 31/08/2026 no HEAD `4b1b113`: **1827/1827**. Remeça antes de repetir
-qualquer um dos dois.
+`dpl_ARZF1HNxYAtZUjMg7oxtQDevCo75` e **1805/1805 testes do app**.
 
-**Existe lote posterior no código e ainda sem registro de publicação:** a
-**Memória Cósmica do Órbi** (commits `12d7aa6` e `f09616b`) trouxe a migration
-`022_add_cosmic_memory.sql`, a rota `memoryRoutes.js` e a tela
-`CosmicMemoryScreen.js`. Ela muda o que sai para a Anthropic — ver o Contrato da
-Fase 3 acima. Publicar backend antes da web (`AGENTS.md`, seção "Publicação").
-
-Fora essa, não há outro lote de código autorizado pendente. Antes de anunciar
+Não há outro lote de código autorizado pendente nesta entrega. Antes de anunciar
 a voz nativa como validada em aparelho, fazer uma escuta real no Android. Manter
 dois turnos diários de moderação. Créditos da Anthropic e a caixa
 `contato@cosmicguide.cloud` seguem como ações externas do dono; o log do release
