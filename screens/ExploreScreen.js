@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,6 +8,7 @@ import CosmicScene from '../components/CosmicScene';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
+import { tileArte } from '../lib/ilustracoes';
 import { ROUTES } from '../routes';
 import { colors, zodiacSigns } from '../theme';
 
@@ -35,6 +36,10 @@ function ExperienceRow({ item, onPress, t }) {
   const accessibilityLabel = item.locked
     ? t('featureCard.lockedA11y', { title: item.title })
     : `${item.title}. ${item.subtitle}`;
+  // Pack pintado de 10/09/2026 (lib/ilustracoes.js TILES). Mesmo contrato do
+  // resto do app: sem arte pra chave, o ponto da constelação segue sendo o
+  // ícone de sempre — experiência nova nunca nasce quebrada esperando desenho.
+  const arte = tileArte(item.key);
 
   return (
     <Pressable
@@ -45,7 +50,11 @@ function ExperienceRow({ item, onPress, t }) {
       style={({ pressed }) => [styles.experienceRow, pressed && styles.pressed]}
     >
       <View style={styles.constellationPoint} accessible={false}>
-        <Ionicons name={item.icon} size={19} color={colors.gold} />
+        {arte ? (
+          <Image source={arte} style={styles.constellationArte} resizeMode="cover" accessible={false} />
+        ) : (
+          <Ionicons name={item.icon} size={19} color={colors.gold} />
+        )}
       </View>
       <View style={styles.experienceCopy}>
         <View style={styles.experienceTitleRow}>
@@ -346,17 +355,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
+  // 64px, não 42: com a arte pintada de 10/09/2026 dentro, o medalhão antigo
+  // reduzia a ilustração a uma mancha escura — o desenho só se lê a partir
+  // desse tamanho. marginLeft acompanha pra manter o centro na mesma trilha.
   constellationPoint: {
-    width: 42,
-    height: 42,
-    marginLeft: -38,
-    borderRadius: 14,
+    width: 64,
+    height: 64,
+    marginLeft: -49,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#211921',
     borderWidth: 1,
     borderColor: colors.gold + '70',
+    overflow: 'hidden',
   },
+  // A arte preenche o medalhão inteiro; o raio é 1px menor que o do contêiner
+  // pra imagem não vazar por cima da borda dourada no Android.
+  constellationArte: { width: '100%', height: '100%', borderRadius: 19 },
   experienceCopy: { flex: 1, minWidth: 0 },
   experienceTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   experienceTitle: { color: colors.text, fontSize: 15, lineHeight: 20, fontWeight: '700' },
