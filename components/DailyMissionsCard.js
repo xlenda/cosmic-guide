@@ -311,7 +311,22 @@ export default function DailyMissionsCard({ children, mostrarMissoes = true }) {
         ) : (
           <Text style={s.bonusHint}>Complete as 3 missões e ganhe +{ALL_DONE_BONUS} de bônus.</Text>
         )}
+        </>
+        )}
 
+        {/* OS FILHOS ENTRAM AQUI, LOGO APÓS AS MISSÕES (10/09/2026, segunda
+            correção). Na primeira versão eles ficavam no FIM do card — dentro
+            da mesma caixa, sim, mas depois do check-in de humor e do link da
+            Loja: quase 500px de distância medidos na tela. O dono olhou e
+            disse "não tem mais nada em missões, só os 3", e estava certo:
+            dentro da mesma caixa mas fora de vista é o mesmo que fora.
+            Agora vêm colados na última missão, que é onde "tudo junto" se lê
+            como tudo junto. O check-in e a Loja descem pro rodapé, que é o
+            lugar de rodapé. */}
+        {children ? <View style={temMissoes ? s.extras : null}>{children}</View> : null}
+
+        {temMissoes && (
+        <>
         {/* Link auxiliar SUTIL de propósito (linha cinza dotted) — o destaque
             visual fica com as missões, não com a Loja. */}
         {/* CHECK-IN DE UM TOQUE + TERMÔMETRO DA LUNAÇÃO (04/08/2026).
@@ -433,11 +448,6 @@ export default function DailyMissionsCard({ children, mostrarMissoes = true }) {
         </TouchableOpacity>
         </>
         )}
-
-        {/* O que a Home passar como filho entra AQUI, dentro da mesma caixa:
-            céu de hoje, próximos dias, vocês dois. O filete só aparece quando
-            HÁ missões acima — sem elas não há o que separar. */}
-        {children ? <View style={temMissoes ? s.extras : null}>{children}</View> : null}
       </View>
     </View>
   );
