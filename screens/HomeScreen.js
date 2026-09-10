@@ -799,7 +799,13 @@ export default function HomeScreen() {
     // propósito: são as duas telas que mostram a fonte na cara. Diferente das
     // outras, esta lê a data de nascimento da pessoa, então tem estado de
     // "ainda não sei sua data" que manda pro Mapa Astral em vez de inventar.
-    { key: 'profeccoes', title: t('home.card.profeccoes.title'), subtitle: t('home.card.profeccoes.subtitle'), icon: 'refresh-circle', gradient: ['#B57BFF', '#FFC85C'], onPress: () => navigation.navigate(ROUTES.PROFECCOES) },
+    // PROFECÇÕES SAIU DA VITRINE (10/09/2026, pedido do dono: "tirar a
+    // profecções"). A ROTA continua registrada em App.js e a tela intacta: um
+    // link salvo, um atalho ou um deep link antigo continua abrindo. O que sai
+    // é o card — a feature deixa de ocupar espaço na Home e no Explorar, sem
+    // virar 404 pra quem já a conhecia. Pra trazer de volta, descomente aqui e
+    // a linha equivalente em screens/ExploreScreen.js.
+    // { key: 'profeccoes', title: t('home.card.profeccoes.title'), subtitle: t('home.card.profeccoes.subtitle'), icon: 'refresh-circle', gradient: ['#B57BFF', '#FFC85C'], onPress: () => navigation.navigate(ROUTES.PROFECCOES) },
   ];
   // Diário Cósmico saiu do grid — vira uma faixa inteira fixa no topo (ver
   // abaixo, logo depois do HeroSection), sempre visível em vez de ser só

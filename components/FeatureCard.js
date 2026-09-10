@@ -61,11 +61,16 @@ export default function FeatureCard({ title, subtitle, icon, gradient, arte, onP
         accessibilityLabel={locked ? t('featureCard.lockedA11y', { title }) : title}
         testID={testID}
       >
+        {/* SEM CHIP DE ÍCONE SOBRE A ARTE (10/09/2026, pedido do dono: "tirar o
+            ícone também de cada foto"). O chip existia quando o banner era um
+            gradiente liso e o ícone era a única pista do que o card fazia. Com
+            a ilustração pintada de 10/09 ele virou ruído: um selo colorido de
+            interface tapando o canto de um desenho que já diz do que se trata,
+            e a única cor que sobrava fora da arte — contra a regra de que o
+            dourado é a única cor de ação. O ícone continua vivo no card SEM
+            arte (o return de baixo), que é onde ele ainda informa algo. */}
         <View style={styles.bannerWrap}>
           <Image source={arte} style={styles.banner} resizeMode="cover" accessible={false} />
-          <View style={[styles.iconChip, { backgroundColor: (gradient && gradient[0]) || colors.accent }]}>
-            <Ionicons name={icon} size={14} color="#fff" />
-          </View>
           {locked && (
             <View style={styles.lock}>
               <Ionicons name="lock-closed" size={12} color="#fff" />
@@ -148,6 +153,9 @@ const styles = StyleSheet.create({
   // ficar banguela quando uma linha mistura os dois desenhos.
   bannerWrap: { width: '100%', height: 84 },
   banner: { width: '100%', height: '100%' },
+  // Órfão desde 10/09/2026 — o chip saiu do card com arte (ver o comentário no
+  // JSX). Fica aqui, sem custo, porque voltar a mostrá-lo é uma linha; apagar
+  // o estilo obrigaria a reescrevê-lo do zero.
   iconChip: {
     position: 'absolute', top: 8, left: 8,
     width: 26, height: 26, borderRadius: 8,

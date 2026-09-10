@@ -50,10 +50,13 @@ test('a primeira dobra preserva o caminho personalizado e as portas permanentes'
 });
 
 test('a biblioteca preserva todas as entradas do catálogo com destinos reais', () => {
+  // 'profeccoes' saiu da vitrine em 10/09/2026 (pedido do dono). A rota e a
+  // tela seguem vivas — o que este teste vigia é o CATÁLOGO, e ela não está
+  // mais nele. Se voltar, volta aqui junto.
   const expected = [
     'agir', 'birthchart', 'calendario', 'coffee', 'comovoceta', 'compatibility',
     'descobrir', 'diary', 'dream', 'grounding', 'horoscope', 'idadereal', 'jornada',
-    'lunarCalendar', 'mitos', 'palm', 'profeccoes', 'progresso', 'quizcosmico',
+    'lunarCalendar', 'mitos', 'palm', 'progresso', 'quizcosmico',
     'reconectar', 'retrolua', 'retrospectiva', 'rituais', 'social', 'tarot',
     'timeline', 'wallpaper', 'zodiacbody',
   ];
@@ -70,7 +73,10 @@ test('a biblioteca preserva todas as entradas do catálogo com destinos reais', 
 test('cada experiência explica o que a pessoa encontrará em PT, ES e EN', () => {
   const keys = [
     'horoscope', 'comovoceta', 'birthchart', 'tarot', 'compatibility', 'dream',
-    'palm', 'coffee', 'profeccoes', 'alignment', 'grounding', 'rituais',
+    // 'profeccoes' fora desde 10/09/2026: saiu da vitrine, então não há mais
+    // linha de catálogo cuja descrição precise existir nos três idiomas. As
+    // chaves de tradução seguem em lib/i18n.js, intactas, esperando um retorno.
+    'palm', 'coffee', 'alignment', 'grounding', 'rituais',
     'jornada', 'diary', 'lunarCalendar', 'calendario', 'zodiacbody', 'retrolua',
     'mitos', 'quizcosmico', 'wallpaper', 'idadereal', 'social', 'timeline',
     'reconectar', 'descobrir', 'agir', 'progresso', 'retrospectiva',

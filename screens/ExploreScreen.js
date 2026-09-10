@@ -106,7 +106,11 @@ export default function ExploreScreen() {
     item('dream', 'home.card.dream.title', 'explore.item.dream.description', 'moon-outline', ROUTES.DREAM),
     item('palm', 'explore.item.palm.title', 'explore.item.palm.description', 'hand-left-outline', ROUTES.PALM),
     item('coffee', 'home.card.coffee.title', 'explore.item.coffee.description', 'cafe-outline', ROUTES.COFFEE),
-    item('profeccoes', 'home.card.profeccoes.title', 'explore.item.profeccoes.description', 'refresh-circle-outline', ROUTES.PROFECCOES),
+    // Profecções saiu da vitrine em 10/09/2026 (pedido do dono). A rota
+    // ROUTES.PROFECCOES e a tela continuam vivas — ver o comentário em
+    // screens/HomeScreen.js. A chamada item() foi REMOVIDA em vez de
+    // comentada: test/exploreScreen.test.js conta as entradas por regex sobre
+    // a fonte, e uma linha comentada ainda casaria com o padrão.
   ];
 
   const practices = [
