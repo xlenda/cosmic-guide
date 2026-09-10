@@ -7,7 +7,11 @@ import { View, StyleSheet } from 'react-native';
 import FeatureCard from './FeatureCard';
 import { tileArte } from '../lib/ilustracoes';
 
-export default function CardGrid({ items, columns = 2 }) {
+// testIDPrefix existe porque a mesma feature aparece em DUAS telas: a grade da
+// Home e a lista do Explorar (que usa `card-${key}` fixo). Com o mesmo testID
+// nos dois lugares, todo getByTestId('card-tarot') do e2e acha dois elementos e
+// estoura por ambiguidade. A Home passa 'home-card'; o Explorar segue 'card'.
+export default function CardGrid({ items, columns = 2, testIDPrefix = 'card' }) {
   const rows = [];
   for (let i = 0; i < items.length; i += columns) {
     rows.push(items.slice(i, i + columns));
@@ -27,7 +31,7 @@ export default function CardGrid({ items, columns = 2 }) {
               arte={item.arte !== undefined ? item.arte : tileArte(item.key)}
               onPress={item.onPress}
               locked={item.locked}
-              testID={`card-${item.key}`}
+              testID={`${testIDPrefix}-${item.key}`}
             />
           ))}
         </View>

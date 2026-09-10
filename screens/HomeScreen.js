@@ -32,6 +32,7 @@ import WaveDivider from '../components/WaveDivider';
 // do teste acima não se movem), só o fundo embaixo deles muda. Tons e
 // porquês no cabeçalho de components/BandaSection.js.
 import BandaSection from '../components/BandaSection';
+import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import DailyMissionsCard from '../components/DailyMissionsCard';
 import OrbiGuide from '../components/OrbiGuide';
@@ -829,6 +830,27 @@ export default function HomeScreen() {
         : c
     );
 
+  // A GRADE VOLTOU PRA HOME (10/09/2026, pedido do dono: "a parte de explorar
+  // tem que ficar na página principal igual era antes"). É a mesma divisão em
+  // grupos de 09/08 — 28 cards soltos em fileira única viram parede, e o olho
+  // não escolhe parede. O que NÃO volta é o acordeão de 23/08, que escondia o
+  // catálogo atrás de um toque: a grade é permanente, sempre aberta
+  // (test/homeCompleta.test.js trava os identificadores daquele estado, e com
+  // razão). O Explorar continua existindo como rota própria.
+  const PRATICAS_KEYS = ['grounding', 'rituais', 'jornada'];
+  const DATAS_KEYS = ['lunarCalendar', 'calendario', 'zodiacbody', 'retrolua'];
+  const CURIOSIDADES_KEYS = ['mitos', 'quizcosmico', 'wallpaper', 'idadereal'];
+  const COUPLE_SECTION_KEYS = ['reconectar', 'descobrir', 'agir', 'progresso', 'retrospectiva', 'timeline'];
+
+  const coupleCardItems = cardItems.filter((c) => COUPLE_SECTION_KEYS.includes(c.key));
+  const individualCardItems = cardItems.filter((c) => !COUPLE_SECTION_KEYS.includes(c.key));
+  const praticasCardItems = individualCardItems.filter((c) => PRATICAS_KEYS.includes(c.key));
+  const datasCardItems = individualCardItems.filter((c) => DATAS_KEYS.includes(c.key));
+  const curiosidadesCardItems = individualCardItems.filter((c) => CURIOSIDADES_KEYS.includes(c.key));
+  const leiturasCardItems = individualCardItems.filter(
+    (c) => !PRATICAS_KEYS.includes(c.key) && !DATAS_KEYS.includes(c.key) && !CURIOSIDADES_KEYS.includes(c.key)
+  );
+
   // The Diary lives in its own Home strip, outside the grid. It is still a
   // real route and can be the first step for closure or emotional reflection.
   // This descriptor makes it eligible without duplicating it in the catalog.
@@ -1191,6 +1213,65 @@ export default function HomeScreen() {
             </LinearGradient>
           </Pressable>
         </View>
+
+        {/* O CATÁLOGO, LOGO NA ENTRADA (10/09/2026, pedido do dono: "explorar
+            funções tem que estar logo no começo quando ele entra no app"). Fica
+            aqui, colado na porta do Explorar, e não no fim do rolo: quem abre o
+            app pra escolher o que fazer não devia ter que rolar a tela inteira
+            até achar o que existe.
+
+            Em grupos, e não numa fileira só — 28 cards com o mesmo peso visual
+            viram parede, e o olho não escolhe parede. É a mesma divisão de
+            09/08 (Leituras, Práticas, Datas, Curiosidades, Casal).
+
+            O testID leva prefixo `home-card` porque a mesma feature também
+            existe no Explorar como `card-<key>`; sem prefixo distinto, todo
+            getByTestId do e2e acharia dois elementos e estouraria. */}
+        <Text style={styles.sectionTitle}>{t('home.sectionExplore')}</Text>
+        <Text style={styles.sectionSubtitle}>{t('home.sectionExploreSubtitle')}</Text>
+        <View style={styles.gutterWrap}>
+          <CardGrid items={leiturasCardItems} testIDPrefix="home-card" />
+        </View>
+
+        {praticasCardItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{t('home.sectionPraticas')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('home.sectionPraticasSubtitle')}</Text>
+            <View style={styles.gutterWrap}>
+              <CardGrid items={praticasCardItems} testIDPrefix="home-card" />
+            </View>
+          </>
+        )}
+
+        {datasCardItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{t('home.sectionDatas')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('home.sectionDatasSubtitle')}</Text>
+            <View style={styles.gutterWrap}>
+              <CardGrid items={datasCardItems} testIDPrefix="home-card" />
+            </View>
+          </>
+        )}
+
+        {curiosidadesCardItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{t('home.sectionCuriosidades')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('home.sectionCuriosidadesSubtitle')}</Text>
+            <View style={styles.gutterWrap}>
+              <CardGrid items={curiosidadesCardItems} testIDPrefix="home-card" />
+            </View>
+          </>
+        )}
+
+        {coupleCardItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{t('home.sectionCouple')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('home.sectionCoupleSubtitle')}</Text>
+            <View style={styles.gutterWrap}>
+              <CardGrid items={coupleCardItems} testIDPrefix="home-card" />
+            </View>
+          </>
+        )}
 
         {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
             explícito: não ficar escondido junto dos outros cards do grid). */}
@@ -1761,8 +1842,7 @@ export default function HomeScreen() {
         </BandaSection>
 
         {/* A única onda preservada separa o conteúdo pessoal do epílogo sobre
-            o céu de hoje. O catálogo completo saiu deste rolo e vive na rota
-            Explore, acessível pela porta permanente no topo. */}
+            o céu de hoje. */}
         <WaveDivider />
 
         {/* Cosmic event */}
