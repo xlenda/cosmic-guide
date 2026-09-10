@@ -150,8 +150,13 @@ async function openExploreExperience(page, testId) {
     await page.getByText('Carreira', { exact: false }).first().click();
     await page.waitForTimeout(1200);
     const body = await page.evaluate(() => document.body.innerText);
-    check('2º tema bloqueia e pede assinatura', /Ver meus 7 dias grátis|Assinar agora/.test(body));
-    check('CTA de convidar par também presente', /convide seu par/i.test(body));
+    // TUDO_LIBERADO (10/09/2026): o 2º tema não bloqueia mais. O que este
+    // cenário vigiava — "solo destravava tudo" (25/07) — deixou de ser bug e
+    // virou a regra. Continua valendo o oposto, e é o que ele checa agora: o
+    // segundo tema ABRE, e nenhum CTA de assinatura sobra pedindo dinheiro por
+    // algo que já é livre.
+    check('2º tema abre sem pedir assinatura', !/Ver meus 7 dias grátis|Assinar agora/.test(body));
+    check('a tela do tema carregou de verdade', /Carreira/i.test(body));
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }
@@ -290,15 +295,15 @@ async function openExploreExperience(page, testId) {
     // Home depois do primeiro caminho, sem exigir abrir “Explore”.
     await page.getByTestId('home-orbi-chat').click();
     await page.waitForTimeout(1300);
-    let body = await page.evaluate(() => document.body.innerText);
-    check('limite atingido mostra bloqueio', /a primeira foi por conta da casa|Você já usou sua leitura gratuita/.test(body));
-    // Copy do copy-chief (04/08): o CTA do bloqueio virou 'Ver meus 7 dias
-    // grátis →' (onetimelock.cta.subscribe). O regex aceita o antigo tambem
-    // pra o portao nao quebrar de novo se a copy for revertida.
-    await page.getByText(/Ver meus 7 dias grátis|Assinar agora/).first().click();
-    await page.waitForTimeout(1500);
-    body = await page.evaluate(() => document.body.innerText);
-    check('botão Assinar do Chat NAVEGA de verdade (bug do getParent)', body.includes('Assinatura') || body.includes('Faça login para assinar'));
+    const body = await page.evaluate(() => document.body.innerText);
+    // TUDO_LIBERADO (10/09/2026): não há mais limite de 2 mensagens, então o
+    // que este cenário vigia mudou de lado. Antes provava que o bloqueio
+    // APARECIA e que o botão Assinar navegava (bug do getParent, 25-26/07).
+    // Agora prova o inverso e o que continua importando: com o storage dizendo
+    // 2 mensagens gastas, o chat ABRE assim mesmo, e nenhum resto de paywall
+    // sobrou na tela pra confundir quem já não precisa dele.
+    check('chat abre mesmo com o limite antigo gasto', !/a primeira foi por conta da casa|Você já usou sua leitura gratuita/.test(body));
+    check('nenhum CTA de assinatura sobrou no chat', !/Ver meus 7 dias grátis|Assinar agora/.test(body));
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }
@@ -309,15 +314,20 @@ async function openExploreExperience(page, testId) {
     await openExploreExperience(page, 'card-reconectar');
     await page.waitForTimeout(1400);
     const body = await page.evaluate(() => document.body.innerText);
-    check('cartão único (sem "Complete o quiz" duplicado)', !body.includes('Complete o quiz do casal primeiro'));
-    check('copy específica da tela', body.includes('Reconectar é pra fazer em casal'));
-    // Os dois CTAs de peso igual (decisão do dono, 29/07). Confere pelo RÓTULO
-    // real dos botões — a versão anterior procurava a frase "convide seu par",
-    // que vivia no texto explicativo e sumiu quando a regra mudou (agora uma
-    // assinatura libera tudo e o par entra de graça pelo link). Checar botão
-    // por rótulo de botão, não por frase de parágrafo, é o que impede o teste
-    // de quebrar toda vez que alguém melhora uma copy.
-    check('as 2 CTAs presentes', /Ver meus 7 dias grátis|Assinar agora/.test(body) && /convid(ar meu|e seu) par/i.test(body));
+    // TUDO_LIBERADO (10/09/2026) mudou o que esta tela mostra pra quem está
+    // sozinho. O bug que este cenário guarda continua o mesmo — cartão
+    // duplicado e ícone sobreposto (26/07) —, mas o motivo de a pessoa não
+    // entrar mudou: antes era assinatura, agora é só que a experiência precisa
+    // de DUAS pessoas. Some a cobrança, fica o convite.
+    // O bug de 26/07 era o cartão DUPLICADO: a mesma mensagem aparecendo duas
+    // vezes na tela, com ícone sobreposto. Com TUDO_LIBERADO a pessoa solo
+    // agora entra de verdade no Reconectar e vê o pedido legítimo de completar
+    // o quiz — então a frase existir é correto; o que não pode é aparecer DUAS
+    // vezes. O teste passa a contar ocorrências, que é o que o bug era.
+    const vezesQuiz = (body.match(/Complete o quiz do casal primeiro/g) || []).length;
+    check('a mensagem do quiz aparece no máximo uma vez (bug era duplicar)', vezesQuiz <= 1);
+    check('a tela abriu e explica que é pra dois', /casal|par\b/i.test(body));
+    check('convida o par sem cobrar assinatura', !/Ver meus 7 dias grátis|Assinar agora/.test(body));
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }
@@ -346,7 +356,13 @@ async function openExploreExperience(page, testId) {
     await openExploreExperience(page, 'card-reconectar');
     await page.waitForTimeout(1400);
     const body = await page.evaluate(() => document.body.innerText);
-    check('conteúdo real + SubscribeTeaser', /O resto desta tela está logo aí embaixo|Continue com a assinatura/.test(body));
+    // TUDO_LIBERADO (10/09/2026): o véu era a regressão de referência deste
+    // portão — metade da tela real visível, o resto atrás de "Continue com a
+    // assinatura". Sem paywall não há véu, e é isso que o cenário passa a
+    // vigiar: o casal formado vê a tela INTEIRA, e nenhum resto do véu ficou
+    // pendurado cobrindo conteúdo que já é livre.
+    check('casal formado vê a tela inteira, sem véu', !/O resto desta tela está logo aí embaixo|Continue com a assinatura/.test(body));
+    check('a tela de Reconectar carregou de verdade', body.length > 200);
     check('sem erros JS', page.__errors.length === 0, page.__errors.join(' | '));
     await context.close();
   }

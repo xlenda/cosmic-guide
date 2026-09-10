@@ -18,22 +18,36 @@ import {
 import { checkAccountAccess, autoLinkDeviceCodes } from '../lib/accountSubscription';
 
 // ---------------------------------------------------------------------------
-// TUDO LIBERADO — o app inteiro sem paywall (10/09/2026)
+// TUDO LIBERADO — interruptor global de paywall (10/09/2026)
 // ---------------------------------------------------------------------------
-// Decisão do dono, dita e confirmada: "e pode deixar todas as funções
-// liberadas / todas". Com isto em true, hasAccess e hasCoupleAccess valem
-// sempre true, e as 5 telas exclusivas de casal (Reconectar, Descobrir, Agir,
-// Progresso, Retrospectiva) abrem sem assinatura, como todo o resto.
+// Fica em FALSE, e a história de por quê importa mais que o valor.
 //
-// O QUE ISTO CUSTA, dito uma vez pra ficar no registro: eram estas 5 telas que
-// a assinatura de casal vendia. Com o interruptor ligado, ninguém precisa
-// assinar pra usá-las.
+// O dono pediu "todas as funções liberadas". Ligamos, e o portão E2E barrou o
+// deploy DUAS vezes seguidas — primeiro o botão de Leitura Bônus do Tarô, que
+// sumia junto com o bloco de limite (corrigido em 9e2d794), depois o limite de
+// 2 mensagens do Chat. Ao abrir o portão inteiro apareceu o quadro real: 5 dos
+// 10 cenários existem só para vigiar o paywall, e cada um marca um bug que já
+// aconteceu de verdade (solo destravando tudo 25/07, bônus preso 26/07,
+// assinatura não valendo pra tudo 29/07, limite do chat furado 25/07, véu do
+// casal vazando). Desligar o paywall aposentaria essas cinco cicatrizes de uma
+// vez — e a próxima regressão passaria direto.
 //
-// COMO VOLTAR ATRÁS: troque para false. Uma linha, um deploy, e o paywall
-// inteiro volta ao que era — nada foi apagado. Toda a máquina de assinatura
-// (checkAccountAccess, checkSubscriptionStatus, checkSoloSubscriptionStatus,
-// combineAccessResults, FeatureGate) continua no código, calculando
-// normalmente; só o resultado é sobrescrito no ponto único abaixo.
+// A SAÍDA, decidida pelo dono: liberar POR CONTA, não no código. O e-mail
+// OWNER_EMAIL abaixo já abria as telas travadas em várias partes do app; agora
+// ele abre também hasAccess e hasCoupleAccess, no mesmo ponto único. O dono usa
+// o app inteiro sem pagar nada, e para todo o resto do mundo o paywall — e os
+// cinco testes que o guardam — continuam de pé.
+//
+// DECISÃO FINAL DO DONO (10/09/2026), reafirmada depois de eu apresentar o
+// custo acima: "deixar tudo liberado". Então TRUE — para todo mundo, não só
+// para a conta dele. Os 5 cenários do portão foram reescritos para descrever o
+// app sem paywall (ver scripts/e2e-regression.js).
+//
+// Para voltar atrás: troque para false. Nada foi apagado — toda a máquina de
+// assinatura (checkAccountAccess, checkSubscriptionStatus,
+// checkSoloSubscriptionStatus, combineAccessResults, FeatureGate) continua no
+// código calculando normalmente; só o resultado é sobrescrito no ponto único
+// abaixo. Os cenários do portão terão de voltar junto.
 const TUDO_LIBERADO = true;
 import { unsubscribeFromWebPush } from '../lib/webPush';
 import { cancelDailyThought } from '../lib/notifications';
@@ -128,8 +142,14 @@ export function CoupleProvider({ children }) {
 
     const combinado = combineAccessResults({ account: accountEstado, couple: coupleEstado, solo: soloEstado });
 
-    setHasAccess(TUDO_LIBERADO ? true : combinado.hasAccess);
-    setHasCoupleAccess(TUDO_LIBERADO ? true : combinado.hasCoupleAccess);
+    // A CONTA DO DONO ABRE TUDO (10/09/2026). Ele já era isOwnerAccount em
+    // várias telas (LOCKED_KEYS da Home, FeatureGate, cadeados do Explorar);
+    // faltava o acesso em si, e por isso ele ainda esbarrava no véu das telas
+    // de casal no próprio app. Aqui é o ponto único onde acesso é decidido, e
+    // é o único lugar que precisava saber disso.
+    const liberado = TUDO_LIBERADO || user?.email === OWNER_EMAIL;
+    setHasAccess(liberado ? true : combinado.hasAccess);
+    setHasCoupleAccess(liberado ? true : combinado.hasCoupleAccess);
     setAccessConfirmed(combinado.confirmed);
     setSubscriptionStatus(combinado.status);
     setCurrentPeriodEnd(combinado.currentPeriodEnd);
