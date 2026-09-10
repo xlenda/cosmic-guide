@@ -668,9 +668,18 @@ export default function HomeScreen() {
   // o withFeatureGate (App.js) exibe "isso é pra fazer em casal" convidando a
   // pessoa a chamar o par — induz a trazer o parceiro pro app pra reconectar,
   // jogar junto, etc., em vez de esconder a existência da feature.
-  // 'timeline' virou aba dentro de 'nossaHistoria' (10/09/2026): a porta
-  // nova é que precisa de casal agora.
-  const COUPLE_ONLY = ['nossaHistoria'];
+  // CORREÇÃO DE 10/09/2026: ao fundir as seis em duas, 'nossaHistoria' herdou
+  // o COUPLE_ONLY da Linha do Tempo e SUMIU da Home pra quem está sozinho — o
+  // dono viu "Nós Hoje" aparecer e a outra não. O erro foi dar à porta inteira
+  // a regra da parte mais restritiva: a Linha do Tempo se escondia sozinha,
+  // mas Progresso e Retrospectiva, que moram na mesma porta, sempre
+  // apareceram como convite.
+  //
+  // A lista fica VAZIA, e é o que a doutrina acima manda: as portas aparecem
+  // pra todo mundo, e quem está sozinho encontra o convite ao abrir — que é
+  // onde ele funciona, induzindo a chamar o par, em vez de esconder a
+  // existência da feature.
+  const COUPLE_ONLY = [];
 
   // Exclusivas de assinantes (mesmas 5 rotas bloqueadas por withFeatureGate em
   // App.js) — timeline fica de fora, é livre pra qualquer casal. Mostra o badge
