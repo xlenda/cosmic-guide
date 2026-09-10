@@ -1182,8 +1182,13 @@ export default function HomeScreen() {
 
         {/* Sequência da semana (lib/streak.js) — leva pros Relatórios (calendário
             de sequência completo) ao tocar. */}
-        {(journalCount > 0 || streakInfo.totalActiveDays > 0) && (
+        {/* O CALENDÁRIO DA SEMANA APARECE SEMPRE (10/09/2026). A condição era
+            `journalCount > 0 || totalActiveDays > 0` — quem nunca usou não via
+            os sete dias. Mesma inversão do Diário logo acima: no topo da Home,
+            quem ainda não começou é justamente quem precisa ver a régua vazia
+            pra querer preencher. Sete bolinhas apagadas convidam; nada não. */}
         <TouchableOpacity
+          testID="home-streak-card"
           activeOpacity={0.9}
           style={styles.streakCard}
           onPress={() => navigation.navigate(ROUTES.REPORTS)}
@@ -1213,7 +1218,6 @@ export default function HomeScreen() {
             ))}
           </View>
         </TouchableOpacity>
-        )}
 
         {/* O CATÁLOGO, LOGO NA ENTRADA (10/09/2026, pedido do dono: "explorar
             funções tem que estar logo no começo quando ele entra no app"). Fica
@@ -1377,7 +1381,18 @@ export default function HomeScreen() {
                 junto dele, mas como caixas separadas — três bordas, três
                 fundos. Agora são filhos: mesma caixa, separados por um
                 filete. É a diferença entre "embaixo de" e "dentro de". */}
-            <DailyMissionsCard mostrarMissoes={!isCouple}>
+            {/* MISSÕES PRA TODO MUNDO NA HOME (10/09/2026, terceira correção).
+                Era `mostrarMissoes={!isCouple}`: casal não via a lista aqui,
+                porque veria a mesma dentro de Agir. Só que hoje o card virou o
+                CONTINENTE do céu de hoje e dos próximos dias — sem a lista ele
+                fica sem cabeçalho, e os dois blocos aparecem soltos, exatamente
+                o que o dono viu e apontou ("as coisas não estão juntas nas
+                missões de hoje"). Ele estava numa conta de casal; eu vinha
+                testando em solo, e por isso não reproduzia.
+
+                A duplicata que a prop evitava já foi resolvida na origem certa:
+                AgirScreen esconde o card quando está dentro de aba. */}
+            <DailyMissionsCard>
   {temZonaCeu && (
             <BandaSection tom="claro" nu style={{ marginHorizontal: -36 }}>
 
