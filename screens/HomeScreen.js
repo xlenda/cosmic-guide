@@ -41,7 +41,10 @@ import OrbiGuide from '../components/OrbiGuide';
 // components/CosmicSoundPlayer.js). Sem este card, a única porta de entrada
 // seria a pílula de 40 px acima da barra de abas, que ninguém descobre.
 import CosmicSoundPlayer from '../components/CosmicSoundPlayer';
-import { compatibility, aspects } from '../lib/signs';
+// `aspects` saiu do import em 10/09/2026 junto com o motor do Evento Cósmico:
+// era o único consumidor nesta tela. A função continua em lib/signs.js, usada
+// pelo Calendário Cósmico e pelo Céu de Hoje.
+import { compatibility } from '../lib/signs';
 // O motor das Temporadas do Céu continua inteiro (o card saiu da Home, o motor
 // não). Ele volta aqui num papel menor e melhor: alimentar o SUBTÍTULO do card
 // do Calendário Cósmico, que é a casa pra onde as temporadas foram.
@@ -615,12 +618,15 @@ export default function HomeScreen() {
   // volta ao subtítulo estático: nunca um "hoje é o dia" chutado.
   const retroLuaHoje = useMemo(() => ehDiaDeLuaCheia(new Date(`${todayISO}T12:00:00`)), [todayISO]);
 
-  const todaysAspects = useMemo(() => aspects(todayISO, null), [todayISO]);
-  const cosmicEvent = useMemo(() => {
-    if (!todaysAspects || todaysAspects.length === 0) return null;
-    // Aspecto mais exato (menor orbe) entre os retornados de verdade — não fabricado.
-    return todaysAspects.reduce((best, a) => (a.orb < best.orb ? a : best), todaysAspects[0]);
-  }, [todaysAspects]);
+  // O MOTOR DO EVENTO CÓSMICO SAIU (10/09/2026, achado de auditoria). O card
+  // que o exibia foi removido hoje de manhã, e `aspects()` continuou rodando a
+  // cada mudança de dia pra alimentar um `cosmicEvent` que ninguém lia — o
+  // grep confirma: as duas variáveis só se alimentavam uma à outra. Cálculo
+  // sem leitor é trabalho que o aparelho faz de graça.
+  //
+  // A função aspects() continua em lib/signs.js, viva e usada por outras
+  // telas: o Calendário Cósmico e o Céu de Hoje contam o mesmo aspecto com
+  // mais contexto. Se o card voltar, o cálculo volta em três linhas.
 
   // Três estados possíveis nesta tela (o Gate em App.js garante que ao menos um
   // dos dois sinais existe): casal com quiz feito, solo com signo escolhido, ou
@@ -2377,14 +2383,10 @@ const styles = StyleSheet.create({
   // lugar nenhum — era a única caixa da Home sem toque. O gradiente e a borda
   // saíram e o bloco flutua sobre a colina da onda 4; o padding interno saiu
   // junto pro ícone alinhar no gutter 20 como os títulos de seção.
-  eventCard: { marginHorizontal: 20 },
-  eventInner: { flexDirection: 'row', alignItems: 'flex-start' },
-  eventIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(255,200,92,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  // O título com os dois planetas e o ângulo virou recibo (a descrição subiu):
-  // um degrau menor, apagado, com respiro em cima. Continua na tela inteiro.
-  eventTitle: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginTop: 8 },
-  eventDesc: { color: colors.text, fontSize: 15, lineHeight: 24 },
-  eventDate: { color: colors.gold, fontSize: 12, fontWeight: '700', marginTop: 8 },
+  // Os seis estilos do Evento Cósmico (eventCard, eventInner, eventIcon,
+  // eventTitle, eventDesc, eventDate) saíram em 10/09/2026, junto do card e do
+  // motor que os alimentava. Estilo sem elemento é peso morto no bundle e
+  // pista falsa pra quem for ler o arquivo procurando o que existe na tela.
 
   milestoneBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 28 },
   milestoneCard: { width: '100%', maxWidth: 340, borderRadius: 24, padding: 32, alignItems: 'center' },

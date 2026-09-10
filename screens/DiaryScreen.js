@@ -438,7 +438,11 @@ export default function DiaryScreen() {
 
   return (
     <View style={styles.root}>
-      <GradientHeader title="Diário Cósmico" subtitle="Sua jornada até aqui" onBack={() => navigation.goBack()} />
+      {/* Título e subtítulo saíram do código pro dicionário (10/09/2026): eram
+          as duas únicas strings em português desta tela, cercadas de texto já
+          traduzido — quem usa em ES ou EN abria uma tela inteira no idioma
+          certo com o cabeçalho em português. */}
+      <GradientHeader title={t('diary.headerTitle')} subtitle={t('diary.headerSubtitle')} onBack={() => navigation.goBack()} />
 
       {!loading && weeklyEligibleCount >= 2 && !weeklyInsight && !loadingWeekly && (
         <TouchableOpacity activeOpacity={0.9} onPress={generateWeeklyInsight} style={styles.weeklyBtnWrap}>

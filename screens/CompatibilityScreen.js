@@ -15,6 +15,10 @@ import { DIMENSOES_VIDA_REAL, datasDoSigno, ecoDoCaminho, nomeDoSigno, rotuloDoC
 import { useCouple } from '../context/CoupleContext';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
+// localDayStr: o dia LOCAL, nunca toISOString/UTC — perto da meia-noite em fuso
+// negativo o dia UTC já virou, e a trava do completionId barraria uma leitura
+// legítima de hoje achando que era de ontem.
+import { localDayStr } from '../lib/localDay';
 import OneTimeLock from '../components/OneTimeLock';
 import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
@@ -265,6 +269,21 @@ export default function CompatibilityScreen() {
       // de Robbins no diário do usuário seria arquivar a nota de rodapé e
       // jogar fora a leitura.
       body: [compat.chamada, ...DIMENSOES_VIDA_REAL.map((d) => `${t(d.chaveTitulo)}\n${compat.vidaReal[d.id]}`)].join('\n\n'),
+      // A TRAVA CONTRA O TOQUE DUPLO (10/09/2026, achado de auditoria). Esta
+      // tela grava SÍNCRONA: compatibility() é tabela local, então entre o
+      // toque e a gravação não há await nenhum e o botão nunca vira spinner —
+      // diferente de Café, Palma e Sonho, que trocam o botão por "carregando"
+      // e por isso não precisam de trava. Dois toques rápidos, ou o toque
+      // duplo que o dedo dá sozinho com a tela ainda animando, chamavam
+      // compute() duas vezes com o mesmo par: duas entradas idênticas no
+      // Diário e 20 tokens por um cálculo só. Mesmo dano do bug de hoje de
+      // manhã, por outra porta.
+      //
+      // Os nomes vão ORDENADOS porque a leitura é geométrica: compatibility(A,B)
+      // e compatibility(B,A) devolvem o mesmo aspecto e as mesmas cinco
+      // dimensões — só o título troca de ordem. Sem o sort, inverter os dois
+      // campos pagaria de novo por um texto idêntico.
+      completionId: `compatibility:${localDayStr()}:${[signALabel, signBLabel].sort().join('+')}`,
     });
     markFeatureUsedOnce(FEATURE_KEY);
     // Sem isso, `locked` só seria relido do AsyncStorage no próximo mount da
