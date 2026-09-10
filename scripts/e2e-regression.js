@@ -311,8 +311,16 @@ async function openExploreExperience(page, testId) {
   console.log('\n[6] Telas de casal pro solo (bug: cartão duplicado + ícone sobreposto, 26/07)');
   {
     const { context, page } = await newSoloPage(browser);
-    await openExploreExperience(page, 'card-reconectar');
+    // 'card-reconectar' saiu do catálogo em 10/09/2026: Reconectar virou aba
+    // dentro de 'Nós Hoje'. O caminho até a mesma tela agora é a porta nova.
+    await openExploreExperience(page, 'card-nosHoje');
     await page.waitForTimeout(1400);
+    // A aba de Reconectar, dentro da porta. É ela que este cenário testa.
+    const abaReconectar = page.getByTestId('nos-hoje-aba-reconectar');
+    if (await abaReconectar.count()) {
+      await abaReconectar.click();
+      await page.waitForTimeout(1200);
+    }
     const body = await page.evaluate(() => document.body.innerText);
     // TUDO_LIBERADO (10/09/2026) mudou o que esta tela mostra pra quem está
     // sozinho. O bug que este cenário guarda continua o mesmo — cartão
@@ -353,8 +361,15 @@ async function openExploreExperience(page, testId) {
     });
     await page.goto(BASE);
     await page.waitForTimeout(2500);
-    await openExploreExperience(page, 'card-reconectar');
+    // Mesma mudança de caminho do cenário [6]: Reconectar virou aba dentro de
+    // 'Nós Hoje' em 10/09/2026.
+    await openExploreExperience(page, 'card-nosHoje');
     await page.waitForTimeout(1400);
+    const abaRec = page.getByTestId('nos-hoje-aba-reconectar');
+    if (await abaRec.count()) {
+      await abaRec.click();
+      await page.waitForTimeout(1200);
+    }
     const body = await page.evaluate(() => document.body.innerText);
     // TUDO_LIBERADO (10/09/2026): o véu era a regressão de referência deste
     // portão — metade da tela real visível, o resto atrás de "Continue com a
