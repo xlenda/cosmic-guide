@@ -24,6 +24,7 @@ import { colors, gradients } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import DailyMissionsCard from '../components/DailyMissionsCard';
+import { useDentroDeAba } from '../context/AbaContext';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getAgirData, saveAgirData, getDescobrirData } from '../lib/coupleData';
@@ -96,6 +97,11 @@ function todayISO() {
 
 export default function AgirScreen() {
   const navigation = useNavigation();
+  // MISSÕES SÓ FORA DA ABA (10/09/2026). Este mesmo card já abre a Home; dentro
+  // de "Nós Hoje" a pessoa via as três tarefas duas vezes na mesma sessão.
+  // Antes do paywall desligar isso não acontecia, porque o solo nem chegava
+  // aqui. Aberto por rota direta, o card continua onde sempre esteve.
+  const dentroDeAba = useDentroDeAba();
   const { t } = useLanguage();
   const { coupleData } = useCouple();
   const voce = coupleData?.voce;
@@ -226,7 +232,7 @@ export default function AgirScreen() {
       <View style={styles.root}>
         <GradientHeader title={t('home.card.agir.title')} subtitle={t('home.card.agir.subtitle')} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <DailyMissionsCard />
+          {!dentroDeAba && <DailyMissionsCard />}
           <View style={[styles.emptyProfile, { paddingVertical: 36 }]}>
             <Ionicons name="heart-outline" size={40} color={colors.accent} />
             <Text style={styles.emptyProfileTitle}>{t('agir.empty.title')}</Text>
@@ -249,7 +255,7 @@ export default function AgirScreen() {
         {/* 0) Missões de hoje — motor em lib/missions.js, card em
             components/DailyMissionsCard.js (pedido do dono: missões diárias
             que acumulam token, trocáveis por brindes na Loja). */}
-        <DailyMissionsCard />
+        {!dentroDeAba && <DailyMissionsCard />}
 
         {/* 1) Ideia de encontro */}
         <Text

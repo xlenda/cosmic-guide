@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { useDentroDeAba } from '../context/AbaContext';
 
 // Estrelinhas determinísticas do cabeçalho — mesmo truque de hash por índice
 // do CosmicScene.js (sin(i*k)*grande, pega a fração): espalha bem, custa nada
@@ -28,6 +29,14 @@ const ESTRELAS = Array.from({ length: 8 }, (_, i) => {
 // texto que nasce aqui é o rótulo de acessibilidade do botão de voltar, usado
 // por todas as telas que têm este cabeçalho.
 export default function GradientHeader({ title, subtitle, onBack, right, gradient = gradients.hero }) {
+  // DENTRO DE UMA ABA, O CABEÇALHO SOME (10/09/2026). As telas "Nós Hoje" e
+  // "Nossa História" já desenham título e seta próprios; o header da tela
+  // hospedada apareceria embaixo, repetindo os dois — e a seta de baixo saía
+  // da porta inteira em vez de fechar a aba. Um `return null` aqui resolve as
+  // seis telas de uma vez, sem tocar em nenhuma delas.
+  const dentroDeAba = useDentroDeAba();
+  if (dentroDeAba) return null;
+
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   return (

@@ -27,6 +27,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { colors } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { DentroDeAba } from '../context/AbaContext';
 import TimelineScreen from './TimelineScreen';
 import ProgressoScreen from './ProgressoScreen';
 import RetrospectivaScreen from './RetrospectivaScreen';
@@ -43,7 +44,6 @@ export default function NossaHistoriaScreen({ route }) {
   const navigation = useNavigation();
   const inicial = ABAS.findIndex((a) => a.key === route?.params?.aba);
   const [ativa, setAtiva] = useState(inicial >= 0 ? inicial : 0);
-  const Atual = ABAS[ativa].Tela;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -82,8 +82,24 @@ export default function NossaHistoriaScreen({ route }) {
         })}
       </View>
 
+      {/* Mesma decisão de NosHojeScreen (10/09/2026): as três abas ficam
+          montadas e só as inativas se escondem. Aqui pesa ainda mais — a
+          Linha do Tempo tem dois formulários (memória e cápsula do tempo), e
+          desmontar no meio da digitação apagava o que a pessoa escreveu. */}
       <View style={styles.corpo}>
-        <Atual dentroDeAba />
+        {ABAS.map((aba, i) => (
+          <View
+            key={aba.key}
+            style={[styles.painel, i !== ativa && styles.painelOculto]}
+            pointerEvents={i === ativa ? 'auto' : 'none'}
+            accessibilityElementsHidden={i !== ativa}
+            importantForAccessibility={i === ativa ? 'auto' : 'no-hide-descendants'}
+          >
+            <DentroDeAba>
+              <aba.Tela />
+            </DentroDeAba>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -111,4 +127,9 @@ const styles = StyleSheet.create({
   abaTxtAtiva: { color: colors.text },
   pressed: { opacity: 0.75 },
   corpo: { flex: 1 },
+  // Só a aba ativa ocupa espaço; as outras ficam na árvore com display none.
+  // Empilhar com absoluteFill fazia o conteúdo de uma vazar sobre a outra.
+  painel: { flex: 1 },
+  // A aba escondida sai de vista sem sair da árvore: o estado dela sobrevive.
+  painelOculto: { display: 'none' },
 });

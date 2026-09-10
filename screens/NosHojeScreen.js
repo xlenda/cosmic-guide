@@ -22,6 +22,13 @@
 // não de função. O que NÃO se perde: o quiz de Descobrir continua ocupando a
 // tela inteira quando aberto, porque ele é a aba — não virou seção espremida
 // dentro de um scroll alheio.
+//
+// CORREÇÃO DE 10/09/2026: a frase acima ("agora dividem um só") era falsa na
+// primeira versão. Eu passava uma prop `dentroDeAba` e NENHUMA das seis telas
+// a lia — os dois cabeçalhos apareciam empilhados, com duas setas de voltar, e
+// a de baixo saía da porta inteira. Quem apaga o cabeçalho de baixo hoje é o
+// contexto DentroDeAba (context/AbaContext.js), lido dentro do próprio
+// GradientHeader: um ponto de leitura em vez de doze.
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +37,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { colors } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { DentroDeAba } from '../context/AbaContext';
 import AgirScreen from './AgirScreen';
 import ReconectarScreen from './ReconectarScreen';
 import DescobrirScreen from './DescobrirScreen';
@@ -48,7 +56,6 @@ export default function NosHojeScreen({ route }) {
   // atalhos e deep links das três telas antigas (ver App.js).
   const inicial = ABAS.findIndex((a) => a.key === route?.params?.aba);
   const [ativa, setAtiva] = useState(inicial >= 0 ? inicial : 0);
-  const Atual = ABAS[ativa].Tela;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -90,10 +97,30 @@ export default function NosHojeScreen({ route }) {
         })}
       </View>
 
-      {/* A tela original inteira, intacta. Ela traz o próprio scroll e o
-          próprio gate de casal — nada aqui duplica essa lógica. */}
+      {/* TODAS AS ABAS FICAM MONTADAS; as inativas só ficam escondidas
+          (10/09/2026, achado da auditoria). Trocar de aba desmontava a tela e
+          levava junto o que a pessoa tinha escrito — quiz pela metade, memória
+          em digitação, formulário preenchido. Manter na árvore custa memória e
+          paga com o trabalho de quem está usando.
+
+          A aba escondida não recebe toque nem é lida por leitor de tela.
+
+          O contexto DentroDeAba apaga o GradientHeader de cada tela hospedada:
+          elas já têm título e seta aqui em cima. */}
       <View style={styles.corpo}>
-        <Atual dentroDeAba />
+        {ABAS.map((aba, i) => (
+          <View
+            key={aba.key}
+            style={[styles.painel, i !== ativa && styles.painelOculto]}
+            pointerEvents={i === ativa ? 'auto' : 'none'}
+            accessibilityElementsHidden={i !== ativa}
+            importantForAccessibility={i === ativa ? 'auto' : 'no-hide-descendants'}
+          >
+            <DentroDeAba>
+              <aba.Tela />
+            </DentroDeAba>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -121,4 +148,11 @@ const styles = StyleSheet.create({
   abaTxtAtiva: { color: colors.text },
   pressed: { opacity: 0.75 },
   corpo: { flex: 1 },
+  // Só a aba ativa ocupa espaço; as outras ficam na árvore com display none.
+  // A primeira tentativa usou absoluteFill: as três se empilhavam no mesmo
+  // ponto e o conteúdo de uma vazava sobre a outra — abri "Nós Hoje" na aba
+  // Agir e vi o rodapé dela ("Ainda não há sonhos guardados") no lugar do topo.
+  painel: { flex: 1 },
+  // A aba escondida sai de vista sem sair da árvore: o estado dela sobrevive.
+  painelOculto: { display: 'none' },
 });

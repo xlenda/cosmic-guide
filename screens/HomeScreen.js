@@ -1364,7 +1364,7 @@ export default function HomeScreen() {
                 filete. É a diferença entre "embaixo de" e "dentro de". */}
             <DailyMissionsCard mostrarMissoes={!isCouple}>
   {temZonaCeu && (
-            <BandaSection tom="claro" nu>
+            <BandaSection tom="claro" nu style={{ marginHorizontal: -36 }}>
 
               {/* As "Temporadas do Céu" saíram da Home em 31/07/2026 — decisão do
                   dono, olhando a tela em produção: "fica perdido no meio". Ele está
@@ -1535,7 +1535,7 @@ export default function HomeScreen() {
             </BandaSection>
           )}
 
-  <BandaSection tom="rosa" nu>
+  <BandaSection tom="rosa" nu style={{ marginHorizontal: -36 }}>
 
             {/* Frase do dia de amor — feita pra compartilhar de verdade com o
                 par, não só ler (ver handleShareLovePhrase acima). */}
@@ -1763,16 +1763,18 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {/* O CARD DO SOM DO CÉU SAIU DA HOME (10/09/2026, pedido do dono:
-            "essa parte do som do céu pode colocar na parte de meditações
-            também, lá em Explorar"). Ele agora mora no catálogo, junto de
-            Assentar e Rituais — que é onde a pessoa procura o que FAZER, e o
-            som é exatamente isso: uma prática, não um aviso.
+        {/* O SOM DO CÉU VOLTA PRA HOME, dentro de Missões (10/09/2026, segunda
+            passada). Ele tinha saído inteiro pro Explorar a pedido do dono, e
+            a auditoria mostrou o efeito colateral: sem controle embutido em
+            tela nenhuma, a pílula flutuante virou a ÚNICA porta — e ela vive
+            fixa sobre o conteúdo, tapando o canto inferior direito.
 
-            O registrador oculto acima (hiddenSoundRegistrar) continua onde
-            estava: ele não desenha nada, só mantém o provider vivo pra que o
-            som siga tocando enquanto a pessoa navega. O motor inteiro
-            (lib/cosmicSound.js, context/CosmicSoundContext.js) está intacto. */}
+            O componente já resolve isso sozinho: um player `inline` registra
+            que existe, e o dock se esconde enquanto ele estiver visível (ver
+            o comentário em components/CosmicSoundPlayer.js). Devolvendo o
+            controle aqui, a pílula para de tapar e quem é novo encontra a
+            feature. No Explorar ele continua, como prática. */}
+        <CosmicSoundPlayer variant="inline" style={{ marginTop: 4 }} />
 
         {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
             só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}
