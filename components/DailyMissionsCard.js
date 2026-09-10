@@ -77,7 +77,19 @@ const MISSION_ROUTE = {
   'insight-no-diario': ROUTES.DIARY,
 };
 
-export default function DailyMissionsCard() {
+// `children` entrou em 10/09/2026 (pedido do dono: "mas é para todos ficarem
+// EM missões"). O céu de hoje, os próximos dias e a compatibilidade do casal
+// já tinham descido pra junto deste card, mas ainda como caixas separadas
+// empilhadas embaixo — três bordas, três fundos, três blocos. Passando eles
+// como filhos, entram DENTRO da mesma caixa, separados só por um filete: vira
+// um bloco só, que é o que "ficar tudo em missões" quer dizer.
+// `mostrarMissoes` (10/09/2026): quem está em CASAL vê o mesmo card de missões
+// dentro de Agir, então na Home ele viria repetido. Antes a Home resolvia isso
+// com um `{!isCouple && (…)}` em volta — o que passou a ser errado quando as
+// três seções do dia viraram filhas daqui: apagaria o céu de hoje e a
+// compatibilidade justamente pra quem está em casal. Agora a lista de missões
+// se esconde sozinha, e os filhos aparecem sempre.
+export default function DailyMissionsCard({ children, mostrarMissoes = true }) {
   const navigation = useNavigation();
   const { lang, t } = useLanguage();
   const [missions, setMissions] = useState(null); // null = ainda carregando (não pisca card vazio)
@@ -237,17 +249,27 @@ export default function DailyMissionsCard() {
     navigation.navigate(ROUTES.PROFILE_TAB, { screen: ROUTES.LOJA });
   }
 
-  if (!missions || !progress) return null;
+  // A LISTA DE MISSÕES PODE FALTAR, OS FILHOS NÃO (10/09/2026). Antes um
+  // `return null` aqui matava o componente inteiro; agora ele levaria junto o
+  // céu de hoje, os próximos dias e a compatibilidade, que passaram a morar
+  // dentro dele. Sem missões (ou em casal, que as vê dentro de Agir), o card
+  // ainda desenha a caixa com os filhos — só sem o cabeçalho e a lista.
+  const temMissoes = mostrarMissoes && !!missions && !!progress;
+  if (!temMissoes && !children) return null;
 
-  const pct = Math.round((progress.done / progress.total) * 100);
+  const pct = temMissoes ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
     <View>
-      <View style={s.headRow}>
-        <Text style={s.title}>{t('missions.today')}</Text>
-        <Text style={s.count}>{progress.done}/{progress.total}</Text>
-      </View>
+      {temMissoes && (
+        <View style={s.headRow}>
+          <Text style={s.title}>{t('missions.today')}</Text>
+          <Text style={s.count}>{progress.done}/{progress.total}</Text>
+        </View>
+      )}
       <View style={s.card}>
+        {temMissoes && (
+        <>
         {justAwarded > 0 && (
           <View style={s.awardBanner}>
             <Ionicons name="sparkles" size={14} color={colors.gold} />
@@ -409,12 +431,23 @@ export default function DailyMissionsCard() {
         <TouchableOpacity onPress={goLoja}>
           <Text style={s.lojaLink}>{t('missions.storeLink')}</Text>
         </TouchableOpacity>
+        </>
+        )}
+
+        {/* O que a Home passar como filho entra AQUI, dentro da mesma caixa:
+            céu de hoje, próximos dias, vocês dois. O filete só aparece quando
+            HÁ missões acima — sem elas não há o que separar. */}
+        {children ? <View style={temMissoes ? s.extras : null}>{children}</View> : null}
       </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  // O que a Home injeta como filho (céu de hoje, próximos dias, vocês dois).
+  // Só um filete acima e respiro: os blocos vêm com o desenho deles próprio, e
+  // este wrapper não deve empilhar mais uma borda em volta do que já tem uma.
+  extras: { marginTop: 16, paddingTop: 4, borderTopWidth: 1, borderTopColor: colors.border },
   headRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, marginBottom: 10 },
   title: { color: colors.text, fontSize: 16, fontWeight: '800' },
   count: { color: colors.gold, fontSize: 13, fontWeight: '700' },

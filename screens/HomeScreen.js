@@ -1329,11 +1329,314 @@ export default function HomeScreen() {
             solo: casal vê o MESMO card dentro de Agir (a tela de "fazer"),
             mas solo nunca chega lá (SoloTeaser na borda da rota, App.js) e
             ficaria sem o loop missão→token→Loja pedido pelo dono. */}
-        {!isCouple && (
-          <View style={{ marginHorizontal: 20, marginBottom: 14 }}>
-            <DailyMissionsCard />
-          </View>
-        )}
+        {/* A CONDICIONAL SAIU DAQUI (10/09/2026) e foi PRA DENTRO do card.
+            Motivo: com as três seções agora filhas de DailyMissionsCard, um
+            `{!isCouple && (…)}` em volta apagaria o céu de hoje, os próximos
+            dias e a compatibilidade pra quem está EM CASAL — justamente quem
+            mais usa a última. Quem decide se as missões aparecem é o próprio
+            card (prop `mostrarMissoes`); as três seções aparecem sempre. */}
+        <View style={{ marginHorizontal: 20, marginBottom: 14 }}>
+            {/* AS TRÊS ENTRAM DENTRO DO CARD (10/09/2026, pedido do dono:
+                "mas é para todos ficarem EM missões"). Antes desciam pra
+                junto dele, mas como caixas separadas — três bordas, três
+                fundos. Agora são filhos: mesma caixa, separados por um
+                filete. É a diferença entre "embaixo de" e "dentro de". */}
+            <DailyMissionsCard mostrarMissoes={!isCouple}>
+  {temZonaCeu && (
+            <BandaSection tom="claro">
+
+              {/* As "Temporadas do Céu" saíram da Home em 31/07/2026 — decisão do
+                  dono, olhando a tela em produção: "fica perdido no meio". Ele está
+                  certo, e o motivo é de hierarquia: era um card de LEITURA (conteúdo
+                  calculado) espremido entre dois cards de OFERTA (a Espiada de
+                  Amanhã com cadeado e o convite do Céu de Hoje), então o olho pulava.
+                  O MOTOR não foi apagado: lib/celestialSeasons.js continua inteiro e
+                  testado, e o mesmo conteúdo tem casa melhor no Calendário Cósmico
+                  (lib/calendarioCosmico.js), onde temporada zodiacal, retrógrado e
+                  lua chegando aparecem em ordem de data em vez de soltos. */}
+
+              {/* A "Espiada de Amanhã" saiu da Home em 31/07/2026 — decisão do dono,
+                  olhando a tela em produção. E o print mostrava por quê: o trecho
+                  borrado cortava em `slice(0, 70)`, no meio de uma frase técnica
+                  ("A Lua está em Peixes. A luz…"), então o cadeado guardava um dado
+                  morno em vez de uma curiosidade. Um teaser que corta no lugar
+                  errado não vende — só ocupa a dobra e empurra pra baixo o conteúdo
+                  que a pessoa veio ler.
+                  O motor NÃO foi apagado: getThoughtForDate() em lib/dailyThought.js
+                  calcula qualquer data e continua inteiro. Se a espiada voltar, volta
+                  com corte em ponto de curiosidade, não em contagem de caracteres. */}
+
+              {/* Céu de hoje pra você — trânsitos reais sobre o mapa natal (ver
+                  lib/personalSky.js). Sem nascimento salvo, vira convite pro Mapa
+                  Astral; o aspecto mais forte é grátis, o resto pede assinatura. */}
+              {personalSky === null && (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.skyCard}
+                  onPress={() => navigation.navigate(ROUTES.BIRTH_CHART)}
+                >
+                  <View style={styles.peekHead}>
+                    <Ionicons name="telescope" size={16} color={colors.teal} />
+                    <Text style={[styles.peekLabel, { color: colors.teal }]}>{t('home.sky.label')}</Text>
+                  </View>
+                  <Text style={styles.peekText}>{t('home.sky.inviteText')}</Text>
+                  <Text style={styles.skyInviteLink}>{t('home.sky.inviteCta')}</Text>
+                </TouchableOpacity>
+              )}
+              {Array.isArray(personalSky) && personalSky.length > 0 && (
+                <View style={styles.skyCard}>
+                  <View style={styles.peekHead}>
+                    <Ionicons name="telescope" size={16} color={colors.teal} />
+                    <Text style={[styles.peekLabel, { color: colors.teal }]}>{t('home.sky.label')}</Text>
+                  </View>
+                  {(hasAccess || isOwnerAccount ? personalSkyBlocos : personalSkyBlocos.slice(0, 1)).map((b, i) => {
+                    // A fase vem do MESMO índice (fasesDoCeuPessoal preserva ordem e
+                    // tamanho) e já veio casada em `personalSkyBlocos`. Sem ela — sem
+                    // efeméride, ou trânsito parado demais pra ter direção — some a
+                    // linha, nunca se inventa um verbo.
+                    const { aspecto, fase } = b;
+                    // A MINIATURA DO PLANETA EM TRÂNSITO (08/08/2026, última rodada
+                    // de arte): `transitPlanet` é a chave PT do motor (lib/
+                    // personalSky.js) e casa direto com o registro. Os textos moram
+                    // numa variável ÚNICA usada nos dois ramos — a ordem quente →
+                    // ficha → fase é uma só no fonte, que é o que
+                    // test/quentePrimeiroNasTelas.test.js mede.
+                    const artePlaneta = planetaImagem(aspecto.transitPlanet);
+                    const conteudo = (
+                      <>
+                        {/* A ABERTURA: vida real, primeiro. Ver personalSkyBlocos. */}
+                        {b.chamada ? <Text style={styles.skyChamada}>{b.chamada}</Text> : null}
+                        {/* A FICHA: qual planeta, sobre qual ponto do mapa. Só encolhe
+                            quando existe abertura em cima — sem chamada, esta linha É
+                            a leitura e continua no corpo de sempre. */}
+                        <Text style={b.temChamada ? styles.skyFicha : styles.peekText}>{aspecto.text}</Text>
+                        {/* `linhaCurta` é o nome do campo em lib/transitoFase.js —
+                            escrevi `fase.texto` aqui em 01/08 e, como undefined é
+                            falsy, a linha sumia calada em vez de quebrar. */}
+                        {fase && fase.linhaCurta ? <Text style={styles.skyFaseText}>{fase.linhaCurta}</Text> : null}
+                      </>
+                    );
+                    return (
+                      <View key={i} style={i > 0 ? { marginTop: 12 } : null}>
+                        {artePlaneta ? (
+                          // Planeta pintado à esquerda, textos à direita. Sem asset
+                          // (registro incompleto, chave nova no motor) → o bloco de
+                          // sempre, sem wrapper de linha. accessible={false}: o nome
+                          // do planeta já está escrito em aspecto.text.
+                          <View style={styles.skyTransitoRow}>
+                            <Image source={artePlaneta} style={styles.skyPlanetaMini} resizeMode="cover" accessible={false} />
+                            <View style={styles.skyTransitoTextos}>{conteudo}</View>
+                          </View>
+                        ) : (
+                          conteudo
+                        )}
+                      </View>
+                    );
+                  })}
+                  {!hasAccess && !isOwnerAccount && personalSky.length > 1 && (
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      style={styles.peekBtn}
+                      onPress={() => navigation.navigate(ROUTES.PLANOS)}
+                    >
+                      <Ionicons name="lock-closed" size={13} color={colors.teal} />
+                      <Text style={[styles.peekBtnText, { color: colors.teal }]}>
+                        {t('home.sky.moreAspects', { count: personalSky.length - 1 })}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* O CÉU NOS PRÓXIMOS DIAS — countdown REAL do próximo evento do
+                  Calendário Cósmico ("Faltam 2 dias · Lua Cheia"). O card é VITRINE,
+                  não ficha: diz só O QUE acontece e QUANDO — os dois são dado medido
+                  do motor —; parágrafo, fonte e século moram na tela do Calendário,
+                  que é pra onde o CTA leva. Nenhum selo de "impacto" ou afim:
+                  impacto não é efeméride, e o que não é medido não entra.
+                  POSIÇÃO: colado no Céu de Hoje de propósito — o hoje em cima, os
+                  próximos dias logo abaixo, uma narrativa só de céu — e ABAIXO da
+                  primeira dobra (hero, diário, sequência, pensamento e missões
+                  intocados), porque card novo na dobra de cima é exatamente o "fica
+                  perdido no meio" que o dono mandou tirar em 31/07. Quando o motor
+                  devolve null (sem efeméride, sem evento pela frente), o card NEM
+                  MONTA — sem estado vazio, sem estado de erro. */}
+              {Array.isArray(proximosCeu) && proximosCeu.length > 0 && (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.proximosCard}
+                  onPress={() => navigation.navigate(ROUTES.CALENDARIO_COSMICO)}
+                  testID="home-proximos-eventos"
+                >
+                  <LinearGradient colors={gradients.card} style={styles.proximosInner}>
+                    <View style={styles.peekHead}>
+                      <Ionicons name="calendar" size={16} color={colors.gold} />
+                      <Text style={[styles.peekLabel, { color: colors.gold }]}>{t('home.eventos.label')}</Text>
+                    </View>
+                    {/* O mais próximo em destaque: a contagem abre (é o quente) e o
+                        título do evento vem em corpo grande logo abaixo. */}
+                    <Text style={styles.proximosQuando}>{rotuloFaltamDias(proximosCeu[0].faltamDias)}</Text>
+                    {/* [AUTO-DECISION] A miniatura só no DESTAQUE: os 1-2 itens
+                        menores são linha única de 13px — um planeta de 24px ali
+                        brigaria com o destaque e quebraria o alinhamento da lista.
+                        Eles ficam com o emoji do motor, que já conta a história. */}
+                    {arteProximoDestaque ? (
+                      <View style={styles.proximosDestaqueRow}>
+                        <Image
+                          source={arteProximoDestaque}
+                          style={styles.proximosPlanetaMini}
+                          resizeMode="cover"
+                          accessible={false}
+                        />
+                        <Text style={[styles.proximosTitulo, styles.proximosTituloNaLinha]} numberOfLines={2}>
+                          {proximosCeu[0].emoji} {proximosCeu[0].titulo}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.proximosTitulo} numberOfLines={2}>
+                        {proximosCeu[0].emoji} {proximosCeu[0].titulo}
+                      </Text>
+                    )}
+                    {/* Os 1-2 seguintes, menores — o suficiente pra dizer que o mês
+                        continua, sem competir com o destaque. Chave por índice: a
+                        lista é recomputada inteira a cada foco, nunca reordenada in
+                        loco, e tipo+dia não são únicos (dois aspectos exatos podem
+                        cair no mesmo dia). */}
+                    {proximosCeu.slice(1).map((ev, i) => (
+                      <Text key={i} style={styles.proximosItem} numberOfLines={1}>
+                        {rotuloFaltamDias(ev.faltamDias)} · {ev.emoji} {ev.titulo}
+                      </Text>
+                    ))}
+                    <Text style={styles.proximosCta}>{t('home.eventos.cta')}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </BandaSection>
+          )}
+
+  <BandaSection tom="rosa">
+
+            {/* Frase do dia de amor — feita pra compartilhar de verdade com o
+                par, não só ler (ver handleShareLovePhrase acima). */}
+            <View style={styles.lovePhraseCard}>
+              {/* A FAIXA MOSTRA O QUE O COMPARTILHAR ENVIA (09/08/2026, relato do
+                  dono: "aparece a imagem nova mas compartilha a antiga"): o fundo
+                  exibido é o MESMO fundo do dia que compartilharFraseComoCard
+                  desenha (fonte única: fundoDoDia em lib/shareCard.js, tipo
+                  'casal' — o mesmo hard-coded do handleShareLovePhrase). Só cai
+                  na cena do pack quando o servidor não respondeu. */}
+              {/* AUDITORIA 09/08/2026: duas camadas, não um source trocado — o
+                  fundo remoto demora a baixar (3G) e pode falhar (404/rotação no
+                  servidor); trocando o source, a faixa ficava em BRANCO nesses
+                  dois casos. Agora a cena local fica SEMPRE por baixo e o fundo
+                  do dia pinta por cima quando (e se) carregar; onError volta pro
+                  local em vez de faixa vazia permanente. */}
+              <View style={styles.lovePhraseArte}>
+                <Image source={CENAS.amor} style={styles.lovePhraseArteCamada} resizeMode="cover" accessible={false} />
+                {!!fundoFraseDoDia && (
+                  <Image
+                    source={{ uri: fundoFraseDoDia }}
+                    style={styles.lovePhraseArteCamada}
+                    resizeMode="cover"
+                    accessible={false}
+                    onError={() => setFundoFraseDoDia(null)}
+                  />
+                )}
+              </View>
+              <LinearGradient colors={['#FF6BA0', '#B57BFF']} style={styles.lovePhraseInner}>
+                <View style={styles.lovePhraseHead}>
+                  <Ionicons name="heart" size={18} color="#fff" />
+                  <Text style={styles.lovePhraseLabel}>{t('home.lovePhrase.label')}</Text>
+                </View>
+                <Text style={styles.lovePhraseText}>{todaysLovePhrase}</Text>
+                <TouchableOpacity activeOpacity={0.85} style={styles.lovePhraseBtn} onPress={handleShareLovePhrase}>
+                  <Ionicons name="share-social" size={16} color={colors.accent} />
+                  {/* O card aparece pros dois perfis, então o rótulo muda com quem
+                      está olhando: "meu amor" só existe quando há par cadastrado.
+                      Chamar de "Compartilhar" nomeava o mecanismo do botão, não o
+                      que a pessoa quer fazer com ele. */}
+                  <Text style={styles.lovePhraseBtnText}>
+                    {t(isCouple ? 'home.lovePhrase.share' : 'home.lovePhrase.shareSolo')}
+                  </Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+
+            {/* Compatibilidade do casal (sinastria real, lib/signs.js) */}
+            {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — abaixo dos dois nomes
+                vinha "{aspecto} · {categoria}" (ex.: "trígono · harmônico"), e só
+                depois o resumo em língua de gente. É o mesmo movimento que
+                screens/CompatibilityScreen.js fez em 31/07: o par de termos não
+                some, desce e vira recibo do que acabou de ser lido. Os dois signos
+                continuam no topo porque são a identificação do cartão — quem está
+                olhando é quem digitou aqueles nomes.
+                test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
+            {compat ? (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.horoCard}
+                onPress={() => navigation.navigate(ROUTES.COMPATIBILITY)}
+              >
+                <LinearGradient colors={gradients.card} style={styles.horoInner}>
+                  <View style={styles.horoHead}>
+                    {/* Os DOIS mascotes do par no chip (09/08/2026) — com arte, o
+                        casal vira personagens sobrepostos; sem, os emojis de
+                        sempre. Mesmo contrato de fallback do resto do pack. */}
+                    {mascoteDoSigno(coupleData.sa) && mascoteDoSigno(coupleData.sb) ? (
+                      <View style={styles.parMascotes}>
+                        <Image source={mascoteDoSigno(coupleData.sa)} style={styles.parMascote} resizeMode="cover" accessible={false} />
+                        <Image source={mascoteDoSigno(coupleData.sb)} style={[styles.parMascote, styles.parMascoteB]} resizeMode="cover" accessible={false} />
+                      </View>
+                    ) : (
+                      <View style={[styles.signChip, { backgroundColor: sign.color + '33' }]}>
+                        <Text style={[styles.signChipGlyph, { color: sign.color }]}>{compat.emojiA}{compat.emojiB}</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.horoSign}>{coupleData.sa} + {coupleData.sb}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                  </View>
+                  {/* `resumo`, não `texto`: a leitura inteira agora tem quatro
+                      frases (elemento, qualidades, modalidade, o que a fonte diz) e
+                      não cabe num cartão de Home. O resumo é uma linha e diz a
+                      mesma coisa sem prometer nada a mais. */}
+                  <Text style={styles.horoText}>{compat.resumo}</Text>
+                  <Text style={[styles.horoDates, styles.horoDatesRecibo]}>
+                    {t('home.compatAspect', {
+                      aspecto: t(CHAVES_DE_TRADUCAO.aspecto[compat.familia]),
+                      categoria: t(CHAVES_DE_TRADUCAO.categoria[compat.categoriaId]),
+                    })}
+                  </Text>
+                  <Text style={styles.horoLink}>{t('home.compatSeeMore')}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.horoCard}
+                onPress={() => navigation.navigate(ROUTES.QUIZ)}
+              >
+                <LinearGradient colors={gradients.card} style={styles.horoInner}>
+                  <View style={styles.horoHead}>
+                    <View style={[styles.signChip, { backgroundColor: colors.accent + '33' }]}>
+                      <Ionicons name="heart-outline" size={22} color={colors.accent} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.horoSign}>{t('home.compatTitleEmpty')}</Text>
+                      <Text style={styles.horoDates}>{t('home.compatSubtitleEmpty')}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                  </View>
+                  <Text style={styles.horoText}>{t('home.compatTextEmpty')}</Text>
+                  <Text style={styles.horoLink}>{t('home.compatLinkEmpty')}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+          </BandaSection>
+            </DailyMissionsCard>
+        </View>
 
         {/* ═══ TUDO O QUE É HOJE, NUM BLOCO SÓ ═══ (10/09/2026, pedido do
             dono: "em missões deixar tudo junto: céu pra você hoje, céu nos
@@ -1351,299 +1654,9 @@ export default function HomeScreen() {
             condicional órfã e quebrava o arquivo). Os testIDs seguem
             idênticos e as âncoras de test/quentePrimeiroNasTelas.test.js
             não se moveram. */}
-{temZonaCeu && (
-          <BandaSection tom="claro">
 
-            {/* As "Temporadas do Céu" saíram da Home em 31/07/2026 — decisão do
-                dono, olhando a tela em produção: "fica perdido no meio". Ele está
-                certo, e o motivo é de hierarquia: era um card de LEITURA (conteúdo
-                calculado) espremido entre dois cards de OFERTA (a Espiada de
-                Amanhã com cadeado e o convite do Céu de Hoje), então o olho pulava.
-                O MOTOR não foi apagado: lib/celestialSeasons.js continua inteiro e
-                testado, e o mesmo conteúdo tem casa melhor no Calendário Cósmico
-                (lib/calendarioCosmico.js), onde temporada zodiacal, retrógrado e
-                lua chegando aparecem em ordem de data em vez de soltos. */}
 
-            {/* A "Espiada de Amanhã" saiu da Home em 31/07/2026 — decisão do dono,
-                olhando a tela em produção. E o print mostrava por quê: o trecho
-                borrado cortava em `slice(0, 70)`, no meio de uma frase técnica
-                ("A Lua está em Peixes. A luz…"), então o cadeado guardava um dado
-                morno em vez de uma curiosidade. Um teaser que corta no lugar
-                errado não vende — só ocupa a dobra e empurra pra baixo o conteúdo
-                que a pessoa veio ler.
-                O motor NÃO foi apagado: getThoughtForDate() em lib/dailyThought.js
-                calcula qualquer data e continua inteiro. Se a espiada voltar, volta
-                com corte em ponto de curiosidade, não em contagem de caracteres. */}
 
-            {/* Céu de hoje pra você — trânsitos reais sobre o mapa natal (ver
-                lib/personalSky.js). Sem nascimento salvo, vira convite pro Mapa
-                Astral; o aspecto mais forte é grátis, o resto pede assinatura. */}
-            {personalSky === null && (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.skyCard}
-                onPress={() => navigation.navigate(ROUTES.BIRTH_CHART)}
-              >
-                <View style={styles.peekHead}>
-                  <Ionicons name="telescope" size={16} color={colors.teal} />
-                  <Text style={[styles.peekLabel, { color: colors.teal }]}>{t('home.sky.label')}</Text>
-                </View>
-                <Text style={styles.peekText}>{t('home.sky.inviteText')}</Text>
-                <Text style={styles.skyInviteLink}>{t('home.sky.inviteCta')}</Text>
-              </TouchableOpacity>
-            )}
-            {Array.isArray(personalSky) && personalSky.length > 0 && (
-              <View style={styles.skyCard}>
-                <View style={styles.peekHead}>
-                  <Ionicons name="telescope" size={16} color={colors.teal} />
-                  <Text style={[styles.peekLabel, { color: colors.teal }]}>{t('home.sky.label')}</Text>
-                </View>
-                {(hasAccess || isOwnerAccount ? personalSkyBlocos : personalSkyBlocos.slice(0, 1)).map((b, i) => {
-                  // A fase vem do MESMO índice (fasesDoCeuPessoal preserva ordem e
-                  // tamanho) e já veio casada em `personalSkyBlocos`. Sem ela — sem
-                  // efeméride, ou trânsito parado demais pra ter direção — some a
-                  // linha, nunca se inventa um verbo.
-                  const { aspecto, fase } = b;
-                  // A MINIATURA DO PLANETA EM TRÂNSITO (08/08/2026, última rodada
-                  // de arte): `transitPlanet` é a chave PT do motor (lib/
-                  // personalSky.js) e casa direto com o registro. Os textos moram
-                  // numa variável ÚNICA usada nos dois ramos — a ordem quente →
-                  // ficha → fase é uma só no fonte, que é o que
-                  // test/quentePrimeiroNasTelas.test.js mede.
-                  const artePlaneta = planetaImagem(aspecto.transitPlanet);
-                  const conteudo = (
-                    <>
-                      {/* A ABERTURA: vida real, primeiro. Ver personalSkyBlocos. */}
-                      {b.chamada ? <Text style={styles.skyChamada}>{b.chamada}</Text> : null}
-                      {/* A FICHA: qual planeta, sobre qual ponto do mapa. Só encolhe
-                          quando existe abertura em cima — sem chamada, esta linha É
-                          a leitura e continua no corpo de sempre. */}
-                      <Text style={b.temChamada ? styles.skyFicha : styles.peekText}>{aspecto.text}</Text>
-                      {/* `linhaCurta` é o nome do campo em lib/transitoFase.js —
-                          escrevi `fase.texto` aqui em 01/08 e, como undefined é
-                          falsy, a linha sumia calada em vez de quebrar. */}
-                      {fase && fase.linhaCurta ? <Text style={styles.skyFaseText}>{fase.linhaCurta}</Text> : null}
-                    </>
-                  );
-                  return (
-                    <View key={i} style={i > 0 ? { marginTop: 12 } : null}>
-                      {artePlaneta ? (
-                        // Planeta pintado à esquerda, textos à direita. Sem asset
-                        // (registro incompleto, chave nova no motor) → o bloco de
-                        // sempre, sem wrapper de linha. accessible={false}: o nome
-                        // do planeta já está escrito em aspecto.text.
-                        <View style={styles.skyTransitoRow}>
-                          <Image source={artePlaneta} style={styles.skyPlanetaMini} resizeMode="cover" accessible={false} />
-                          <View style={styles.skyTransitoTextos}>{conteudo}</View>
-                        </View>
-                      ) : (
-                        conteudo
-                      )}
-                    </View>
-                  );
-                })}
-                {!hasAccess && !isOwnerAccount && personalSky.length > 1 && (
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.peekBtn}
-                    onPress={() => navigation.navigate(ROUTES.PLANOS)}
-                  >
-                    <Ionicons name="lock-closed" size={13} color={colors.teal} />
-                    <Text style={[styles.peekBtnText, { color: colors.teal }]}>
-                      {t('home.sky.moreAspects', { count: personalSky.length - 1 })}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-
-            {/* O CÉU NOS PRÓXIMOS DIAS — countdown REAL do próximo evento do
-                Calendário Cósmico ("Faltam 2 dias · Lua Cheia"). O card é VITRINE,
-                não ficha: diz só O QUE acontece e QUANDO — os dois são dado medido
-                do motor —; parágrafo, fonte e século moram na tela do Calendário,
-                que é pra onde o CTA leva. Nenhum selo de "impacto" ou afim:
-                impacto não é efeméride, e o que não é medido não entra.
-                POSIÇÃO: colado no Céu de Hoje de propósito — o hoje em cima, os
-                próximos dias logo abaixo, uma narrativa só de céu — e ABAIXO da
-                primeira dobra (hero, diário, sequência, pensamento e missões
-                intocados), porque card novo na dobra de cima é exatamente o "fica
-                perdido no meio" que o dono mandou tirar em 31/07. Quando o motor
-                devolve null (sem efeméride, sem evento pela frente), o card NEM
-                MONTA — sem estado vazio, sem estado de erro. */}
-            {Array.isArray(proximosCeu) && proximosCeu.length > 0 && (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.proximosCard}
-                onPress={() => navigation.navigate(ROUTES.CALENDARIO_COSMICO)}
-                testID="home-proximos-eventos"
-              >
-                <LinearGradient colors={gradients.card} style={styles.proximosInner}>
-                  <View style={styles.peekHead}>
-                    <Ionicons name="calendar" size={16} color={colors.gold} />
-                    <Text style={[styles.peekLabel, { color: colors.gold }]}>{t('home.eventos.label')}</Text>
-                  </View>
-                  {/* O mais próximo em destaque: a contagem abre (é o quente) e o
-                      título do evento vem em corpo grande logo abaixo. */}
-                  <Text style={styles.proximosQuando}>{rotuloFaltamDias(proximosCeu[0].faltamDias)}</Text>
-                  {/* [AUTO-DECISION] A miniatura só no DESTAQUE: os 1-2 itens
-                      menores são linha única de 13px — um planeta de 24px ali
-                      brigaria com o destaque e quebraria o alinhamento da lista.
-                      Eles ficam com o emoji do motor, que já conta a história. */}
-                  {arteProximoDestaque ? (
-                    <View style={styles.proximosDestaqueRow}>
-                      <Image
-                        source={arteProximoDestaque}
-                        style={styles.proximosPlanetaMini}
-                        resizeMode="cover"
-                        accessible={false}
-                      />
-                      <Text style={[styles.proximosTitulo, styles.proximosTituloNaLinha]} numberOfLines={2}>
-                        {proximosCeu[0].emoji} {proximosCeu[0].titulo}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.proximosTitulo} numberOfLines={2}>
-                      {proximosCeu[0].emoji} {proximosCeu[0].titulo}
-                    </Text>
-                  )}
-                  {/* Os 1-2 seguintes, menores — o suficiente pra dizer que o mês
-                      continua, sem competir com o destaque. Chave por índice: a
-                      lista é recomputada inteira a cada foco, nunca reordenada in
-                      loco, e tipo+dia não são únicos (dois aspectos exatos podem
-                      cair no mesmo dia). */}
-                  {proximosCeu.slice(1).map((ev, i) => (
-                    <Text key={i} style={styles.proximosItem} numberOfLines={1}>
-                      {rotuloFaltamDias(ev.faltamDias)} · {ev.emoji} {ev.titulo}
-                    </Text>
-                  ))}
-                  <Text style={styles.proximosCta}>{t('home.eventos.cta')}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </BandaSection>
-        )}
-
-<BandaSection tom="rosa">
-
-          {/* Frase do dia de amor — feita pra compartilhar de verdade com o
-              par, não só ler (ver handleShareLovePhrase acima). */}
-          <View style={styles.lovePhraseCard}>
-            {/* A FAIXA MOSTRA O QUE O COMPARTILHAR ENVIA (09/08/2026, relato do
-                dono: "aparece a imagem nova mas compartilha a antiga"): o fundo
-                exibido é o MESMO fundo do dia que compartilharFraseComoCard
-                desenha (fonte única: fundoDoDia em lib/shareCard.js, tipo
-                'casal' — o mesmo hard-coded do handleShareLovePhrase). Só cai
-                na cena do pack quando o servidor não respondeu. */}
-            {/* AUDITORIA 09/08/2026: duas camadas, não um source trocado — o
-                fundo remoto demora a baixar (3G) e pode falhar (404/rotação no
-                servidor); trocando o source, a faixa ficava em BRANCO nesses
-                dois casos. Agora a cena local fica SEMPRE por baixo e o fundo
-                do dia pinta por cima quando (e se) carregar; onError volta pro
-                local em vez de faixa vazia permanente. */}
-            <View style={styles.lovePhraseArte}>
-              <Image source={CENAS.amor} style={styles.lovePhraseArteCamada} resizeMode="cover" accessible={false} />
-              {!!fundoFraseDoDia && (
-                <Image
-                  source={{ uri: fundoFraseDoDia }}
-                  style={styles.lovePhraseArteCamada}
-                  resizeMode="cover"
-                  accessible={false}
-                  onError={() => setFundoFraseDoDia(null)}
-                />
-              )}
-            </View>
-            <LinearGradient colors={['#FF6BA0', '#B57BFF']} style={styles.lovePhraseInner}>
-              <View style={styles.lovePhraseHead}>
-                <Ionicons name="heart" size={18} color="#fff" />
-                <Text style={styles.lovePhraseLabel}>{t('home.lovePhrase.label')}</Text>
-              </View>
-              <Text style={styles.lovePhraseText}>{todaysLovePhrase}</Text>
-              <TouchableOpacity activeOpacity={0.85} style={styles.lovePhraseBtn} onPress={handleShareLovePhrase}>
-                <Ionicons name="share-social" size={16} color={colors.accent} />
-                {/* O card aparece pros dois perfis, então o rótulo muda com quem
-                    está olhando: "meu amor" só existe quando há par cadastrado.
-                    Chamar de "Compartilhar" nomeava o mecanismo do botão, não o
-                    que a pessoa quer fazer com ele. */}
-                <Text style={styles.lovePhraseBtnText}>
-                  {t(isCouple ? 'home.lovePhrase.share' : 'home.lovePhrase.shareSolo')}
-                </Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </View>
-
-          {/* Compatibilidade do casal (sinastria real, lib/signs.js) */}
-          {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — abaixo dos dois nomes
-              vinha "{aspecto} · {categoria}" (ex.: "trígono · harmônico"), e só
-              depois o resumo em língua de gente. É o mesmo movimento que
-              screens/CompatibilityScreen.js fez em 31/07: o par de termos não
-              some, desce e vira recibo do que acabou de ser lido. Os dois signos
-              continuam no topo porque são a identificação do cartão — quem está
-              olhando é quem digitou aqueles nomes.
-              test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
-          {compat ? (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.horoCard}
-              onPress={() => navigation.navigate(ROUTES.COMPATIBILITY)}
-            >
-              <LinearGradient colors={gradients.card} style={styles.horoInner}>
-                <View style={styles.horoHead}>
-                  {/* Os DOIS mascotes do par no chip (09/08/2026) — com arte, o
-                      casal vira personagens sobrepostos; sem, os emojis de
-                      sempre. Mesmo contrato de fallback do resto do pack. */}
-                  {mascoteDoSigno(coupleData.sa) && mascoteDoSigno(coupleData.sb) ? (
-                    <View style={styles.parMascotes}>
-                      <Image source={mascoteDoSigno(coupleData.sa)} style={styles.parMascote} resizeMode="cover" accessible={false} />
-                      <Image source={mascoteDoSigno(coupleData.sb)} style={[styles.parMascote, styles.parMascoteB]} resizeMode="cover" accessible={false} />
-                    </View>
-                  ) : (
-                    <View style={[styles.signChip, { backgroundColor: sign.color + '33' }]}>
-                      <Text style={[styles.signChipGlyph, { color: sign.color }]}>{compat.emojiA}{compat.emojiB}</Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.horoSign}>{coupleData.sa} + {coupleData.sb}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-                </View>
-                {/* `resumo`, não `texto`: a leitura inteira agora tem quatro
-                    frases (elemento, qualidades, modalidade, o que a fonte diz) e
-                    não cabe num cartão de Home. O resumo é uma linha e diz a
-                    mesma coisa sem prometer nada a mais. */}
-                <Text style={styles.horoText}>{compat.resumo}</Text>
-                <Text style={[styles.horoDates, styles.horoDatesRecibo]}>
-                  {t('home.compatAspect', {
-                    aspecto: t(CHAVES_DE_TRADUCAO.aspecto[compat.familia]),
-                    categoria: t(CHAVES_DE_TRADUCAO.categoria[compat.categoriaId]),
-                  })}
-                </Text>
-                <Text style={styles.horoLink}>{t('home.compatSeeMore')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.horoCard}
-              onPress={() => navigation.navigate(ROUTES.QUIZ)}
-            >
-              <LinearGradient colors={gradients.card} style={styles.horoInner}>
-                <View style={styles.horoHead}>
-                  <View style={[styles.signChip, { backgroundColor: colors.accent + '33' }]}>
-                    <Ionicons name="heart-outline" size={22} color={colors.accent} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.horoSign}>{t('home.compatTitleEmpty')}</Text>
-                    <Text style={styles.horoDates}>{t('home.compatSubtitleEmpty')}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-                </View>
-                <Text style={styles.horoText}>{t('home.compatTextEmpty')}</Text>
-                <Text style={styles.horoLink}>{t('home.compatLinkEmpty')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-
-        </BandaSection>
 
         {/* A LINHA DE HOJE — encostada no card de MISSÕES, e não mais no card
             de Sequência. Duas razões que se somam:
