@@ -1180,7 +1180,13 @@ export default function TarotScreen() {
 
         {!drawn ? (
           <View style={styles.emptyWrap}>
-            {limiteDiarioReal || soPodeUsarBonus ? (
+            {/* `bonusReadings > 0` entrou em 10/09/2026, junto do TUDO_LIBERADO
+                de context/CoupleContext.js. Sem paywall não existe limite
+                diário, então `limiteDiarioReal` nunca é verdadeiro e o bloco
+                inteiro sumia — levando junto o botão "Usar Leitura Bônus" de
+                quem COMPROU bônus na Loja. Quem pagou continua vendo o que
+                pagou: o botão aparece por ter bônus, não por estar travado. */}
+            {limiteDiarioReal || soPodeUsarBonus || bonusReadings > 0 ? (
               <>
                 <Ionicons
                   name={previaVitaliciaGasta ? 'lock-closed-outline' : 'time-outline'}

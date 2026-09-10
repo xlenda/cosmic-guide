@@ -1174,6 +1174,9 @@ export default function BirthChartScreen() {
         typeLabel: t('home.card.birthchart.title'),
         title: t('home.card.birthchart.title'),
         body: partes.join(', ') + '.',
+        // Mesma trava do Calendario Lunar: a guarda de storage e
+        // read-then-write e `t` muda de identidade a cada render.
+        completionId: `birthchart:${iso}`,
       });
       AsyncStorage.setItem(DIARY_RECORDED_KEY, iso);
     });

@@ -256,6 +256,9 @@ export default function ChatScreen() {
         typeLabel: t('orbi.chat.diaryLabel'),
         title: t('orbi.chat.diaryLabel'),
         body: reply,
+        // Idem: guarda read-then-write, duas respostas quase simultaneas
+        // gravariam duas entradas do mesmo dia.
+        completionId: `chat:${today}`,
       });
       AsyncStorage.setItem(ORBI_DIARY_RECORDED_KEY, today);
     });

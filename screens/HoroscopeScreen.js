@@ -215,6 +215,10 @@ export default function HoroscopeScreen() {
         typeLabel: t('home.card.horoscope.title'),
         title: t('horoscope.diary.title', { sign: signLabel }),
         body: resumo,
+        // Trava idempotente (lib/journal.js): a guarda de storage acima e
+        // read-then-write e `t` nasce novo a cada render do LanguageContext,
+        // entao o efeito pode disparar duas vezes antes do primeiro setItem.
+        completionId: `horoscope:${today}:${sign.name}`,
       }).then(() => AsyncStorage.setItem(DIARY_RECORDED_KEY, today));
     });
   }, [sign, signLabel, t]);

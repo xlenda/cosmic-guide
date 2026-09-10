@@ -350,6 +350,12 @@ export default function LunarCalendarScreen() {
         typeLabel: t('lunar.title'),
         title: `${today.emoji} ${today.name}`,
         body: today.reflexao,
+        // A guarda de storage acima e read-then-write: duas passagens do efeito
+        // no mesmo tique (montagem + o refreshTick do useFocusEffect) leem as
+        // duas o valor de ONTEM e as duas gravam. O completionId e a trava real
+        // (lib/journal.js) — a segunda encontra a entrada do dia e nao repete
+        // Diario, tokens nem streak.
+        completionId: `lunarCalendar:${iso}`,
       });
       setItemSeguro(DIARY_RECORDED_KEY, iso);
     });
