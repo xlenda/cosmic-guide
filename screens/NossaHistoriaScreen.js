@@ -1,0 +1,114 @@
+// NOSSA HISTÓRIA — a fusão de Linha do Tempo + Progresso + Retrospectiva
+// (10/09/2026, mesmo pedido do dono que criou NosHojeScreen).
+//
+// POR QUE ESTAS TRÊS: o argumento aqui é mais forte que o de "Nós Hoje".
+// Progresso e Retrospectiva NÃO TÊM DADO PRÓPRIO — são duas telas inteiras que
+// só reformatam o que a Linha do Tempo gravou. A auditoria mediu ~70% de
+// sobreposição entre elas: a contagem de memórias aparece nas três telas, a de
+// cápsulas nas três, o recorde de sequência em duas com rótulos diferentes, e
+// o componente de contagem animada está copiado byte a byte entre Progresso e
+// Retrospectiva. A própria Retrospectiva já admitia a dependência: o botão do
+// estado vazio manda a pessoa pra Linha do Tempo.
+//
+// A ORDEM DAS ABAS não é alfabética nem por tamanho: é a do uso. Primeiro o
+// que a pessoa ESCREVE (memórias e cápsulas), depois o que ela COLHE do que
+// escreveu (o mês, o ano). Sem a primeira, as outras duas mostram zero — e é
+// justamente esse zero que o CTA do estado vazio sempre tentou explicar.
+//
+// Mesma técnica de NosHojeScreen: abas montando as telas originais, sem
+// reescrever conteúdo. O peso visual da Retrospectiva (número gigante animado
+// + botão de compartilhar) se preserva porque ela continua ocupando a tela
+// toda quando é a aba ativa — não virou seção espremida entre formulários.
+import React, { useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
+import { colors } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
+import TimelineScreen from './TimelineScreen';
+import ProgressoScreen from './ProgressoScreen';
+import RetrospectivaScreen from './RetrospectivaScreen';
+
+const ABAS = [
+  { key: 'timeline', icone: 'time', tituloKey: 'home.card.timeline.title', Tela: TimelineScreen },
+  { key: 'progresso', icone: 'trophy', tituloKey: 'home.card.progresso.title', Tela: ProgressoScreen },
+  { key: 'retrospectiva', icone: 'gift', tituloKey: 'home.card.retrospectiva.title', Tela: RetrospectivaScreen },
+];
+
+export default function NossaHistoriaScreen({ route }) {
+  const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const inicial = ABAS.findIndex((a) => a.key === route?.params?.aba);
+  const [ativa, setAtiva] = useState(inicial >= 0 ? inicial : 0);
+  const Atual = ABAS[ativa].Tela;
+
+  return (
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <View style={styles.topo}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t('explore.back')}
+          style={({ pressed }) => [styles.voltar, pressed && styles.pressed]}
+        >
+          <Ionicons name="arrow-back" size={20} color={colors.text} />
+        </Pressable>
+        <Text style={styles.titulo}>{t('nossaHistoria.title')}</Text>
+        <View style={styles.voltar} />
+      </View>
+
+      <View style={styles.abas}>
+        {ABAS.map((aba, i) => {
+          const sel = i === ativa;
+          return (
+            <Pressable
+              key={aba.key}
+              testID={`nossa-historia-aba-${aba.key}`}
+              onPress={() => setAtiva(i)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: sel }}
+              accessibilityLabel={t(aba.tituloKey)}
+              style={({ pressed }) => [styles.aba, sel && styles.abaAtiva, pressed && styles.pressed]}
+            >
+              <Ionicons name={aba.icone} size={16} color={sel ? colors.gold : colors.textMuted} />
+              <Text style={[styles.abaTxt, sel && styles.abaTxtAtiva]} numberOfLines={1}>
+                {t(aba.tituloKey)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.corpo}>
+        <Atual dentroDeAba />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background },
+  topo: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10,
+  },
+  voltar: {
+    width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  titulo: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  abas: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingBottom: 10 },
+  aba: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 9, borderRadius: 12, backgroundColor: colors.surface,
+    borderBottomWidth: 2, borderBottomColor: 'transparent',
+  },
+  abaAtiva: { borderBottomColor: colors.gold, backgroundColor: colors.surfaceElevated },
+  abaTxt: { color: colors.textMuted, fontSize: 12, fontWeight: '600', flexShrink: 1 },
+  abaTxtAtiva: { color: colors.text },
+  pressed: { opacity: 0.75 },
+  corpo: { flex: 1 },
+});

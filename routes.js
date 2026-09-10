@@ -51,12 +51,18 @@ export const ROUTES = {
   COFFEE: 'Coffee',
   COMPATIBILITY: 'Compatibility',
   QUIZ: 'Quiz',
+  // AS SEIS DE CASAL VIRARAM DUAS (10/09/2026, pedido do dono). As rotas
+  // antigas continuam aqui e continuam registradas em App.js: link salvo,
+  // atalho e deep link seguem abrindo. O que mudou é a VITRINE — a Home e o
+  // Explorar agora mostram só as duas portas novas.
   TIMELINE: 'Timeline',
   RECONECTAR: 'Reconectar',
   DESCOBRIR: 'Descobrir',
   AGIR: 'Agir',
   PROGRESSO: 'Progresso',
   RETROSPECTIVA: 'Retrospectiva',
+  NOS_HOJE: 'NosHoje',
+  NOSSA_HISTORIA: 'NossaHistoria',
   PLANOS: 'Planos',
   LOGIN: 'Login',
 

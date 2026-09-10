@@ -53,12 +53,15 @@ test('a biblioteca preserva todas as entradas do catálogo com destinos reais', 
   // 'profeccoes' saiu da vitrine em 10/09/2026 (pedido do dono). A rota e a
   // tela seguem vivas — o que este teste vigia é o CATÁLOGO, e ela não está
   // mais nele. Se voltar, volta aqui junto.
+  // As SEIS de casal viraram DUAS em 10/09/2026 (pedido do dono): agir,
+  // reconectar, descobrir, progresso, retrospectiva e timeline saíram da
+  // vitrine e viraram abas dentro de 'nosHoje' e 'nossaHistoria'. As rotas
+  // continuam registradas em App.js — o que este teste vigia é o CATÁLOGO.
   const expected = [
-    'agir', 'birthchart', 'calendario', 'coffee', 'comovoceta', 'compatibility',
-    'descobrir', 'diary', 'dream', 'grounding', 'horoscope', 'idadereal', 'jornada',
-    'lunarCalendar', 'mitos', 'palm', 'progresso', 'quizcosmico',
-    'reconectar', 'retrolua', 'retrospectiva', 'rituais', 'social', 'tarot',
-    'timeline', 'wallpaper', 'zodiacbody',
+    'birthchart', 'calendario', 'coffee', 'comovoceta', 'compatibility',
+    'diary', 'dream', 'grounding', 'horoscope', 'idadereal', 'jornada',
+    'lunarCalendar', 'mitos', 'nosHoje', 'nossaHistoria', 'palm', 'quizcosmico',
+    'retrolua', 'rituais', 'social', 'tarot', 'wallpaper', 'zodiacbody',
   ];
   const found = [...EXPLORE.matchAll(/item\('([^']+)'/g)].map((match) => match[1]).sort();
   assert.deepEqual(found, expected.sort());
@@ -78,8 +81,13 @@ test('cada experiência explica o que a pessoa encontrará em PT, ES e EN', () =
     // chaves de tradução seguem em lib/i18n.js, intactas, esperando um retorno.
     'palm', 'coffee', 'alignment', 'grounding', 'rituais',
     'jornada', 'diary', 'lunarCalendar', 'calendario', 'zodiacbody', 'retrolua',
-    'mitos', 'quizcosmico', 'wallpaper', 'idadereal', 'social', 'timeline',
-    'reconectar', 'descobrir', 'agir', 'progresso', 'retrospectiva',
+    // 'timeline' saiu daqui em 10/09/2026: virou a primeira aba de
+    // 'nossaHistoria'. A chave de tradução dela continua em lib/i18n.js.
+    'mitos', 'quizcosmico', 'wallpaper', 'idadereal', 'social',
+    // As seis de casal viraram duas portas em 10/09/2026. São elas que agora
+    // precisam de descrição nos três idiomas — e a descrição de cada uma
+    // NOMEIA as três telas que reúne, pra ninguém achar que algo sumiu.
+    'nosHoje', 'nossaHistoria',
   ];
 
   for (const key of keys) {

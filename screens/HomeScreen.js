@@ -668,7 +668,9 @@ export default function HomeScreen() {
   // o withFeatureGate (App.js) exibe "isso é pra fazer em casal" convidando a
   // pessoa a chamar o par — induz a trazer o parceiro pro app pra reconectar,
   // jogar junto, etc., em vez de esconder a existência da feature.
-  const COUPLE_ONLY = ['timeline'];
+  // 'timeline' virou aba dentro de 'nossaHistoria' (10/09/2026): a porta
+  // nova é que precisa de casal agora.
+  const COUPLE_ONLY = ['nossaHistoria'];
 
   // Exclusivas de assinantes (mesmas 5 rotas bloqueadas por withFeatureGate em
   // App.js) — timeline fica de fora, é livre pra qualquer casal. Mostra o badge
@@ -691,7 +693,9 @@ export default function HomeScreen() {
   // exclusivo de feature que a pessoa NÃO consegue abrir sem formar casal —
   // que é o caso das cinco daqui de cima, e não é o caso das três novas. É a
   // mesma razão por que grounding, palm e coffee nunca tiveram cadeado no card.
-  const LOCKED_KEYS = ['reconectar', 'descobrir', 'agir', 'progresso', 'retrospectiva'];
+  // As cinco chaves viraram duas portas (10/09/2026). O gate real continua
+  // na borda de cada rota (App.js); esta lista é só o cadeado da vitrine.
+  const LOCKED_KEYS = ['nosHoje', 'nossaHistoria'];
 
   const ALL_ITEMS = [
     { key: 'horoscope', title: t('home.card.horoscope.title'), subtitle: t('home.card.horoscope.subtitle'), icon: 'planet', gradient: ['#7B3FB5', '#A66CFF'], onPress: () => navigation.navigate(ROUTES.HOROSCOPE, { sign }) },
@@ -705,12 +709,13 @@ export default function HomeScreen() {
     { key: 'birthchart', title: t('home.card.birthchart.title'), subtitle: t('home.card.birthchart.subtitle'), icon: 'compass', gradient: ['#5CA8FF', '#6C7BFF'], onPress: () => navigation.navigate(ROUTES.BIRTH_CHART) },
     { key: 'tarot', title: t('home.card.tarot.title'), subtitle: t('home.card.tarot.subtitle'), icon: 'sparkles', gradient: ['#FF6BA0', '#B57BFF'], onPress: () => navigation.getParent()?.navigate(ROUTES.TAROT_TAB) },
     { key: 'compatibility', title: t('home.card.compatibility.title'), subtitle: t('home.card.compatibility.subtitle'), icon: 'heart', gradient: ['#FF8C5C', '#FF6B7A'], onPress: () => navigation.navigate(ROUTES.COMPATIBILITY) },
-    { key: 'timeline', title: t('home.card.timeline.title'), subtitle: t('home.card.timeline.subtitle'), icon: 'time', gradient: ['#FFC85C', '#FF7BD5'], onPress: () => navigation.navigate(ROUTES.TIMELINE) },
-    { key: 'reconectar', title: t('home.card.reconectar.title'), subtitle: t('home.card.reconectar.subtitle'), icon: 'heart-circle', gradient: ['#FF7BD5', '#FF6BA0'], onPress: () => navigation.navigate(ROUTES.RECONECTAR) },
-    { key: 'descobrir', title: t('home.card.descobrir.title'), subtitle: t('home.card.descobrir.subtitle'), icon: 'telescope', gradient: ['#6C7BFF', '#B57BFF'], onPress: () => navigation.navigate(ROUTES.DESCOBRIR) },
-    { key: 'agir', title: t('home.card.agir.title'), subtitle: t('home.card.agir.subtitle'), icon: 'flash', gradient: ['#FFC85C', '#FF6B7A'], onPress: () => navigation.navigate(ROUTES.AGIR) },
-    { key: 'progresso', title: t('home.card.progresso.title'), subtitle: t('home.card.progresso.subtitle'), icon: 'trophy', gradient: ['#5FD98C', '#5CE0D8'], onPress: () => navigation.navigate(ROUTES.PROGRESSO) },
-    { key: 'retrospectiva', title: t('home.card.retrospectiva.title'), subtitle: t('home.card.retrospectiva.subtitle'), icon: 'gift', gradient: ['#FFC85C', '#FF7BD5'], onPress: () => navigation.navigate(ROUTES.RETROSPECTIVA) },
+    // AS SEIS DE CASAL VIRARAM DUAS (10/09/2026, pedido do dono: "junte tudo
+    // em 2 funções só"). Cada porta abre as três telas antigas em abas — nada
+    // foi apagado, e ROUTES.TIMELINE, RECONECTAR, DESCOBRIR, AGIR, PROGRESSO e
+    // RETROSPECTIVA seguem registradas em App.js: link salvo e deep link
+    // continuam abrindo direto na tela específica. O que mudou é a vitrine.
+    { key: 'nosHoje', title: t('nosHoje.title'), subtitle: t('nosHoje.subtitle'), icon: 'flash', gradient: ['#FFC85C', '#FF6B7A'], onPress: () => navigation.navigate(ROUTES.NOS_HOJE) },
+    { key: 'nossaHistoria', title: t('nossaHistoria.title'), subtitle: t('nossaHistoria.subtitle'), icon: 'time', gradient: ['#FFC85C', '#FF7BD5'], onPress: () => navigation.navigate(ROUTES.NOSSA_HISTORIA) },
     { key: 'dream', title: t('home.card.dream.title'), subtitle: t('home.card.dream.subtitle'), icon: 'moon', gradient: ['#5CE0D8', '#5CA8FF'], onPress: () => navigation.navigate(ROUTES.DREAM) },
     { key: 'lunarCalendar', title: t('home.card.lunarCalendar.title'), subtitle: t('home.card.lunarCalendar.subtitle'), icon: 'planet', gradient: ['#5CA8FF', '#5CE0D8'], onPress: () => navigation.navigate(ROUTES.LUNAR_CALENDAR) },
     // Calendário Cósmico: a grade do mês com as datas medidas (lua exata,
@@ -853,7 +858,7 @@ export default function HomeScreen() {
   const PRATICAS_KEYS = ['grounding', 'rituais', 'jornada'];
   const DATAS_KEYS = ['lunarCalendar', 'calendario', 'zodiacbody', 'retrolua'];
   const CURIOSIDADES_KEYS = ['mitos', 'quizcosmico', 'wallpaper', 'idadereal'];
-  const COUPLE_SECTION_KEYS = ['reconectar', 'descobrir', 'agir', 'progresso', 'retrospectiva', 'timeline'];
+  const COUPLE_SECTION_KEYS = ['nosHoje', 'nossaHistoria'];
 
   const coupleCardItems = cardItems.filter((c) => COUPLE_SECTION_KEYS.includes(c.key));
   const individualCardItems = cardItems.filter((c) => !COUPLE_SECTION_KEYS.includes(c.key));

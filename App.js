@@ -84,6 +84,8 @@ const DescobrirScreen = lazy(() => import('./screens/DescobrirScreen'));
 const AgirScreen = lazy(() => import('./screens/AgirScreen'));
 const ProgressoScreen = lazy(() => import('./screens/ProgressoScreen'));
 const RetrospectivaScreen = lazy(() => import('./screens/RetrospectivaScreen'));
+const NosHojeScreen = lazy(() => import('./screens/NosHojeScreen'));
+const NossaHistoriaScreen = lazy(() => import('./screens/NossaHistoriaScreen'));
 const ReportsScreen = lazy(() => import('./screens/ReportsScreen'));
 const TokensScreen = lazy(() => import('./screens/TokensScreen'));
 const LojaScreen = lazy(() => import('./screens/LojaScreen'));
@@ -193,6 +195,18 @@ const DescobrirGated = withFeatureGate(DescobrirScreen, {
 const AgirGated = withFeatureGate(AgirScreen, {
   titleKey: 'gate.act.title',
   descriptionKey: 'gate.act.description',
+});
+// As duas portas novas reusam a copy do gate da aba que abre primeiro: "Nós
+// Hoje" abre em Agir, "Nossa História" abre na Linha do Tempo. Copy nova aqui
+// seria copy sem dono — a mensagem do gate fala da experiência, e a
+// experiência é a mesma.
+const NosHojeGated = withFeatureGate(NosHojeScreen, {
+  titleKey: 'gate.act.title',
+  descriptionKey: 'gate.act.description',
+});
+const NossaHistoriaGated = withFeatureGate(NossaHistoriaScreen, {
+  titleKey: 'gate.timeline.title',
+  descriptionKey: 'gate.timeline.description',
 });
 const ProgressoGated = withFeatureGate(ProgressoScreen, {
   titleKey: 'gate.progress.title',
@@ -478,6 +492,15 @@ function HomeStack({ initialRouteName = ROUTES.HOME_MAIN } = {}) {
         <Stack.Screen name={ROUTES.AGIR} component={AgirGated} />
         <Stack.Screen name={ROUTES.PROGRESSO} component={ProgressoGated} />
         <Stack.Screen name={ROUTES.RETROSPECTIVA} component={RetrospectivaGated} />
+        {/* AS DUAS PORTAS NOVAS (10/09/2026, pedido do dono: "junte tudo em 2
+            funções só"). Cada uma monta as três telas antigas em abas, sem
+            reescrever o conteúdo delas. O gate fica AQUI, na borda da rota,
+            como nas seis originais — montar a tela original por dentro não
+            arrastaria o gate junto, porque ele envolve a rota, não o
+            componente. As seis rotas antigas continuam acima, vivas: link
+            salvo e deep link seguem abrindo direto na tela específica. */}
+        <Stack.Screen name={ROUTES.NOS_HOJE} component={NosHojeGated} />
+        <Stack.Screen name={ROUTES.NOSSA_HISTORIA} component={NossaHistoriaGated} />
         <Stack.Screen name={ROUTES.PLANOS} component={PlanosScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
         <Stack.Screen name={ROUTES.MONTHLY_WRAPPED} component={MonthlyWrappedScreen} />

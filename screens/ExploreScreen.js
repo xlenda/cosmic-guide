@@ -146,14 +146,17 @@ export default function ExploreScreen() {
   ];
 
   const coupleItems = [
-    ...(isCouple
-      ? [item('timeline', 'home.card.timeline.title', 'explore.item.timeline.description', 'time-outline', ROUTES.TIMELINE)]
-      : []),
-    item('reconectar', 'home.card.reconectar.title', 'explore.item.reconectar.description', 'heart-circle-outline', ROUTES.RECONECTAR),
-    item('descobrir', 'home.card.descobrir.title', 'explore.item.descobrir.description', 'telescope-outline', ROUTES.DESCOBRIR),
-    item('agir', 'home.card.agir.title', 'explore.item.agir.description', 'flash-outline', ROUTES.AGIR),
-    item('progresso', 'home.card.progresso.title', 'explore.item.progresso.description', 'trophy-outline', ROUTES.PROGRESSO),
-    item('retrospectiva', 'home.card.retrospectiva.title', 'explore.item.retrospectiva.description', 'gift-outline', ROUTES.RETROSPECTIVA),
+    // A Linha do Tempo aparecia aqui só pra quem já estava em casal. Virou a
+    // primeira aba de 'Nossa História' em 10/09/2026, então sai da lista — o
+    // condicional `isCouple` some junto, porque as duas portas valem pros dois
+    // estados (quem está sozinho vê o convite ao abrir, que é onde ele deve
+    // aparecer).
+    // AS SEIS VIRARAM DUAS (10/09/2026, pedido do dono). Ver o comentário em
+    // screens/HomeScreen.js: as rotas antigas seguem vivas, só saíram da
+    // vitrine. A descrição de cada porta lista o que ela reúne, pra ninguém
+    // procurar "Reconectar" e achar que sumiu.
+    item('nosHoje', 'nosHoje.title', 'explore.item.nosHoje.description', 'flash-outline', ROUTES.NOS_HOJE),
+    item('nossaHistoria', 'nossaHistoria.title', 'explore.item.nossaHistoria.description', 'time-outline', ROUTES.NOSSA_HISTORIA),
   ].map((experience) => ({
     ...experience,
     // Mesma correção da Home (10/09/2026): com TUDO_LIBERADO, `!isCouple`
