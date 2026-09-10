@@ -817,7 +817,14 @@ export default function HomeScreen() {
 
   const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key)))
     .map((c) =>
-      !isOwnerAccount && (!isCouple || !hasCoupleAccess) && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
+      // O CADEADO SÓ EXISTE ENQUANTO HOUVER PAYWALL (10/09/2026). Com
+      // TUDO_LIBERADO ligado, hasCoupleAccess é sempre true — mas a condição
+      // `!isCouple` continuava verdadeira pra quem está sozinho, e o cadeado
+      // aparecia em cima de features que já estão abertas. Prometer tranca
+      // onde não há tranca é pior que não ter tranca nenhuma: a pessoa desiste
+      // de tocar. Quem está solo continua vendo que a experiência pede duas
+      // pessoas — isso a própria tela diz, ao abrir.
+      !isOwnerAccount && !hasCoupleAccess && LOCKED_KEYS.includes(c.key) ? { ...c, locked: true } : c
     )
     // 5º degrau: "pediu a 1ª leitura". Marcado no TOQUE do card, que é a
     // intenção real — e não na montagem da tela de leitura, que também

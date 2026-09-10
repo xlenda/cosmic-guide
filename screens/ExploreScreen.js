@@ -156,8 +156,11 @@ export default function ExploreScreen() {
     item('retrospectiva', 'home.card.retrospectiva.title', 'explore.item.retrospectiva.description', 'gift-outline', ROUTES.RETROSPECTIVA),
   ].map((experience) => ({
     ...experience,
+    // Mesma correção da Home (10/09/2026): com TUDO_LIBERADO, `!isCouple`
+    // deixava o cadeado aparecer sobre features já abertas. Só tranca o que
+    // está de fato trancado.
     locked: !isOwnerAccount
-      && (!isCouple || !hasCoupleAccess)
+      && !hasCoupleAccess
       && COUPLE_LOCKED_KEYS.has(experience.key),
   }));
 
