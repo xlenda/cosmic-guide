@@ -1335,130 +1335,23 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* A LINHA DE HOJE — encostada no card de MISSÕES, e não mais no card
-            de Sequência. Duas razões que se somam:
+        {/* ═══ TUDO O QUE É HOJE, NUM BLOCO SÓ ═══ (10/09/2026, pedido do
+            dono: "em missões deixar tudo junto: céu pra você hoje, céu nos
+            próximos dias, compatibilidade do casal — deixar tudo em missões
+            para ficar bem organizado").
 
-            1. COLISÃO. Pra usuário solo (a maioria, e a única configuração em
-               que DailyMissionsCard aparece na Home) a dobra passava a ter DUAS
-               superfícies de "o que fazer hoje": esta linha lá em cima, texto
-               cinza de 13 px, e o card "Missões de hoje" logo abaixo — card
-               inteiro, checkboxes, contador, tokens, botão de bônus. A linha
-               perdia a disputa por construção. Encostada no card ela deixa de
-               competir e passa a ler como a quarta linha dele.
-            2. SALTO DE LAYOUT. A linha nasce `null` e só é preenchida depois do
-               import() dinâmico dos motores e do storage — ou seja, sempre
-               DEPOIS da primeira pintura. Como ela aparece em quase toda
-               abertura, era um pulo de ~28 pt empurrando o pensamento do dia e
-               as missões pra baixo enquanto a pessoa já estava lendo. Aqui o
-               salto acontece fora do campo de visão inicial.
+            Antes eram superfícies espalhadas pelo rolo, todas dizendo alguma
+            versão de "o que é hoje", e a pessoa não tinha como saber qual
+            olhar primeiro. Agora descem juntas, logo abaixo do card de
+            missões: o céu de hoje, o que vem nos próximos dias e vocês dois.
 
-            Continua sendo uma LINHA e não um card: sem fundo, sem borda, sem
-            gradiente — cards novos na dobra de cima era exatamente o "fica
-            perdido no meio" que o dono mandou tirar. Ver o bloco no topo do
-            arquivo pra escolha entre trilha e ritual. */}
-        {mostrarTodayLine && (
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.todayLine}
-            onPress={() => {
-              // Medição antes de navegar (fire-and-forget: track() é síncrona).
-              // Era a única coisa nova na dobra sem evento nenhum — sem isto,
-              // "manter, mover ou matar a linha" continua sendo opinião em vez
-              // de número.
-              funnel.todayLineTap(ehTrilha ? 'jornada' : 'ritual');
-              navigation.navigate(ehTrilha ? ROUTES.JORNADA : ROUTES.RITUAIS);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`${todayLineText} — ${todayLineCta}`}
-            testID="home-today-line"
-          >
-            <Ionicons name={ehTrilha ? 'footsteps' : 'flame'} size={14} color={colors.teal} />
-            {/* numberOfLines={1}: o nome da trilha e o título do ritual vêm dos
-                motores e podem ser longos — a linha encolhe o texto com
-                reticências em vez de virar duas ou três linhas e deixar de ser
-                uma linha. */}
-            <Text style={styles.todayLineText} numberOfLines={1}>
-              {todayLineText}
-            </Text>
-            <Text style={styles.todayLineCta}>{todayLineCta}</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
-          </TouchableOpacity>
-        )}
-
-        {/* Órbi continua acessível, mas depois do bloco de hoje. Assim ele não
-            disputa a primeira dobra com o caminho dominante, o alinhamento e
-            a porta de Explore. */}
-        {!showFirstPath && (
-          <Pressable
-            testID="home-orbi-chat"
-            style={({ pressed }) => [
-              styles.orbiContinuity,
-              orbiFocused && styles.keyboardFocus,
-              pressed && styles.firstPathPressed,
-            ]}
-            onPress={() => {
-              navigation.getParent()?.navigate(ROUTES.CHAT_TAB);
-            }}
-            onFocus={() => setOrbiFocused(true)}
-            onBlur={() => setOrbiFocused(false)}
-            accessibilityRole="button"
-            accessibilityLabel={`${t('orbi.home.title')}. ${t('orbi.home.cta')}`}
-          >
-            <View style={styles.orbiContinuityVisual}>
-              <OrbiGuide size={78} pose="pointing" testID="home-orbi-pointing" />
-            </View>
-            <View style={styles.orbiContinuityCopy}>
-              <Text style={styles.orbiContinuityEyebrow}>{t('orbi.home.eyebrow')}</Text>
-              <Text style={styles.orbiContinuityTitle}>{t('orbi.home.title')}</Text>
-              <Text style={styles.orbiContinuityBody}>{t('orbi.home.body')}</Text>
-              <View style={styles.orbiContinuityCta}>
-                <Text style={styles.orbiContinuityCtaText}>{t('orbi.home.cta')}</Text>
-                <Ionicons name="arrow-forward" size={16} color={colors.gold} />
-              </View>
-            </View>
-          </Pressable>
-        )}
-
-        {/* O CARD DO SOM DO CÉU SAIU DA HOME (10/09/2026, pedido do dono:
-            "essa parte do som do céu pode colocar na parte de meditações
-            também, lá em Explorar"). Ele agora mora no catálogo, junto de
-            Assentar e Rituais — que é onde a pessoa procura o que FAZER, e o
-            som é exatamente isso: uma prática, não um aviso.
-
-            O registrador oculto acima (hiddenSoundRegistrar) continua onde
-            estava: ele não desenha nada, só mantém o provider vivo pra que o
-            som siga tocando enquanto a pessoa navega. O motor inteiro
-            (lib/cosmicSound.js, context/CosmicSoundContext.js) está intacto. */}
-
-        {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
-            só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}
-        {wrappedReady && (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.wrappedBar}
-            onPress={() => navigation.navigate(ROUTES.MONTHLY_WRAPPED)}
-          >
-            <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.wrappedBarInner}>
-              <Text style={styles.wrappedBarEmoji}>🔮</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.wrappedBarTitle}>{t('home.wrapped.title')}</Text>
-                <Text style={styles.wrappedBarSubtitle}>{t('home.wrapped.subtitle')}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#2A1D00" />
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-
-        {/* ZONA DO CÉU [AUTO-DECISION: onda 1 REMOVIDA] — no lugar da colina,
-            a seção inteira ganha CHÃO: daqui até o fim do card de próximos
-            dias é uma faixa 'claro' arredondada (BandaSection). O corte que a
-            onda 1 fazia agora é a borda de cima da própria zona — manter as
-            duas seria dupla-borda. Hero e grupo do dia (diário, sequência,
-            pensamento, missões, linha de hoje, som, retrospectiva) ficam no
-            céu escuro de propósito: a abertura respira no cenário, e a
-            PRIMEIRA mudança de chão coincide com a primeira virada de assunto
-            ("o seu hoje" → "o céu sobre você"). */}
-        {temZonaCeu && (
+            As duas BandaSection foram movidas INTEIRAS, com a condicional
+            {temZonaCeu && (…)} junto — limites tirados do parser, não de
+            recorte por texto (recortar só a BandaSection deixava a
+            condicional órfã e quebrava o arquivo). Os testIDs seguem
+            idênticos e as âncoras de test/quentePrimeiroNasTelas.test.js
+            não se moveram. */}
+{temZonaCeu && (
           <BandaSection tom="claro">
 
             {/* As "Temporadas do Céu" saíram da Home em 31/07/2026 — decisão do
@@ -1630,16 +1523,7 @@ export default function HomeScreen() {
           </BandaSection>
         )}
 
-        {/* ZONA DO AMOR [AUTO-DECISION: onda 2 REMOVIDA] — o grupo do
-            AMOR/CASAL (frase do dia + cartão de compatibilidade) ganha chão
-            próprio 'rosa': o mesmo degrau do claro puxado um fio pro rosa
-            (#2A1840 — MUITO sutil, vizinho de tom; o gradiente da frase já
-            grita sozinho), porque rosa é a cor da família amor no app
-            inteiro. Entre duas zonas o céu escuro aparece no vão das margens
-            — o ritmo escuro→claro→escuro→rosa é a própria diagramação do
-            concorrente, sem precisar de colina entre duas bordas
-            arredondadas. */}
-        <BandaSection tom="rosa">
+<BandaSection tom="rosa">
 
           {/* Frase do dia de amor — feita pra compartilhar de verdade com o
               par, não só ler (ver handleShareLovePhrase acima). */}
@@ -1760,6 +1644,142 @@ export default function HomeScreen() {
           )}
 
         </BandaSection>
+
+        {/* A LINHA DE HOJE — encostada no card de MISSÕES, e não mais no card
+            de Sequência. Duas razões que se somam:
+
+            1. COLISÃO. Pra usuário solo (a maioria, e a única configuração em
+               que DailyMissionsCard aparece na Home) a dobra passava a ter DUAS
+               superfícies de "o que fazer hoje": esta linha lá em cima, texto
+               cinza de 13 px, e o card "Missões de hoje" logo abaixo — card
+               inteiro, checkboxes, contador, tokens, botão de bônus. A linha
+               perdia a disputa por construção. Encostada no card ela deixa de
+               competir e passa a ler como a quarta linha dele.
+            2. SALTO DE LAYOUT. A linha nasce `null` e só é preenchida depois do
+               import() dinâmico dos motores e do storage — ou seja, sempre
+               DEPOIS da primeira pintura. Como ela aparece em quase toda
+               abertura, era um pulo de ~28 pt empurrando o pensamento do dia e
+               as missões pra baixo enquanto a pessoa já estava lendo. Aqui o
+               salto acontece fora do campo de visão inicial.
+
+            Continua sendo uma LINHA e não um card: sem fundo, sem borda, sem
+            gradiente — cards novos na dobra de cima era exatamente o "fica
+            perdido no meio" que o dono mandou tirar. Ver o bloco no topo do
+            arquivo pra escolha entre trilha e ritual. */}
+        {mostrarTodayLine && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.todayLine}
+            onPress={() => {
+              // Medição antes de navegar (fire-and-forget: track() é síncrona).
+              // Era a única coisa nova na dobra sem evento nenhum — sem isto,
+              // "manter, mover ou matar a linha" continua sendo opinião em vez
+              // de número.
+              funnel.todayLineTap(ehTrilha ? 'jornada' : 'ritual');
+              navigation.navigate(ehTrilha ? ROUTES.JORNADA : ROUTES.RITUAIS);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`${todayLineText} — ${todayLineCta}`}
+            testID="home-today-line"
+          >
+            <Ionicons name={ehTrilha ? 'footsteps' : 'flame'} size={14} color={colors.teal} />
+            {/* numberOfLines={1}: o nome da trilha e o título do ritual vêm dos
+                motores e podem ser longos — a linha encolhe o texto com
+                reticências em vez de virar duas ou três linhas e deixar de ser
+                uma linha. */}
+            <Text style={styles.todayLineText} numberOfLines={1}>
+              {todayLineText}
+            </Text>
+            <Text style={styles.todayLineCta}>{todayLineCta}</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+
+        {/* Órbi continua acessível, mas depois do bloco de hoje. Assim ele não
+            disputa a primeira dobra com o caminho dominante, o alinhamento e
+            a porta de Explore. */}
+        {!showFirstPath && (
+          <Pressable
+            testID="home-orbi-chat"
+            style={({ pressed }) => [
+              styles.orbiContinuity,
+              orbiFocused && styles.keyboardFocus,
+              pressed && styles.firstPathPressed,
+            ]}
+            onPress={() => {
+              navigation.getParent()?.navigate(ROUTES.CHAT_TAB);
+            }}
+            onFocus={() => setOrbiFocused(true)}
+            onBlur={() => setOrbiFocused(false)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('orbi.home.title')}. ${t('orbi.home.cta')}`}
+          >
+            <View style={styles.orbiContinuityVisual}>
+              <OrbiGuide size={78} pose="pointing" testID="home-orbi-pointing" />
+            </View>
+            <View style={styles.orbiContinuityCopy}>
+              <Text style={styles.orbiContinuityEyebrow}>{t('orbi.home.eyebrow')}</Text>
+              <Text style={styles.orbiContinuityTitle}>{t('orbi.home.title')}</Text>
+              <Text style={styles.orbiContinuityBody}>{t('orbi.home.body')}</Text>
+              <View style={styles.orbiContinuityCta}>
+                <Text style={styles.orbiContinuityCtaText}>{t('orbi.home.cta')}</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.gold} />
+              </View>
+            </View>
+          </Pressable>
+        )}
+
+        {/* O CARD DO SOM DO CÉU SAIU DA HOME (10/09/2026, pedido do dono:
+            "essa parte do som do céu pode colocar na parte de meditações
+            também, lá em Explorar"). Ele agora mora no catálogo, junto de
+            Assentar e Rituais — que é onde a pessoa procura o que FAZER, e o
+            som é exatamente isso: uma prática, não um aviso.
+
+            O registrador oculto acima (hiddenSoundRegistrar) continua onde
+            estava: ele não desenha nada, só mantém o provider vivo pra que o
+            som siga tocando enquanto a pessoa navega. O motor inteiro
+            (lib/cosmicSound.js, context/CosmicSoundContext.js) está intacto. */}
+
+        {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
+            só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}
+        {wrappedReady && (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.wrappedBar}
+            onPress={() => navigation.navigate(ROUTES.MONTHLY_WRAPPED)}
+          >
+            <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.wrappedBarInner}>
+              <Text style={styles.wrappedBarEmoji}>🔮</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.wrappedBarTitle}>{t('home.wrapped.title')}</Text>
+                <Text style={styles.wrappedBarSubtitle}>{t('home.wrapped.subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#2A1D00" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* ZONA DO CÉU [AUTO-DECISION: onda 1 REMOVIDA] — no lugar da colina,
+            a seção inteira ganha CHÃO: daqui até o fim do card de próximos
+            dias é uma faixa 'claro' arredondada (BandaSection). O corte que a
+            onda 1 fazia agora é a borda de cima da própria zona — manter as
+            duas seria dupla-borda. Hero e grupo do dia (diário, sequência,
+            pensamento, missões, linha de hoje, som, retrospectiva) ficam no
+            céu escuro de propósito: a abertura respira no cenário, e a
+            PRIMEIRA mudança de chão coincide com a primeira virada de assunto
+            ("o seu hoje" → "o céu sobre você"). */}
+        
+
+        {/* ZONA DO AMOR [AUTO-DECISION: onda 2 REMOVIDA] — o grupo do
+            AMOR/CASAL (frase do dia + cartão de compatibilidade) ganha chão
+            próprio 'rosa': o mesmo degrau do claro puxado um fio pro rosa
+            (#2A1840 — MUITO sutil, vizinho de tom; o gradiente da frase já
+            grita sozinho), porque rosa é a cor da família amor no app
+            inteiro. Entre duas zonas o céu escuro aparece no vão das margens
+            — o ritmo escuro→claro→escuro→rosa é a própria diagramação do
+            concorrente, sem precisar de colina entre duas bordas
+            arredondadas. */}
+        
 
         {/* ALINHE SEU CÉU e a PORTA DO EXPLORAR desceram pro fim (10/09/2026,
             pedido do dono: "alinhe seu céu também pode pôr embaixo" e
