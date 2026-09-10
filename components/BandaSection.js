@@ -39,9 +39,20 @@ const TONS = {
   rosa: '#2A1840',
 };
 
-export default function BandaSection({ tom = 'claro', style, children }) {
+// `nu` (10/09/2026): desenha a seção SEM o chão — sem fundo, sem raio 40, sem
+// as margens do vão. Existe porque o dono olhou a Home e viu duas caixas onde
+// devia haver uma: dentro do card de Missões, a banda virava uma segunda caixa
+// roxa em volta do céu de hoje, visivelmente separada das três tarefas.
+//
+// O chão é o desenho certo quando a seção é um bloco da Home, com o céu escuro
+// aparecendo no vão entre uma e outra. Dentro de um card que JÁ é uma caixa,
+// ele só empilha borda. Quem monta a banda decide qual dos dois casos é o seu.
+export default function BandaSection({ tom = 'claro', style, children, nu = false }) {
   return (
-    <View pointerEvents="box-none" style={[styles.banda, { backgroundColor: TONS[tom] || TONS.claro }, style]}>
+    <View
+      pointerEvents="box-none"
+      style={[nu ? styles.bandaNua : styles.banda, !nu && { backgroundColor: TONS[tom] || TONS.claro }, style]}
+    >
       {children}
     </View>
   );
@@ -60,6 +71,14 @@ const styles = StyleSheet.create({
     // aparecendo — o ritmo escuro→claro→escuro é a diagramação inteira.
     marginTop: 12,
     marginBottom: 20,
+    overflow: 'visible',
+  },
+  // Sem chão: os filhos herdam a caixa de quem hospeda. Só o respiro vertical
+  // sobra, e menor — dentro de um card não há vão de céu escuro pra preencher.
+  bandaNua: {
+    paddingVertical: 4,
+    marginTop: 0,
+    marginBottom: 8,
     overflow: 'visible',
   },
 });

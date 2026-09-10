@@ -1364,7 +1364,7 @@ export default function HomeScreen() {
                 filete. É a diferença entre "embaixo de" e "dentro de". */}
             <DailyMissionsCard mostrarMissoes={!isCouple}>
   {temZonaCeu && (
-            <BandaSection tom="claro">
+            <BandaSection tom="claro" nu>
 
               {/* As "Temporadas do Céu" saíram da Home em 31/07/2026 — decisão do
                   dono, olhando a tela em produção: "fica perdido no meio". Ele está
@@ -1535,7 +1535,7 @@ export default function HomeScreen() {
             </BandaSection>
           )}
 
-  <BandaSection tom="rosa">
+  <BandaSection tom="rosa" nu>
 
             {/* Frase do dia de amor — feita pra compartilhar de verdade com o
                 par, não só ler (ver handleShareLovePhrase acima). */}
