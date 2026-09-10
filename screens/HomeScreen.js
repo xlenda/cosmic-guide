@@ -1150,20 +1150,35 @@ export default function HomeScreen() {
             do diário cósmico e a sequência do dia de hoje pode colocar no
             topo"). É o que a pessoa JÁ construiu: vem antes do catálogo do que
             ela ainda pode fazer. Só aparece pra quem tem entrada guardada. */}
-        {journalCount > 0 && (
-        <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate(ROUTES.DIARY)} style={styles.diaryBar}>
+        {/* O DIÁRIO APARECE SEMPRE (10/09/2026, segunda correção). A condição
+            era `journalCount > 0`: ele só existia pra quem JÁ tinha escrito
+            algo. Fazia sentido quando era uma faixa no meio do rolo — não
+            anunciar um caderno vazio. Mas o dono pediu o diário no TOPO, e no
+            topo a regra se inverte: quem nunca escreveu é justamente quem
+            precisa descobrir que o caderno existe. Escondê-lo de quem é novo é
+            garantir que ele continue novo.
+
+            O que muda com a contagem é o SUBTÍTULO, não a existência: com
+            entradas guardadas ele diz o que faz; vazio, convida a começar. */}
+        <TouchableOpacity
+          testID="home-diary-bar"
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate(ROUTES.DIARY)}
+          style={styles.diaryBar}
+        >
           <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.diaryBarInner}>
             <View style={styles.diaryBarIcon}>
               <Ionicons name="book" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.diaryBarTitle}>{t('home.card.diary.title')}</Text>
-              <Text style={styles.diaryBarSubtitle}>{t('home.card.diary.subtitle')}</Text>
+              <Text style={styles.diaryBarSubtitle}>
+                {journalCount > 0 ? t('home.card.diary.subtitle') : t('home.diary.empty')}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
-        )}
 
         {/* Sequência da semana (lib/streak.js) — leva pros Relatórios (calendário
             de sequência completo) ao tocar. */}
