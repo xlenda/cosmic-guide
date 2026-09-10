@@ -1119,100 +1119,59 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ALINHE SEU CÉU — assinatura gestual em uma porta editorial própria.
-            Ela não entra no grid nem recolhe qualquer parte da Home. O caminho
-            inicial continua primeiro, mas esta porta nunca some: esconder o
-            gesto justamente de quem acabou de chegar quebraria seu papel de
-            encantamento e repetiria o incidente da Home incompleta. */}
-          <Pressable
-            testID="home-sky-alignment"
-            style={({ pressed }) => [
-              styles.skyAlignmentCard,
-              alignmentFocused && styles.keyboardFocus,
-              pressed && styles.firstPathPressed,
-            ]}
-            onPress={() => navigation.navigate(ROUTES.SKY_ALIGNMENT)}
-            onFocus={() => setAlignmentFocused(true)}
-            onBlur={() => setAlignmentFocused(false)}
-            accessibilityRole="button"
-          >
-            <LinearGradient
-              colors={['#2A1A2D', '#171019', '#302027']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.skyAlignmentInner}
-            >
-              <View style={styles.skyAlignmentTop}>
-                <Text style={styles.skyAlignmentTitle}>{t('home.alignment.title')}</Text>
-                <View pointerEvents="none" style={styles.skyAlignmentVisual} accessible={false}>
-                  <View style={styles.skyAlignmentNatalDisc}>
-                    <Ionicons name="compass-outline" size={19} color={colors.gold} />
-                  </View>
-                  <View style={styles.skyAlignmentCurrentDisc}>
-                    <Ionicons name="planet-outline" size={18} color={colors.text} />
-                  </View>
-                  <View style={styles.skyAlignmentAxis} />
+        {/* DIÁRIO CÓSMICO — sobe pro topo (10/09/2026, pedido do dono: "a parte
+            do diário cósmico e a sequência do dia de hoje pode colocar no
+            topo"). É o que a pessoa JÁ construiu: vem antes do catálogo do que
+            ela ainda pode fazer. Só aparece pra quem tem entrada guardada. */}
+        {journalCount > 0 && (
+        <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate(ROUTES.DIARY)} style={styles.diaryBar}>
+          <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.diaryBarInner}>
+            <View style={styles.diaryBarIcon}>
+              <Ionicons name="book" size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.diaryBarTitle}>{t('home.card.diary.title')}</Text>
+              <Text style={styles.diaryBarSubtitle}>{t('home.card.diary.subtitle')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+        )}
+
+        {/* Sequência da semana (lib/streak.js) — leva pros Relatórios (calendário
+            de sequência completo) ao tocar. */}
+        {(journalCount > 0 || streakInfo.totalActiveDays > 0) && (
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.streakCard}
+          onPress={() => navigation.navigate(ROUTES.REPORTS)}
+        >
+          <View style={styles.streakCardHead}>
+            <View style={styles.streakCardTitleRow}>
+              <Text style={styles.streakCardTitle}>
+                {streakInfo.currentStreak > 0
+                  ? t(streakInfo.currentStreak === 1 ? 'home.streak.count_one' : 'home.streak.count_other', { count: streakInfo.currentStreak })
+                  : t('home.streak.empty')}
+              </Text>
+              {shieldCount > 0 && (
+                <View style={styles.shieldBadge}>
+                  <Ionicons name="shield-checkmark" size={13} color={colors.teal} />
+                  <Text style={styles.shieldBadgeText}>{shieldCount}</Text>
                 </View>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </View>
+          <View style={styles.weekRow}>
+            {(weekActivity.length ? weekActivity : WEEK_LABELS.map((_, i) => ({ date: String(i), active: false, isToday: false }))).map((day, i) => (
+              <View key={day.date} style={styles.weekDayWrap}>
+                <Text style={styles.weekDayLabel}>{WEEK_LABELS[i]}</Text>
+                <View style={[styles.weekDot, day.active && styles.weekDotActive, day.isToday && styles.weekDotToday]} />
               </View>
-              <Text style={styles.skyAlignmentInstruction}>{t('home.alignment.instruction')}</Text>
-              <Text style={styles.skyAlignmentBody}>{t('home.alignment.body')}</Text>
-              <View style={styles.skyAlignmentCta}>
-                <Text style={styles.skyAlignmentCtaText}>{t('home.alignment.cta')}</Text>
-                <Ionicons name="arrow-forward" size={17} color={colors.gold} />
-              </View>
-            </LinearGradient>
-          </Pressable>
-
-        {/* A biblioteca inteira mora numa rota própria. Esta porta é o mapa
-            principal do produto: ganha presença editorial sem montar dezenas
-            de cards dentro da Home nem competir com a leitura personalizada. */}
-        <View style={styles.exploreGate}>
-          <Pressable
-            testID="home-explore-toggle"
-            style={({ pressed }) => [
-              styles.explorePortal,
-              exploreFocused && styles.keyboardFocus,
-              pressed && styles.firstPathPressed,
-            ]}
-            onPress={() => navigation.navigate(ROUTES.EXPLORE)}
-            onFocus={() => setExploreFocused(true)}
-            onBlur={() => setExploreFocused(false)}
-            accessibilityRole="button"
-            accessibilityLabel={`${t('home.explore.open')}. ${t('home.explore.hint')}`}
-          >
-            <LinearGradient
-              colors={['#382713', '#251622', '#171019']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.explorePortalInner}
-            >
-              <View pointerEvents="none" style={styles.exploreOrbitArtwork} accessible={false}>
-                <View style={styles.exploreOrbitLarge} />
-                <View style={styles.exploreOrbitSmall} />
-                <View style={[styles.exploreStar, styles.exploreStarOne]} />
-                <View style={[styles.exploreStar, styles.exploreStarTwo]} />
-                <View style={[styles.exploreStar, styles.exploreStarThree]} />
-              </View>
-
-              <View style={styles.explorePortalTop}>
-                <Text style={styles.explorePortalEyebrow}>{t('explore.eyebrow')}</Text>
-                <View style={styles.explorePortalCompass}>
-                  <Ionicons name="compass-outline" size={22} color={colors.gold} />
-                </View>
-              </View>
-
-              <Text style={styles.explorePortalTitle}>{t('home.explore.open')}</Text>
-              <Text style={styles.explorePortalHint}>{t('home.explore.hint')}</Text>
-
-              <View style={styles.explorePortalCta}>
-                <Text style={styles.explorePortalCtaText}>{t('home.explore.cta')}</Text>
-                <View style={styles.explorePortalArrow}>
-                  <Ionicons name="arrow-forward" size={17} color="#21151A" />
-                </View>
-              </View>
-            </LinearGradient>
-          </Pressable>
-        </View>
+            ))}
+          </View>
+        </TouchableOpacity>
+        )}
 
         {/* O CATÁLOGO, LOGO NA ENTRADA (10/09/2026, pedido do dono: "explorar
             funções tem que estar logo no começo quando ele entra no app"). Fica
@@ -1273,57 +1232,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* Diário Cósmico — faixa inteira sempre visível no topo (pedido
-            explícito: não ficar escondido junto dos outros cards do grid). */}
-        {journalCount > 0 && (
-        <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate(ROUTES.DIARY)} style={styles.diaryBar}>
-          <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.diaryBarInner}>
-            <View style={styles.diaryBarIcon}>
-              <Ionicons name="book" size={20} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.diaryBarTitle}>{t('home.card.diary.title')}</Text>
-              <Text style={styles.diaryBarSubtitle}>{t('home.card.diary.subtitle')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#fff" />
-          </LinearGradient>
-        </TouchableOpacity>
-        )}
 
-        {/* Sequência da semana (lib/streak.js) — leva pros Relatórios (calendário
-            de sequência completo) ao tocar. */}
-        {(journalCount > 0 || streakInfo.totalActiveDays > 0) && (
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.streakCard}
-          onPress={() => navigation.navigate(ROUTES.REPORTS)}
-        >
-          <View style={styles.streakCardHead}>
-            <View style={styles.streakCardTitleRow}>
-              <Text style={styles.streakCardTitle}>
-                {streakInfo.currentStreak > 0
-                  ? t(streakInfo.currentStreak === 1 ? 'home.streak.count_one' : 'home.streak.count_other', { count: streakInfo.currentStreak })
-                  : t('home.streak.empty')}
-              </Text>
-              {shieldCount > 0 && (
-                <View style={styles.shieldBadge}>
-                  <Ionicons name="shield-checkmark" size={13} color={colors.teal} />
-                  <Text style={styles.shieldBadgeText}>{shieldCount}</Text>
-                </View>
-              )}
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </View>
-          <View style={styles.weekRow}>
-            {(weekActivity.length ? weekActivity : WEEK_LABELS.map((_, i) => ({ date: String(i), active: false, isToday: false }))).map((day, i) => (
-              <View key={day.date} style={styles.weekDayWrap}>
-                <Text style={styles.weekDayLabel}>{WEEK_LABELS[i]}</Text>
-                <View style={[styles.weekDot, day.active && styles.weekDotActive, day.isToday && styles.weekDotToday]} />
-              </View>
-            ))}
-          </View>
-        </TouchableOpacity>
-        )}
 
         {/* Opt-in de notificação no momento certo: só depois da 1ª atividade
             real, uma vez só (ver components/NotifPromptCard.js). */}
@@ -1504,11 +1413,16 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {/* Som do céu — logo DEPOIS do Pensamento do dia e das Missões, de
-            propósito: o uso que o card sugere é "deixa tocando enquanto você
-            lê", e a leitura do dia acabou de acontecer dois blocos acima.
-            Devolve null sozinho onde a Web Audio API não existe. */}
-        <CosmicSoundPlayer variant="inline" style={{ marginHorizontal: 20, marginBottom: 14 }} />
+        {/* O CARD DO SOM DO CÉU SAIU DA HOME (10/09/2026, pedido do dono:
+            "essa parte do som do céu pode colocar na parte de meditações
+            também, lá em Explorar"). Ele agora mora no catálogo, junto de
+            Assentar e Rituais — que é onde a pessoa procura o que FAZER, e o
+            som é exatamente isso: uma prática, não um aviso.
+
+            O registrador oculto acima (hiddenSoundRegistrar) continua onde
+            estava: ele não desenha nada, só mantém o provider vivo pra que o
+            som siga tocando enquanto a pessoa navega. O motor inteiro
+            (lib/cosmicSound.js, context/CosmicSoundContext.js) está intacto. */}
 
         {/* Retrospectiva Cósmica do mês anterior — rito de virada de mês,
             só nos dias 1-7 e só quando houve uso real (ver lib/monthlyWrapped). */}
@@ -1841,45 +1755,123 @@ export default function HomeScreen() {
 
         </BandaSection>
 
+        {/* ALINHE SEU CÉU e a PORTA DO EXPLORAR desceram pro fim (10/09/2026,
+            pedido do dono: "alinhe seu céu também pode pôr embaixo" e
+            "explorar todas as experiências pode deixar lá pro final"). Com o
+            catálogo inteiro visível acima, os dois deixaram de ser a entrada e
+            viraram o epílogo de quem rolou tudo: um convida pro gesto, o outro
+            leva à lista com a descrição de cada experiência. Os testIDs e os
+            navigate seguem idênticos — test/homeCompleta.test.js exige a porta
+            do Explorar, e o e2e usa os dois toques. */}
+        {/* ALINHE SEU CÉU — assinatura gestual em uma porta editorial própria.
+            Ela não entra no grid nem recolhe qualquer parte da Home. O caminho
+            inicial continua primeiro, mas esta porta nunca some: esconder o
+            gesto justamente de quem acabou de chegar quebraria seu papel de
+            encantamento e repetiria o incidente da Home incompleta. */}
+          <Pressable
+            testID="home-sky-alignment"
+            style={({ pressed }) => [
+              styles.skyAlignmentCard,
+              alignmentFocused && styles.keyboardFocus,
+              pressed && styles.firstPathPressed,
+            ]}
+            onPress={() => navigation.navigate(ROUTES.SKY_ALIGNMENT)}
+            onFocus={() => setAlignmentFocused(true)}
+            onBlur={() => setAlignmentFocused(false)}
+            accessibilityRole="button"
+          >
+            <LinearGradient
+              colors={['#2A1A2D', '#171019', '#302027']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.skyAlignmentInner}
+            >
+              <View style={styles.skyAlignmentTop}>
+                <Text style={styles.skyAlignmentTitle}>{t('home.alignment.title')}</Text>
+                <View pointerEvents="none" style={styles.skyAlignmentVisual} accessible={false}>
+                  <View style={styles.skyAlignmentNatalDisc}>
+                    <Ionicons name="compass-outline" size={19} color={colors.gold} />
+                  </View>
+                  <View style={styles.skyAlignmentCurrentDisc}>
+                    <Ionicons name="planet-outline" size={18} color={colors.text} />
+                  </View>
+                  <View style={styles.skyAlignmentAxis} />
+                </View>
+              </View>
+              <Text style={styles.skyAlignmentInstruction}>{t('home.alignment.instruction')}</Text>
+              <Text style={styles.skyAlignmentBody}>{t('home.alignment.body')}</Text>
+              <View style={styles.skyAlignmentCta}>
+                <Text style={styles.skyAlignmentCtaText}>{t('home.alignment.cta')}</Text>
+                <Ionicons name="arrow-forward" size={17} color={colors.gold} />
+              </View>
+            </LinearGradient>
+          </Pressable>
+
+        {/* A biblioteca inteira mora numa rota própria. Esta porta é o mapa
+            principal do produto: ganha presença editorial sem montar dezenas
+            de cards dentro da Home nem competir com a leitura personalizada. */}
+        <View style={styles.exploreGate}>
+          <Pressable
+            testID="home-explore-toggle"
+            style={({ pressed }) => [
+              styles.explorePortal,
+              exploreFocused && styles.keyboardFocus,
+              pressed && styles.firstPathPressed,
+            ]}
+            onPress={() => navigation.navigate(ROUTES.EXPLORE)}
+            onFocus={() => setExploreFocused(true)}
+            onBlur={() => setExploreFocused(false)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('home.explore.open')}. ${t('home.explore.hint')}`}
+          >
+            <LinearGradient
+              colors={['#382713', '#251622', '#171019']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.explorePortalInner}
+            >
+              <View pointerEvents="none" style={styles.exploreOrbitArtwork} accessible={false}>
+                <View style={styles.exploreOrbitLarge} />
+                <View style={styles.exploreOrbitSmall} />
+                <View style={[styles.exploreStar, styles.exploreStarOne]} />
+                <View style={[styles.exploreStar, styles.exploreStarTwo]} />
+                <View style={[styles.exploreStar, styles.exploreStarThree]} />
+              </View>
+
+              <View style={styles.explorePortalTop}>
+                <Text style={styles.explorePortalEyebrow}>{t('explore.eyebrow')}</Text>
+                <View style={styles.explorePortalCompass}>
+                  <Ionicons name="compass-outline" size={22} color={colors.gold} />
+                </View>
+              </View>
+
+              <Text style={styles.explorePortalTitle}>{t('home.explore.open')}</Text>
+              <Text style={styles.explorePortalHint}>{t('home.explore.hint')}</Text>
+
+              <View style={styles.explorePortalCta}>
+                <Text style={styles.explorePortalCtaText}>{t('home.explore.cta')}</Text>
+                <View style={styles.explorePortalArrow}>
+                  <Ionicons name="arrow-forward" size={17} color="#21151A" />
+                </View>
+              </View>
+            </LinearGradient>
+          </Pressable>
+        </View>
+
         {/* A única onda preservada separa o conteúdo pessoal do epílogo sobre
             o céu de hoje. */}
         <WaveDivider />
 
-        {/* Cosmic event */}
-        {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o cartão abria com
-            "Marte em quadratura com Saturno" e só embaixo dizia, em língua de
-            gente, que dois planetas estão conversando no céu de hoje. O texto
-            quente já existia e já estava escrito certo (home.cosmicEventDesc):
-            era a ORDEM da tela que punha o nome técnico na frente dele. A
-            descrição sobe, o título com os dois planetas e o ângulo desce e vira
-            recibo, junto da data. Nenhuma palavra mudou — nem aqui, nem no
-            dicionário. test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
-        <Text style={[styles.sectionTitle, styles.sectionTitleAposOnda]}>{t('home.sectionCosmicEvent')}</Text>
-        {/* DE-BOX (Onda Cenográfica, 08/08/2026): este bloco é informativo e
-            NÃO clicável — no concorrente premium só o clicável é caixa. O
-            gradiente '#2A1D52'→'#3A1F6B' e a borda saíram (ver eventCard/
-            eventInner nos styles); ícone, textos e a ordem quente→recibo→data
-            ficam exatamente como estavam. */}
-        <View style={styles.eventCard}>
-          <View style={styles.eventInner}>
-            <View style={styles.eventIcon}>
-              <Ionicons name="star" size={22} color={colors.gold} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.eventDesc}>
-                {cosmicEvent
-                  ? t('home.cosmicEventDesc', { orb: cosmicEvent.orb.toFixed(1) })
-                  : t('home.cosmicEventDescEmpty')}
-              </Text>
-              <Text style={styles.eventTitle}>
-                {cosmicEvent
-                  ? t('home.cosmicEventTitle', { planetA: cosmicEvent.planetA, aspect: cosmicEvent.aspectType.toLowerCase(), planetB: cosmicEvent.planetB })
-                  : t('home.cosmicEventTitleEmpty')}
-              </Text>
-              <Text style={styles.eventDate}>{t('home.cosmicEventDate', { date: dateStr })}</Text>
-            </View>
-          </View>
-        </View>
+        {/* O CARD "EVENTO CÓSMICO" SAIU DA HOME (10/09/2026, pedido do dono:
+            "pode tirar o evento cósmico"). Com o catálogo inteiro visível
+            acima, um card informativo e não-clicável no fim do rolo era peso
+            morto: ninguém toca, e o mesmo aspecto já é contado com mais
+            contexto dentro do Calendário Cósmico e do Céu de Hoje.
+
+            O MOTOR CONTINUA INTEIRO: cosmicEvent segue calculado logo acima
+            (lib/signs.js aspects) e alimenta outras partes da tela. Só o card
+            saiu. Pra trazer de volta, é re-inserir o JSX aqui — nada foi
+            apagado do cálculo. */}
       </ScrollView>
     </View>
   );

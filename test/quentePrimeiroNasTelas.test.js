@@ -186,11 +186,11 @@ test('Homem Zodiacal · "A Lua hoje" abre pela leitura, o chip do signo desce pr
   );
 });
 
-test('Home · Evento cósmico — a descrição abre, "{planetA} em {aspect}" vira recibo', () => {
-  const src = fonteDaTela('HomeScreen.js');
-  const bloco = trecho(src, "t('home.sectionCosmicEvent')", '</ScrollView>', 'HomeScreen/evento cósmico');
-  quenteAbre(bloco, "'home.cosmicEventDesc'", ["'home.cosmicEventTitle'", "'home.cosmicEventDate'"], 'HomeScreen/evento cósmico');
-});
+// O card "Evento cósmico" saiu da Home em 10/09/2026 (pedido do dono), então
+// não há mais ordem a travar aqui. O teste foi removido junto do bloco: um
+// teste que descreve tela que não existe mais é ruído, não proteção. Se o card
+// voltar, este teste volta com ele — a regra quente-primeiro continua valendo
+// pra todo bloco novo.
 
 test('Home · compatibilidade — o resumo abre, "{aspecto} · {categoria}" desce', () => {
   const src = fonteDaTela('HomeScreen.js');
@@ -327,7 +327,9 @@ test('a ficha continua na tela — descer não é apagar', () => {
       ],
     ],
     ['ProfeccoesScreen', prof, ['{anual.titulo}', '{anual.casaProfectada}', '{anual.senhorDoAno}', '{anual.origemRotulo}']],
-    ['HomeScreen', home, ['{aspecto.text}', 'fase.linhaCurta', "'home.cosmicEventTitle'", "'home.compatAspect'"]],
+    // 'home.cosmicEventTitle' saiu desta lista em 10/09/2026 junto com o card
+    // que a usava. As outras três âncoras seguem vivas na Home.
+    ['HomeScreen', home, ['{aspecto.text}', 'fase.linhaCurta', "'home.compatAspect'"]],
     ['HoroscopeScreen', fonteDaTela('HoroscopeScreen.js'), ["'horoscope.sky.fact.moon'", "'horoscope.sky.fact.phase'", "'horoscope.sky.fact.dayRuler'"]],
     // [AUTO-DECISION 09/08/2026] iluminação agora via t('lunar.illuminatedToday',
     // { n: today.illumination }) — a âncora vira o dado interpolado, sem chavetas.

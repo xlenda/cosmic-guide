@@ -16,6 +16,25 @@ import {
   combineAccessResults,
 } from '../lib/coupleData';
 import { checkAccountAccess, autoLinkDeviceCodes } from '../lib/accountSubscription';
+
+// ---------------------------------------------------------------------------
+// TUDO LIBERADO — o app inteiro sem paywall (10/09/2026)
+// ---------------------------------------------------------------------------
+// Decisão do dono, dita e confirmada: "e pode deixar todas as funções
+// liberadas / todas". Com isto em true, hasAccess e hasCoupleAccess valem
+// sempre true, e as 5 telas exclusivas de casal (Reconectar, Descobrir, Agir,
+// Progresso, Retrospectiva) abrem sem assinatura, como todo o resto.
+//
+// O QUE ISTO CUSTA, dito uma vez pra ficar no registro: eram estas 5 telas que
+// a assinatura de casal vendia. Com o interruptor ligado, ninguém precisa
+// assinar pra usá-las.
+//
+// COMO VOLTAR ATRÁS: troque para false. Uma linha, um deploy, e o paywall
+// inteiro volta ao que era — nada foi apagado. Toda a máquina de assinatura
+// (checkAccountAccess, checkSubscriptionStatus, checkSoloSubscriptionStatus,
+// combineAccessResults, FeatureGate) continua no código, calculando
+// normalmente; só o resultado é sobrescrito no ponto único abaixo.
+const TUDO_LIBERADO = true;
 import { unsubscribeFromWebPush } from '../lib/webPush';
 import { cancelDailyThought } from '../lib/notifications';
 import { resetFunnelSession } from '../lib/funnel';
@@ -109,8 +128,8 @@ export function CoupleProvider({ children }) {
 
     const combinado = combineAccessResults({ account: accountEstado, couple: coupleEstado, solo: soloEstado });
 
-    setHasAccess(combinado.hasAccess);
-    setHasCoupleAccess(combinado.hasCoupleAccess);
+    setHasAccess(TUDO_LIBERADO ? true : combinado.hasAccess);
+    setHasCoupleAccess(TUDO_LIBERADO ? true : combinado.hasCoupleAccess);
     setAccessConfirmed(combinado.confirmed);
     setSubscriptionStatus(combinado.status);
     setCurrentPeriodEnd(combinado.currentPeriodEnd);

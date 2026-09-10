@@ -19,17 +19,34 @@ test('Explorar é uma rota lazy, permanente e com URL canônica', () => {
   assert.match(APP, /deep\) navigation\.navigate\(ROUTES\.HOME_TAB, \{ screen: ROUTES\.HOME_MAIN \}\)/);
 });
 
-test('a primeira dobra preserva o caminho personalizado e duas portas permanentes', () => {
+// A ORDEM MUDOU EM 10/09/2026 e este teste mudou junto. O catálogo voltou pra
+// Home e subiu pro começo; Alinhe seu Céu e a porta do Explorar desceram pro
+// fim do rolo (pedido do dono). O que o teste protege continua sendo o mesmo:
+// que os cinco blocos EXISTAM e que a ordem seja a decidida — só que agora a
+// ordem decidida é outra. Travar a ordem antiga seria travar uma tela que já
+// não é a que está no ar.
+test('a primeira dobra preserva o caminho personalizado e as portas permanentes', () => {
   assert.doesNotMatch(HOME, /personalizedItems|forYouSecondaryRow/);
   const primary = HOME.indexOf('testID="home-first-path"');
-  const alignment = HOME.indexOf('testID="home-sky-alignment"');
-  const explore = HOME.indexOf('testID="home-explore-toggle"');
+  const catalogo = HOME.indexOf("t('home.sectionExplore')");
   const daily = HOME.indexOf('testID="home-today-line"');
   const orbi = HOME.indexOf('testID="home-orbi-chat"');
-  assert.ok(primary >= 0 && primary < alignment);
-  assert.ok(alignment < explore);
-  assert.ok(explore < daily);
-  assert.ok(daily < orbi, 'Órbi deve ficar depois do bloco diário, fora da primeira dobra');
+  const alignment = HOME.indexOf('testID="home-sky-alignment"');
+  const explore = HOME.indexOf('testID="home-explore-toggle"');
+
+  // todos continuam existindo
+  for (const [nome, i] of [['first-path', primary], ['catálogo', catalogo], ['today-line', daily],
+    ['orbi', orbi], ['sky-alignment', alignment], ['explore-toggle', explore]]) {
+    assert.ok(i >= 0, `${nome} sumiu da Home`);
+  }
+
+  // o catálogo abre a Home, logo depois do caminho personalizado
+  assert.ok(primary < catalogo, 'o caminho personalizado vem antes do catálogo');
+  assert.ok(catalogo < daily, 'o catálogo vem antes da linha de hoje');
+  assert.ok(daily < orbi, 'Órbi fica depois da linha de hoje');
+  // e as duas portas fecham o rolo
+  assert.ok(orbi < alignment, 'Alinhe seu Céu desceu pro epílogo, depois do Órbi');
+  assert.ok(alignment < explore, 'a porta do Explorar é a última');
 });
 
 test('a biblioteca preserva todas as entradas do catálogo com destinos reais', () => {

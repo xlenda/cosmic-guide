@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import CosmicScene from '../components/CosmicScene';
+import CosmicSoundPlayer from '../components/CosmicSoundPlayer';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
@@ -231,6 +232,17 @@ export default function ExploreScreen() {
         maxToRenderPerBatch={8}
         windowSize={7}
         removeClippedSubviews={Platform.OS === 'android'}
+        // O SOM DO CÉU FECHA AS PRÁTICAS (10/09/2026, pedido do dono: "essa
+        // parte do som do céu pode colocar na parte de meditações também").
+        // Entra como RODAPÉ da seção, e não como linha da lista, porque o som
+        // não tem tela pra navegar: ele É o controle. Uma linha com seta
+        // levaria a lugar nenhum. O player devolve null sozinho onde a Web
+        // Audio API não existe, então nada nasce quebrado.
+        renderSectionFooter={({ section }) =>
+          section.key === 'practices' ? (
+            <CosmicSoundPlayer variant="inline" style={styles.soundFooter} />
+          ) : null
+        }
         ListHeaderComponent={(
           <>
             <View style={styles.topBar}>
@@ -373,6 +385,9 @@ const styles = StyleSheet.create({
   // A arte preenche o medalhão inteiro; o raio é 1px menor que o do contêiner
   // pra imagem não vazar por cima da borda dourada no Android.
   constellationArte: { width: '100%', height: '100%', borderRadius: 19 },
+  // O player entra fora da trilha da constelação (sem o marginLeft negativo
+  // das linhas), então leva a margem lateral do próprio conteúdo.
+  soundFooter: { marginHorizontal: 4, marginTop: 6, marginBottom: 10 },
   experienceCopy: { flex: 1, minWidth: 0 },
   experienceTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   experienceTitle: { color: colors.text, fontSize: 15, lineHeight: 20, fontWeight: '700' },

@@ -59,9 +59,14 @@ test('a entrada é editorial, sempre visível e não recolhe a Home', () => {
   const alignment = HOME.indexOf('testID="home-sky-alignment"');
   const orbi = HOME.indexOf('testID="home-orbi-chat"');
   const explore = HOME.indexOf('testID="home-explore-toggle"');
+  // A ORDEM MUDOU EM 10/09/2026: o catálogo voltou pra Home e ocupou a primeira
+  // dobra, então Alinhe seu Céu e a porta do Explorar desceram pro fim do rolo
+  // (pedido do dono). Órbi, que antes vinha DEPOIS das portas, agora vem antes.
+  // O que este teste protege segue igual: a entrada existe, é sempre visível,
+  // não recolhe nada, e a trilha personalizada continua acima dela.
   assert.ok(persistentPath >= 0 && persistentPath < alignment, 'a trilha personalizada deve vir antes');
   assert.ok(alignment < explore, 'a entrada de alinhamento deve vir antes de Explorar');
-  assert.ok(explore < orbi, 'Órbi deve ficar fora da primeira dobra, depois da porta de Explorar');
+  assert.ok(orbi < alignment, 'Órbi vem antes do epílogo (Alinhe seu Céu + porta do Explorar)');
 });
 
 test('a porta do alinhamento usa somente texto traduzido e as quatro copies existem em PT/ES/EN', () => {
