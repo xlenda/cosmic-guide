@@ -29,6 +29,12 @@ export default function CardGrid({ items, columns = 2, testIDPrefix = 'card' }) 
               icon={item.icon}
               gradient={item.gradient}
               arte={item.arte !== undefined ? item.arte : tileArte(item.key)}
+              // ALTURA VARIADA (11/09/2026, referência trazida pelo dono): a
+              // grade tinha todos os banners em 84px e lia como planilha. Os
+              // cards de destaque ganham banner alto; o resto fica no de
+              // sempre. O ritmo vem da variação, não de cor nova — o dourado
+              // continua sendo a única cor de ação do app.
+              destaque={item.destaque}
               onPress={item.onPress}
               locked={item.locked}
               testID={`${testIDPrefix}-${item.key}`}

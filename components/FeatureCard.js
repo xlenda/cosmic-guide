@@ -17,7 +17,7 @@ import { useLanguage } from '../context/LanguageContext';
 //     concorrente. O ícone vira um selinho no canto do banner (identidade).
 //   - SEM `arte`: o card de gradiente de sempre, byte a byte — nenhuma
 //     feature fica quebrada esperando arte.
-export default function FeatureCard({ title, subtitle, icon, gradient, arte, onPress, locked, testID }) {
+export default function FeatureCard({ title, subtitle, icon, gradient, arte, destaque, onPress, locked, testID }) {
   const { t } = useLanguage();
   // PRESS-IN ENCOLHE, PRESS-OUT DEVOLVE (09/08/2026) — o feedback vivo de app
   // nativo que faltava no toque. O TouchableOpacity FICA (o fade de
@@ -69,7 +69,7 @@ export default function FeatureCard({ title, subtitle, icon, gradient, arte, onP
             e a única cor que sobrava fora da arte — contra a regra de que o
             dourado é a única cor de ação. O ícone continua vivo no card SEM
             arte (o return de baixo), que é onde ele ainda informa algo. */}
-        <View style={styles.bannerWrap}>
+        <View style={[styles.bannerWrap, destaque && styles.bannerWrapAlto]}>
           <Image source={arte} style={styles.banner} resizeMode="cover" accessible={false} />
           {locked && (
             <View style={styles.lock}>
@@ -151,7 +151,15 @@ const styles = StyleSheet.create({
   // Desenho com banner: arte 84px em cima, faixa de texto embaixo — a altura
   // total (~132) fica próxima da do card de gradiente (116) pra grade não
   // ficar banguela quando uma linha mistura os dois desenhos.
-  bannerWrap: { width: '100%', height: 84 },
+  // `minHeight` e não `height` (11/09/2026): quando um card alto e um baixo
+  // dividem a linha, o flex estica os dois à altura do maior — e com altura
+  // TRAVADA em 84 a imagem do baixo parava no meio e sobrava fundo vazio até
+  // o rodapé do card. Com minHeight + flex, a arte cresce e preenche.
+  bannerWrap: { width: '100%', minHeight: 84, flex: 1 },
+  // O DESTAQUE: 150px de piso contra 84. A diferença precisa ser grande o
+  // bastante pra ler como hierarquia — 100 ou 110 leria como desalinhamento,
+  // não como escolha.
+  bannerWrapAlto: { minHeight: 150 },
   banner: { width: '100%', height: '100%' },
   // Órfão desde 10/09/2026 — o chip saiu do card com arte (ver o comentário no
   // JSX). Fica aqui, sem custo, porque voltar a mostrá-lo é uma linha; apagar

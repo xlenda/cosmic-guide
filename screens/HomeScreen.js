@@ -837,7 +837,24 @@ export default function HomeScreen() {
   // visível nos dois modos, exatamente como a quarta aba principal.
   const SOLO_ONLY = [];
 
+  // OS CARDS DE DESTAQUE (11/09/2026, referência que o dono trouxe): banner
+  // alto em vez do de sempre, pra grade ganhar ritmo em vez de ler como
+  // planilha. São as quatro que a pessoa mais usa — e a arte delas é a que
+  // melhor aguenta ampliação: as cartas, os bustos de mármore, o sol dourado
+  // e o astrolábio. Uma por linha, de propósito: duas altas lado a lado
+  // viraria outra fileira uniforme, e o ritmo morreria de novo.
+  // DESTAQUE É POR LINHA, NÃO POR CARD (11/09/2026, medido no navegador).
+  // Marcar cards soltos não funciona: numa linha de duas colunas o flex iguala
+  // a altura das duas células, então UM card alto levanta o vizinho junto. Com
+  // 'horoscope', 'tarot' e 'compatibility' marcados, as TRÊS primeiras linhas
+  // ficaram altas (206px cada) e a variação sumiu — pior que antes. A unidade
+  // real de ritmo é a fileira: só a PRIMEIRA é alta, e todas as outras ficam
+  // no tamanho de sempre. Os dois primeiros itens de ALL_ITEMS ocupam essa
+  // linha, então é neles que a marca cai.
+  const CARDS_DESTAQUE = 2;
+
   const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key)))
+    .map((c, i) => (i < CARDS_DESTAQUE ? { ...c, destaque: true } : c))
     .map((c) =>
       // O CADEADO SÓ EXISTE ENQUANTO HOUVER PAYWALL (10/09/2026). Com
       // TUDO_LIBERADO ligado, hasCoupleAccess é sempre true — mas a condição
