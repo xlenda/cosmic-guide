@@ -56,6 +56,15 @@ import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { horoscopeFor } from '../lib/dailyHoroscope';
 import { datasDoSigno, nomeDoSigno } from '../lib/synastry';
+// OS LOCALIZADORES (11/09/2026) saíram desta tela pra lib/horoscopoLocalizado.js:
+// a Home ganhou um carrossel com o mesmo texto e a tradução precisa ser UMA só,
+// senão as duas telas discordam no mesmo idioma. Mesmas funções, mesmo
+// comportamento — só o endereço mudou.
+import { localizeAstroValue, resolveVars, resumoLocalizadoDoDia, slugPlaneta } from '../lib/horoscopoLocalizado';
+// A FICHA DE NASCIMENTO (11/09/2026): Lua e Ascendente da pessoa embaixo da
+// ficha do signo — a MESMA conta do Mapa (carregarIdentidade), nunca refeita aqui.
+import { carregarIdentidade } from '../lib/identidadeCeleste';
+import { ROUTES } from '../routes';
 // O MASCOTE (08/08/2026) — o signo vira personagem: lib/ilustracoes.js devolve
 // o asset 256px do pack de arte, ou null — e null cai no glifo de fonte de
 // sempre. A arte é upgrade, nunca dependência.
@@ -80,19 +89,6 @@ const TAB_LABEL_KEYS = {
 };
 
 
-const PHASE_LABEL_KEYS = {
-  'Lua Nova': 'rituais.fase.luaNova',
-  'Lua Crescente': 'rituais.fase.luaCrescente',
-  'Quarto Crescente': 'rituais.fase.quartoCrescente',
-  'Lua Gibosa Crescente': 'rituais.fase.gibosaCrescente',
-  'Lua Cheia': 'rituais.fase.luaCheia',
-  'Lua Gibosa Minguante': 'rituais.fase.gibosaMinguante',
-  'Quarto Minguante': 'rituais.fase.quartoMinguante',
-  'Lua Minguante': 'rituais.fase.luaMinguante',
-};
-
-const ZODIAC_NAMES = new Set(zodiacSigns.map((sign) => sign.name));
-
 function isoDate(d) {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
@@ -111,34 +107,6 @@ function dateForTab(tab) {
   if (tab === 'Ontem') d.setDate(d.getDate() - 1);
   if (tab === 'Amanhã') d.setDate(d.getDate() + 1);
   return d;
-}
-
-// lib/dailyHoroscope.js devolve vars que podem ser string (nome de signo, graus)
-// ou { i18n: 'chave' } (nome de planeta, dia da semana). O módulo é puro e não
-// conhece idioma; a resolução acontece aqui, onde o `t` do idioma ativo existe.
-function localizeAstroValue(value, t, lang) {
-  if (value && typeof value === 'object' && value.i18n) return t(value.i18n);
-  if (typeof value !== 'string') return value;
-  if (ZODIAC_NAMES.has(value)) return nomeDoSigno(value, lang);
-  return PHASE_LABEL_KEYS[value] ? t(PHASE_LABEL_KEYS[value]) : value;
-}
-
-function resolveVars(vars, t, lang) {
-  if (!vars) return undefined;
-  const out = {};
-  for (const k of Object.keys(vars)) {
-    out[k] = localizeAstroValue(vars[k], t, lang);
-  }
-  return out;
-}
-
-function resumoLocalizadoDoDia(signName, date, t, lang) {
-  const leitura = horoscopeFor(signName, date);
-  if (!leitura.available) return null;
-  const primeiraLinha = leitura.blocks
-    .flatMap((bloco) => bloco.lines)
-    .find((line) => line.role !== 'metodo');
-  return primeiraLinha ? t(primeiraLinha.key, resolveVars(primeiraLinha.vars, t, lang)) : null;
 }
 
 // Mapas LITERAIS (não template) pra varredura estática de
@@ -177,6 +145,16 @@ export default function HoroscopeScreen() {
   // por bloco (e não um interruptor geral) porque quem abre a régua do aspecto
   // não está necessariamente querendo reler Plínio no mesmo instante.
   const [metodoAberto, setMetodoAberto] = useState({});
+  // A identidade celeste da pessoa (Lua, Ascendente, nascimento) — TRÊS estados,
+  // como no CabecalhoIdentidade da Home: undefined = carregando (nada na tela,
+  // pra ficha não piscar), null = sem nascimento salvo (nada extra — a Home já
+  // convida a preencher o Mapa), objeto = a ficha. carregarIdentidade nunca
+  // lança; o catch é cinto de segurança pra um erro de import não virar tela
+  // em branco.
+  const [identidade, setIdentidade] = useState(undefined);
+  useEffect(() => {
+    carregarIdentidade().then(setIdentidade).catch(() => setIdentidade(null));
+  }, []);
 
   // lib/dailyHoroscope.js já guarda o céu de cada data em memória, mas o
   // useMemo evita até o trabalho de remontar os blocos a cada render — a tela
@@ -333,6 +311,21 @@ export default function HoroscopeScreen() {
                 <FichaItemSigno rotulo={t('birthchart.ficha.polaridade')} valor={t(FICHA_POLARIDADE_KEY[polaridadeDoSigno(sign.name)] || 'birthchart.ficha.polaridade')} cor={sign.color} />
                 <FichaItemSigno rotulo={t('birthchart.ficha.modalidade')} valor={t(FICHA_MODALIDADE_KEY[modalidadeDoSigno(sign.name)] || 'birthchart.ficha.modalidade')} cor={sign.color} />
               </View>
+              {/* A FICHA DE NASCIMENTO (11/09/2026), logo abaixo da ficha do
+                  signo: Lua e Ascendente da pessoa (o Sol já é o herói do
+                  card), a data de nascimento e a porta pro Mapa. Sem
+                  nascimento salvo não desenha nada — a Home já convida. */}
+              {/* Só sob o signo da PRÓPRIA pessoa (11/09/2026, revisor adversarial):
+                  a tela tem um seletor de signos, e a ficha — Lua, Ascendente
+                  e nascimento REAIS de quem usa — aparecia embaixo de qualquer
+                  signo escolhido ali. Nada fabricado, mas dado de uma pessoa
+                  sob o cabeçalho de outro signo. Trocou o signo → some. */}
+              <FichaNascimento
+                identidade={identidade && identidade.sun === sign.name ? identidade : identidade === undefined ? undefined : null}
+                t={t}
+                lang={lang}
+                onMapa={() => navigation.navigate(ROUTES.BIRTH_CHART)}
+              />
             </View>
           </LinearGradient>
 
@@ -465,13 +458,63 @@ export default function HoroscopeScreen() {
   );
 }
 
-// Mesmo mapa de lib/dailyHoroscope.js — aqui só para o chip do regente do dia
-// reaproveitar o nome já traduzido em grounding.ruler.<slug>.name.
-function slugPlaneta(planeta) {
-  return {
-    'Sol': 'sol', 'Lua': 'lua', 'Mercúrio': 'mercurio', 'Vênus': 'venus',
-    'Marte': 'marte', 'Júpiter': 'jupiter', 'Saturno': 'saturno',
-  }[planeta] || 'sol';
+// A FICHA DE NASCIMENTO (11/09/2026) — Lua e Ascendente da pessoa logo abaixo
+// da ficha do signo, a data de nascimento e a porta pro Mapa. Mesmo desenho
+// dos chips e da pílula do CabecalhoIdentidade da Home, COPIADO e não
+// importado: aquele componente traz junto o convite e o anel de elementos, que
+// aqui seriam ruído em cima do card do signo. NUNCA FABRICA: undefined (ainda
+// carregando) e null (sem nascimento salvo) não desenham nada, e Ascendente
+// sem hora+cidade aparece como '—' apagado — nunca um signo chutado.
+// Chaves LITERAIS (não template) pra varredura de test/i18nKeysExist.test.js.
+const CHIPS_NASCIMENTO = [
+  { campo: 'moon', icone: 'moon-outline', rotulo: 'home.identidade.lua' },
+  { campo: 'asc', icone: 'trending-up-outline', rotulo: 'home.identidade.asc' },
+];
+
+// Mesma formatação de formatBirthDate em BirthChartScreen.js: ancorada ao
+// meio-dia UTC pra a data não voltar um dia em fuso negativo. A hora só entra
+// quando foi informada — sem hora não há o que mostrar.
+const DATE_LOCALES = { pt: 'pt-BR', es: 'es-419', en: 'en-US' };
+function dataDeNascimento(iso, time, lang) {
+  const d = new Date(`${iso}T12:00:00.000Z`);
+  let texto = iso;
+  if (!Number.isNaN(d.getTime())) {
+    try {
+      texto = d.toLocaleDateString(DATE_LOCALES[lang] || DATE_LOCALES.pt, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    } catch {
+      texto = iso;
+    }
+  }
+  return time ? `${texto} · ${time}` : texto;
+}
+
+function FichaNascimento({ identidade, t, lang, onMapa }) {
+  if (!identidade) return null;
+  return (
+    <View style={styles.nascimento} testID="horoscope-ficha-nascimento">
+      <View style={styles.chips}>
+        {CHIPS_NASCIMENTO.map((c) => {
+          const nome = identidade[c.campo];
+          return (
+            <View key={c.campo} style={styles.chip}>
+              <Ionicons name={c.icone} size={14} color={colors.textMuted} accessible={false} />
+              <Text style={styles.chipRotulo}>{t(c.rotulo)}</Text>
+              <Text style={[styles.chipValor, !nome && styles.chipMudo]}>
+                {nome ? nomeDoSigno(nome, lang) : '—'}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+      <Text style={styles.nascimentoData}>
+        {t('horoscope.ficha.nascimento')} · {dataDeNascimento(identidade.date, identidade.time, lang)}
+      </Text>
+      <TouchableOpacity onPress={onMapa} style={styles.pill} accessibilityRole="button" testID="horoscope-ficha-mapa">
+        <Ionicons name="planet-outline" size={16} color={colors.gold} accessible={false} />
+        <Text style={styles.pillTexto}>{t('horoscope.ficha.explorarMapa')}</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 // A FICHA DO CÉU — os três fatos brutos, no lugar exato onde ficavam a cor, o
@@ -557,6 +600,23 @@ const styles = StyleSheet.create({
   fichaItem: { alignItems: 'center', minWidth: 72 },
   fichaRotulo: { color: colors.textMuted, fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' },
   fichaValor: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 2 },
+  // A ficha de nascimento sob a ficha do signo — chips e pílula no desenho do
+  // CabecalhoIdentidade da Home (mesmas cores, mesmos tamanhos), pra as duas
+  // telas lerem como a mesma coisa. Dourado é a única cor de ação do app; o
+  // '99' é o alpha da borda, pra não competir com o texto.
+  nascimento: { alignItems: 'center', marginTop: 12 },
+  chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 14 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  chipRotulo: { color: colors.textMuted, fontSize: 11 },
+  chipValor: { color: colors.text, fontSize: 13, fontWeight: '700' },
+  chipMudo: { color: colors.textMuted },
+  nascimentoData: { color: colors.textMuted, fontSize: 11, marginTop: 6 },
+  pill: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: colors.gold + '99', borderRadius: 22,
+    paddingVertical: 8, paddingHorizontal: 16, marginTop: 10,
+  },
+  pillTexto: { color: colors.gold, fontSize: 13, fontWeight: '700' },
   elementRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 4, gap: 4 },
   element: { fontSize: 12, fontWeight: '700' },
   unavailable: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, padding: 18, paddingTop: 4 },

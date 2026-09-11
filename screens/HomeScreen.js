@@ -69,6 +69,14 @@ import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
 import { localDayStr } from '../lib/localDay';
 import { getShieldCount } from '../lib/streakShield';
 import { carregarIdentidade } from '../lib/identidadeCeleste';
+// O NOME DE QUEM NÃO TEM LOGIN (11/09/2026) — 'gff-nome', gravado no
+// onboarding e no Perfil. null = sem nome salvo → a saudação pelo signo de
+// sempre; nunca um nome inventado.
+import { getNome } from '../lib/nomeLocal';
+// CARROSSEL DO HORÓSCOPO (11/09/2026) — os blocos do horóscopo do dia em
+// cards deslizáveis; lib/horoscopoLocalizado monta, o componente só desenha.
+import { itensDoCarrossel } from '../lib/horoscopoLocalizado';
+import CarrosselHoroscopo from '../components/CarrosselHoroscopo';
 // Storage SEMPRE via lib/storage.js: se o disco falhar (SecurityError em
 // iframe/web), os wrappers caem pra memória de sessão em vez de engolir a
 // escrita — sem isso o flag "leitura do dia lida" nunca persistia e o card
@@ -276,6 +284,9 @@ export default function HomeScreen() {
   // em undefined de propósito: começando em null, quem já tinha data via o
   // convite piscar na abertura — apontado pelos dois revisores em 11/09/2026.
   const [identidade, setIdentidade] = useState(undefined);
+  // null = sem nome salvo (cumprimenta pelo signo). Carrega no mesmo foco da
+  // identidade: editar no Perfil e voltar já muda a saudação, sem reabrir.
+  const [nomeLocal, setNomeLocal] = useState(null);
   // Escudo(s) da Sequência disponíveis (lib/streakShield.js, comprados na
   // Loja) — só pra mostrar o indicadorzinho ao lado do streak, quem consome
   // de verdade é computeCurrentStreak() (lib/streak.js).
@@ -323,6 +334,8 @@ export default function HomeScreen() {
       // carregarIdentidade nunca lança (devolve null); o catch é cinto de
       // segurança pra um erro de import/motor não virar Home em branco.
       carregarIdentidade().then(setIdentidade).catch(() => setIdentidade(null));
+      // getNome também nunca lança; mesmo cinto de segurança.
+      getNome().then(setNomeLocal).catch(() => setNomeLocal(null));
     }, [loadStreak])
   );
 
@@ -671,6 +684,16 @@ export default function HomeScreen() {
   // sempre foi, sem quadrado vazio no lugar.
   const mascoteHero = mascoteDoSigno(sign.name);
 
+  // Os cards do carrossel de horóscopo: mesmo motor da tela do Horóscopo
+  // (horoscopeFor), só encurtado. Sem efeméride disponível vem [] e o
+  // carrossel não desenha nada. `t` e `lang` nas deps porque cada card é
+  // texto traduzido.
+  // A DATA É DEPENDÊNCIA (11/09/2026, revisor adversarial): sem ela, a Home
+  // aberta na virada do dia seguia mostrando os cards de ontem até trocar
+  // signo ou idioma. hojeKey muda uma vez por dia e basta pra recalcular.
+  const hojeKey = localDayStr();
+  const itensHoroscopo = useMemo(() => itensDoCarrossel(sign.name, new Date(), t, lang), [sign.name, t, lang, hojeKey]);
+
   // Sinastria por aspecto (lib/signs.js → lib/synastry.js) — null enquanto não
   // houver os dois signos salvos. O cartão mostrava "{pct}% de compatibilidade";
   // mostra o ASPECTO e a CATEGORIA, que é o que o app calcula de verdade.
@@ -684,7 +707,12 @@ export default function HomeScreen() {
     // Perfis legados salvaram `nome`/`signo` antes de o objeto canÃ´nico ganhar
     // `pt`. Aceitar os quatro formatos evita a saudaÃ§Ã£o "OlÃ¡, undefined" para
     // quem apenas atualizou o app.
-    : t('home.greetingSolo', { sign: nomeDoSigno(sign.pt || sign.nome || sign.name || sign.signo, lang) });
+    // Com nome salvo (onboarding/Perfil, sem exigir conta) a Home chama a
+    // pessoa pelo nome (11/09/2026). Sem nome, o signo continua — nunca um
+    // "Visitante" inventado. O casal segue com os dois nomes do greetingCouple.
+    : nomeLocal
+      ? t('home.greetingNome', { nome: nomeLocal })
+      : t('home.greetingSolo', { sign: nomeDoSigno(sign.pt || sign.nome || sign.name || sign.signo, lang) });
 
   // Timeline exige memórias reais do casal — não faz sentido pra quem ainda
   // não tem par, fica escondida por completo pra usuário solo. As outras 5
@@ -1232,6 +1260,17 @@ export default function HomeScreen() {
             Sem data de nascimento salva, `identidade` é null e o bloco vira
             um convite pra preencher o Mapa — nunca um signo chutado. */}
         <CabecalhoIdentidade identidade={identidade} onMapa={() => navigation.navigate(ROUTES.BIRTH_CHART)} />
+
+        {/* HORÓSCOPO DIÁRIO EM CARROSSEL (11/09/2026, referência do dono:
+            "Lauren · Horóscopo Diário" — a faixa de cards deslizáveis, um
+            por tema, com bolinhas embaixo). O conteúdo é o MESMO da tela do
+            Horóscopo, só cortado em ~140 caracteres: o card é convite pra
+            abrir a tela, não a leitura inteira. A referência mostra uma
+            porcentagem por tema ("Amor 82%"); aqui NÃO entra — número
+            inventado é proibido, e o motor não calcula nada que vire
+            porcentagem. Sem céu calculado, `itensHoroscopo` é [] e o
+            componente devolve null: nenhum card genérico tapando buraco. */}
+        <CarrosselHoroscopo itens={itensHoroscopo} onAbrir={() => navigation.navigate(ROUTES.HOROSCOPE, { sign })} />
 
         {/* DIÁRIO CÓSMICO — sobe pro topo (10/09/2026, pedido do dono: "a parte
             do diário cósmico e a sequência do dia de hoje pode colocar no

@@ -54,6 +54,7 @@ import { colors, zodiacSigns } from '../theme';
 import StoriesReader from '../components/StoriesReader';
 import DatePickerModal from '../components/DatePickerModal';
 import CityPickerModal from '../components/CityPickerModal';
+import CampoNome from '../components/CampoNome';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
@@ -62,6 +63,7 @@ import { nomeDoSigno } from '../lib/synastry';
 import { mascoteDoSigno } from '../lib/ilustracoes';
 import { writeSecureItemWithMirror, saveSoloBirthMirror } from '../lib/birthData';
 import { cityLabel } from '../lib/cities';
+import { setNome } from '../lib/nomeLocal';
 import {
   ONBOARDING_INTENTS,
   ONBOARDING_OUTCOMES,
@@ -145,6 +147,9 @@ export default function OnboardingPerguntasScreen({
   const [lendo, setLendo] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  // Nome (opcional) perguntado na revelação; só persiste no concluir, como
+  // tudo aqui — abandonar no meio não deixa nome sem perfil.
+  const [nome, setNomeLocal] = useState('');
 
   useEffect(() => {
     funnel.onboardingStep('solo', SOLO_STEP_IDS[passo] || 'unknown', 'view');
@@ -220,7 +225,14 @@ export default function OnboardingPerguntasScreen({
         label: t(`birthchart.row.${rowKey}.label`),
         sign: nomeDoSigno(signo, lang),
       })}. ${t(`birthchart.row.${rowKey}.desc`)}.`;
-    const out = [t('onboarding.q.slides.greetingNoName')];
+    // Com nome, o primeiro slide chama a pessoa pelo nome — a chave
+    // 'greeting' já existia esperando por isso; sem nome, a variante NoName.
+    const nomeLimpo = nome.trim();
+    const out = [
+      nomeLimpo
+        ? t('onboarding.q.slides.greeting', { name: nomeLimpo })
+        : t('onboarding.q.slides.greetingNoName'),
+    ];
     if (intencaoDef) out.push(t(intencaoDef.echoKey));
     if (situacaoDef) out.push(t(situacaoDef.echoKey));
     if (resultadoDef) out.push(t(resultadoDef.echoKey));
@@ -231,7 +243,7 @@ export default function OnboardingPerguntasScreen({
     out.push(asc ? linha('asc', asc) : t('birthchart.row.asc.missing'));
     out.push(t('onboarding.q.slides.closing'));
     return out;
-  }, [t, lang, intencaoDef, situacaoDef, resultadoDef, sol, lua, asc]);
+  }, [t, lang, intencaoDef, situacaoDef, resultadoDef, sol, lua, asc, nome]);
 
   function voltar() {
     if (salvando) return;
@@ -263,6 +275,12 @@ export default function OnboardingPerguntasScreen({
         await writeSecureItemWithMirror('birthChartSolo', JSON.stringify(registro));
         await saveSoloBirthMirror(registro);
       }
+      // Nome antes do userSign, pela mesma razão do nascimento: é opcional e
+      // setNome nunca lança — falhar aqui não pode travar o Gate.
+      // Só grava se a pessoa escreveu algo (11/09/2026, revisor adversarial):
+      // setNome('') APAGA a chave, e no re-onboarding (trocar de signo pelas
+      // perguntas) quem já tinha nome perdia a saudação pelo nome na Home.
+      if (nome.trim()) await setNome(nome);
       const signoObj = zodiacSigns.find((z) => z.name === sol);
       const ok = signoObj ? await saveSolo(signoObj) : false;
       if (!ok) {
@@ -676,6 +694,7 @@ export default function OnboardingPerguntasScreen({
                 lado do mascote (parAceso). Sem eles, o palco segue só com o
                 Sol — nada aceso na base de chute. */}
             {palco()}
+            <CampoNome valor={nome} onChange={setNomeLocal} />
             {!!erro && <Text style={styles.erro}>{erro}</Text>}
             {salvando ? (
               <View style={styles.salvando}>

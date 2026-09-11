@@ -12,8 +12,10 @@ import { funnel } from '../lib/funnel';
 import OrbiGuide from '../components/OrbiGuide';
 import OrbiIntro from '../components/OrbiIntro';
 import StoriesReader from '../components/StoriesReader';
+import CampoNome from '../components/CampoNome';
 import OnboardingPerguntasScreen from './OnboardingPerguntasScreen';
 import { getOnboardingSignStoryKey } from '../lib/onboardingPlan';
+import { setNome } from '../lib/nomeLocal';
 
 // A entrada limpa começa pela pergunta que personaliza o caminho. O seletor
 // de signos continua disponível como atalho, sem trazer de volta a antiga
@@ -28,6 +30,9 @@ export default function OnboardingChoiceScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [selectedSign, setSelectedSign] = useState(null);
+  // Nome é opcional e só vira storage ('gff-nome') no pickSign — abandonar
+  // a tela no meio não deixa nome órfão de signo.
+  const [nome, setNomeLocal] = useState('');
 
   useEffect(() => {
     funnel.onboardingStart();
@@ -45,6 +50,11 @@ export default function OnboardingChoiceScreen() {
   async function pickSign(z) {
     if (saving) return;
     Haptics.selectionAsync();
+    // ANTES de seguir, e sem bloquear: vazio só limpa a chave, e setNome
+    // nunca lança (lib/storage.js cai em memória se o disco quebrar).
+    // Vazio não apaga nome já salvo (11/09/2026) — mesma regra do fluxo de
+    // perguntas: re-onboarding sem digitar nada preserva o que havia.
+    if (nome.trim()) await setNome(nome);
     setSelectedSign(z);
   }
 
@@ -89,6 +99,7 @@ export default function OnboardingChoiceScreen() {
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <TouchableOpacity
           style={styles.backRow}
@@ -105,6 +116,7 @@ export default function OnboardingChoiceScreen() {
         <OrbiGuide size={76} style={styles.orbi} />
         <Text style={styles.pickerTitle}>{t('onboarding.pickerTitle')}</Text>
         {!!error && <Text style={styles.errorText}>{error}</Text>}
+        <CampoNome valor={nome} onChange={setNomeLocal} />
 
         {saving ? (
           <View style={styles.savingWrap}>

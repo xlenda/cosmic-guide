@@ -20,6 +20,10 @@ import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+// O nome local ('gff-nome', 11/09/2026) é o que a Home lê pra cumprimentar.
+// Salvar aqui grava nos DOIS lugares: a conta (full_name) e o local — senão
+// quem edita no Perfil continuava vendo o nome antigo na Home.
+import { setNome } from '../lib/nomeLocal';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabaseClient';
 import { getTokenBalance } from '../lib/tokens';
@@ -240,6 +244,8 @@ export default function ProfileScreen() {
       Alert.alert(t('profile.name.saveErrorTitle'), error.message || t('profile.name.saveErrorFallback'));
       return;
     }
+    // Só depois da conta aceitar: o local espelha o que ficou salvo lá.
+    await setNome(nome);
     setEditingName(false);
   }
 

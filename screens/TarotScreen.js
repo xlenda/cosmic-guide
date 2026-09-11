@@ -32,6 +32,13 @@ import VoiceInsightRecorder from '../components/VoiceInsightRecorder';
 import GroundingInvite from '../components/GroundingInvite';
 import ScratchRevealCard from '../components/ScratchRevealCard';
 import OrbiGuide from '../components/OrbiGuide';
+// SUAS INFORMAÇÕES (11/09/2026) — o que a pessoa conta sobre si pra leitura
+// (gênero, idade, profissão, relacionamento), local e sem login. O componente
+// só desenha; carregar e gravar é lib/perfilLeitura, daqui.
+import SuasInformacoes from '../components/SuasInformacoes';
+import { getPerfilLeitura, setPerfilLeitura, idadeDeNascimento } from '../lib/perfilLeitura';
+// Arte das duas tiragens (11/09/2026): asset 44px ou null → card só texto.
+import { tiragemArte } from '../lib/ilustracoes';
 // O PREPARO DE WAITE (01/08/2026) — lib/waiteRegras.js existia, com pack nos
 // três idiomas e teste próprio passando, e NUNCA tinha sido ligado a uma tela.
 // O cabeçalho do módulo já dizia onde ele encaixa: "o vão que hoje está vazio —
@@ -233,6 +240,26 @@ export default function TarotScreen() {
   const [pendingHydrated, setPendingHydrated] = useState(false);
   const [bonusHydrated, setBonusHydrated] = useState(false);
   const [drawInFlight, setDrawInFlight] = useState(false);
+  // Perfil de leitura (Suas Informações): null = nada preenchido → o cartão
+  // mostra o convite. idadeSugerida só existe com data de nascimento REAL
+  // salva (idadeDeNascimento devolve null sem ela) — nunca uma idade chutada.
+  const [perfil, setPerfil] = useState(null);
+  const [idadeSugerida, setIdadeSugerida] = useState(null);
+  useEffect(() => {
+    let ativo = true;
+    // As duas funções nunca lançam (devolvem null); o catch é cinto de
+    // segurança pra um erro de import não derrubar a tela inteira.
+    Promise.all([getPerfilLeitura(), idadeDeNascimento()])
+      .then(([p, idade]) => {
+        if (!ativo) return;
+        setPerfil(p);
+        setIdadeSugerida(idade);
+      })
+      .catch(() => {});
+    return () => {
+      ativo = false;
+    };
+  }, []);
   const [readingOutcome, setReadingOutcome] = useState('clarity');
   const [readingLanguage, setReadingLanguage] = useState(lang);
   const [readingFocusId, setReadingFocusId] = useState('new-bond');
@@ -1184,6 +1211,21 @@ export default function TarotScreen() {
           ))}
         </View>
 
+        {/* SUAS INFORMAÇÕES (11/09/2026, referência do dono: o concorrente
+            mostra este cartão em cima da tiragem e a leitura fala com a
+            pessoa, não com "alguém"). Fica entre os temas e o guia do Órbi,
+            antes e depois de tirar: é sobre quem lê, não sobre a tiragem.
+            setPerfilLeitura devolve o objeto já normalizado — o estado guarda
+            exatamente o que o próximo getPerfilLeitura vai devolver. */}
+        <SuasInformacoes
+          perfil={perfil}
+          idadeSugerida={idadeSugerida}
+          onSalvar={async (p) => {
+            const salvo = await setPerfilLeitura(p);
+            setPerfil(salvo);
+          }}
+        />
+
         {!drawn ? (
           <View style={styles.emptyWrap}>
             {/* `bonusReadings > 0` entrou em 10/09/2026, junto do TUDO_LIBERADO
@@ -1323,6 +1365,8 @@ export default function TarotScreen() {
                   <View style={styles.spreadChoices}>
                     {spreadOptions.map((spread) => {
                       const selected = spread.id === activeSpread?.id;
+                      // Arte da tiragem (lib/ilustracoes.js): null → só texto.
+                      const arte = tiragemArte(spread.id);
                       return (
                         <Pressable
                           key={spread.id}
@@ -1341,8 +1385,18 @@ export default function TarotScreen() {
                           accessibilityRole="radio"
                           accessibilityState={{ checked: selected, disabled: selectionLocked }}
                         >
-                          <Text style={[styles.spreadChoiceLabel, selected && styles.spreadChoiceLabelSelected]}>{spread.label}</Text>
-                          <Text style={styles.spreadChoiceBody}>{spread.description}</Text>
+                          {/* Linha imagem + texto (11/09/2026). Sem arte a
+                              linha tem um filho só, flex 1: o texto ocupa a
+                              largura toda, como o card sempre desenhou. */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                            {arte ? (
+                              <Image source={arte} style={{ width: 44, height: 44, borderRadius: 10 }} resizeMode="cover" accessible={false} />
+                            ) : null}
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.spreadChoiceLabel, selected && styles.spreadChoiceLabelSelected]}>{spread.label}</Text>
+                              <Text style={styles.spreadChoiceBody}>{spread.description}</Text>
+                            </View>
+                          </View>
                         </Pressable>
                       );
                     })}
