@@ -69,17 +69,37 @@ export default function FeatureCard({ title, subtitle, icon, gradient, arte, des
             e a única cor que sobrava fora da arte — contra a regra de que o
             dourado é a única cor de ação. O ícone continua vivo no card SEM
             arte (o return de baixo), que é onde ele ainda informa algo. */}
-        <View style={[styles.bannerWrap, destaque && styles.bannerWrapAlto]}>
-          <Image source={arte} style={styles.banner} resizeMode="cover" accessible={false} />
+        <View style={destaque ? styles.corpoAlto : styles.corpoBaixo}>
+          {/* A ARTE OCUPA O CARD INTEIRO (11/09/2026, pedido do dono: "pegar a
+              tela inteira de cada espaço"). Antes era um quadradinho de 58px ao
+              lado do texto, o que desperdiçava ilustrações que têm cenário —
+              vistas em miniatura elas viram borrão. Agora é fundo absoluto com
+              `cover`, e o texto vem POR CIMA. */}
+          <Image
+            source={arte}
+            style={styles.arteFundo}
+            resizeMode="cover"
+            accessible={false}
+          />
+          {/* O VÉU NÃO É ENFEITE: sem ele o título branco cai sobre a parte
+              clara de algumas artes (o sol da Compatibilidade, a lua dos
+              Sonhos) e some. Gradiente de transparente pro escuro, mais dominante
+              embaixo, que é onde o texto mora. */}
+          <LinearGradient
+            colors={['rgba(11,7,18,0.10)', 'rgba(11,7,18,0.62)', 'rgba(11,7,18,0.93)']}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <View style={styles.textoSobreposto}>
+            <Text style={styles.tituloBanner} numberOfLines={2}>{title}</Text>
+            <Text style={styles.subtituloBanner} numberOfLines={2}>{subtitle}</Text>
+          </View>
           {locked && (
             <View style={styles.lock}>
               <Ionicons name="lock-closed" size={12} color="#fff" />
             </View>
           )}
-        </View>
-        <View style={styles.texto}>
-          <Text style={styles.tituloBanner} numberOfLines={1}>{title}</Text>
-          <Text style={styles.subtituloBanner} numberOfLines={1}>{subtitle}</Text>
         </View>
       </TouchableOpacity>
       </Animated.View>
@@ -148,19 +168,28 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 12, right: 12,
     backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 10, padding: 5,
   },
-  // Desenho com banner: arte 84px em cima, faixa de texto embaixo — a altura
-  // total (~132) fica próxima da do card de gradiente (116) pra grade não
-  // ficar banguela quando uma linha mistura os dois desenhos.
-  // `minHeight` e não `height` (11/09/2026): quando um card alto e um baixo
-  // dividem a linha, o flex estica os dois à altura do maior — e com altura
-  // TRAVADA em 84 a imagem do baixo parava no meio e sobrava fundo vazio até
-  // o rodapé do card. Com minHeight + flex, a arte cresce e preenche.
-  bannerWrap: { width: '100%', minHeight: 84, flex: 1 },
-  // O DESTAQUE: 150px de piso contra 84. A diferença precisa ser grande o
-  // bastante pra ler como hierarquia — 100 ou 110 leria como desalinhamento,
-  // não como escolha.
-  bannerWrapAlto: { minHeight: 150 },
-  banner: { width: '100%', height: '100%' },
+  // DESENHO DO CONCORRENTE (11/09/2026, referência do dono — a grade "Todos os
+  // Recursos"): ícone e texto LADO A LADO dentro do card, não foto em cima com
+  // faixa de texto embaixo. O card alto é a exceção — lá a arte vai grande em
+  // cima e o texto embaixo, como o "Meditações Espirituais" da referência.
+  //
+  // O texto continua sendo Text do app, NUNCA escrito dentro da imagem: a arte
+  // é a mesma nos dois idiomas, o leitor de tela lê o título, e trocar uma
+  // palavra não obriga a regerar 28 arquivos.
+  // A arte é fundo absoluto nos dois tamanhos; o corpo só reserva a ALTURA e
+  // empurra o texto pro rodapé. `justifyContent: 'flex-end'` é o que faz o
+  // texto descer — é lá que o véu é mais forte.
+  corpoBaixo: { minHeight: 116, justifyContent: 'flex-end' },
+  corpoAlto: { minHeight: 210, justifyContent: 'flex-end' },
+  // `absoluteFill` SOZINHO NÃO BASTA (11/09/2026, medido: card 180x116 com
+  // imagem renderizando em 256x256, e o horoscope em 512x512). Ele posiciona
+  // nos quatro cantos mas não declara width/height, então a Image usava o
+  // tamanho NATURAL do arquivo, `cover` não tinha caixa pra encaixar e o
+  // overflow:hidden do card cortava um pedaço do meio da arte — era esse o
+  // "estrapola as bordas". Com width/height 100% a arte cabe e `cover` volta a
+  // fazer o que promete: preencher sem distorcer.
+  arteFundo: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  textoSobreposto: { paddingHorizontal: 12, paddingBottom: 12, paddingTop: 8 },
   // Órfão desde 10/09/2026 — o chip saiu do card com arte (ver o comentário no
   // JSX). Fica aqui, sem custo, porque voltar a mostrá-lo é uma linha; apagar
   // o estilo obrigaria a reescrevê-lo do zero.
@@ -170,7 +199,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     opacity: 0.95,
   },
-  texto: { paddingHorizontal: 12, paddingVertical: 10 },
-  tituloBanner: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  subtituloBanner: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
+  // Branco puro + sombra: o texto agora vive SOBRE a ilustração, não sobre o
+  // fundo liso do card. colors.text/textMuted são calibrados pra superfície
+  // escura chapada e sumiriam na parte clara de algumas artes.
+  tituloBanner: {
+    color: '#fff', fontSize: 15, fontWeight: '800', lineHeight: 19,
+    textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+  },
+  subtituloBanner: {
+    color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 3,
+    textShadowColor: 'rgba(0,0,0,0.55)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
+  },
 });

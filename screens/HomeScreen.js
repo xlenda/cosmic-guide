@@ -837,24 +837,31 @@ export default function HomeScreen() {
   // visível nos dois modos, exatamente como a quarta aba principal.
   const SOLO_ONLY = [];
 
-  // OS CARDS DE DESTAQUE (11/09/2026, referência que o dono trouxe): banner
-  // alto em vez do de sempre, pra grade ganhar ritmo em vez de ler como
-  // planilha. São as quatro que a pessoa mais usa — e a arte delas é a que
-  // melhor aguenta ampliação: as cartas, os bustos de mármore, o sol dourado
-  // e o astrolábio. Uma por linha, de propósito: duas altas lado a lado
-  // viraria outra fileira uniforme, e o ritmo morreria de novo.
-  // DESTAQUE É POR LINHA, NÃO POR CARD (11/09/2026, medido no navegador).
-  // Marcar cards soltos não funciona: numa linha de duas colunas o flex iguala
-  // a altura das duas células, então UM card alto levanta o vizinho junto. Com
-  // 'horoscope', 'tarot' e 'compatibility' marcados, as TRÊS primeiras linhas
-  // ficaram altas (206px cada) e a variação sumiu — pior que antes. A unidade
-  // real de ritmo é a fileira: só a PRIMEIRA é alta, e todas as outras ficam
-  // no tamanho de sempre. Os dois primeiros itens de ALL_ITEMS ocupam essa
-  // linha, então é neles que a marca cai.
-  const CARDS_DESTAQUE = 2;
+  // OS CARDS DE DESTAQUE (11/09/2026, referência do dono: a grade "Todos os
+  // Recursos" do concorrente). Com o CardGrid em masonry as colunas correm
+  // soltas, então o destaque volta a ser por CARD — que é como deve ser: quem
+  // fica grande é escolha de negócio, não acidente de posição na lista.
+  //
+  // Duas tentativas anteriores falharam e o porquê importa: marcar cards
+  // soltos numa grade de FILEIRAS não funciona, porque o flex iguala a altura
+  // das duas células e um card alto levanta o vizinho junto — medido no
+  // navegador, três marcados viraram três fileiras inteiras altas. Isso só
+  // deixou de ser verdade quando a grade virou colunas independentes.
+  //
+  // 'compatibility' (Tarô da Relação) é o primeiro e é destaque por decisão do
+  // dono: é a porta do funil, precisa ser a primeira coisa que a pessoa vê.
+  const CARDS_DESTAQUE = ['compatibility', 'tarot'];
+  const ORDEM_TOPO = ['compatibility'];
 
   const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key)))
-    .map((c, i) => (i < CARDS_DESTAQUE ? { ...c, destaque: true } : c))
+    .map((c) => (CARDS_DESTAQUE.includes(c.key) ? { ...c, destaque: true } : c))
+    // O funil entra pela porta de cima: quem está em ORDEM_TOPO sobe pro
+    // começo da lista, na ordem em que foi listado lá.
+    .sort((a, b) => {
+      const ia = ORDEM_TOPO.indexOf(a.key);
+      const ib = ORDEM_TOPO.indexOf(b.key);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    })
     .map((c) =>
       // O CADEADO SÓ EXISTE ENQUANTO HOUVER PAYWALL (10/09/2026). Com
       // TUDO_LIBERADO ligado, hasCoupleAccess é sempre true — mas a condição
