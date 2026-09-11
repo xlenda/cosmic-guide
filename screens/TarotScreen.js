@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Image, Pressable } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -204,7 +204,13 @@ export default function TarotScreen() {
   // outras abas — mesmo helper do OneTimeLock.js: getParent() sobe pro
   // Tab.Navigator, e o fallback cobre o caso de a tela ser a própria raiz.
   const navigateFromTab = (...args) => (navigation.getParent() || navigation).navigate(...args);
-  const [theme, setTheme] = useState(THEMES[0]);
+  // TEMA INICIAL POR PARÂMETRO (11/09/2026): o card "Tarô do Amor" da Home
+  // abre esta tela já em Amor — a pessoa veio pra isso, não pra escolher tema.
+  // Sem parâmetro (ou tema desconhecido) cai no primeiro, como sempre foi.
+  const route = useRoute();
+  const [theme, setTheme] = useState(
+    () => THEMES.find((th) => th.key === route.params?.initialTheme) || THEMES[0]
+  );
   const [drawn, setDrawn] = useState(null);
   const [revealed, setRevealed] = useState([false, false, false]);
   const [orientations, setOrientations] = useState([false, false, false]);

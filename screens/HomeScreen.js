@@ -725,6 +725,12 @@ export default function HomeScreen() {
     { key: 'comovoceta', title: t('home.card.comovoceta.title'), subtitle: t('home.card.comovoceta.subtitle'), icon: 'heart-half', gradient: ['#FF7BD5', '#FF6B7A'], onPress: () => navigation.navigate(ROUTES.COMO_VOCE_TA) },
     { key: 'birthchart', title: t('home.card.birthchart.title'), subtitle: t('home.card.birthchart.subtitle'), icon: 'compass', gradient: ['#5CA8FF', '#6C7BFF'], onPress: () => navigation.navigate(ROUTES.BIRTH_CHART) },
     { key: 'tarot', title: t('home.card.tarot.title'), subtitle: t('home.card.tarot.subtitle'), icon: 'sparkles', gradient: ['#FF6BA0', '#B57BFF'], onPress: () => navigation.getParent()?.navigate(ROUTES.TAROT_TAB) },
+    // TARÔ DO AMOR (11/09/2026, pedido do dono: "preciso tarot do amor em
+    // cima também" — é onde o funil vai entrar). Não é tela nova: é a porta
+    // direta pro tema Amor que o Tarô já tinha. Navegação aninhada: a aba
+    // Tarô é um Stack (App.js TarotStack), então o parâmetro vai pra tela de
+    // dentro, não pra aba.
+    { key: 'tarotAmor', title: t('home.card.tarotAmor.title'), subtitle: t('home.card.tarotAmor.subtitle'), icon: 'heart', gradient: ['#FF6BA0', '#C88C88'], onPress: () => navigation.getParent()?.navigate(ROUTES.TAROT_TAB, { screen: ROUTES.TAROT_MAIN, params: { initialTheme: 'Amor' } }) },
     { key: 'compatibility', title: t('home.card.compatibility.title'), subtitle: t('home.card.compatibility.subtitle'), icon: 'heart', gradient: ['#FF8C5C', '#FF6B7A'], onPress: () => navigation.navigate(ROUTES.COMPATIBILITY) },
     // AS SEIS DE CASAL VIRARAM DUAS (10/09/2026, pedido do dono: "junte tudo
     // em 2 funções só"). Cada porta abre as três telas antigas em abas — nada
@@ -864,6 +870,7 @@ export default function HomeScreen() {
   // 29%, compatibility 27%, agir 23%, tarot 20%.
   const CARDS_DESTAQUE = [
     'compatibility', // 27% cortado — casal sob a lua cheia
+    'tarotAmor',     // porta do funil de amor — grande por decisão do dono
     'tarot',         // 20% — mãos segurando a carta iluminada
     'comovoceta',    // 46% — o coração nas nuvens perdia o topo
     'retrospectiva', // 29% — livro aberto com as fotos saindo
@@ -874,7 +881,7 @@ export default function HomeScreen() {
   ];
 
   // O funil entra pela porta de cima.
-  const ORDEM_TOPO = ['compatibility'];
+  const ORDEM_TOPO = ['compatibility', 'tarotAmor'];
 
   const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key)))
     .map((c) => (CARDS_DESTAQUE.includes(c.key) ? { ...c, destaque: true } : c))

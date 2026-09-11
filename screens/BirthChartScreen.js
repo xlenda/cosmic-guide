@@ -85,6 +85,7 @@ import { profeccaoAnual } from '../lib/profeccoes';
 // Elementos com % — aritmética pura sobre planetPositions (10 planetas, % =
 // contagem × 10, soma sempre 100). Null sem data/motor → a seção nem aparece.
 import { distribuicaoDeElementos } from '../lib/elementos';
+import { polaridadeDoSigno, modalidadeDoSigno } from '../lib/signs';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { saveSoloBirthMirror, readSecureItemWithMirror, writeSecureItemWithMirror } from '../lib/birthData';
@@ -509,6 +510,26 @@ const ELEMENTOS_READING_KEY = {
 // e por último o recibo: de onde saiu o número, e a nota de meio-dia quando
 // não há hora de nascimento. Empate no topo (dominante vem como array do
 // motor) → texto neutro de equilíbrio, sem inventar desempate.
+// Mapas LITERAIS (não template) pra varredura estática de
+// test/i18nKeysExist.test.js enxergar cada chave. SIGNS usa 'água' com acento.
+const FICHA_ELEMENTO_KEY = {
+  fogo: 'birthchart.elements.fire',
+  terra: 'birthchart.elements.earth',
+  ar: 'birthchart.elements.air',
+  'água': 'birthchart.elements.water',
+};
+const FICHA_POLARIDADE_KEY = { masculino: 'birthchart.ficha.masculino', feminino: 'birthchart.ficha.feminino' };
+const FICHA_MODALIDADE_KEY = { cardinal: 'birthchart.ficha.cardinal', fixo: 'birthchart.ficha.fixo', mutavel: 'birthchart.ficha.mutavel' };
+
+function FichaSolItem({ rotulo, valor }) {
+  return (
+    <View style={styles.fichaSolItem}>
+      <Text style={styles.fichaSolRotulo}>{rotulo}</Text>
+      <Text style={styles.fichaSolValor}>{valor}</Text>
+    </View>
+  );
+}
+
 function ElementosSection({ elementos, temHora }) {
   const { t } = useLanguage();
   if (!elementos) return null;
@@ -624,6 +645,20 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', 
                 )}
               </View>
               <Text style={styles.heroNome}>{chart.sun ? chart.sun.label : '?'}</Text>
+              {/* A FICHA DO SOL (11/09/2026, referência do dono: o concorrente
+                  mostra Elemento / Polaridade / Modalidade ao lado do signo).
+                  Três atributos FIXOS do signo — tabela clássica, aritmética
+                  sobre a ordem zodiacal (lib/signs.js) — nada aqui é leitura
+                  nem chute. Fica entre o nome e o recibo: ainda é identidade,
+                  e test/quentePrimeiroNasTelas.test.js segue valendo porque
+                  heroHalo continua abrindo o bloco. */}
+              {chart.sun && (
+                <View style={styles.fichaSol}>
+                  <FichaSolItem rotulo={t('birthchart.ficha.elemento')} valor={t(FICHA_ELEMENTO_KEY[chart.sun.element] || 'birthchart.ficha.elemento')} />
+                  <FichaSolItem rotulo={t('birthchart.ficha.polaridade')} valor={t(FICHA_POLARIDADE_KEY[polaridadeDoSigno(chart.sun.name)] || 'birthchart.ficha.polaridade')} />
+                  <FichaSolItem rotulo={t('birthchart.ficha.modalidade')} valor={t(FICHA_MODALIDADE_KEY[modalidadeDoSigno(chart.sun.name)] || 'birthchart.ficha.modalidade')} />
+                </View>
+              )}
             </>
           );
         })()}
@@ -1639,6 +1674,12 @@ const styles = StyleSheet.create({
   // O miolo do anel: % grande na cor do elemento, emoji pequeno embaixo.
   elementoPct: { fontSize: 15, fontWeight: '800' },
   elementoEmojiPeq: { fontSize: 11, marginTop: 1 },
+  // A ficha do Sol: três colunas discretas sob o nome do signo. Rótulo em
+  // caixa alta miúda, valor em peso — o mesmo par rótulo/valor do resto do app.
+  fichaSol: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginTop: 10, marginBottom: 2 },
+  fichaSolItem: { alignItems: 'center', minWidth: 78 },
+  fichaSolRotulo: { color: colors.textMuted, fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase' },
+  fichaSolValor: { color: colors.text, fontSize: 13, fontWeight: '700', marginTop: 3 },
   elementoNome: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
   // O chip de %: pill pequena SOBREPOSTA no canto superior direito do círculo
   // (o desenho do concorrente) — fundo escuro do cenário + borda na cor do
