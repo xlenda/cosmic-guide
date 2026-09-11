@@ -837,20 +837,43 @@ export default function HomeScreen() {
   // visível nos dois modos, exatamente como a quarta aba principal.
   const SOLO_ONLY = [];
 
-  // OS CARDS DE DESTAQUE (11/09/2026, referência do dono: a grade "Todos os
-  // Recursos" do concorrente). Com o CardGrid em masonry as colunas correm
-  // soltas, então o destaque volta a ser por CARD — que é como deve ser: quem
-  // fica grande é escolha de negócio, não acidente de posição na lista.
+  // QUAIS CARDS SÃO GRANDES (11/09/2026, escolhido olhando arte por arte).
+  // Com o CardGrid em masonry as colunas correm soltas, então o tamanho é
+  // decisão por CARD. O critério é a ARTE, não a importância da feature:
   //
-  // Duas tentativas anteriores falharam e o porquê importa: marcar cards
-  // soltos numa grade de FILEIRAS não funciona, porque o flex iguala a altura
-  // das duas células e um card alto levanta o vizinho junto — medido no
-  // navegador, três marcados viraram três fileiras inteiras altas. Isso só
-  // deixou de ser verdade quando a grade virou colunas independentes.
+  //   GRANDE — ilustração com CENA e profundidade (casal sob a lua, o portal
+  //   no mar, o caminho serpenteando, as mãos segurando a carta). Em card
+  //   pequeno viram borrão: o assunto some e sobra textura.
   //
-  // 'compatibility' (Tarô da Relação) é o primeiro e é destaque por decisão do
-  // dono: é a porta do funil, precisa ser a primeira coisa que a pessoa vê.
-  const CARDS_DESTAQUE = ['compatibility', 'tarot'];
+  //   PEQUENO — objeto único centrado (o sol, o livro, a vela, a ampulheta).
+  //   Lê perfeitamente em 116px de altura e não ganha nada sendo ampliado.
+  //
+  // Duas tentativas anteriores falharam por motivo que vale registrar: numa
+  // grade de FILEIRAS isto é impossível, porque o flex iguala a altura das
+  // duas células e um card alto levanta o vizinho junto — medido, três
+  // marcados viraram três fileiras inteiras altas. Só virou escolha real
+  // quando a grade passou a ser colunas independentes.
+  // A lista saiu de uma MEDIÇÃO, não do olho: um script comparou, arte por
+  // arte, quanto do assunto (os pixels claros) cai fora da faixa que o card
+  // pequeno mostra. O card pequeno é 180x116 e a arte é 1:1, então o `cover`
+  // exibe só a faixa central — 64% da altura. O card grande é 180x210, quase
+  // quadrado, e aí quase nada se perde.
+  //
+  // Quem perdia mais foi promovido: comovoceta cortava 46% (o coração ficava
+  // decapitado no topo — visível no screenshot antes de medir), retrospectiva
+  // 29%, compatibility 27%, agir 23%, tarot 20%.
+  const CARDS_DESTAQUE = [
+    'compatibility', // 27% cortado — casal sob a lua cheia
+    'tarot',         // 20% — mãos segurando a carta iluminada
+    'comovoceta',    // 46% — o coração nas nuvens perdia o topo
+    'retrospectiva', // 29% — livro aberto com as fotos saindo
+    'agir',          // 23% — o raio com a trilha de brilho
+    'dream',         // portal luminoso no mar: cena com profundidade
+    'jornada',       // caminho serpenteando pela paisagem
+    'timeline',      // estrada sob o céu estrelado
+  ];
+
+  // O funil entra pela porta de cima.
   const ORDEM_TOPO = ['compatibility'];
 
   const cardItems = ALL_ITEMS.filter((c) => (isCouple || !COUPLE_ONLY.includes(c.key)) && (!isCouple || !SOLO_ONLY.includes(c.key)))
