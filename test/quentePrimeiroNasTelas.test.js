@@ -66,14 +66,10 @@ function quenteAbre(bloco, quente, fichas, origem) {
   }
 }
 
-test('Home · Céu de hoje pra você — a chamada da fase abre, o trânsito e o grau descem', () => {
-  // O motor (lib/transitoFase.js) devolve `chamada` por aspecto desde 01/08 e a
-  // Home ignorava: mostrava só `a.text` (qual planeta sobre qual ponto) e a
-  // `linhaCurta` (graus e prazo). Dois recibos, nenhuma leitura.
-  const src = fonteDaTela('HomeScreen.js');
-  const bloco = trecho(src, 'personalSkyBlocos.slice(0, 1)', 'home.sky.moreAspects', 'HomeScreen/céu de hoje');
-  quenteAbre(bloco, '{b.chamada ?', ['{aspecto.text}', 'fase.linhaCurta'], 'HomeScreen/céu de hoje');
-});
+// O bloco "Céu de hoje pra você" saiu da Home em 10/09/2026: virou a missão 4,
+// e o conteúdo mora no Mapa Astral, que a missão abre. Não há mais ordem a
+// travar aqui — a regra quente-primeiro segue valendo pra tela de destino, que
+// tem teste próprio. Teste que descreve bloco inexistente é ruído.
 
 test('Mapa Astral · seita — a chamada abre, "mapa diurno/noturno" desce pra linha de ficha', () => {
   const src = fonteDaTela('BirthChartScreen.js');
@@ -192,11 +188,9 @@ test('Homem Zodiacal · "A Lua hoje" abre pela leitura, o chip do signo desce pr
 // voltar, este teste volta com ele — a regra quente-primeiro continua valendo
 // pra todo bloco novo.
 
-test('Home · compatibilidade — o resumo abre, "{aspecto} · {categoria}" desce', () => {
-  const src = fonteDaTela('HomeScreen.js');
-  const bloco = trecho(src, '{compat ? (', "t('home.compatSeeMore')", 'HomeScreen/compatibilidade');
-  quenteAbre(bloco, '{compat.resumo}', ["'home.compatAspect'"], 'HomeScreen/compatibilidade');
-});
+// Mesma razão do bloco do céu: a compatibilidade saiu da Home em 10/09/2026 e
+// virou a missão 6. O conteúdo está na tela de Compatibilidade, que a missão
+// abre e que tem o próprio teste de ordem.
 
 test('Calendário Cósmico · temporada — o gancho sobe, título e datas descem', () => {
   const src = fonteDaTela('CalendarioCosmicoScreen.js');
@@ -327,9 +321,13 @@ test('a ficha continua na tela — descer não é apagar', () => {
       ],
     ],
     ['ProfeccoesScreen', prof, ['{anual.titulo}', '{anual.casaProfectada}', '{anual.senhorDoAno}', '{anual.origemRotulo}']],
-    // 'home.cosmicEventTitle' saiu desta lista em 10/09/2026 junto com o card
-    // que a usava. As outras três âncoras seguem vivas na Home.
-    ['HomeScreen', home, ['{aspecto.text}', 'fase.linhaCurta', "'home.compatAspect'"]],
+    // A HOME SAIU DESTA LISTA em 10/09/2026. As quatro âncoras que ela tinha
+    // pertenciam a três blocos que agora são MISSÕES: o evento cósmico (card
+    // removido), o céu de hoje e a compatibilidade. A ficha continua na tela —
+    // só que na tela de destino, que a missão abre, e cada uma delas tem a
+    // própria linha nesta mesma lista (BirthChartScreen, CalendarioCosmico).
+    // A regra "descer não é apagar" segue valendo; o que mudou é onde o dado
+    // mora, não se ele existe.
     ['HoroscopeScreen', fonteDaTela('HoroscopeScreen.js'), ["'horoscope.sky.fact.moon'", "'horoscope.sky.fact.phase'", "'horoscope.sky.fact.dayRuler'"]],
     // [AUTO-DECISION 09/08/2026] iluminação agora via t('lunar.illuminatedToday',
     // { n: today.illumination }) — a âncora vira o dado interpolado, sem chavetas.
