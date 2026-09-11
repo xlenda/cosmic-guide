@@ -1,56 +1,103 @@
-// Relatórios — calendário de sequência (lib/streak.js). Tela 100% leitura:
-// mostra o streak atual, o total de dias ativos e um calendário mensal
-// simples (heatmap de um tom só) com navegação entre meses. A seção PRO no
-// fim é só a prévia visual do paywall (o gate real fica pra depois) — aqui
-// é só o card com cadeado + botão "Assinar" levando pra tela de Planos.
+// Relatórios — a tela da sequência (lib/streak.js). 100% leitura.
+//
+// REFEITA EM 11/09/2026, pedido do dono olhando referências de apps premium:
+// "quando o cliente entra aqui, a diagramação precisa estar foda igual esse".
+// A versão anterior era dois números, um calendário de um tom só e um card
+// PRO com cadeado pedindo assinatura — numa Home onde TUDO_LIBERADO já valia.
+//
+// O que mudou, e por quê:
+//   - O UNIVERSO GIRANDO abre a tela (components/UniversoGirando): é o
+//     elemento vivo que as referências têm no topo e que aqui faltava.
+//   - Os números viraram ANÉIS (components/AnelProgresso), mas só com conta
+//     real: "quanto falta pro próximo marco" e "quantos dias do mês foram
+//     ativos". Nenhuma porcentagem inventada — a doutrina do app proíbe.
+//   - O card PRO SAIU. No lugar, o gráfico de evolução DE VERDADE: dias
+//     ativos por mês nos últimos seis, lidos do mesmo mapa de dias do
+//     streak. Prometer tranca onde não há tranca era pior que não ter nada.
+//   - Todo texto saiu do código pro dicionário: esta era a última tela com
+//     português cravado no JSX — quem usava em EN/ES abria em PT.
 import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, gradients } from '../theme';
-import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
-import { getMonthActivity, getStreakInfo } from '../lib/streak';
+import UniversoGirando from '../components/UniversoGirando';
+import AnelProgresso from '../components/AnelProgresso';
+import { getMonthActivity, getStreakInfo, STREAK_MILESTONES } from '../lib/streak';
+import { readDays } from '../lib/streakDays';
+import { useLanguage } from '../context/LanguageContext';
 
-// Domingo a sábado — cabeçalho de calendário tradicional (D S T Q Q S S).
-const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+// Domingo a sábado — cabeçalho de calendário tradicional. As letras vêm do
+// nome do dia no idioma corrente (primeira letra), então "D S T Q Q S S" em
+// PT vira "S M T W T F S" em EN sem chave nova.
+const LOCALE = { pt: 'pt-BR', es: 'es-ES', en: 'en-US' };
+const MESES_NO_GRAFICO = 6;
 
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
 
-function formatMonthLabel(year, month) {
-  const label = new Date(year, month, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+function formatMonthLabel(year, month, locale) {
+  const label = new Date(year, month, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function weekdayLetters(locale) {
+  // 4/01/2026 foi um domingo — qualquer domingo serve de âncora.
+  const domingo = new Date(2026, 0, 4);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(domingo);
+    d.setDate(domingo.getDate() + i);
+    return d.toLocaleDateString(locale, { weekday: 'narrow' }).toUpperCase();
+  });
+}
+
+// Dias ativos por mês, nos últimos N meses (o corrente incluído), a partir
+// do mapa cru { "AAAA-MM-DD": true|'shield' }. Dia protegido por escudo CONTA
+// como ativo — é o que o escudo promete.
+function evolucaoMensal(days, agora, meses) {
+  const out = [];
+  for (let k = meses - 1; k >= 0; k--) {
+    const d = new Date(agora.getFullYear(), agora.getMonth() - k, 1);
+    const prefixo = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+    const ativos = Object.keys(days).filter((key) => key.startsWith(prefixo) && days[key]).length;
+    const diasNoMes = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    out.push({ ano: d.getFullYear(), mes: d.getMonth(), ativos, diasNoMes });
+  }
+  return out;
 }
 
 export default function ReportsScreen() {
   const navigation = useNavigation();
+  const { t, lang } = useLanguage();
+  const locale = LOCALE[lang] || LOCALE.pt;
   const now = new Date();
 
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth()); // 0-indexed, igual getMonthActivity()
 
   const [monthActivity, setMonthActivity] = useState({});
-  const [streakInfo, setStreakInfo] = useState({ currentStreak: 0, totalActiveDays: 0 });
+  const [streakInfo, setStreakInfo] = useState({ currentStreak: 0, totalActiveDays: 0, longest: 0 });
+  const [evolucao, setEvolucao] = useState([]);
 
   const loadMonth = useCallback(async () => {
-    const activity = await getMonthActivity(year, month);
-    setMonthActivity(activity);
+    setMonthActivity(await getMonthActivity(year, month));
   }, [year, month]);
 
-  const loadStreak = useCallback(async () => {
-    const info = await getStreakInfo();
+  const loadResumo = useCallback(async () => {
+    const [info, days] = await Promise.all([getStreakInfo(), readDays()]);
     setStreakInfo(info);
+    setEvolucao(evolucaoMensal(days, new Date(), MESES_NO_GRAFICO));
   }, []);
 
-  // Recarrega ao ganhar foco (ex.: voltando de uma leitura que acabou de
-  // marcar o dia como ativo) e também sempre que o mês exibido muda.
+  // Recarrega ao ganhar foco (voltando de uma leitura que acabou de marcar o
+  // dia) e sempre que o mês exibido muda.
   useFocusEffect(
     useCallback(() => {
       loadMonth();
-      loadStreak();
-    }, [loadMonth, loadStreak])
+      loadResumo();
+    }, [loadMonth, loadResumo])
   );
 
   const goPrevMonth = () => {
@@ -79,43 +126,81 @@ export default function ReportsScreen() {
   for (let i = 0; i < firstWeekday; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
+  // OS DOIS ANÉIS — cada um é uma fração de coisas contáveis, nunca um índice:
+  //   marco: quanto da distância até o PRÓXIMO marco (7/30/100) já foi
+  //          percorrida. Passou do último marco → anel cheio.
+  //   mês:   dias ativos ÷ dias já decorridos do mês exibido (o mês corrente
+  //          só conta até hoje — cobrar dia que ainda não chegou é injusto).
+  const proximoMarco =
+    STREAK_MILESTONES.find((m) => m.days > streakInfo.currentStreak) || STREAK_MILESTONES[STREAK_MILESTONES.length - 1];
+  const pctMarco = Math.min(100, Math.round((streakInfo.currentStreak / proximoMarco.days) * 100));
+  const ativosNoMes = Object.keys(monthActivity).length;
+  const diasDecorridos = isCurrentMonth ? now.getDate() : daysInMonth;
+  const pctMes = diasDecorridos > 0 ? Math.round((ativosNoMes / diasDecorridos) * 100) : 0;
+
+  const maxAtivos = Math.max(1, ...evolucao.map((e) => e.ativos));
+  const semanaLetras = weekdayLetters(locale);
+
   return (
     <View style={styles.root}>
       <GradientHeader
-        title="Relatórios"
-        subtitle="Sua constância ao longo do tempo"
+        title={t('reports.title')}
+        subtitle={t('reports.subtitle')}
         onBack={() => navigation.goBack()}
         gradient={gradients.gold}
       />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>🔥 {streakInfo.currentStreak}</Text>
-            <Text style={styles.statLabel}>
-              {streakInfo.currentStreak === 1 ? 'dia seguido' : 'dias seguidos'}
-            </Text>
+        {/* O universo abre a tela. pointerEvents none vem de dentro dele:
+            decoração nunca rouba toque. */}
+        <View style={styles.universoWrap}>
+          <UniversoGirando size={220} testID="reports-universo" />
+        </View>
+
+        <View style={styles.resumoCard}>
+          <View style={styles.aneisRow}>
+            <View style={styles.anelCol} testID="reports-anel-marco">
+              <AnelProgresso pct={pctMarco} size={84} espessura={7} cor={colors.gold}>
+                <Text style={styles.anelValor}>🔥 {streakInfo.currentStreak}</Text>
+              </AnelProgresso>
+              <Text style={styles.anelRotulo}>
+                {t(streakInfo.currentStreak === 1 ? 'reports.streak_one' : 'reports.streak_other')}
+              </Text>
+              <Text style={styles.anelSub}>{t('reports.nextMilestone', { days: proximoMarco.days })}</Text>
+            </View>
+            <View style={styles.anelCol} testID="reports-anel-mes">
+              <AnelProgresso pct={pctMes} size={84} espessura={7} cor={colors.teal}>
+                <Text style={styles.anelValor}>{ativosNoMes}</Text>
+              </AnelProgresso>
+              <Text style={styles.anelRotulo}>{t('reports.monthActive')}</Text>
+              <Text style={styles.anelSub}>{pctMes}%</Text>
+            </View>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{streakInfo.totalActiveDays}</Text>
-            <Text style={styles.statLabel}>
-              {streakInfo.totalActiveDays === 1 ? 'dia ativo no total' : 'dias ativos no total'}
-            </Text>
+          <View style={styles.numerosRow}>
+            <View style={styles.numeroItem}>
+              <Text style={styles.numeroValor}>{streakInfo.totalActiveDays}</Text>
+              <Text style={styles.numeroRotulo}>{t('reports.total')}</Text>
+            </View>
+            <View style={styles.numeroDivisor} />
+            <View style={styles.numeroItem}>
+              <Text style={styles.numeroValor}>{streakInfo.longest || 0}</Text>
+              <Text style={styles.numeroRotulo}>{t('reports.bestStreak')}</Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.calendarCard}>
           <View style={styles.calendarHead}>
-            <TouchableOpacity onPress={goPrevMonth} style={styles.navBtn} activeOpacity={0.7}>
+            <TouchableOpacity onPress={goPrevMonth} style={styles.navBtn} activeOpacity={0.7} accessibilityRole="button">
               <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
-            <Text style={styles.monthLabel}>{formatMonthLabel(year, month)}</Text>
-            <TouchableOpacity onPress={goNextMonth} style={styles.navBtn} activeOpacity={0.7}>
+            <Text style={styles.monthLabel}>{formatMonthLabel(year, month, locale)}</Text>
+            <TouchableOpacity onPress={goNextMonth} style={styles.navBtn} activeOpacity={0.7} accessibilityRole="button">
               <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.weekdayRow}>
-            {WEEKDAY_LABELS.map((label, i) => (
+            {semanaLetras.map((label, i) => (
               <Text key={`${label}-${i}`} style={styles.weekdayLabel}>{label}</Text>
             ))}
           </View>
@@ -137,24 +222,30 @@ export default function ReportsScreen() {
           </View>
         </View>
 
-        <View style={styles.proCard}>
-          <View style={styles.proBadge}>
-            <Text style={styles.proBadgeText}>PRO</Text>
+        {/* GRÁFICO DE EVOLUÇÃO — o que o card PRO prometia atrás do cadeado,
+            entregue. Barras são Views (sem lib de gráfico): altura proporcional
+            ao mês com mais dias ativos na janela, número em cima, mês embaixo.
+            Mês zerado ainda mostra uma base fininha — barra que some lê como
+            "faltou dado", não como "zero". */}
+        <View style={styles.evolucaoCard} testID="reports-evolucao">
+          <Text style={styles.evolucaoTitulo}>{t('reports.evolutionTitle')}</Text>
+          <Text style={styles.evolucaoDesc}>{t('reports.evolutionDesc')}</Text>
+          <View style={styles.barrasRow}>
+            {evolucao.map((e) => {
+              const altura = e.ativos > 0 ? Math.max(6, Math.round((e.ativos / maxAtivos) * 88)) : 3;
+              const ehAtual = e.ano === now.getFullYear() && e.mes === now.getMonth();
+              const rotulo = new Date(e.ano, e.mes, 1).toLocaleDateString(locale, { month: 'short' }).replace('.', '');
+              return (
+                <View key={`${e.ano}-${e.mes}`} style={styles.barraCol}>
+                  <Text style={styles.barraValor}>{e.ativos}</Text>
+                  <View style={styles.barraTrilho}>
+                    <View style={[styles.barra, { height: altura }, ehAtual && styles.barraAtual]} />
+                  </View>
+                  <Text style={[styles.barraMes, ehAtual && styles.barraMesAtual]}>{rotulo}</Text>
+                </View>
+              );
+            })}
           </View>
-          <View style={styles.proIconWrap}>
-            <Ionicons name="lock-closed" size={24} color={colors.gold} />
-          </View>
-          <Text style={styles.proTitle}>Gráfico de evolução</Text>
-          <Text style={styles.proDesc}>
-            Exclusivo assinantes — acompanhe sua constância mês a mês em um gráfico completo.
-          </Text>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.proBtn}
-            onPress={() => navigation.navigate(ROUTES.PLANOS)}
-          >
-            <Text style={styles.proBtnText}>Assinar</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -165,13 +256,25 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   scrollContent: { padding: 16, paddingBottom: 40 },
 
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  statCard: {
-    flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 16, padding: 16, alignItems: 'center',
+  universoWrap: { alignItems: 'center', marginTop: -6, marginBottom: 4 },
+
+  resumoCard: {
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 18, padding: 16, marginBottom: 16,
   },
-  statValue: { color: colors.text, fontSize: 22, fontWeight: '800' },
-  statLabel: { color: colors.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' },
+  aneisRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  anelCol: { alignItems: 'center', flex: 1 },
+  anelValor: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  anelRotulo: { color: colors.text, fontSize: 12, fontWeight: '700', marginTop: 8, textAlign: 'center' },
+  anelSub: { color: colors.textMuted, fontSize: 11, marginTop: 2, textAlign: 'center' },
+  numerosRow: {
+    flexDirection: 'row', alignItems: 'center', marginTop: 16, paddingTop: 14,
+    borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  numeroItem: { flex: 1, alignItems: 'center' },
+  numeroDivisor: { width: 1, height: 28, backgroundColor: colors.border },
+  numeroValor: { color: colors.text, fontSize: 20, fontWeight: '800' },
+  numeroRotulo: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
 
   calendarCard: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
@@ -193,26 +296,25 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center',
     borderWidth: 1.5, borderColor: 'transparent',
   },
-  dayCircleActive: { backgroundColor: colors.teal },
+  // Dia ativo em DOURADO — é a cor de conquista do app (o mesmo dos marcos),
+  // e casa com o cabeçalho desta tela. O teal anterior era a cor de escudo.
+  dayCircleActive: { backgroundColor: colors.gold },
   dayCircleToday: { borderColor: colors.gold },
   dayNumber: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
   dayNumberActive: { color: colors.background, fontWeight: '800' },
 
-  proCard: {
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 18, padding: 20, alignItems: 'center',
+  evolucaoCard: {
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 18, padding: 16,
   },
-  proBadge: {
-    alignSelf: 'center', backgroundColor: colors.gold + '22',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 12,
-  },
-  proBadgeText: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 1 },
-  proIconWrap: {
-    width: 56, height: 56, borderRadius: 28, backgroundColor: colors.gold + '18',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-  },
-  proTitle: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'center', marginBottom: 6 },
-  proDesc: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center', marginBottom: 16 },
-  proBtn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 28 },
-  proBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  evolucaoTitulo: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  evolucaoDesc: { color: colors.textMuted, fontSize: 12, marginTop: 2, marginBottom: 14 },
+  barrasRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 },
+  barraCol: { flex: 1, alignItems: 'center' },
+  barraValor: { color: colors.textSecondary, fontSize: 11, fontWeight: '700', marginBottom: 4 },
+  barraTrilho: { height: 88, width: '100%', justifyContent: 'flex-end', alignItems: 'center' },
+  barra: { width: '70%', maxWidth: 28, borderRadius: 6, backgroundColor: colors.gold + '77' },
+  barraAtual: { backgroundColor: colors.gold },
+  barraMes: { color: colors.textMuted, fontSize: 11, marginTop: 6, textTransform: 'capitalize' },
+  barraMesAtual: { color: colors.text, fontWeight: '700' },
 });

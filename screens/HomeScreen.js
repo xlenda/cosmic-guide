@@ -1215,13 +1215,22 @@ export default function HomeScreen() {
 
             O que muda com a contagem é o SUBTÍTULO, não a existência: com
             entradas guardadas ele diz o que faz; vazio, convida a começar. */}
-        <TouchableOpacity
-          testID="home-diary-bar"
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate(ROUTES.DIARY)}
-          style={styles.diaryBar}
-        >
-          <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.diaryBarInner}>
+        {/* DIÁRIO + SEQUÊNCIA NUM CARD SÓ (11/09/2026, pedido do dono: "tente
+            juntar os dois em um"). Eram dois blocos empilhados — a barra roxa
+            do Diário e o cartão escuro da sequência — e o topo da Home lia
+            como duas coisas soltas. Agora é UM cartão no gradiente roxo: o
+            Diário em cima, a régua da semana embaixo, uma linha fina entre
+            eles. Cada metade continua levando pro seu destino (Diário /
+            Relatórios) e mantém o testID de sempre — nada do e2e muda. As
+            bolinhas e rótulos ganharam versão em branco porque agora moram
+            sobre o roxo, não sobre o card escuro. */}
+        <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.topoCard}>
+          <TouchableOpacity
+            testID="home-diary-bar"
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate(ROUTES.DIARY)}
+            style={styles.topoLinha}
+          >
             <View style={styles.diaryBarIcon}>
               <Ionicons name="book" size={20} color="#fff" />
             </View>
@@ -1232,47 +1241,42 @@ export default function HomeScreen() {
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#fff" />
-          </LinearGradient>
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        {/* Sequência da semana (lib/streak.js) — leva pros Relatórios (calendário
-            de sequência completo) ao tocar. */}
-        {/* O CALENDÁRIO DA SEMANA APARECE SEMPRE (10/09/2026). A condição era
-            `journalCount > 0 || totalActiveDays > 0` — quem nunca usou não via
-            os sete dias. Mesma inversão do Diário logo acima: no topo da Home,
-            quem ainda não começou é justamente quem precisa ver a régua vazia
-            pra querer preencher. Sete bolinhas apagadas convidam; nada não. */}
-        <TouchableOpacity
-          testID="home-streak-card"
-          activeOpacity={0.9}
-          style={styles.streakCard}
-          onPress={() => navigation.navigate(ROUTES.REPORTS)}
-        >
-          <View style={styles.streakCardHead}>
-            <View style={styles.streakCardTitleRow}>
-              <Text style={styles.streakCardTitle}>
-                {streakInfo.currentStreak > 0
-                  ? t(streakInfo.currentStreak === 1 ? 'home.streak.count_one' : 'home.streak.count_other', { count: streakInfo.currentStreak })
-                  : t('home.streak.empty')}
-              </Text>
-              {shieldCount > 0 && (
-                <View style={styles.shieldBadge}>
-                  <Ionicons name="shield-checkmark" size={13} color={colors.teal} />
-                  <Text style={styles.shieldBadgeText}>{shieldCount}</Text>
-                </View>
-              )}
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </View>
-          <View style={styles.weekRow}>
-            {(weekActivity.length ? weekActivity : WEEK_LABELS.map((_, i) => ({ date: String(i), active: false, isToday: false }))).map((day, i) => (
-              <View key={day.date} style={styles.weekDayWrap}>
-                <Text style={styles.weekDayLabel}>{WEEK_LABELS[i]}</Text>
-                <View style={[styles.weekDot, day.active && styles.weekDotActive, day.isToday && styles.weekDotToday]} />
+          <View style={styles.topoDivisor} />
+
+          <TouchableOpacity
+            testID="home-streak-card"
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate(ROUTES.REPORTS)}
+            style={styles.topoLinhaSeq}
+          >
+            <View style={styles.streakCardHead}>
+              <View style={styles.streakCardTitleRow}>
+                <Text style={styles.topoSeqTitulo}>
+                  {streakInfo.currentStreak > 0
+                    ? t(streakInfo.currentStreak === 1 ? 'home.streak.count_one' : 'home.streak.count_other', { count: streakInfo.currentStreak })
+                    : t('home.streak.empty')}
+                </Text>
+                {shieldCount > 0 && (
+                  <View style={styles.shieldBadge}>
+                    <Ionicons name="shield-checkmark" size={13} color={colors.teal} />
+                    <Text style={styles.shieldBadgeText}>{shieldCount}</Text>
+                  </View>
+                )}
               </View>
-            ))}
-          </View>
-        </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
+            </View>
+            <View style={styles.weekRow}>
+              {(weekActivity.length ? weekActivity : WEEK_LABELS.map((_, i) => ({ date: String(i), active: false, isToday: false }))).map((day, i) => (
+                <View key={day.date} style={styles.weekDayWrap}>
+                  <Text style={styles.topoDiaRotulo}>{WEEK_LABELS[i]}</Text>
+                  <View style={[styles.topoDot, day.active && styles.topoDotAtivo, day.isToday && styles.topoDotHoje]} />
+                </View>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </LinearGradient>
 
         {/* O CATÁLOGO, LOGO NA ENTRADA (10/09/2026, pedido do dono: "explorar
             funções tem que estar logo no começo quando ele entra no app"). Fica
@@ -1969,8 +1973,17 @@ const styles = StyleSheet.create({
   orbiContinuityCtaText: { color: colors.gold, fontSize: 12, fontWeight: '800' },
   // O Diário agora vem depois da continuidade do Órbi. A margem negativa do
   // hero antigo fazia os dois cartões se sobreporem em telas estreitas.
-  diaryBar: { marginHorizontal: 20, marginTop: 14, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
-  diaryBarInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  // O card único do topo (Diário + Sequência). Sobre gradiente roxo, então
+  // bolinhas e rótulos em branco — os weekDot* antigos eram pra card escuro.
+  topoCard: { marginHorizontal: 20, marginTop: 14, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
+  topoLinha: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  topoDivisor: { height: 1, backgroundColor: 'rgba(255,255,255,0.18)', marginHorizontal: 16 },
+  topoLinhaSeq: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 },
+  topoSeqTitulo: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  topoDiaRotulo: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '700', marginBottom: 6 },
+  topoDot: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 2, borderColor: 'transparent' },
+  topoDotAtivo: { backgroundColor: '#fff' },
+  topoDotHoje: { borderColor: colors.gold },
   diaryBarIcon: {
     width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center', alignItems: 'center',
