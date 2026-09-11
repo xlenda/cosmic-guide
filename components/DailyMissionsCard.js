@@ -154,7 +154,9 @@ export default function DailyMissionsCard({ children, mostrarMissoes = true }) {
     try {
       const res = await claimDailyBonus();
       if (res.ok) {
-        Alert.alert('Bônus cósmico! ✨', `+${res.awarded} tokens por completar as 3 missões de hoje.`);
+        // Sem número cravado: eram 3 até 10/09/2026 e viraram 6. Texto que
+        // conta quantas são envelhece na primeira mudança de regra.
+        Alert.alert('Bônus cósmico! ✨', `+${res.awarded} tokens por completar as missões de hoje.`);
         setProgress(await getMissionProgress());
       } else {
         // 'ja-resgatado' / 'missoes-pendentes' — só realinha a UI, sem drama.
@@ -309,7 +311,7 @@ export default function DailyMissionsCard({ children, mostrarMissoes = true }) {
         ) : progress.bonusClaimed ? (
           <Text style={s.bonusDoneText}>Dia completo! Bônus de +{ALL_DONE_BONUS} resgatado ✓</Text>
         ) : (
-          <Text style={s.bonusHint}>Complete as 3 missões e ganhe +{ALL_DONE_BONUS} de bônus.</Text>
+          <Text style={s.bonusHint}>Complete as {progress.total} missões e ganhe +{ALL_DONE_BONUS} de bônus.</Text>
         )}
         </>
         )}

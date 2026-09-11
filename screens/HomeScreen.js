@@ -1430,7 +1430,14 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   activeOpacity={0.9}
                   style={styles.skyCard}
-                  onPress={() => navigation.navigate(ROUTES.BIRTH_CHART)}
+                  onPress={() => {
+                    // Missão fixa de 10/09/2026: ver o céu de hoje paga
+                    // diamante. O marcador vai ANTES do navigate (track é
+                    // síncrona e não devolve promise), senão a navegação
+                    // desmonta a tela antes de gravar.
+                    recordMissionAction(MISSION_ACTIONS.CEU_DE_HOJE_VISTO);
+                    navigation.navigate(ROUTES.BIRTH_CHART);
+                  }}
                 >
                   <View style={styles.peekHead}>
                     <Ionicons name="telescope" size={16} color={colors.teal} />
@@ -1522,7 +1529,10 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   activeOpacity={0.9}
                   style={styles.proximosCard}
-                  onPress={() => navigation.navigate(ROUTES.CALENDARIO_COSMICO)}
+                  onPress={() => {
+                    recordMissionAction(MISSION_ACTIONS.PROXIMOS_DIAS_VISTO);
+                    navigation.navigate(ROUTES.CALENDARIO_COSMICO);
+                  }}
                   testID="home-proximos-eventos"
                 >
                   <LinearGradient colors={gradients.card} style={styles.proximosInner}>

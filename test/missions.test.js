@@ -85,7 +85,7 @@ async function completeAll(now) {
   return list;
 }
 
-test('determinismo: mesma data local => mesmas 3 missões (mesmo com dia UTC diferente), sem Math.random', async () => {
+test('determinismo: mesma data local => mesmas 6 missões (mesmo com dia UTC diferente), sem Math.random', async () => {
   reset();
   const origRandom = Math.random;
   Math.random = () => {
@@ -99,8 +99,12 @@ test('determinismo: mesma data local => mesmas 3 missões (mesmo com dia UTC dif
       b.map((m) => m.id),
       '22h e 8h do mesmo dia LOCAL têm que sortear as mesmas missões (convenção local, não UTC)'
     );
-    assert.strictEqual(a.length, 3);
-    assert.strictEqual(new Set(a.map((m) => m.id)).size, 3, 'sem missão repetida no dia');
+    // 6 desde 10/09/2026: as 3 sorteadas + as 3 fixas (céu de hoje, próximos
+    // dias, compatibilidade). O determinismo que este teste protege vale pras
+    // sorteadas; as fixas são as mesmas todo dia por definição, e entram no
+    // total. O que continua proibido é Math.random no sorteio.
+    assert.strictEqual(a.length, 6);
+    assert.strictEqual(new Set(a.map((m) => m.id)).size, 6, 'sem missão repetida no dia');
   } finally {
     Math.random = origRandom;
   }
@@ -125,7 +129,11 @@ test('composição saudável: sempre 1 universal + 1 explorar + 1 leitura (ningu
   for (let i = 0; i < 30; i++) {
     const day = new Date(2026, 5, 1 + i, 12, 0, 0);
     const groups = (await missions.getTodaysMissions(day)).map((m) => byId.get(m.id).group);
-    assert.deepStrictEqual(groups, ['universal', 'explorar', 'leitura']);
+    // As 3 fixas entraram em 10/09/2026 e vêm depois das sorteadas. O que este
+    // teste protege continua igual: sempre existe 1 universal (completável por
+    // qualquer pessoa, sem paywall) na frente — ninguém abre o dia só com
+    // missão trancada.
+    assert.deepStrictEqual(groups, ['universal', 'explorar', 'leitura', 'fixa', 'fixa', 'fixa']);
   }
 });
 
@@ -209,7 +217,7 @@ test('flag atômica: conclusão e crédito do dia ficam gravados JUNTOS no estad
   assert.strictEqual(state.date, '2026-01-15', 'estado datado pelo dia LOCAL (22h local ainda é dia 15)');
 });
 
-test('bônus 3/3: só com as três concluídas, e uma única vez', async () => {
+test('bônus do dia: só com TODAS concluídas, e uma única vez', async () => {
   reset();
 
   const early = await missions.claimDailyBonus(DAY_A_NIGHT);
@@ -219,7 +227,9 @@ test('bônus 3/3: só com as três concluídas, e uma única vez', async () => {
   await completeAll(DAY_A_NIGHT);
 
   const progress = await missions.getMissionProgress(DAY_A_NIGHT);
-  assert.strictEqual(progress.done, 3);
+  // 6 desde 10/09/2026 (3 sorteadas + 3 fixas). O teste continua provando o
+  // mesmo: o bônus só libera com TODAS concluídas, e paga uma vez só.
+  assert.strictEqual(progress.done, 6);
   assert.strictEqual(progress.allDone, true);
   assert.strictEqual(progress.bonusAvailable, true);
 
@@ -231,7 +241,10 @@ test('bônus 3/3: só com as três concluídas, e uma única vez', async () => {
   assert.strictEqual(again.ok, false);
   assert.strictEqual(again.reason, 'ja-resgatado');
 
-  const expected = 3 * missions.MISSION_REWARD + missions.ALL_DONE_BONUS;
+  // Lê a constante em vez de cravar o número: era 3 até 10/09/2026 e virou 6.
+  // Assim o teste continua provando a regra (dia perfeito = teto exato) sem
+  // precisar ser reescrito toda vez que a quantidade mudar.
+  const expected = missions.MISSOES_POR_DIA * missions.MISSION_REWARD + missions.ALL_DONE_BONUS;
   assert.strictEqual(await tokens.getTokenBalance(), expected);
   assert.strictEqual(expected, missions.MISSIONS_DAILY_TOKEN_CAP, 'dia perfeito rende exatamente o teto diário');
 });
@@ -340,7 +353,10 @@ test('ataque de wipe: apagar só cosmic-missions-daily mantendo o saldo não rec
   assert.strictEqual(await tokens.getTokenBalance(), balance, 'saldo idêntico ao de antes do wipe');
 
   const missionCredits = (await tokens.getTokenHistory()).filter((h) => h.meta && h.meta.kind === 'mission');
-  assert.strictEqual(missionCredits.length, 4, 'continuam exatamente os 4 créditos legítimos (3 missões + bônus)');
+  // 7 desde 10/09/2026: as 6 missões do dia + o bônus. O que este teste
+  // protege não mudou — apagar o estado do dia mantendo o saldo NÃO recredita,
+  // porque o extrato é a fonte da verdade do teto.
+  assert.strictEqual(missionCredits.length, 7, 'continuam exatamente os créditos legítimos (6 missões + bônus)');
 });
 
 test('trava cross-aba (web): reivindicação síncrona em localStorage bloqueia crédito duplo entre abas', async () => {
@@ -404,9 +420,14 @@ test('crash no meio do claim: flag gravada antes do saldo — nunca duplica, no 
   assert.strictEqual(again.reason, 'ja-resgatado');
 });
 
-test('pool: ~10 tipos, ids únicos e todo verificador é de um tipo conhecido', () => {
+test('pool: 13 tipos, ids únicos e todo verificador é de um tipo conhecido', () => {
   const pool = missions.MISSION_POOL;
-  assert.strictEqual(pool.length, 10);
+  // 13 desde 10/09/2026: os 10 sorteáveis + as 3 fixas. O que importa aqui não
+  // é o número, é que todo verificador seja de um tipo que o motor sabe checar
+  // e que toda ação citada exista em MISSION_ACTIONS — uma missão com
+  // verificador inventado nunca completaria, e a pessoa ficaria olhando um
+  // diamante que não chega.
+  assert.strictEqual(pool.length, 13);
   assert.strictEqual(new Set(pool.map((m) => m.id)).size, pool.length);
   const kinds = new Set(['action', 'journal-any', 'journal-type', 'journal-voice']);
   for (const m of pool) {
