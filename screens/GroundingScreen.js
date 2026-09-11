@@ -138,7 +138,8 @@ export default function GroundingScreen() {
         // (lib/readingCompletion.js chama a mesma função). Só no fim natural:
         // quem sai no meio não perde nem ganha nada, e não existe contagem
         // própria deste ritual em lugar nenhum.
-        recordActiveDay().catch(() => {});
+        // tipo → calendário por cor nos Relatórios (11/09/2026)
+        recordActiveDay('grounding').catch(() => {});
         return;
       }
       setDecorrido(t0);

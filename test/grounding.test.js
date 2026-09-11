@@ -255,10 +255,10 @@ test('o ritual não tem recompensa, token nem sequência própria', () => {
     assert.doesNotMatch(fonte, /awardTokens|awardReadingTokens|TOKEN_REWARDS/, `${nome} paga token`);
     assert.doesNotMatch(fonte, /recordReadingCompletion/, `${nome} registra o ritual como leitura`);
   }
-  assert.match(TELA, /recordActiveDay\(\)/, 'terminar tem que marcar o dia ativo, como as outras telas');
+  assert.match(TELA, /recordActiveDay\('grounding'\)/, 'terminar tem que marcar o dia ativo, como as outras telas');
   // E só no fim natural: quem sai no meio não perde nem ganha nada.
   const iFim = TELA.indexOf("setEtapa('fim')");
-  const iMarca = TELA.indexOf('recordActiveDay()');
+  const iMarca = TELA.indexOf("recordActiveDay('grounding')");
   assert.ok(iFim > 0 && iMarca > iFim, 'recordActiveDay tem que ficar no ramo do fim natural da sessão');
 });
 

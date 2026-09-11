@@ -336,7 +336,8 @@ export default function HomeScreen() {
     if (thoughtReadToday) return;
     setThoughtReadToday(true);
     await setItemSeguro(THOUGHT_READ_KEY, localDayStr());
-    await recordActiveDay();
+    // tipo → calendário por cor nos Relatórios (11/09/2026)
+    await recordActiveDay('horoscope');
     // Reflete na hora o dot de hoje + contagem no widget da semana (e, se um
     // marco 7/30/100 acabou de bater, loadStreak consome e celebra já).
     loadStreak();

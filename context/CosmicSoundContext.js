@@ -409,7 +409,8 @@ export function CosmicSoundProvider({ children }) {
         if (r.atingiu) {
           // Único efeito de retenção da feature — e é o MESMO caminho das
           // leituras (lib/readingCompletion.js chama a mesma função).
-          recordActiveDay().catch(() => {});
+          // tipo → calendário por cor nos Relatórios (11/09/2026)
+          recordActiveDay('sound').catch(() => {});
         }
       }
 

@@ -24,7 +24,7 @@ import { colors, gradients } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import UniversoGirando from '../components/UniversoGirando';
 import AnelProgresso from '../components/AnelProgresso';
-import { getMonthActivity, getStreakInfo, STREAK_MILESTONES } from '../lib/streak';
+import { getMonthActivity, getMonthTypes, getStreakInfo, STREAK_MILESTONES } from '../lib/streak';
 import { readDays } from '../lib/streakDays';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -33,6 +33,50 @@ import { useLanguage } from '../context/LanguageContext';
 // PT vira "S M T W T F S" em EN sem chave nova.
 const LOCALE = { pt: 'pt-BR', es: 'es-ES', en: 'en-US' };
 const MESES_NO_GRAFICO = 6;
+
+// COR POR TIPO DE ATIVIDADE (11/09/2026). O tipo NÃO entra no mapa de dias do
+// streak: { "AAAA-MM-DD": true|'shield' } é lido por computeCurrentStreak, pelos
+// escudos, pelo Céu de Hoje e pelo casal — trocar o valor por um objeto quebrava
+// todos de uma vez. Então o tipo vive num MAPA PARALELO (cosmic-active-types,
+// lib/streakDays.js) e o calendário cruza os dois pela data.
+//
+// Histórico anterior a hoje não tem tipo gravado: esses dias ficam na cor
+// neutra (o dourado de sempre) com rótulo genérico. NUNCA se inventa tipo pra
+// dia antigo — a doutrina do app proíbe fabricar dado.
+//
+// Dia com mais de uma atividade pinta pelo tipo DOMINANTE = o primeiro gravado
+// (ordem do array). Slug desconhecido cai no neutro, igual dia sem tipo.
+const TIPOS = {
+  tarot:      { cor: colors.gold,   rotulo: 'diary.filter.tarot' },
+  dream:      { cor: colors.blue,   rotulo: 'diary.filter.dream' },
+  coffee:     { cor: '#FF8C5C',     rotulo: 'diary.filter.coffee' },
+  palma:      { cor: colors.teal,   rotulo: 'diary.filter.palma' },
+  rosto:      { cor: colors.teal,   rotulo: 'diary.filter.rosto' },
+  pe:         { cor: colors.teal,   rotulo: 'diary.filter.pe' },
+  pintas:     { cor: colors.teal,   rotulo: 'diary.filter.pintas' },
+  grounding:  { cor: colors.green,  rotulo: 'home.card.grounding.title' },
+  jornada:    { cor: colors.pink,   rotulo: 'home.card.jornada.title' },
+  zodiacbody: { cor: colors.accent, rotulo: 'home.card.zodiacbody.title' },
+  horoscope:  { cor: '#C9A8FF',     rotulo: 'home.card.horoscope.title' },
+  // Os cinco abaixo entraram em 11/09/2026 (revisor adversarial): são
+  // leituras REAIS que passam por readingCompletion/recordActiveDay e caíam
+  // no balde neutro "Atividade" — quatro delas nunca ganhavam cor própria.
+  birthchart:    { cor: '#8FA9BD', rotulo: 'home.card.birthchart.title' },
+  chat:          { cor: '#C88C88', rotulo: 'orbi.chat.diaryLabel' },
+  compatibility: { cor: '#FF6BA0', rotulo: 'home.card.compatibility.title' },
+  lunarCalendar: { cor: '#B6E3FF', rotulo: 'home.card.lunarCalendar.title' },
+  sound:         { cor: '#A3B78D', rotulo: 'sound.title' },
+};
+
+// O tipo que pinta o dia: o PRIMEIRO CONHECIDO da lista, não o primeiro
+// gravado. Um dia que começa pelo chat e depois tira Tarô mostrava o neutro e
+// escondia o Tarô. Object.hasOwn e não TIPOS[x]: slug igual a nome herdado
+// ('constructor', '__proto__') vindo de storage corrompido entrava na legenda
+// como item vazio. Sem tipo conhecido → null → neutro + "Atividade".
+function tipoDominante(tipos) {
+  if (!Array.isArray(tipos)) return null;
+  return tipos.find((tp) => typeof tp === 'string' && Object.hasOwn(TIPOS, tp)) || null;
+}
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -78,11 +122,14 @@ export default function ReportsScreen() {
   const [month, setMonth] = useState(now.getMonth()); // 0-indexed, igual getMonthActivity()
 
   const [monthActivity, setMonthActivity] = useState({});
+  const [monthTypes, setMonthTypes] = useState({}); // { "AAAA-MM-DD": ['tarot', ...] }
   const [streakInfo, setStreakInfo] = useState({ currentStreak: 0, totalActiveDays: 0, longest: 0 });
   const [evolucao, setEvolucao] = useState([]);
 
   const loadMonth = useCallback(async () => {
-    setMonthActivity(await getMonthActivity(year, month));
+    const [ativos, tipos] = await Promise.all([getMonthActivity(year, month), getMonthTypes(year, month)]);
+    setMonthActivity(ativos);
+    setMonthTypes(tipos);
   }, [year, month]);
 
   const loadResumo = useCallback(async () => {
@@ -140,6 +187,16 @@ export default function ReportsScreen() {
 
   const maxAtivos = Math.max(1, ...evolucao.map((e) => e.ativos));
   const semanaLetras = weekdayLetters(locale);
+
+  // Legenda do mês: tipos dominantes distintos, na ordem da primeira aparição
+  // no mês. A bolinha neutra só entra se algum dia ativo ficou sem tipo.
+  const legenda = [];
+  let temSemTipo = false;
+  Object.keys(monthActivity).sort().forEach((key) => {
+    const dominante = tipoDominante(monthTypes[key]);
+    if (!dominante) temSemTipo = true;
+    else if (!legenda.includes(dominante)) legenda.push(dominante);
+  });
 
   return (
     <View style={styles.root}>
@@ -211,15 +268,33 @@ export default function ReportsScreen() {
               const dateKey = `${year}-${pad2(month + 1)}-${pad2(day)}`;
               const active = !!monthActivity[dateKey];
               const isToday = isCurrentMonth && day === now.getDate();
+              const corDia = TIPOS[tipoDominante(monthTypes[dateKey])]?.cor || colors.gold;
               return (
                 <View key={dateKey} style={styles.dayCell}>
-                  <View style={[styles.dayCircle, active && styles.dayCircleActive, isToday && styles.dayCircleToday]}>
+                  <View style={[styles.dayCircle, active && { backgroundColor: corDia }, isToday && styles.dayCircleToday]}>
                     <Text style={[styles.dayNumber, active && styles.dayNumberActive]}>{day}</Text>
                   </View>
                 </View>
               );
             })}
           </View>
+
+          {ativosNoMes > 0 && (
+            <View style={styles.legenda} testID="reports-legenda">
+              {legenda.map((tipo) => (
+                <View key={tipo} style={styles.legendaItem}>
+                  <View style={[styles.legendaBola, { backgroundColor: TIPOS[tipo].cor }]} />
+                  <Text style={styles.legendaTexto}>{t(TIPOS[tipo].rotulo)}</Text>
+                </View>
+              ))}
+              {temSemTipo && (
+                <View style={styles.legendaItem}>
+                  <View style={[styles.legendaBola, { backgroundColor: colors.gold }]} />
+                  <Text style={styles.legendaTexto}>{t('reports.legendaSemTipo')}</Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         {/* GRÁFICO DE EVOLUÇÃO — o que o card PRO prometia atrás do cadeado,
@@ -296,12 +371,16 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center',
     borderWidth: 1.5, borderColor: 'transparent',
   },
-  // Dia ativo em DOURADO — é a cor de conquista do app (o mesmo dos marcos),
-  // e casa com o cabeçalho desta tela. O teal anterior era a cor de escudo.
-  dayCircleActive: { backgroundColor: colors.gold },
+  // O fundo do dia ativo é inline: vem da cor do tipo dominante (TIPOS), com
+  // o dourado — cor de conquista do app — como neutro pra dia sem tipo.
   dayCircleToday: { borderColor: colors.gold },
   dayNumber: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
   dayNumberActive: { color: colors.background, fontWeight: '800' },
+
+  legenda: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
+  legendaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendaBola: { width: 10, height: 10, borderRadius: 5 },
+  legendaTexto: { color: colors.textMuted, fontSize: 11 },
 
   evolucaoCard: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,

@@ -181,7 +181,8 @@ export default function ZodiacBodyScreen() {
         const day = localDayStr();
         if (last === day) return;
         AsyncStorage.setItem(ACTIVE_DAY_KEY, day).catch(() => {});
-        recordActiveDay();
+        // tipo → calendário por cor nos Relatórios (11/09/2026)
+        recordActiveDay('zodiacbody');
       })
       .catch(() => {});
     return () => {

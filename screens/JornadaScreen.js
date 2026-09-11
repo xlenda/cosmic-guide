@@ -307,7 +307,8 @@ export default function JornadaScreen() {
           // Mesmo caminho de qualquer leitura terminada (lib/streak.js), o
           // mesmo que GroundingScreen.js usa. A Jornada não inventa contagem
           // própria: fechar um dia marca o dia como ativo e mais nada.
-          recordActiveDay().catch(() => {});
+          // tipo → calendário por cor nos Relatórios (11/09/2026)
+          recordActiveDay('jornada').catch(() => {});
         }
       } finally {
         setGravando(false);
@@ -359,7 +360,8 @@ export default function JornadaScreen() {
         // Mesmo caminho de qualquer coisa terminada no app (lib/streak.js): o
         // Arco não inventa contagem própria de presença, ele marca o dia como
         // ativo e mais nada — igual ao concluir da trilha, logo acima.
-        if (novo) recordActiveDay().catch(() => {});
+        // tipo → calendário por cor nos Relatórios (11/09/2026)
+        if (novo) recordActiveDay('jornada').catch(() => {});
         return novo;
       }),
     [comArcoOcupado]
