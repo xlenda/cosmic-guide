@@ -85,7 +85,7 @@ import { profeccaoAnual } from '../lib/profeccoes';
 // Elementos com % — aritmética pura sobre planetPositions (10 planetas, % =
 // contagem × 10, soma sempre 100). Null sem data/motor → a seção nem aparece.
 import { distribuicaoDeElementos } from '../lib/elementos';
-import { polaridadeDoSigno, modalidadeDoSigno } from '../lib/signs';
+import { elementoDoSigno, polaridadeDoSigno, modalidadeDoSigno } from '../lib/signs';
 import { hasUsedFeatureOnce, markFeatureUsedOnce } from '../lib/featureUsage';
 import { recordReadingCompletion } from '../lib/readingCompletion';
 import { saveSoloBirthMirror, readSecureItemWithMirror, writeSecureItemWithMirror } from '../lib/birthData';
@@ -654,7 +654,7 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', 
                   heroHalo continua abrindo o bloco. */}
               {chart.sun && (
                 <View style={styles.fichaSol}>
-                  <FichaSolItem rotulo={t('birthchart.ficha.elemento')} valor={t(FICHA_ELEMENTO_KEY[chart.sun.element] || 'birthchart.ficha.elemento')} />
+                  <FichaSolItem rotulo={t('birthchart.ficha.elemento')} valor={t(FICHA_ELEMENTO_KEY[elementoDoSigno(chart.sun.name)] || 'birthchart.ficha.elemento')} />
                   <FichaSolItem rotulo={t('birthchart.ficha.polaridade')} valor={t(FICHA_POLARIDADE_KEY[polaridadeDoSigno(chart.sun.name)] || 'birthchart.ficha.polaridade')} />
                   <FichaSolItem rotulo={t('birthchart.ficha.modalidade')} valor={t(FICHA_MODALIDADE_KEY[modalidadeDoSigno(chart.sun.name)] || 'birthchart.ficha.modalidade')} />
                 </View>
