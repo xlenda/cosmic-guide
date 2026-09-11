@@ -34,6 +34,7 @@ import { nomeDoSigno } from '../lib/synastry';
 import { rotuloDoAspecto, rotuloDoPlaneta } from '../lib/transitoFase';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
+import AnelProgresso from '../components/AnelProgresso';
 // ===========================================================================
 // SEITA (hairesis) — LEIA lib/seita.js ANTES DE MEXER EM QUALQUER TEXTO DAQUI
 // ===========================================================================
@@ -527,31 +528,22 @@ function ElementosSection({ elementos, temHora }) {
       <Text style={styles.elementosTitulo}>{t('birthchart.elements.title')}</Text>
       <View style={styles.elementosRow}>
         {ELEMENTOS_META.map((e) => {
-          // ESPÍRITO DO ELEMENTO (08/08/2026, última rodada de arte): mesmo
-          // contrato dos mascotes do trio — elementoImagem(chave) devolve o
-          // asset pintado ou null, e null mantém o emoji exatamente como era.
-          // O círculo vira MOLDURA: overflow hidden (no style) recorta o JPG
-          // por dentro da borda colorida, igual ao trioHalo. O chip de % NÃO
-          // muda de lugar: ele é irmão POSTERIOR do círculo dentro do wrap,
-          // então pinta POR CIMA da imagem por ordem natural de render (RN
-          // desenha o último filho em cima; nenhum zIndex necessário).
-          // accessible={false}: decorativa — o nome do elemento está escrito
-          // logo embaixo, no elementoNome.
-          const arte = elementoImagem(e.key);
           return (
             <View key={e.key} style={styles.elementoCol} testID={`elementos-${e.key}`}>
-              <View style={styles.elementoCirculoWrap}>
-                <View style={[styles.elementoCirculo, { backgroundColor: e.color + '22', borderColor: e.color + '55' }]}>
-                  {arte ? (
-                    <Image source={arte} style={styles.elementoArte} resizeMode="cover" accessible={false} />
-                  ) : (
-                    <Text style={styles.elementoEmoji}>{e.emoji}</Text>
-                  )}
-                </View>
-                <View style={[styles.elementoChip, { borderColor: e.color + '66' }]}>
-                  <Text style={[styles.elementoChipTexto, { color: e.color }]}>{elementos.pct[e.key]}%</Text>
-                </View>
-              </View>
+              {/* ANEL DE PROGRESSO (11/09/2026, referência do dono: os
+                  medidores de "Foco de hoje"). Antes era um círculo decorativo
+                  com a % num chip ao lado — o número estava lá, a leitura
+                  visual não. Agora o próprio círculo DESENHA a porcentagem e a
+                  pessoa compara os quatro de relance.
+
+                  A arte do elemento saiu daqui: ela preenchia o miolo, e o
+                  miolo agora é do número. O emoji fica, pequeno, sob a %.
+                  A % continua vindo de lib/elementos.js — contagem real dos
+                  10 planetas, nenhum número nasce nesta tela. */}
+              <AnelProgresso pct={elementos.pct[e.key]} size={72} espessura={6} cor={e.color}>
+                <Text style={[styles.elementoPct, { color: e.color }]}>{elementos.pct[e.key]}%</Text>
+                <Text style={styles.elementoEmojiPeq}>{e.emoji}</Text>
+              </AnelProgresso>
               <Text style={styles.elementoNome}>{t(e.labelKey)}</Text>
             </View>
           );
@@ -1644,6 +1636,9 @@ const styles = StyleSheet.create({
   // do overflow do círculo, o borderRadius aqui é só cinto-e-suspensório pro
   // RN Web antigo que não recorta filho em raio.
   elementoArte: { width: 68, height: 68, borderRadius: 34 },
+  // O miolo do anel: % grande na cor do elemento, emoji pequeno embaixo.
+  elementoPct: { fontSize: 15, fontWeight: '800' },
+  elementoEmojiPeq: { fontSize: 11, marginTop: 1 },
   elementoNome: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
   // O chip de %: pill pequena SOBREPOSTA no canto superior direito do círculo
   // (o desenho do concorrente) — fundo escuro do cenário + borda na cor do
