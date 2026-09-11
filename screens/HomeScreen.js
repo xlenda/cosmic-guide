@@ -43,6 +43,7 @@ import OrbiGuide from '../components/OrbiGuide';
 // components/CosmicSoundPlayer.js). Sem este card, a única porta de entrada
 // seria a pílula de 40 px acima da barra de abas, que ninguém descobre.
 import CosmicSoundPlayer from '../components/CosmicSoundPlayer';
+import CabecalhoIdentidade from '../components/CabecalhoIdentidade';
 // `aspects` saiu do import em 10/09/2026 junto com o motor do Evento Cósmico:
 // era o único consumidor nesta tela. A função continua em lib/signs.js, usada
 // pelo Calendário Cósmico e pelo Céu de Hoje.
@@ -67,6 +68,7 @@ import { getWeekActivity, getStreakInfo, consumePendingMilestoneCelebration, rec
 import { recordMissionAction, MISSION_ACTIONS } from '../lib/missions';
 import { localDayStr } from '../lib/localDay';
 import { getShieldCount } from '../lib/streakShield';
+import { carregarIdentidade } from '../lib/identidadeCeleste';
 // Storage SEMPRE via lib/storage.js: se o disco falhar (SecurityError em
 // iframe/web), os wrappers caem pra memória de sessão em vez de engolir a
 // escrita — sem isso o flag "leitura do dia lida" nunca persistia e o card
@@ -268,6 +270,12 @@ export default function HomeScreen() {
   // acontecer em outra tela (ex.: acabou de completar uma leitura e voltou).
   const [weekActivity, setWeekActivity] = useState([]);
   const [streakInfo, setStreakInfo] = useState({ currentStreak: 0, totalActiveDays: 0 });
+  // A identidade celeste do topo (lib/identidadeCeleste.js). TRÊS estados:
+  // undefined = carregando (o cabeçalho não desenha nada), null = carregou e
+  // não há data salva (vira convite), objeto = Sol/Lua/Asc/elementos. Começa
+  // em undefined de propósito: começando em null, quem já tinha data via o
+  // convite piscar na abertura — apontado pelos dois revisores em 11/09/2026.
+  const [identidade, setIdentidade] = useState(undefined);
   // Escudo(s) da Sequência disponíveis (lib/streakShield.js, comprados na
   // Loja) — só pra mostrar o indicadorzinho ao lado do streak, quem consome
   // de verdade é computeCurrentStreak() (lib/streak.js).
@@ -309,7 +317,14 @@ export default function HomeScreen() {
     setShieldCount(shields);
   }, []);
 
-  useFocusEffect(useCallback(() => { loadStreak(); }, [loadStreak]));
+  useFocusEffect(
+    useCallback(() => {
+      loadStreak();
+      // carregarIdentidade nunca lança (devolve null); o catch é cinto de
+      // segurança pra um erro de import/motor não virar Home em branco.
+      carregarIdentidade().then(setIdentidade).catch(() => setIdentidade(null));
+    }, [loadStreak])
+  );
 
   // Marca a leitura do dia como lida (uma vez por dia) quando a pessoa expande
   // o card. Ler a leitura do dia É atividade real no app, então conta como dia
@@ -1200,6 +1215,22 @@ export default function HomeScreen() {
 
           </View>
         )}
+
+        {/* CABEÇALHO DE IDENTIDADE (11/09/2026, pedido do dono olhando a
+            referência do concorrente: "Lauren · Câncer ☉ Escorpião ☾ Sagitário ↑"
+            — a tela diz QUEM a pessoa é antes de qualquer card). Sol, Lua e
+            Ascendente vêm da MESMA conta do Mapa de Nascimento
+            (lib/identidadeCeleste.js); a Home não recalcula nada.
+
+            Os anéis são os quatro ELEMENTOS, não "Amor 75%" como na
+            referência: aquele número não sai de conta nenhuma, e número
+            inventado é proibido aqui. A distribuição de elementos é a única
+            porcentagem que a doutrina permite — contagem de planetas × 10,
+            refazível à mão.
+
+            Sem data de nascimento salva, `identidade` é null e o bloco vira
+            um convite pra preencher o Mapa — nunca um signo chutado. */}
+        <CabecalhoIdentidade identidade={identidade} onMapa={() => navigation.navigate(ROUTES.BIRTH_CHART)} />
 
         {/* DIÁRIO CÓSMICO — sobe pro topo (10/09/2026, pedido do dono: "a parte
             do diário cósmico e a sequência do dia de hoje pode colocar no
