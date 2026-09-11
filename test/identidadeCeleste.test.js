@@ -99,3 +99,29 @@ test('data + hora + cidade: Ascendente sai como signo', async () => {
   assert.equal(id.time, '08:30');
   assert.deepEqual(id.city, PORTO_ALEGRE);
 });
+
+// O CASO DO DONO (11/09/2026): conta de CASAL guarda a data em gff-birth-a
+// (salva pelo Quiz), não em birthChartSolo. A primeira versão lia só a chave
+// do solo e a Home mostrava o convite pra quem já tinha data — medido no
+// navegador com o perfil de casal. Agora a lib passa por getAnyBirthData
+// (casal → solo → espelho web), e este teste trava isso.
+const CHAVE_CASAL_A = 'gff-birth-a-mirror';
+
+test('casal: data em gff-birth-a (sem nada no solo) → Sol e Lua saem, Asc null sem cidade', async () => {
+  mem.clear();
+  mem.set(CHAVE_CASAL_A, JSON.stringify({ date: '1990-05-15', time: '08:30' }));
+  const id = await carregarIdentidade();
+  assert.ok(id, 'com data do casal a identidade precisa existir — era o convite indevido');
+  assert.equal(id.sun, 'Touro');
+  assert.equal(id.moon, 'Capricórnio');
+  assert.equal(id.asc, null, 'sem birthChartCities salvo não há cidade → Ascendente null, nunca um chute');
+  assert.equal(Object.values(id.elementos.pct).reduce((a, b) => a + b, 0), 100);
+});
+
+test('casal E solo salvos com datas diferentes → o casal vence (mesma ordem do Céu de Hoje)', async () => {
+  mem.clear();
+  mem.set(CHAVE_CASAL_A, JSON.stringify({ date: '1990-05-15' })); // Touro
+  mem.set(CHAVE, JSON.stringify({ date: '1990-08-10' }));          // Leão
+  const id = await carregarIdentidade();
+  assert.equal(id.sun, 'Touro', 'getAnyBirthData põe birthA antes do solo; a Home tem que concordar com o Céu de Hoje');
+});
