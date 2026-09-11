@@ -23,19 +23,38 @@
 // faz isso no OrbiIntro.
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Animated, Easing, Platform, AccessibilityInfo } from 'react-native';
-import { colors } from '../theme';
 
 // Cada órbita: raio (px), duração de uma volta (ms), tamanho e cor do planeta.
 // Durações propositalmente DIFERENTES e não múltiplas entre si — com tempos
 // proporcionais os planetas reencontrariam a mesma formação a cada ciclo e o
 // olho perceberia a repetição. Assim o desenho nunca se repete igual.
 const ORBITAS = [
-  { raio: 38, duracao: 11000, planeta: 7, cor: '#FFD98A', sentido: 1 },
-  { raio: 58, duracao: 17000, planeta: 9, cor: '#C9A8FF', sentido: -1 },
-  { raio: 78, duracao: 26000, planeta: 6, cor: '#8FD4FF', sentido: 1 },
+  { raio: 0.20, duracao: 9000,  planeta: 9,  cor: '#FFE3A8', sentido: 1 },
+  { raio: 0.20, duracao: 9000,  planeta: 6,  cor: '#C9A8FF', sentido: 1, fase: 0.55 },
+  { raio: 0.31, duracao: 15000, planeta: 13, cor: '#E4CCFF', sentido: -1 },
+  { raio: 0.31, duracao: 15000, planeta: 7,  cor: '#9ED8FF', sentido: -1, fase: 0.4 },
+  { raio: 0.43, duracao: 24000, planeta: 16, cor: '#F0DFFF', sentido: 1 },
+  { raio: 0.43, duracao: 24000, planeta: 8,  cor: '#FFD98A', sentido: 1, fase: 0.3 },
+  { raio: 0.43, duracao: 24000, planeta: 5,  cor: '#B6E3FF', sentido: 1, fase: 0.68 },
 ];
 
-const TAMANHO = 176;
+// Estrelas de fundo — mesmo hash determinístico do CosmicScene: o céu é o
+// mesmo em toda montagem, não "formiga" quando a tela re-renderiza.
+const ESTRELAS = Array.from({ length: 34 }, (_, i) => {
+  const a = Math.sin((i + 1) * 127.1) * 43758.5453;
+  const b = Math.sin((i + 1) * 311.7) * 12543.2371;
+  const fa = a - Math.floor(a);
+  const fb = b - Math.floor(b);
+  const c = Math.sin((i + 1) * 74.7) * 3571.13;
+  return {
+    left: `${(fa * 96 + 2).toFixed(2)}%`,
+    top: `${(fb * 96 + 2).toFixed(2)}%`,
+    tam: 1 + Math.round((c - Math.floor(c)) * 2),
+    opacidade: 0.25 + (c - Math.floor(c)) * 0.5,
+  };
+});
+
+const TAMANHO = 300;
 
 export default function UniversoGirando({ size = TAMANHO, testID }) {
   const [semMovimento, setSemMovimento] = useState(false);
@@ -73,6 +92,13 @@ export default function UniversoGirando({ size = TAMANHO, testID }) {
   }, [giros, semMovimento]);
 
   const centro = size / 2;
+  // Raios são FRAÇÃO do tamanho, não pixel: o mesmo componente serve num
+  // cabeçalho de 300px e num card de 160 sem reescrever a tabela.
+  const orbitas = ORBITAS.map((o) => ({ ...o, r: o.raio * size }));
+  // Anéis únicos — várias órbitas compartilham o mesmo raio (é o que povoa a
+  // cena como na referência), mas a LINHA de cada um só pode ser desenhada uma
+  // vez, senão a borda soma opacidade e fica mais clara que as outras.
+  const aneis = [...new Set(orbitas.map((o) => o.r))];
 
   return (
     <View
@@ -84,63 +110,82 @@ export default function UniversoGirando({ size = TAMANHO, testID }) {
       importantForAccessibility="no-hide-descendants"
       testID={testID}
     >
-      {/* O brilho do centro — o "sol". Três camadas concêntricas de opacidade
-          crescente dão o halo sem precisar de gradiente radial (que o RN não
-          tem nativamente). */}
-      <View style={[styles.halo, { width: size * 0.34, height: size * 0.34, borderRadius: size * 0.17 }]} />
-      <View style={[styles.halo2, { width: size * 0.22, height: size * 0.22, borderRadius: size * 0.11 }]} />
-      <View style={[styles.sol, { width: size * 0.13, height: size * 0.13, borderRadius: size * 0.065 }]} />
+      {/* Campo de estrelas atrás de tudo — sem ele o fundo é preto chapado e a
+          cena flutua no vazio (foi o que separou a primeira versão da
+          referência). */}
+      {ESTRELAS.map((e, i) => (
+        <View
+          key={`estrela-${i}`}
+          style={[
+            styles.estrela,
+            { left: e.left, top: e.top, width: e.tam, height: e.tam, borderRadius: e.tam / 2, opacity: e.opacidade },
+          ]}
+        />
+      ))}
 
-      {ORBITAS.map((o, i) => {
-        const d = o.raio * 2;
+      {/* Os anéis, parados. */}
+      {aneis.map((r) => (
+        <View
+          key={`anel-${r}`}
+          style={[styles.anel, { width: r * 2, height: r * 2, borderRadius: r, left: centro - r, top: centro - r }]}
+        />
+      ))}
+
+      {/* O SOL — na referência é o peso da composição, não um ponto. Camadas
+          concêntricas do mais difuso ao mais sólido: o RN não tem gradiente
+          radial, e empilhar círculos translúcidos é o jeito barato de ter
+          halo. */}
+      <View style={[styles.halo3, circulo(size * 0.30)]} />
+      <View style={[styles.halo2, circulo(size * 0.22)]} />
+      <View style={[styles.halo, circulo(size * 0.165)]} />
+      <View style={[styles.sol, circulo(size * 0.125)]} />
+      <View style={[styles.solNucleo, circulo(size * 0.075)]} />
+
+      {/* Os planetas: cada um num contêiner que gira. O planeta mora na borda
+          superior do contêiner, então girar o contêiner o leva pela
+          circunferência — sem trigonometria por frame. */}
+      {orbitas.map((o, i) => {
+        const d = o.r * 2;
+        // `fase` desloca o ponto de partida: sem ela os planetas que
+        // compartilham raio nasceriam empilhados no mesmo ponto.
+        const ini = (o.fase || 0) * 360;
         const rotacao = giros[i].interpolate({
           inputRange: [0, 1],
-          outputRange: o.sentido > 0 ? ['0deg', '360deg'] : ['360deg', '0deg'],
+          outputRange:
+            o.sentido > 0 ? [`${ini}deg`, `${ini + 360}deg`] : [`${ini + 360}deg`, `${ini}deg`],
         });
         return (
-          <React.Fragment key={o.raio}>
-            {/* O anel: só a linha da órbita, parado. */}
+          <Animated.View
+            key={`orbita-${i}`}
+            style={[
+              styles.trilho,
+              { width: d, height: d, left: centro - o.r, top: centro - o.r, transform: [{ rotate: rotacao }] },
+            ]}
+          >
             <View
               style={[
-                styles.anel,
-                { width: d, height: d, borderRadius: o.raio, left: centro - o.raio, top: centro - o.raio },
-              ]}
-            />
-            {/* O contêiner que gira. O planeta mora na BORDA SUPERIOR dele,
-                então girar o contêiner leva o planeta pela circunferência —
-                sem calcular seno e cosseno a cada frame. */}
-            <Animated.View
-              style={[
-                styles.trilho,
+                styles.planeta,
                 {
-                  width: d,
-                  height: d,
-                  left: centro - o.raio,
-                  top: centro - o.raio,
-                  transform: [{ rotate: rotacao }],
+                  width: o.planeta,
+                  height: o.planeta,
+                  borderRadius: o.planeta / 2,
+                  backgroundColor: o.cor,
+                  shadowColor: o.cor,
+                  marginLeft: -o.planeta / 2,
+                  marginTop: -o.planeta / 2,
                 },
               ]}
-            >
-              <View
-                style={[
-                  styles.planeta,
-                  {
-                    width: o.planeta,
-                    height: o.planeta,
-                    borderRadius: o.planeta / 2,
-                    backgroundColor: o.cor,
-                    shadowColor: o.cor,
-                    marginLeft: -o.planeta / 2,
-                    marginTop: -o.planeta / 2,
-                  },
-                ]}
-              />
-            </Animated.View>
-          </React.Fragment>
+            />
+          </Animated.View>
         );
       })}
     </View>
   );
+}
+
+// Atalho: os cinco círculos do sol só diferem no diâmetro.
+function circulo(d) {
+  return { width: d, height: d, borderRadius: d / 2 };
 }
 
 const styles = StyleSheet.create({
@@ -162,7 +207,11 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  sol: { position: 'absolute', backgroundColor: colors.gold },
-  halo: { position: 'absolute', backgroundColor: 'rgba(255,200,92,0.07)' },
-  halo2: { position: 'absolute', backgroundColor: 'rgba(255,200,92,0.14)' },
+  estrela: { position: 'absolute', backgroundColor: '#fff' },
+  // Laranja→rosa como na referência, não o dourado chapado da primeira versão.
+  solNucleo: { position: 'absolute', backgroundColor: '#FFD27A' },
+  sol: { position: 'absolute', backgroundColor: '#FF8A4C' },
+  halo: { position: 'absolute', backgroundColor: 'rgba(255,90,120,0.55)' },
+  halo2: { position: 'absolute', backgroundColor: 'rgba(214,72,150,0.26)' },
+  halo3: { position: 'absolute', backgroundColor: 'rgba(160,60,190,0.14)' },
 });

@@ -508,7 +508,7 @@ export default function DiaryScreen() {
               quebrada. Movimento lento e contínuo diz "isto está rodando,
               falta você começar". Respeita "reduzir movimento" do sistema:
               quem liga a opção vê o mesmo desenho, parado. */}
-          <UniversoGirando size={176} testID="diary-universo" />
+          <UniversoGirando size={300} testID="diary-universo" />
           <Text style={styles.emptyTitle}>{t('diary.empty.waiting')}</Text>
           <Text style={styles.emptyDesc}>
             Toda leitura de tarô, palma, rosto, pé, pintas, café ou sonho que você fizer aparece aqui, guardadinha
