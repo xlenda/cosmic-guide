@@ -47,6 +47,7 @@ import OneTimeLock from '../components/OneTimeLock';
 // saíram da fileira no topo do rolo e flutuam na pílula em cima do dock, como
 // no concorrente. Mesmos ids internos, mesmas chaves de label — só o lugar.
 import PillTabs from '../components/PillTabs';
+import { elementoDoSigno, polaridadeDoSigno, modalidadeDoSigno } from '../lib/signs';
 // O BOTÃO "OUVIR" (08/08/2026) — a leitura do bloco em voz alta, com a voz do
 // aparelho (Web Speech API, lib/voz.js). Em plataforma sem a API ele devolve
 // null sozinho — nenhum gate aqui.
@@ -78,14 +79,6 @@ const TAB_LABEL_KEYS = {
   'Amanhã': 'horoscope.tab.tomorrow',
 };
 
-// Elementos vêm de theme.js em PT ('Fogo'/'Terra'/'Ar'/'Água') e são usados
-// como dado — aqui só mapeamos pro rótulo traduzível.
-const ELEMENT_LABEL_KEYS = {
-  Fogo: 'horoscope.elementName.fogo',
-  Terra: 'horoscope.elementName.terra',
-  Ar: 'horoscope.elementName.ar',
-  'Água': 'horoscope.elementName.agua',
-};
 
 const PHASE_LABEL_KEYS = {
   'Lua Nova': 'rituais.fase.luaNova',
@@ -146,6 +139,26 @@ function resumoLocalizadoDoDia(signName, date, t, lang) {
     .flatMap((bloco) => bloco.lines)
     .find((line) => line.role !== 'metodo');
   return primeiraLinha ? t(primeiraLinha.key, resolveVars(primeiraLinha.vars, t, lang)) : null;
+}
+
+// Mapas LITERAIS (não template) pra varredura estática de
+// test/i18nKeysExist.test.js. lib/signs.js devolve 'água' com acento.
+const FICHA_ELEMENTO_KEY = {
+  fogo: 'birthchart.elements.fire',
+  terra: 'birthchart.elements.earth',
+  ar: 'birthchart.elements.air',
+  'água': 'birthchart.elements.water',
+};
+const FICHA_POLARIDADE_KEY = { masculino: 'birthchart.ficha.masculino', feminino: 'birthchart.ficha.feminino' };
+const FICHA_MODALIDADE_KEY = { cardinal: 'birthchart.ficha.cardinal', fixo: 'birthchart.ficha.fixo', mutavel: 'birthchart.ficha.mutavel' };
+
+function FichaItemSigno({ rotulo, valor, cor }) {
+  return (
+    <View style={styles.fichaItem}>
+      <Text style={styles.fichaRotulo}>{rotulo}</Text>
+      <Text style={styles.fichaValor}>{valor}</Text>
+    </View>
+  );
 }
 
 export default function HoroscopeScreen() {
@@ -252,10 +265,21 @@ export default function HoroscopeScreen() {
           </TouchableOpacity>
         }
       />
-      {/* paddingBottom 120: a pílula de abas flutua sobre o fim do rolo — sem
-          esse respiro ela cobriria o footerCard (contrato do PillTabs: ≥96;
-          120 dá folga pro card de duas linhas). */}
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      {/* ONTEM / HOJE / AMANHÃ NO TOPO (11/09/2026, pedido do dono: "aquela
+          parte de ontem e hoje, consegue incorporar?"). As abas JÁ EXISTIAM —
+          mas como pílula flutuando no rodapé, por cima dos cards, e ele
+          nunca as viu. Na referência elas ficam logo abaixo do cabeçalho,
+          onde a pessoa escolhe o dia ANTES de ler. Mesmo componente, mesmos
+          ids ('Ontem'/'Hoje'/'Amanhã' que dateForTab compara); só o `style`
+          desliga o absoluto e a põe no fluxo. O paddingBottom do rolo volta
+          ao normal — não há mais nada flutuando sobre o fim dele. */}
+      <PillTabs
+        items={TABS.map((tabName) => ({ id: tabName, label: t(TAB_LABEL_KEYS[tabName]) }))}
+        activeId={tab}
+        onSelect={(id) => { Haptics.selectionAsync(); setTab(id); }}
+        style={styles.abasTopo}
+      />
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {showPicker && (
           <View style={styles.pickerCard}>
             <Text style={styles.pickerTitle}>{t('horoscope.pickerTitle')}</Text>
@@ -298,9 +322,16 @@ export default function HoroscopeScreen() {
             <View style={styles.signInfo}>
               <Text style={styles.bigName}>{signLabel}</Text>
               <Text style={styles.bigDates}>{datasDoSigno(sign.dates, lang)}</Text>
-              <View style={styles.elementRow}>
-                <Ionicons name="flash" size={12} color={sign.color} />
-                <Text style={[styles.element, { color: sign.color }]}>{t('horoscope.element', { element: ELEMENT_LABEL_KEYS[sign.element] ? t(ELEMENT_LABEL_KEYS[sign.element]) : sign.element })}</Text>
+              {/* A FICHA DO SIGNO (11/09/2026). Antes era uma linha "Elemento
+                  {sign.element}" — e `sign` chega pela rota como { name, pt }
+                  (do userSign salvo), SEM element: a tela mostrava "Elemento
+                  undefined". Medido no navegador. Agora os três atributos
+                  fixos vêm pelo NOME (lib/signs.js), o mesmo desenho da ficha
+                  do Sol no Mapa — e as chaves de i18n são as mesmas de lá. */}
+              <View style={styles.fichaRow}>
+                <FichaItemSigno rotulo={t('birthchart.ficha.elemento')} valor={t(FICHA_ELEMENTO_KEY[elementoDoSigno(sign.name)] || 'birthchart.ficha.elemento')} cor={sign.color} />
+                <FichaItemSigno rotulo={t('birthchart.ficha.polaridade')} valor={t(FICHA_POLARIDADE_KEY[polaridadeDoSigno(sign.name)] || 'birthchart.ficha.polaridade')} cor={sign.color} />
+                <FichaItemSigno rotulo={t('birthchart.ficha.modalidade')} valor={t(FICHA_MODALIDADE_KEY[modalidadeDoSigno(sign.name)] || 'birthchart.ficha.modalidade')} cor={sign.color} />
               </View>
             </View>
           </LinearGradient>
@@ -430,15 +461,6 @@ export default function HoroscopeScreen() {
         )}
       </ScrollView>
 
-      {/* As sub-abas de período, flutuando em cima do dock — DEPOIS do
-          ScrollView na árvore, como o contrato do PillTabs pede. Os ids
-          seguem sendo as strings internas de TABS ('Ontem'/'Hoje'/'Amanhã'),
-          que dateForTab compara; só o label passa pelo t(). */}
-      <PillTabs
-        items={TABS.map((tabName) => ({ id: tabName, label: t(TAB_LABEL_KEYS[tabName]) }))}
-        activeId={tab}
-        onSelect={(id) => { Haptics.selectionAsync(); setTab(id); }}
-      />
     </View>
   );
 }
@@ -528,6 +550,13 @@ const styles = StyleSheet.create({
   signInfo: { alignItems: 'center' },
   bigName: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center' },
   bigDates: { color: colors.textMuted, fontSize: 12, marginTop: 2, textAlign: 'center' },
+  // As abas no fluxo, não flutuando: desliga o absoluto do PillTabs.
+  abasTopo: { position: 'relative', left: 0, right: 0, bottom: 0, marginTop: 12, marginBottom: 2 },
+  // A ficha do signo sob o nome — mesmo par rótulo/valor da ficha do Sol.
+  fichaRow: { flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 8 },
+  fichaItem: { alignItems: 'center', minWidth: 72 },
+  fichaRotulo: { color: colors.textMuted, fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' },
+  fichaValor: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 2 },
   elementRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 4, gap: 4 },
   element: { fontSize: 12, fontWeight: '700' },
   unavailable: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, padding: 18, paddingTop: 4 },
