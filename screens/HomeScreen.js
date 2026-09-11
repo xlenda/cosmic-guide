@@ -1400,7 +1400,7 @@ export default function HomeScreen() {
                 AgirScreen esconde o card quando está dentro de aba. */}
             <DailyMissionsCard>
   {temZonaCeu && (
-            <BandaSection tom="claro" nu style={{ marginHorizontal: -36 }}>
+            <BandaSection tom="claro" nu>
 
               {/* As "Temporadas do Céu" saíram da Home em 31/07/2026 — decisão do
                   dono, olhando a tela em produção: "fica perdido no meio". Ele está
@@ -1571,7 +1571,7 @@ export default function HomeScreen() {
             </BandaSection>
           )}
 
-  <BandaSection tom="rosa" nu style={{ marginHorizontal: -36 }}>
+  <BandaSection tom="rosa" nu>
 
             {/* Frase do dia de amor — feita pra compartilhar de verdade com o
                 par, não só ler (ver handleShareLovePhrase acima). */}
@@ -2281,7 +2281,7 @@ const styles = StyleSheet.create({
   thoughtShareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, alignSelf: 'flex-start' },
   thoughtShareTxt: { color: colors.gold, fontSize: 12, fontWeight: '600' },
   thoughtToggle: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: 6 },
-  lovePhraseCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
+  lovePhraseCard: { marginBottom: 14, borderRadius: 14, overflow: 'hidden' },
   lovePhraseArte: { width: '100%', height: 96 },
   lovePhraseArteCamada: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   lovePhraseInner: { padding: 18 },
@@ -2300,10 +2300,15 @@ const styles = StyleSheet.create({
   //  FICAM: o card do Céu de Hoje ainda usa os cinco. As chaves home.peek.*
   //  saíram de lib/i18n.js na mesma passada. A decisão inteira continua
   //  preservada no comentário lá em cima, onde o card ficava.)
+  // ACHATADO DENTRO DE MISSÕES (10/09/2026). Tinha fundo, borda teal e raio 18
+  // — desenho de card solto na Home, que era o que ele era. Movido pra dentro
+  // do card de Missões virou caixa dentro de caixa: o dono olhou e disse que
+  // não parecia "tudo junto", e não parecia mesmo. Eu vinha corrigindo POSIÇÃO
+  // quando o problema era PESO VISUAL. Sem fundo, sem borda, sem raio: um
+  // filete no topo separa o assunto, e o card de Missões é a única caixa.
   skyCard: {
-    marginHorizontal: 20, marginBottom: 14, padding: 16,
-    backgroundColor: colors.surface, borderRadius: 18,
-    borderWidth: 1, borderColor: colors.teal + '55',
+    marginBottom: 14, paddingTop: 14,
+    borderTopWidth: 1, borderTopColor: colors.border,
   },
   peekHead: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
   peekLabel: { color: colors.purple, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -2334,8 +2339,15 @@ const styles = StyleSheet.create({
   // título do evento é o corpo de destaque, os eventos seguintes são linhas
   // de apoio e o CTA fecha como texto-link (a seta é do próprio texto — sem
   // Ionicons ao lado, mesma convenção do link do convite do Céu de Hoje).
-  proximosCard: { marginHorizontal: 20, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
-  proximosInner: { padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
+  // Mesma razão do skyCard: dentro do card de Missões a margem lateral
+  // empurrava pra dentro de quem já tem padding, e o raio desenhava uma
+  // segunda caixa.
+  proximosCard: { marginBottom: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border },
+  // A borda interna saiu junto (10/09/2026): o proximosCard já perdeu a dele e
+  // esta redesenhava a caixa por dentro — o filete de cima basta pra separar
+  // do bloco anterior. Sobra o respiro lateral zero, porque o card de Missões
+  // que hospeda já tem o seu.
+  proximosInner: { paddingVertical: 4 },
   proximosQuando: { color: colors.gold, fontSize: 13, fontWeight: '800' },
   proximosTitulo: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 2 },
   // O destaque com planeta pintado (08/08/2026): linha imagem + título. O
@@ -2354,7 +2366,11 @@ const styles = StyleSheet.create({
   wrappedBarSubtitle: { color: 'rgba(42,29,0,0.75)', fontSize: 12, marginTop: 1 },
   // (os estilos season* saíram junto com o card das Temporadas do Céu —
   //  estilo órfão é como o arquivo chegou a 15 formatos de card diferentes)
-  horoCard: { marginHorizontal: 20, marginTop: 0, borderRadius: 18, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
+  // Sem margem lateral e sem sombra dentro do card de Missões: sombra existe
+  // pra separar um card do fundo, e aqui não há fundo pra separar — só fazia
+  // o bloco parecer mais uma caixa solta. O raio fica menor, pro conteúdo com
+  // imagem não vazar o canto.
+  horoCard: { marginTop: 0, marginBottom: 14, borderRadius: 14, overflow: 'hidden' },
   horoInner: { padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 18 },
   horoHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   signChip: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
