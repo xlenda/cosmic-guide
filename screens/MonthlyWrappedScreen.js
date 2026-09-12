@@ -4,6 +4,24 @@
 // real — mês vazio devolve null e a tela mostra um estado honesto em vez de
 // celebrar zeros.
 //
+// DIAGRAMAÇÃO (12/09/2026, lote de dado e número). Esta tela NÃO recebeu faixa
+// curva, e é decisão declarada, não esquecimento — a mesma de
+// RetroLuaCheiaScreen no lote anterior: cada slide daqui JÁ é um chão inteiro
+// (um LinearGradient de tela cheia por assunto). Faixa por cima disso é o
+// "dois fundos brigando" que o guia das peças proíbe na primeira página.
+//
+// O QUE ELA RECEBEU: a escala de espaço e a tipográfica em toda a folha, a
+// ColunaLeitura em todo texto de leitura (a frase de energia e o aviso do
+// rodapé atravessavam a tela inteira), a FileiraDeTres no slide da presença —
+// onde há DOIS números reais de fato comparáveis — e a TabelaDados no slide
+// final, que era quatro linhas de emoji + número em texto corrido e agora é
+// rótulo→valor alinhado, que é o arranjo dos prints.
+//
+// NADA AQUI GANHOU NÚMERO NOVO. Os quatro do resumo final são os mesmos quatro
+// que os slides já mostraram — leituras, dias ativos, melhor sequência e
+// tokens — todos de lib/monthlyWrapped.js, que devolve null pro mês sem
+// registro nenhum. Zero continua aparecendo: é valor real.
+//
 // Decisão de layout: seções full-height em ScrollView comum, sem pagingEnabled
 // — paginação vertical nativa não se comporta igual no react-native-web (alvo
 // principal do app hoje), e minHeight em vez de height fixa garante que slide
@@ -14,7 +32,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
+import ColunaLeitura from '../components/ColunaLeitura';
+import TabelaDados from '../components/TabelaDados';
+import FileiraDeTres from '../components/FileiraDeTres';
 import { computeMonthlyWrapped, getWrappedMonth } from '../lib/monthlyWrapped';
 import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
@@ -135,10 +156,12 @@ export default function MonthlyWrappedScreen() {
         {backBtn}
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>🌑</Text>
-          <Text style={styles.emptyTitle}>{t('wrapped.empty')}</Text>
-          <Text style={styles.emptyDesc}>
-            A retrospectiva só conta o que você mesmo registrou no app — quando houver leituras, ela nasce sozinha.
-          </Text>
+          <ColunaLeitura centralizado>
+            <Text style={styles.emptyTitle}>{t('wrapped.empty')}</Text>
+            <Text style={styles.emptyDesc}>
+              A retrospectiva só conta o que você mesmo registrou no app — quando houver leituras, ela nasce sozinha.
+            </Text>
+          </ColunaLeitura>
           {/* O texto PEDE leituras; o único botão daqui era "Voltar", que não
               é a coisa pedida. HomeMain (a grade de leituras) mora no mesmo
               HomeStack — "Voltar" segue existindo, agora como secundário. */}
@@ -184,7 +207,11 @@ export default function MonthlyWrappedScreen() {
             <Text style={styles.caption}>
               {wrapped.topType.count} {wrapped.topType.count === 1 ? 'vez este mês' : 'vezes este mês'}
             </Text>
-            {wrapped.energy && <Text style={styles.energyPhrase}>{wrappedEnergyPhrase(wrapped.energy)}</Text>}
+            {wrapped.energy && (
+              <ColunaLeitura centralizado>
+                <Text style={styles.energyPhrase}>{wrappedEnergyPhrase(wrapped.energy)}</Text>
+              </ColunaLeitura>
+            )}
             {hint}
           </LinearGradient>
         )}
@@ -197,10 +224,17 @@ export default function MonthlyWrappedScreen() {
             {wrapped.activeDays === 1 ? 'dia ativo no mês' : 'dias ativos no mês'}
           </Text>
           <View style={styles.divider} />
-          <Text style={styles.secondaryNumber}>🔥 <CountUp value={wrapped.bestStreakInMonth} /></Text>
-          <Text style={styles.caption}>
-            {wrapped.bestStreakInMonth === 1 ? 'dia foi sua maior sequência' : 'dias seguidos foi sua maior sequência'}
-          </Text>
+          {/* Dois números REAIS e comparáveis — dias ativos e a melhor sequência
+              dentro do mês, ambos de lib/monthlyWrapped.js. A peça não desenha
+              com menos de duas colunas de pé, e é exatamente essa regra que
+              impede inventar uma terceira só pra encher a fileira. */}
+          <FileiraDeTres
+            style={styles.fileiraClara}
+            itens={[
+              { chave: 'ativos', valor: wrapped.activeDays, rotulo: wrapped.activeDays === 1 ? 'dia ativo no mês' : 'dias ativos no mês' },
+              { chave: 'sequencia', valor: wrapped.bestStreakInMonth, rotulo: wrapped.bestStreakInMonth === 1 ? 'dia de melhor sequência' : 'dias de melhor sequência' },
+            ]}
+          />
           {hint}
         </LinearGradient>
 
@@ -218,26 +252,32 @@ export default function MonthlyWrappedScreen() {
         <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={slideStyle}>
           <Text style={styles.overline}>{t('wrapped.glance')}</Text>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryRow}>
-              🔮 {wrapped.totalReadings} {wrapped.totalReadings === 1 ? 'leitura' : 'leituras'}
-            </Text>
-            <Text style={styles.summaryRow}>
-              📅 {wrapped.activeDays} {wrapped.activeDays === 1 ? 'dia ativo' : 'dias ativos'}
-            </Text>
-            <Text style={styles.summaryRow}>
-              🔥 {wrapped.bestStreakInMonth} {wrapped.bestStreakInMonth === 1 ? 'dia de sequência' : 'dias de melhor sequência'}
-            </Text>
-            <Text style={styles.summaryRow}>
-              🪙 {wrapped.tokensEarned} {wrapped.tokensEarned === 1 ? 'token ganho' : 'tokens ganhos'}
-            </Text>
-            {wrapped.energy && <Text style={styles.summaryEnergy}>{wrappedEnergyPhrase(wrapped.energy)}</Text>}
+            {/* Rótulo→valor: os quatro números do mês, os MESMOS que os slides
+                já mostraram. `0` é valor real e aparece — a peça só some com a
+                linha que não tem dado nenhum. */}
+            <TabelaDados
+              testID="wrapped-resumo"
+              itens={[
+                { chave: 'leituras', rotulo: '🔮 ' + (wrapped.totalReadings === 1 ? 'leitura' : 'leituras'), valor: wrapped.totalReadings },
+                { chave: 'ativos', rotulo: '📅 ' + (wrapped.activeDays === 1 ? 'dia ativo' : 'dias ativos'), valor: wrapped.activeDays },
+                { chave: 'sequencia', rotulo: '🔥 ' + (wrapped.bestStreakInMonth === 1 ? 'dia de sequência' : 'dias de melhor sequência'), valor: wrapped.bestStreakInMonth },
+                { chave: 'tokens', rotulo: '🪙 ' + (wrapped.tokensEarned === 1 ? 'token ganho' : 'tokens ganhos'), valor: wrapped.tokensEarned },
+              ]}
+            />
+            {wrapped.energy && (
+              <ColunaLeitura style={styles.resumoEnergia}>
+                <Text style={styles.summaryEnergy}>{wrappedEnergyPhrase(wrapped.energy)}</Text>
+              </ColunaLeitura>
+            )}
           </View>
           <TouchableOpacity style={styles.btn} onPress={handleShare}>
             <Text style={styles.btnText}>{t('wrapped.share')}</Text>
           </TouchableOpacity>
-          <Text style={styles.disclaimer}>
-            Todos os números vêm do que você mesmo registrou no app — nada aqui foi inventado. Leituras são tradição simbólica, pra reflexão e entretenimento.
-          </Text>
+          <ColunaLeitura centralizado>
+            <Text style={styles.disclaimer}>
+              Todos os números vêm do que você mesmo registrou no app — nada aqui foi inventado. Leituras são tradição simbólica, pra reflexão e entretenimento.
+            </Text>
+          </ColunaLeitura>
         </LinearGradient>
       </ScrollView>
       {backBtn}
@@ -250,7 +290,7 @@ const styles = StyleSheet.create({
 
   backBtn: {
     position: 'absolute',
-    left: 12,
+    left: space.dentro,
     zIndex: 10,
     width: 40,
     height: 40,
@@ -260,71 +300,92 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
 
-  slide: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, paddingVertical: 64 },
+  // `respiro` (64) em cima e embaixo: cada slide é uma tela de UMA ideia só,
+  // e é exatamente o degrau reservado pra primeira dobra desse tipo de tela.
+  slide: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: space.secao,
+    paddingVertical: space.respiro,
+  },
 
   overline: {
+    ...type.etiqueta,
     color: 'rgba(255,255,255,0.75)',
-    fontSize: 12,
-    fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 2,
-    marginBottom: 12,
+    marginBottom: space.dentro,
     textAlign: 'center',
   },
-  monthLabel: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
+  monthLabel: { ...type.titulo, color: '#fff', marginBottom: space.junto, textAlign: 'center' },
+  // 96/104 e 30/38: número e título de CARTAZ, deliberadamente acima da escala
+  // (que termina no display 32, título de primeira dobra — não cartaz de tela
+  // cheia). Mesma exceção já declarada em RetroLuaCheiaScreen.
   bigNumber: { color: '#fff', fontSize: 96, fontWeight: '800', lineHeight: 104 },
-  secondaryNumber: { color: '#fff', fontSize: 48, fontWeight: '800', lineHeight: 56 },
-  caption: { color: 'rgba(255,255,255,0.85)', fontSize: 16, textAlign: 'center', marginTop: 4 },
+  caption: { ...type.corpo, color: 'rgba(255,255,255,0.85)', textAlign: 'center', marginTop: space.grudado },
 
-  slideEmoji: { fontSize: 72, marginVertical: 8 },
-  mediumTitle: { color: '#fff', fontSize: 30, fontWeight: '800', textAlign: 'center' },
+  // 72 e 44: emoji de slide e de estado vazio. Emoji não tem entrelinha de
+  // parágrafo nem hierarquia de título — medir um 🔮 pela escala tipográfica
+  // seria usar a régua errada.
+  slideEmoji: { fontSize: 72, marginVertical: space.junto },
+  mediumTitle: { color: '#fff', fontSize: 30, lineHeight: 38, fontWeight: '800', textAlign: 'center' },
   energyPhrase: {
+    ...type.corpo,
     color: 'rgba(255,255,255,0.92)',
-    fontSize: 16,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 20,
-    lineHeight: 24,
+    marginTop: space.entre,
   },
 
-  divider: { width: 48, height: 2, backgroundColor: 'rgba(255,255,255,0.35)', borderRadius: 1, marginVertical: 24 },
+  divider: {
+    width: space.ar, height: 2, backgroundColor: 'rgba(255,255,255,0.35)',
+    borderRadius: 1, marginVertical: space.entre,
+  },
+  // A fileira pousa sobre um gradiente claro, não sobre o fundo do app: ela
+  // só precisa de largura pra que as duas colunas dividam a tela por igual.
+  fileiraClara: { alignSelf: 'stretch' },
 
   summaryCard: {
     backgroundColor: 'rgba(0,0,0,0.25)',
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
+    borderRadius: space.bloco,
+    paddingVertical: space.junto,
+    paddingHorizontal: space.entre,
     alignSelf: 'stretch',
-    marginBottom: 24,
+    marginBottom: space.entre,
   },
-  summaryRow: { color: '#fff', fontSize: 17, fontWeight: '700', marginVertical: 4 },
+  resumoEnergia: { paddingHorizontal: 0, marginTop: space.bloco },
   summaryEnergy: {
+    ...type.corpoCurto,
     color: 'rgba(255,255,255,0.85)',
-    fontSize: 14,
     fontStyle: 'italic',
-    marginTop: 12,
-    lineHeight: 20,
   },
 
-  btn: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 28, alignItems: 'center' },
-  btnText: { color: colors.background, fontSize: 15, fontWeight: '800' },
-  btnGhost: { borderRadius: 14, paddingVertical: 12, paddingHorizontal: 28, alignItems: 'center', marginTop: 10 },
-  btnGhostText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+  btn: {
+    backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: space.bloco,
+    paddingVertical: space.bloco, paddingHorizontal: space.secao, alignItems: 'center',
+  },
+  btnText: { ...type.botao, color: colors.background },
+  btnGhost: {
+    borderRadius: space.bloco, paddingVertical: space.dentro,
+    paddingHorizontal: space.secao, alignItems: 'center', marginTop: space.dentro,
+  },
+  btnGhostText: { ...type.botao, color: colors.textSecondary },
 
-  hint: { position: 'absolute', bottom: 20, alignItems: 'center' },
-  hintText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 },
+  hint: { position: 'absolute', bottom: space.entre, alignItems: 'center' },
+  hintText: { ...type.nota, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1 },
 
   disclaimer: {
+    ...type.nota,
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
     textAlign: 'center',
-    marginTop: 20,
-    lineHeight: 16,
-    paddingHorizontal: 8,
+    marginTop: space.entre,
   },
 
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyIcon: { fontSize: 44, marginBottom: 12 },
-  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '800', textAlign: 'center' },
-  emptyDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20, marginBottom: 20 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.secao },
+  emptyIcon: { fontSize: 44, marginBottom: space.dentro },
+  emptyTitle: { ...type.secao, color: colors.text, textAlign: 'center' },
+  emptyDesc: {
+    ...type.corpo, color: colors.textSecondary, textAlign: 'center',
+    marginTop: space.dentro, marginBottom: space.entre,
+  },
 });

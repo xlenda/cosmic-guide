@@ -25,7 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { DentroDeAba } from '../context/AbaContext';
 import TimelineScreen from './TimelineScreen';
@@ -105,25 +105,36 @@ export default function NossaHistoriaScreen({ route }) {
   );
 }
 
+// DIAGRAMAÇÃO (12/09/2026, lote de dado e número). Esta tela é uma CASCA: o
+// conteúdo inteiro são as telas hospedadas, que têm (ou receberam) a
+// diagramação delas. O que há aqui pra tratar é o CHROME — e ele estava todo
+// em número cru: 16, 6, 10, 38, 12, 9, e dois tamanhos de fonte fora da
+// escala. Nada de faixa curva: faixa envolve SEÇÃO de conteúdo, e uma barra
+// de abas não é seção — seria cor por cor, sem assunto embaixo.
+//
+// O RÓTULO DA ABA subiu de 12px pra `type.apoio` (13/20) e o título de 16
+// pra `type.cartao` (17/22). Três abas em 390px com rótulos longos ("Quanto
+// vocês já caminharam") já truncam; o degrau maior não piora o truncamento
+// (numberOfLines={1} continua lá) e pára de parecer letra miúda.
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   topo: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10,
+    paddingHorizontal: space.tela, paddingTop: space.junto, paddingBottom: space.dentro,
   },
   voltar: {
-    width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    width: 38, height: 38, borderRadius: space.dentro, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.surface,
   },
-  titulo: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  abas: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingBottom: 10 },
+  titulo: { ...type.cartao, color: colors.text },
+  abas: { flexDirection: 'row', gap: space.junto, paddingHorizontal: space.tela, paddingBottom: space.dentro },
   aba: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 9, borderRadius: 12, backgroundColor: colors.surface,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
+    paddingVertical: space.dentro, borderRadius: space.dentro, backgroundColor: colors.surface,
     borderBottomWidth: 2, borderBottomColor: 'transparent',
   },
   abaAtiva: { borderBottomColor: colors.gold, backgroundColor: colors.surfaceElevated },
-  abaTxt: { color: colors.textMuted, fontSize: 12, fontWeight: '600', flexShrink: 1 },
+  abaTxt: { ...type.apoio, color: colors.textMuted, flexShrink: 1 },
   abaTxtAtiva: { color: colors.text },
   pressed: { opacity: 0.75 },
   corpo: { flex: 1 },

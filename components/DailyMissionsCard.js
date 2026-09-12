@@ -20,12 +20,13 @@
 // chave como evidência e convertemos em recordMissionAction() aqui, sem tocar
 // na HomeScreen (outro time está nela agora).
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Share, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Share, Switch, Image } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../theme';
 import { ROUTES } from '../routes';
+import { tileArte } from '../lib/ilustracoes';
 import { Alert } from '../lib/webAlert';
 import { localDayStr } from '../lib/localDay';
 import { getTodaysLovePhrase } from '../lib/lovePhrase';
@@ -291,7 +292,37 @@ export default function DailyMissionsCard({ children, mostrarMissoes = true }) {
             disabled={m.done}
             onPress={() => goDo(m)}
           >
-            <Text style={s.rowEmoji}>{m.emoji}</Text>
+            {/* O SELO DA MISSÃO (12/09/2026) — a arte que a tela de destino
+                já tem, no lugar do emoji de 20px.
+                
+                Referência: o print 20.55.51 do concorrente, onde cada linha da
+                lista abre com um DESENHO grande à esquerda, sem caixa em
+                volta, e o texto ocupa o resto. Aqui o desenho é a MESMA
+                ilustração que o card daquela feature usa na grade da Home
+                (lib/ilustracoes.js TILES) — a missão "Tire suas cartas de
+                Tarô" mostra a arte do Tarô, e quem já viu a grade reconhece
+                pra onde vai antes de ler.
+                
+                COMPLEMENTAR: o emoji não foi removido de lugar nenhum. Onde
+                não existe arte correspondente (Pensamento, Frase do Dia,
+                "Complete uma leitura", céu de hoje), tileArte devolve null e
+                cai no mesmo <Text> de sempre — só que no mesmo tamanho de
+                selo, pra lista não ficar com duas alturas de linha. */}
+            {(() => {
+              const arte = m.arte ? tileArte(m.arte) : null;
+              return arte ? (
+                <Image
+                  source={arte}
+                  style={[s.selo, m.done && s.seloDone]}
+                  resizeMode="cover"
+                  accessible={false}
+                />
+              ) : (
+                <View style={s.selo}>
+                  <Text style={s.rowEmoji}>{m.emoji}</Text>
+                </View>
+              );
+            })()}
             <View style={{ flex: 1 }}>
               <Text style={[s.rowTitle, m.done && s.rowTitleDone]}>{m.titleKey ? t(m.titleKey) : m.title}</Text>
               <Text style={s.rowDesc}>{m.done ? 'Concluída — tokens no seu saldo ✓' : m.descKey ? t(m.descKey) : m.desc}</Text>
@@ -482,7 +513,15 @@ const s = StyleSheet.create({
     borderRadius: 12, padding: 12, marginBottom: 8,
   },
   rowDone: { borderColor: colors.green + '55', backgroundColor: colors.green + '10' },
-  rowEmoji: { fontSize: 20 },
+  // O SELO: 44px é o tamanho em que a ilustração pintada volta a se ler (a
+  // 20px do emoji ela vira borrão de cor). Redondo, sem borda: no print do
+  // concorrente o desenho da linha não tem moldura — moldura em cada linha
+  // devolve as "caixas dentro de caixas" que o dono já reclamou neste card.
+  // A versão emoji usa a MESMA caixa de 44 pra lista não ter duas alturas.
+  selo: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  // Missão feita: a arte recua pro texto riscado mandar na linha.
+  seloDone: { opacity: 0.55 },
+  rowEmoji: { fontSize: 24 },
   rowTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
   rowTitleDone: { opacity: 0.75 },
   rowDesc: { color: colors.textMuted, fontSize: 12, marginTop: 2, lineHeight: 16 },

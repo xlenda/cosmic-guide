@@ -21,7 +21,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import CityPickerModal from '../components/CityPickerModal';
@@ -537,14 +539,23 @@ export default function QuizScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        {/* A ABERTURA numa faixa própria — é a "uma ideia por tela" do
+            concorrente: a barra de passos já está no topo, e aqui embaixo dela
+            só existe o convite. A faixa sangra pros lados (margem negativa
+            contra o padding do ScrollView) porque troca de chão que não
+            encosta na borda lê como card, não como seção. */}
         {step === 1 && (
-          <View style={styles.hero}>
-            <Text style={styles.heroEyebrow}>{t('quiz.hero.eyebrow')}</Text>
-            <Text style={styles.heroStar}>✴</Text>
-            <Text style={styles.heroTitle}>{t('quiz.hero.title')}</Text>
-            <Text style={styles.heroGold}>{t('quiz.hero.gold')}</Text>
-            <Text style={styles.heroSub}>{t('quiz.hero.sub')}</Text>
-          </View>
+          <FaixaCurva tom="ameixa" semente="quiz-abre" style={styles.faixaSangra} estiloCorpo={styles.faixaAbre}>
+            <View style={styles.hero}>
+              <Text style={styles.heroEyebrow}>{t('quiz.hero.eyebrow')}</Text>
+              <Text style={styles.heroStar}>✴</Text>
+              <Text style={styles.heroTitle}>{t('quiz.hero.title')}</Text>
+              <Text style={styles.heroGold}>{t('quiz.hero.gold')}</Text>
+              <ColunaLeitura centralizado>
+                <Text style={styles.heroSub}>{t('quiz.hero.sub')}</Text>
+              </ColunaLeitura>
+            </View>
+          </FaixaCurva>
         )}
 
         {step === 1 && (
@@ -650,7 +661,7 @@ export default function QuizScreen() {
             )}
             {signoManualVoce && <SignGrid current={signoVoce} onSelect={setSignoVoce} />}
 
-            <View style={[styles.field, { marginTop: 18 }]}>
+            <View style={[styles.field, styles.fieldNovoBloco]}>
               <Text style={styles.label}>{t('quiz.birth.dateOf', { name: amor || t('quiz.fallback.seuAmor') })}</Text>
               <TouchableOpacity style={styles.dateBtn} onPress={() => setDatePickerFor('amor')}>
                 <Text style={[styles.dateBtnText, !nascAmor && styles.dateBtnPlaceholder]}>
@@ -828,9 +839,16 @@ export default function QuizScreen() {
 
         {step === 5 && compat && (
           <View>
-            <Text style={styles.revealEmojis}>{compat.emojiA} {compat.emojiB}</Text>
-            <Text style={styles.revealTitle}>{compat.titulo}</Text>
-            <Text style={styles.mutedCenter}>{t('quiz.reveal.energyOf', { voce, amor })}</Text>
+            {/* O REVELAR — a faixa violeta muda o chão no exato ponto em que a
+                tela deixa de perguntar e passa a contar. É o único lugar do
+                quiz onde a pessoa só lê, então é aqui que o espaço vale mais.
+                A faixa SEMPRE tem conteúdo neste ramo (`compat` já é a
+                condição do bloco), então não há estado vazio a proteger. */}
+            <FaixaCurva tom="violeta" semente="quiz-revela" style={styles.faixaSangra}>
+              <Text style={styles.revealEmojis}>{compat.emojiA} {compat.emojiB}</Text>
+              <Text style={styles.revealTitle}>{compat.titulo}</Text>
+              <Text style={styles.mutedCenter}>{t('quiz.reveal.energyOf', { voce, amor })}</Text>
+            </FaixaCurva>
 
             {/* Aqui ficava "{pct}%" em 42px dourados, com o texto do ponto
                 forte ramificando em >= 88 / >= 80 / resto. A porcentagem saiu do
@@ -951,15 +969,21 @@ export default function QuizScreen() {
               </Text>
             </View>
 
-            <View style={[styles.card, styles.cardAccent]}>
-              <Text style={styles.cardAccentTitle}>{t('quiz.reveal.todayTitle')}</Text>
-              <Text style={styles.mutedCenter}>
-                {t('quiz.reveal.todayText')}
-              </Text>
-              <TouchableOpacity style={[styles.btn, { marginTop: 16 }]} onPress={finalizarQuiz} disabled={saving}>
-                <Text style={styles.btnText}>{saving ? t('quiz.nav.saving') : t('quiz.nav.saveAndSee')}</Text>
-              </TouchableOpacity>
-            </View>
+            {/* O FECHO — faixa dourada, o acento quente do epílogo. É o chão
+                que diz "a leitura acabou, o próximo passo é este". */}
+            <FaixaCurva tom="dourado" semente="quiz-fecho" style={styles.faixaSangraTopo}>
+              <View style={styles.fecho}>
+                <Text style={styles.cardAccentTitle}>{t('quiz.reveal.todayTitle')}</Text>
+                <ColunaLeitura centralizado>
+                  <Text style={styles.mutedCenter}>
+                    {t('quiz.reveal.todayText')}
+                  </Text>
+                </ColunaLeitura>
+                <TouchableOpacity style={styles.btn} onPress={finalizarQuiz} disabled={saving}>
+                  <Text style={styles.btnText}>{saving ? t('quiz.nav.saving') : t('quiz.nav.saveAndSee')}</Text>
+                </TouchableOpacity>
+              </View>
+            </FaixaCurva>
           </View>
         )}
       </ScrollView>
@@ -1015,26 +1039,39 @@ export default function QuizScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  loaderRoot: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  loaderOrb: { fontSize: 40, color: colors.accent, marginBottom: 18 },
-  loaderText: { color: colors.text, fontSize: 17, fontWeight: '700', textAlign: 'center', minHeight: 26 },
-  loaderTrack: { width: 240, height: 4, borderRadius: 2, backgroundColor: colors.border, marginTop: 18, overflow: 'hidden' },
+  loaderRoot: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: space.secao },
+  // Glifo: dimensão de desenho, não degrau de leitura.
+  loaderOrb: { fontSize: 40, color: colors.accent, marginBottom: space.entre },
+  loaderText: { ...type.cartao, color: colors.text, textAlign: 'center', minHeight: 26 },
+  loaderTrack: { width: 240, height: 4, borderRadius: 2, backgroundColor: colors.border, marginTop: space.entre, overflow: 'hidden' },
   loaderFill: { height: 4, backgroundColor: colors.accent, borderRadius: 2 },
 
-  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 20 },
+  // A FAIXA SANGRA. O ScrollView tem padding horizontal (o conteúdo do quiz é
+  // formulário e precisa dele), mas faixa que não encosta na borda da tela lê
+  // como card gigante em vez de "mudou de assunto" — a margem negativa
+  // devolve a largura inteira só pra ela.
+  faixaSangra: { marginHorizontal: -space.tela },
+  faixaSangraTopo: { marginHorizontal: -space.tela, marginTop: space.secao },
+  // A barra de passos já fica logo acima com a sua folga: somar 'secao' aqui
+  // abriria buraco entre ela e a abertura.
+  faixaAbre: { paddingTop: space.bloco },
+
+  // A BARRA DE PASSOS — a peça que o concorrente põe no topo de toda tela de
+  // passo a passo, e que esta tela já tinha. Só ganhou respiro.
+  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: space.bloco, paddingHorizontal: space.entre },
   stepDot: {
     width: 24, height: 24, borderRadius: 12, backgroundColor: colors.surfaceElevated,
     borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center',
   },
   stepDotDone: { backgroundColor: colors.accent, borderColor: colors.accent },
   stepDotNow: { borderColor: colors.accent, borderWidth: 2 },
-  stepDotText: { color: colors.text, fontSize: 11, fontWeight: '700' },
-  stepBar: { flex: 1, height: 2, backgroundColor: colors.border, marginHorizontal: 4, maxWidth: 26 },
+  stepDotText: { ...type.nota, color: colors.text },
+  stepBar: { flex: 1, height: 2, backgroundColor: colors.border, marginHorizontal: space.grudado, maxWidth: 26 },
   stepBarDone: { backgroundColor: colors.accent },
 
-  buildStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16, paddingBottom: 8 },
-  chip: { backgroundColor: colors.surfaceElevated, borderRadius: 12, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.border },
-  chipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  buildStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: space.junto, paddingHorizontal: space.tela, paddingBottom: space.junto },
+  chip: { backgroundColor: colors.surfaceElevated, borderRadius: 12, paddingVertical: space.grudado, paddingHorizontal: space.dentro, borderWidth: 1, borderColor: colors.border },
+  chipText: { ...type.nota, color: colors.textSecondary },
 
   // Sem isso, o ScrollView não fica limitado à altura disponível na tela — no
   // React Native Web ele pode simplesmente crescer com o conteúdo em vez de
@@ -1053,80 +1090,90 @@ const styles = StyleSheet.create({
   // pilula do navegador do WhatsApp cobrem ~100px do pe da pagina — o botao de
   // continuar do passo das cartas morava EXATAMENTE ali, e o relato real foi
   // "nao consigo ir pra baixo" no meio do lancamento. O respiro garante que o
-  // ultimo elemento sempre tenha pra onde rolar ate ficar visivel.
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 140, paddingTop: 8 },
+  // ultimo elemento sempre tenha pra onde rolar ate ficar visivel. O numero
+  // continua cru DE PROPOSITO: e altura de chrome de navegador medida, nao
+  // degrau de leitura — nenhum degrau da escala descreve "a barra do Safari".
+  scrollContent: { paddingHorizontal: space.tela, paddingBottom: 140, paddingTop: space.junto },
 
-  hero: { alignItems: 'center', marginBottom: 20 },
-  heroEyebrow: { color: colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
-  heroStar: { fontSize: 34, color: colors.gold, marginVertical: 8 },
-  heroTitle: { color: colors.text, fontSize: 24, fontWeight: '800', textAlign: 'center' },
-  heroGold: { color: colors.gold, fontSize: 18, fontStyle: 'italic', marginTop: 2 },
-  heroSub: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20, marginTop: 10, maxWidth: 340 },
+  hero: { alignItems: 'center' },
+  heroEyebrow: { ...type.etiqueta, color: colors.accent, textTransform: 'uppercase' },
+  heroStar: { fontSize: 34, color: colors.gold, marginVertical: space.bloco },
+  heroTitle: { ...type.titulo, color: colors.text, textAlign: 'center' },
+  heroGold: { ...type.secao, color: colors.gold, fontStyle: 'italic', marginTop: space.junto },
+  heroSub: { ...type.corpo, color: colors.textSecondary, textAlign: 'center', marginTop: space.entre },
 
-  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', textAlign: 'center', marginBottom: 16 },
+  // Título de passo: é hierarquia de tela, o peso aqui é legítimo.
+  sectionTitle: { ...type.secao, color: colors.text, textAlign: 'center', marginBottom: space.entre },
 
-  field: { marginBottom: 16 },
-  label: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  field: { marginBottom: space.entre },
+  // O segundo par de campos (os do par) abre outro BLOCO de perguntas: o
+  // degrau 'secao' e o que separa dois assuntos, nao dois campos.
+  fieldNovoBloco: { marginTop: space.secao },
+  // O rótulo se separa do campo por ESPAÇO, não por peso.
+  label: { ...type.apoio, color: colors.textSecondary, marginBottom: space.junto },
   input: {
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: colors.text, fontSize: 16,
+    borderRadius: 12, paddingHorizontal: space.bloco, paddingVertical: space.dentro, color: colors.text, ...type.corpoCurto,
   },
-  mutedCenter: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 16, lineHeight: 19 },
-  mutedText: { color: colors.textMuted, fontSize: 13 },
+  mutedCenter: { ...type.corpoCurto, color: colors.textMuted, textAlign: 'center', marginBottom: space.bloco },
+  mutedText: { ...type.apoio, color: colors.textMuted },
 
   dateBtn: {
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: 12, paddingHorizontal: space.bloco, paddingVertical: space.dentro,
   },
-  dateBtnText: { color: colors.text, fontSize: 16 },
+  dateBtnText: { ...type.corpoCurto, color: colors.text },
   dateBtnPlaceholder: { color: colors.textMuted },
 
   hourRow: { flexDirection: 'row', alignItems: 'center' },
   hourInput: {
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: colors.text, fontSize: 16, width: 64, textAlign: 'center',
+    borderRadius: 12, paddingHorizontal: space.bloco, paddingVertical: space.dentro, color: colors.text,
+    ...type.corpoCurto, width: 64, textAlign: 'center',
   },
-  hourColon: { color: colors.textSecondary, fontSize: 18, marginHorizontal: 8 },
+  hourColon: { ...type.corpo, color: colors.textSecondary, marginHorizontal: space.junto },
 
-  signInfoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap' },
-  signInfoStrong: { color: colors.gold, fontWeight: '700' },
-  linkText: { color: colors.accent, fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
+  signInfoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.bloco, flexWrap: 'wrap' },
+  // O signo resolvido se destaca pela COR (dourado), não por peso.
+  signInfoStrong: { color: colors.gold },
+  linkText: { ...type.apoio, color: colors.accent, textDecorationLine: 'underline' },
 
-  signGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  signGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.junto, marginBottom: space.entre },
   signCell: {
     width: '30%', backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingVertical: 10, alignItems: 'center',
+    borderRadius: 12, paddingVertical: space.dentro, alignItems: 'center',
   },
   signCellSel: { borderColor: colors.accent, backgroundColor: colors.accent + '22' },
   signCellEmoji: { fontSize: 20 },
-  signCellName: { color: colors.text, fontSize: 12, fontWeight: '700', marginTop: 2 },
-  signCellRange: { color: colors.textMuted, fontSize: 10, marginTop: 1 },
+  signCellName: { ...type.nota, color: colors.text, marginTop: space.grudado },
+  signCellRange: { ...type.nota, color: colors.textMuted },
 
-  energyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
+  energyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.dentro, justifyContent: 'space-between' },
   energyBtn: {
     width: '47%', backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 4,
+    borderRadius: 14, paddingVertical: space.bloco, alignItems: 'center', marginBottom: space.grudado,
   },
   energyBtnSel: { borderColor: colors.accent, backgroundColor: colors.accent + '22' },
-  energyText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  // A opção escolhida muda de COR e de BORDA, não de peso.
+  energyText: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
   energyTextSel: { color: colors.text },
-  energyEcho: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 18, lineHeight: 20 },
+  energyEcho: { ...type.corpo, color: colors.textSecondary, textAlign: 'center', marginTop: space.entre },
   answerEchoCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 10,
+    flexDirection: 'row', alignItems: 'center', gap: space.dentro, marginTop: space.bloco,
     backgroundColor: colors.gold + '12', borderWidth: 1, borderColor: colors.gold + '55',
-    borderRadius: 14, padding: 13,
+    borderRadius: 14, padding: space.bloco,
   },
-  answerEchoText: { flex: 1, color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  answerEchoText: { ...type.corpoCurto, flex: 1, color: colors.textSecondary },
   compatPreview: {
-    marginTop: 16, padding: 15, borderRadius: 16,
+    marginTop: space.entre, padding: space.bloco, borderRadius: 16,
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.accent + '66',
   },
-  compatPreviewKicker: { color: colors.gold, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
-  compatPreviewTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 5 },
-  compatPreviewBody: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 6 },
+  compatPreviewKicker: { ...type.etiqueta, color: colors.gold, textTransform: 'uppercase' },
+  compatPreviewTitle: { ...type.cartao, color: colors.text, marginTop: space.junto },
+  compatPreviewBody: { ...type.corpoCurto, color: colors.textSecondary, marginTop: space.junto },
 
   tarotGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  tarotCardWrap: { width: '31%', aspectRatio: 0.75, marginBottom: 12 },
+  tarotCardWrap: { width: '31%', aspectRatio: 0.75, marginBottom: space.dentro },
   coupleScratchCard: { width: '100%', height: '100%', borderRadius: 14 },
   tarotCardDisabled: { opacity: 0.35 },
   tarotFace: {
@@ -1136,68 +1183,75 @@ const styles = StyleSheet.create({
   },
   tarotBack: { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
   tarotBackGlyph: { color: colors.accent, fontSize: 26 },
-  tarotFront: { backgroundColor: colors.card, borderColor: colors.accent, paddingHorizontal: 4 },
+  tarotFront: { backgroundColor: colors.card, borderColor: colors.accent, paddingHorizontal: space.grudado },
   tarotEmoji: { fontSize: 24 },
-  tarotName: { color: colors.text, fontSize: 11, fontWeight: '700', marginTop: 4, textAlign: 'center' },
+  tarotName: { ...type.nota, color: colors.text, marginTop: space.grudado, textAlign: 'center' },
 
-  tray: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  tray: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space.bloco },
   traySlot: {
-    flex: 1, marginHorizontal: 4, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.surfaceElevated, paddingVertical: 12, alignItems: 'center',
+    flex: 1, marginHorizontal: space.grudado, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surfaceElevated, paddingVertical: space.dentro, alignItems: 'center',
   },
   traySlotFilled: { borderColor: colors.gold },
-  trayLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  trayEmoji: { fontSize: 22, marginTop: 6 },
+  trayLabel: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
+  trayEmoji: { fontSize: 22, marginTop: space.junto },
 
-  revealEmojis: { fontSize: 44, textAlign: 'center', letterSpacing: 10, marginBottom: 4 },
-  revealTitle: { color: colors.text, fontSize: 20, fontWeight: '800', fontStyle: 'italic', textAlign: 'center', marginBottom: 4 },
-  revealForte: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 14, lineHeight: 20 },
+  revealEmojis: { fontSize: 44, textAlign: 'center', letterSpacing: 10, marginBottom: space.grudado },
+  revealTitle: { ...type.titulo, color: colors.text, fontStyle: 'italic', textAlign: 'center', marginBottom: space.junto },
+  revealForte: { ...type.corpo, color: colors.textSecondary, textAlign: 'center', marginTop: space.bloco },
 
   card: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 16, padding: 18, marginTop: 14, alignItems: 'stretch',
+    borderRadius: 16, padding: space.bloco, marginTop: space.entre, alignItems: 'stretch',
   },
   cardAccent: { borderColor: colors.gold, alignItems: 'center' },
-  cardAccentTitle: { color: colors.gold, fontSize: 17, fontWeight: '800', fontStyle: 'italic', textAlign: 'center', marginBottom: 8 },
-  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'center', marginBottom: 12 },
+  fecho: { alignItems: 'center', gap: space.bloco },
+  cardAccentTitle: { ...type.secao, color: colors.gold, fontStyle: 'italic', textAlign: 'center' },
+  cardTitle: { ...type.cartao, color: colors.text, textAlign: 'center', marginBottom: space.bloco },
 
-  aspectName: { color: colors.gold, fontSize: 30, fontWeight: '800', textAlign: 'center' },
+  // O nome do aspecto é o RESULTADO da tela — display é o degrau da primeira
+  // dobra, e aqui ele é literalmente aquilo que a pessoa veio ver.
+  aspectName: { ...type.display, color: colors.gold, textAlign: 'center' },
   badge: {
-    color: colors.accent, fontSize: 12, fontWeight: '700', textAlign: 'center',
-    backgroundColor: colors.accent + '22', alignSelf: 'center', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, marginTop: 8,
+    ...type.etiqueta, color: colors.accent, textAlign: 'center',
+    backgroundColor: colors.accent + '22', alignSelf: 'center', borderRadius: 10,
+    paddingHorizontal: space.dentro, paddingVertical: space.grudado, marginTop: space.junto,
   },
   badgeInline: {
-    color: colors.accent, fontSize: 11, fontWeight: '700',
-    backgroundColor: colors.accent + '22', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2,
+    ...type.nota, color: colors.accent,
+    backgroundColor: colors.accent + '22', borderRadius: 8, paddingHorizontal: space.junto, paddingVertical: space.grudado,
   },
-  badgeRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
-  disclaimer: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 8, lineHeight: 16 },
-  disclaimerCenter: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 10, lineHeight: 16 },
+  badgeRow: { flexDirection: 'row', justifyContent: 'center', gap: space.junto, marginBottom: space.bloco, flexWrap: 'wrap' },
+  disclaimer: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.junto },
+  disclaimerCenter: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.dentro },
 
-  compatLine: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginBottom: 8 },
-  compatLineCenter: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginBottom: 8, textAlign: 'center' },
-  bold: { color: colors.text, fontWeight: '700' },
+  compatLine: { ...type.corpoCurto, color: colors.textSecondary, marginBottom: space.dentro },
+  compatLineCenter: { ...type.corpoCurto, color: colors.textSecondary, marginBottom: space.dentro, textAlign: 'center' },
+  // O nome dentro da frase: o destaque é a COR do texto principal contra o
+  // secundário da linha. Sem peso — é o inline de dentro de parágrafo, o lugar
+  // onde o negrito mais se espalhava.
+  bold: { color: colors.text },
 
-  overline: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: 14 },
-  cosmicNumbers: { color: colors.gold, fontSize: 28, fontWeight: '800', letterSpacing: 6, marginTop: 6, marginBottom: 12 },
+  overline: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase', marginTop: space.bloco },
+  cosmicNumbers: { ...type.display, color: colors.gold, letterSpacing: 6, marginTop: space.junto, marginBottom: space.bloco },
 
-  navRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10 },
-  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 26, alignItems: 'center' },
-  btnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
-  btnGhost: { borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20, borderWidth: 1, borderColor: colors.border },
-  btnGhostText: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
-  aviso: { color: colors.gold, textAlign: 'center', fontSize: 13, paddingBottom: 12, paddingHorizontal: 20 },
+  navRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: space.entre, paddingTop: space.dentro },
+  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: space.bloco, paddingHorizontal: space.entre, alignItems: 'center' },
+  btnText: { ...type.botao, color: '#fff' },
+  btnGhost: { borderRadius: 14, paddingVertical: space.bloco, paddingHorizontal: space.entre, borderWidth: 1, borderColor: colors.border },
+  btnGhostText: { ...type.botao, color: colors.textSecondary },
+  aviso: { ...type.apoio, color: colors.gold, textAlign: 'center', paddingBottom: space.dentro, paddingHorizontal: space.entre },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
-  modalTitle: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'center', marginBottom: 12 },
+  modalSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: space.entre },
+  modalTitle: { ...type.cartao, color: colors.text, textAlign: 'center', marginBottom: space.bloco },
   pickerRow: { flexDirection: 'row', height: ITEM_HEIGHT * 4 },
   pickerCol: { flex: 1 },
   pickerItem: { height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' },
   pickerItemSel: { backgroundColor: colors.accent + '22', borderRadius: 10 },
-  pickerItemText: { color: colors.textSecondary, fontSize: 16 },
-  pickerItemTextSel: { color: colors.text, fontWeight: '800' },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, gap: 10 },
+  pickerItemText: { ...type.corpoCurto, color: colors.textSecondary },
+  pickerItemTextSel: { color: colors.text },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space.bloco, gap: space.dentro },
   // citySheet/cityList/cityItem/cityItemText saíram daqui junto com o
   // CityPickerModal local (agora em components/CityPickerModal.js).
 });

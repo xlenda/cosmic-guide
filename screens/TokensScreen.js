@@ -1,10 +1,39 @@
+// MEUS TOKENS — o saldo e o extrato do que a pessoa ganhou e gastou.
+//
+// DIAGRAMAÇÃO (12/09/2026, lote de dado e número). Eram três caixas soltas
+// sobre o mesmo chão: o cartão dourado do saldo, um link, e o card do
+// histórico. Agora são DUAS faixas — o saldo e o extrato — e o olho lê a
+// mudança de assunto sem precisar de um título "Histórico" fazendo esse
+// trabalho sozinho.
+//
+// POR QUE NÃO TEM FILEIRA DE TRÊS AQUI, apesar de esta ser a tela mais
+// numérica do lote: existe UM número real (o saldo). Ganhos e gastos totais
+// seriam somas que nenhuma lib calcula hoje — inventar a soma pra encher três
+// colunas é exatamente o que o guia proíbe ("se uma diagramação pedir um
+// número que não existe, a diagramação muda, não o dado"). Uma coluna sozinha
+// não é comparação, e a peça sabe disso: com menos de duas colunas ela não
+// desenha.
+//
+// O EXTRATO NÃO VIROU TabelaDados, e é decisão: cada linha aqui tem TRÊS
+// campos (motivo, data e o valor com sinal e cor) e um ícone de sentido. A
+// tabela é rótulo→valor, de dois campos. Forçar a peça custaria a data ou a
+// cor do sinal — é o conteúdo que mandaria na diagramação em vez do
+// contrário. O que a linha ganhou foi a ESCALA: respiro de `space.bloco`,
+// corpo na escala, e o fio entre linhas em vez de borda em volta.
+//
+// ESTADO VAZIO: a faixa do extrato fica `rasa` quando não há histórico. Sem
+// isso, o convite de três linhas ("ainda não há movimentação") mora dentro de
+// uma onda de altura inteira e a faixa vira bloco de cor sem conteúdo — o
+// defeito que um revisor achou na Home.
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { ROUTES } from '../routes';
 import { useLanguage } from '../context/LanguageContext';
 import { getTokenBalance, getTokenHistory } from '../lib/tokens';
@@ -26,15 +55,15 @@ function formatDate(iso, lang, t) {
   }
 }
 
-function HistoryRow({ item, last }) {
+function HistoryRow({ item, first }) {
   const { lang, t } = useLanguage();
   const positive = item.amount > 0;
   return (
-    <View style={[styles.histRow, !last && styles.histRowBorder]}>
+    <View style={[styles.histRow, !first && styles.histRowBorder]}>
       <View style={[styles.histIcon, { backgroundColor: (positive ? colors.green : colors.red) + '22' }]}>
         <Ionicons name={positive ? 'add-circle' : 'remove-circle'} size={18} color={positive ? colors.green : colors.red} />
       </View>
-      <View style={{ flex: 1 }}>
+      <View style={styles.histTexto}>
         <Text style={styles.histReason}>{item.reason}</Text>
         <Text style={styles.histDate}>{formatDate(item.date, lang, t)}</Text>
       </View>
@@ -85,26 +114,37 @@ export default function TokensScreen() {
         }
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.balanceWrap}>
-          <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}>
-            <View style={styles.balanceIconWrap}>
-              <Ionicons name="sparkles" size={30} color="#fff" />
-            </View>
-            <Text style={styles.balanceValue}>{balance}</Text>
-            <Text style={styles.balanceLabel}>{t('tokens.balanceLabel')}</Text>
-          </LinearGradient>
-        </View>
+        {/* FAIXA 1 — O SALDO. Uma ideia só: o número e onde gastá-lo. */}
+        <FaixaCurva tom="dourado" semente="tokens-saldo" estiloCorpo={styles.faixaCorpo}>
+          <View style={styles.balanceWrap}>
+            <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}>
+              <View style={styles.balanceIconWrap}>
+                <Ionicons name="sparkles" size={30} color="#fff" />
+              </View>
+              <Text style={styles.balanceValue}>{balance}</Text>
+              <Text style={styles.balanceLabel}>{t('tokens.balanceLabel')}</Text>
+            </LinearGradient>
+          </View>
 
-        <TouchableOpacity style={styles.shopLink} activeOpacity={0.8} onPress={() => navigation.navigate(ROUTES.LOJA)}>
-          <Ionicons name="storefront-outline" size={16} color={colors.accent} />
-          <Text style={styles.shopLinkText}>{t('tokens.seeShop')}</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.shopLink} activeOpacity={0.8} onPress={() => navigation.navigate(ROUTES.LOJA)}>
+            <Ionicons name="storefront-outline" size={16} color={colors.accent} />
+            <Text style={styles.shopLinkText}>{t('tokens.seeShop')}</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+          </TouchableOpacity>
+        </FaixaCurva>
 
-        <Text style={styles.sectionTitle}>{t('tokens.historyTitle')}</Text>
-        <View style={styles.card}>
+        {/* FAIXA 2 — O EXTRATO. `rasa` no vazio: o convite é curto demais pra
+            sustentar uma onda de altura inteira. */}
+        <FaixaCurva
+          tom="ameixa"
+          semente="tokens-extrato"
+          grude
+          rasa={history.length === 0}
+          estiloCorpo={styles.faixaCorpo}
+        >
+          <Text style={styles.sectionTitle}>{t('tokens.historyTitle')}</Text>
           {history.length === 0 ? (
-            <View style={styles.emptyWrap}>
+            <ColunaLeitura centralizado style={styles.emptyWrap}>
               <Ionicons name="hourglass-outline" size={28} color={colors.textMuted} />
               <Text style={styles.emptyText}>{t('tokens.empty')}</Text>
               {/* O vazio PEDE uma leitura, mas o único caminho da tela era a
@@ -120,13 +160,15 @@ export default function TokensScreen() {
                 <Ionicons name="sparkles" size={14} color="#fff" />
                 <Text style={styles.emptyBtnText}>{t('tokens.emptyCta')}</Text>
               </TouchableOpacity>
-            </View>
+            </ColunaLeitura>
           ) : (
-            history.map((item, idx) => (
-              <HistoryRow key={`${item.date}-${idx}`} item={item} last={idx === history.length - 1} />
-            ))
+            <View style={styles.extrato}>
+              {history.map((item, idx) => (
+                <HistoryRow key={`${item.date}-${idx}`} item={item} first={idx === 0} />
+              ))}
+            </View>
           )}
-        </View>
+        </FaixaCurva>
       </ScrollView>
     </View>
   );
@@ -134,9 +176,12 @@ export default function TokensScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingBottom: 40 },
-  balanceWrap: { borderRadius: 20, overflow: 'hidden', marginBottom: 14 },
-  balanceCard: { paddingVertical: 28, alignItems: 'center' },
+  content: { paddingBottom: space.fimDaLista },
+
+  faixaCorpo: { paddingTop: space.secao },
+
+  balanceWrap: { borderRadius: space.entre, overflow: 'hidden' },
+  balanceCard: { paddingVertical: space.secao, alignItems: 'center' },
   balanceIconWrap: {
     width: 56,
     height: 56,
@@ -144,46 +189,53 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: space.dentro,
   },
-  balanceValue: { color: '#fff', fontSize: 40, fontWeight: '800' },
-  balanceLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 4, fontWeight: '600' },
+  // 40/46: o número de cartaz do saldo, deliberadamente ACIMA da escala (que
+  // termina no display 32, título de primeira dobra — não cartaz dentro de um
+  // cartão dourado de tela cheia).
+  balanceValue: { color: '#fff', fontSize: 40, lineHeight: 46, fontWeight: '800' },
+  balanceLabel: { ...type.apoio, color: 'rgba(255,255,255,0.85)', marginTop: space.grudado },
+
   shopLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    marginBottom: 24,
+    gap: space.junto,
+    paddingVertical: space.dentro,
+    marginTop: space.bloco,
   },
-  shopLinkText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 10 },
-  card: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    overflow: 'hidden',
+  shopLinkText: { ...type.botao, color: colors.accent },
+
+  sectionTitle: { ...type.secao, color: colors.text },
+
+  // O extrato não tem mais borda em volta: a faixa JÁ é o chão dele. Card
+  // dentro de faixa é moldura dentro de moldura.
+  extrato: { marginTop: space.bloco },
+  histRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space.bloco },
+  histRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  histIcon: {
+    width: 32, height: 32, borderRadius: space.dentro,
+    justifyContent: 'center', alignItems: 'center', marginRight: space.dentro,
   },
-  emptyWrap: { padding: 24, alignItems: 'center' },
-  emptyText: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19, marginTop: 10 },
+  histTexto: { flex: 1 },
+  histReason: { ...type.corpoCurto, color: colors.text },
+  histDate: { ...type.nota, color: colors.textMuted, marginTop: space.grudado },
+  histAmount: { ...type.cartao, marginLeft: space.dentro },
+
+  emptyWrap: { marginTop: space.entre, paddingBottom: space.bloco },
+  emptyText: { ...type.corpoCurto, color: colors.textMuted, textAlign: 'center', marginTop: space.dentro },
   // Mesmo botão sólido de ação da Loja (redeemBtn/wallBtn) — telas irmãs do
   // mesmo grupo, sem visual novo.
   emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: space.junto,
     backgroundColor: colors.accent,
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    marginTop: 14,
+    borderRadius: space.dentro,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.bloco,
+    marginTop: space.entre,
   },
-  emptyBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  histRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
-  histRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  histIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  histReason: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  histDate: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
-  histAmount: { fontSize: 15, fontWeight: '800', marginLeft: 8 },
+  emptyBtnText: { ...type.botao, color: '#fff' },
 });

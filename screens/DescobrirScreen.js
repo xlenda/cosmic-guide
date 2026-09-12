@@ -11,10 +11,17 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import ScoreBar from '../components/ScoreBar';
+// AS PECAS DE DIAGRAMACAO (design/PECAS-DE-DIAGRAMACAO.md, lote de acao
+// 12/09/2026). Tres quizzes atras de um controle segmentado, todos correndo
+// sobre o mesmo chao: a intro, as abas e o quiz liam como um bloco continuo.
+// A faixa separa "onde voce escolhe" de "onde voce responde" sem precisar de
+// mais um titulo; a coluna tira a intro da borda.
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getDescobrirData, saveDescobrirResult } from '../lib/coupleData';
@@ -150,13 +157,17 @@ function Quiz({ questions, order, labels, results, resultBadge, saved, onSave })
           <Text style={styles.resultEmoji}>{r.emoji}</Text>
           <Text style={styles.resultTitle}>{t(labels[result.top])}</Text>
         </View>
-        <Text style={[styles.mutedText, { marginTop: 10, marginBottom: 16 }]}>{t(r.texto)}</Text>
+        <ColunaLeitura>
+          <Text style={styles.mutedText}>{t(r.texto)}</Text>
+        </ColunaLeitura>
         <View style={styles.tipCard}>
           <Text style={styles.overline}>{t('descobrir.quiz.dica')}</Text>
-          <Text style={styles.mutedText}>{t(r.dica)}</Text>
+          <ColunaLeitura>
+            <Text style={styles.mutedText}>{t(r.dica)}</Text>
+          </ColunaLeitura>
         </View>
 
-        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('descobrir.quiz.balance')}</Text>
+        <Text style={[styles.sectionTitle, { marginTop: space.bloco }]}>{t('descobrir.quiz.balance')}</Text>
         {order.map((k, i) => {
           const shown = Math.min(tick, result.counts[k] || 0);
           const pct = total ? Math.round((shown / total) * 100) : 0;
@@ -165,7 +176,7 @@ function Quiz({ questions, order, labels, results, resultBadge, saved, onSave })
           );
         })}
 
-        <View style={{ alignItems: 'center', marginTop: 18 }}>
+        <View style={{ alignItems: 'center', marginTop: space.junto }}>
           <TouchableOpacity style={styles.btnGhost} onPress={redo}>
             <Text style={styles.btnGhostText}>{t('descobrir.quiz.redo')}</Text>
           </TouchableOpacity>
@@ -183,10 +194,10 @@ function Quiz({ questions, order, labels, results, resultBadge, saved, onSave })
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${pct}%` }]} />
       </View>
-      <Text style={[styles.mutedText, { fontSize: 13, marginTop: 8, marginBottom: 6 }]}>{t('descobrir.quiz.progress', { step: step + 1, total })}</Text>
+      <Text style={styles.progressLabel}>{t('descobrir.quiz.progress', { step: step + 1, total })}</Text>
       <Text style={styles.sectionTitle}>{t(current.q)}</Text>
 
-      <View style={{ marginTop: 4 }}>
+      <View>
         {current.opts.map((o, i) => {
           const sel = chosen === o.k;
           return (
@@ -248,7 +259,7 @@ function Conflitos({ voce, amor, saved, onSave }) {
         ))}
       </View>
 
-      <Text style={[styles.sectionTitle, { marginTop: 24 }]}>{t('descobrir.conf.q2')}</Text>
+      <Text style={[styles.sectionTitle, { marginTop: space.entre }]}>{t('descobrir.conf.q2')}</Text>
       <View style={styles.optGrid}>
         {DESAFIOS_CONFLITO.map((opKey) => {
           const op = t(opKey);
@@ -266,7 +277,7 @@ function Conflitos({ voce, amor, saved, onSave }) {
 
       {completo && (
         <>
-          <View style={[styles.statRow, { marginTop: 20, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 16 }]}>
+          <View style={[styles.statRow, { marginTop: space.bloco, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.bloco }]}>
             <View style={styles.stat}>
               <Text style={styles.statValue}>{conflicto}</Text>
               <Text style={styles.statLabel}>{t('descobrir.conf.statFirstStep')}</Text>
@@ -277,7 +288,7 @@ function Conflitos({ voce, amor, saved, onSave }) {
               <Text style={styles.statLabel}>{t('descobrir.conf.statChallenge')}</Text>
             </View>
           </View>
-          <Text style={[styles.disclaimer, { marginTop: 10 }]}>{t('descobrir.conf.saved')}</Text>
+          <Text style={styles.disclaimer}>{t('descobrir.conf.saved')}</Text>
         </>
       )}
     </View>
@@ -328,10 +339,12 @@ export default function DescobrirScreen() {
         <View style={styles.emptyProfile}>
           <Ionicons name="heart-outline" size={40} color={colors.accent} />
           <Text style={styles.emptyProfileTitle}>{t('descobrir.empty.title')}</Text>
-          <Text style={styles.emptyProfileDesc}>
-            {t('descobrir.empty.desc')}
-          </Text>
-          <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
+          <ColunaLeitura centralizado>
+            <Text style={styles.emptyProfileDesc}>
+              {t('descobrir.empty.desc')}
+            </Text>
+          </ColunaLeitura>
+          <TouchableOpacity style={[styles.btn, { marginTop: space.junto }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
             <Text style={styles.btnText}>{t('descobrir.empty.cta')}</Text>
           </TouchableOpacity>
         </View>
@@ -343,12 +356,18 @@ export default function DescobrirScreen() {
     <View style={styles.root}>
       <GradientHeader title={t('home.card.descobrir.title')} subtitle={`${voce} & ${amor}`} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.mutedText, { textAlign: 'center', marginBottom: 18 }]}>
-          {t('descobrir.intro', { voce, amor })}
-        </Text>
+        {/* FAIXA 1 — A ESCOLHA. Intro e o seletor de quiz sao o mesmo
+            assunto: "o que voces vao descobrir agora". Chao neutro
+            ('noite'), que e o degrau que separa sem colorir. */}
+        <FaixaCurva tom="noite" semente="escolha" style={styles.faixa} estiloCorpo={[styles.faixaCorpo, styles.faixaCorpoPrimeira]}>
+        <ColunaLeitura centralizado>
+          <Text style={[styles.mutedText, { textAlign: 'center' }]}>
+            {t('descobrir.intro', { voce, amor })}
+          </Text>
+        </ColunaLeitura>
 
         <View style={styles.tabsCard}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: space.junto }}>
             {QUIZ_TABS.map((tabDef) => {
               const active = tab === tabDef.id;
               const done = isTabDone(tabDef.id);
@@ -366,8 +385,16 @@ export default function DescobrirScreen() {
           </View>
         </View>
 
+        </FaixaCurva>
+
+        {/* FAIXA 2 — A RESPOSTA. Aqui mora o quiz inteiro (pergunta, opcoes,
+            resultado). `grude` porque encosta na de cima. A faixa e `rasa`
+            enquanto carrega: com so um spinner dentro, a caixa cheia da onda
+            seria mais chao de cor do que conteudo — que e exatamente o
+            defeito de "faixa virando bloco de cor sem conteudo". */}
+        <FaixaCurva tom="ameixa" semente="quiz" grude rasa={!loaded} style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {!loaded ? (
-          <ActivityIndicator color={colors.accent} style={{ marginTop: 20 }} />
+          <ActivityIndicator color={colors.accent} />
         ) : tab === 'linguagem' ? (
           <Quiz
             questions={LANG_QUESTIONS}
@@ -392,6 +419,8 @@ export default function DescobrirScreen() {
           <Conflitos voce={voce} amor={amor} saved={data.conflictos} onSave={(res) => saveQuiz('conflictos', res)} />
         )}
 
+        </FaixaCurva>
+
         <Text style={styles.disclaimer}>
           {t('descobrir.disclaimer')}
         </Text>
@@ -402,60 +431,78 @@ export default function DescobrirScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  // Sem gap no contentContainer: gap do pai vence o marginTop:-1 do `grude` e
+  // abre uma tira preta entre duas faixas — a onda passa a flutuar no vazio em
+  // vez de cortar o chao anterior. Quem da respiro e a propria faixa.
+  scrollContent: { padding: space.tela, paddingBottom: space.fimDaLista },
 
-  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 16 },
+  // A faixa sangra pra fora do padding; o corpo dela devolve o respiro lateral.
+  faixa: { marginHorizontal: -space.tela },
+  faixaCorpo: { paddingHorizontal: space.tela, gap: space.bloco },
+  // A primeira faixa nao leva o paddingTop da peca: a caixa da onda ja abre
+  // ONDA_ALTURA logo abaixo de um cabecalho que ja tem folga propria.
+  faixaCorpoPrimeira: { paddingTop: 0 },
+
+  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: space.bloco, gap: space.dentro },
   tipCard: {
     backgroundColor: colors.gold + '14', borderWidth: 1, borderColor: colors.gold + '55',
-    borderRadius: 14, padding: 14,
+    borderRadius: 14, padding: space.bloco, gap: space.junto,
   },
 
-  tabsCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 8, marginBottom: 16 },
-  tabBtn: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, paddingHorizontal: 4, borderRadius: 14, borderWidth: 1, borderColor: 'transparent' },
+  tabsCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: space.junto },
+  tabBtn: { flex: 1, alignItems: 'center', gap: space.grudado, paddingVertical: space.dentro, paddingHorizontal: space.grudado, borderRadius: 14, borderWidth: 1, borderColor: 'transparent' },
   tabBtnActive: { borderColor: colors.gold + '80', backgroundColor: colors.gold + '18' },
   tabIcon: { fontSize: 18 },
-  tabLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: '600', textAlign: 'center' },
-  tabLabelActive: { color: colors.gold, fontWeight: '800' },
+  tabLabel: { ...type.nota, color: colors.textSecondary, textAlign: 'center' },
+  // A aba ativa se marca pela COR e pela borda, nao por mais um peso 800.
+  tabLabelActive: { color: colors.gold },
 
-  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 12 },
-  overline: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  mutedText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  disclaimer: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 18, lineHeight: 16 },
+  // Era fontSize 16 / peso '800' em tudo — a pergunta do quiz, o titulo do
+  // balanco e o titulo de conflitos no mesmo grito. Agora e hierarquia.
+  sectionTitle: { ...type.secao, color: colors.text },
+  overline: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
+  mutedText: { ...type.corpoCurto, color: colors.textSecondary },
+  progressLabel: { ...type.apoio, color: colors.textSecondary },
+  disclaimer: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.entre },
 
-  resultEmoji: { fontSize: 40, marginVertical: 10 },
-  resultTitle: { color: colors.text, fontSize: 22, fontWeight: '800' },
+  resultEmoji: { fontSize: 40, marginVertical: space.junto },
+  resultTitle: { ...type.titulo, color: colors.text },
 
   progressTrack: { height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden' },
   progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
 
   opt: {
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, padding: 14, marginBottom: 10,
+    borderRadius: 12, padding: space.bloco, marginBottom: space.junto,
   },
   optSel: { borderColor: colors.accent, backgroundColor: colors.accent + '22' },
-  optText: { color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
-  optTextSel: { color: colors.text, fontWeight: '700' },
+  optText: { ...type.corpoCurto, color: colors.textSecondary },
+  // A escolha ja se marca pelo ✓, pela borda e pelo fundo — a cor do texto
+  // fecha a conta sem repor peso.
+  optTextSel: { color: colors.text },
 
-  optGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  optGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.junto },
   optHalf: {
     width: '48%', backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 8,
+    borderRadius: 12, paddingVertical: space.dentro, paddingHorizontal: space.junto,
   },
 
-  navRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
-  btnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  btnGhost: { borderRadius: 14, paddingVertical: 12, paddingHorizontal: 18, borderWidth: 1, borderColor: colors.border },
-  btnGhostText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+  navRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space.junto },
+  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: space.dentro, paddingHorizontal: space.entre, alignItems: 'center' },
+  btnText: { ...type.botao, color: '#fff' },
+  btnGhost: { borderRadius: 14, paddingVertical: space.dentro, paddingHorizontal: space.bloco, borderWidth: 1, borderColor: colors.border },
+  btnGhostText: { ...type.botao, color: colors.textSecondary },
   btnDisabled: { opacity: 0.5 },
 
-  statRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  stat: { flex: 1, alignItems: 'center' },
-  statValue: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'center' },
-  statLabel: { color: colors.textMuted, fontSize: 12, marginTop: 2, textAlign: 'center' },
-  statDivider: { width: 1, height: 30, backgroundColor: colors.border, marginHorizontal: 10 },
+  statRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' },
+  // Alinhadas pelo TOPO, como a fileira de tres: com 'center', um rotulo de
+  // duas linhas desalinha os dois valores entre si.
+  stat: { flex: 1, alignItems: 'center', gap: space.grudado },
+  statValue: { ...type.cartao, color: colors.text, textAlign: 'center' },
+  statLabel: { ...type.apoio, color: colors.textMuted, textAlign: 'center' },
+  statDivider: { width: 1, height: 30, backgroundColor: colors.border, marginHorizontal: space.junto },
 
-  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyProfileTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginTop: 14 },
-  emptyProfileDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.secao, gap: space.dentro },
+  emptyProfileTitle: { ...type.cartao, color: colors.text, textAlign: 'center' },
+  emptyProfileDesc: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
 });

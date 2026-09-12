@@ -159,6 +159,33 @@ test('o herói NÃO monta um segundo fundo — o cenário é o CosmicScene', () 
   assert.match(gradientes[0], /transparent.*colors\.background/);
 });
 
+// O HERÓI DO TOPO NO TARÔ (12/09/2026). O Tarô era a última tela principal que
+// abria sem arte nenhuma no terço de cima — header e, colado nele, a fileira de
+// chips. A cena CENAS.taro já existia no pack desde 08/08/2026 e não tinha UM
+// call site: o usuário baixava a imagem e nunca a via.
+//
+// As duas coisas que este teste impede de voltar em silêncio:
+//   1. o herói sumir da tela (a cena volta a ser peso morto no bundle);
+//   2. 'tarot.subtitle' aparecer DUAS vezes — a pergunta desceu do header pro
+//      herói, e deixar as duas é dizer a mesma frase duas vezes na mesma dobra.
+test('o Tarô abre com a arte que já existia, e a pergunta aparece UMA vez só', () => {
+  const fonte = leia('screens/TarotScreen.js');
+
+  assert.match(fonte, /<HeroiDoTopo/, 'o Tarô voltou a abrir sem arte no terço de cima');
+  assert.match(fonte, /fonte=\{CENAS\.taro\}/, 'o herói do Tarô precisa da cena do Tarô, não de outra arte');
+
+  // Sem contar comentários: o cabeçalho explica a mudança citando a chave.
+  const codigo = fonte
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+  const usos = codigo.match(/t\('tarot\.subtitle'\)/g) || [];
+  assert.equal(
+    usos.length,
+    1,
+    `'tarot.subtitle' aparece ${usos.length}x — ela vive no herói agora; no header seria a mesma frase duas vezes`
+  );
+});
+
 test('a faixa curva é decoração que não rouba toque, mas deixa os filhos vivos', () => {
   const fonte = leia('components/FaixaCurva.js');
   assert.match(fonte, /pointerEvents="box-none"/);

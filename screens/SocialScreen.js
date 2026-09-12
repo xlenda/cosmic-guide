@@ -13,8 +13,16 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+// AS PECAS DE DIAGRAMACAO (design/PECAS-DE-DIAGRAMACAO.md, lote de acao
+// 12/09/2026). O FEED em si NAO leva faixa: faixa em volta de card de post
+// seria textura, e o rolo de posts ja e a paisagem (mesma decisao do chat e
+// do diario no lote anterior). Quem recebe faixa sao as TRES telas que nao
+// sao feed e que hoje eram um cartao boiando no meio do preto: o portao de
+// login, a criacao de perfil e o feed vazio.
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
@@ -55,9 +63,15 @@ function ProfileSetup({ onCreated }) {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      {/* FAIXA — A CRIACAO DE PERFIL. E uma tela de uma ideia so (escolher
+          como aparecer), e antes era um cartao centrado no meio do preto. A
+          faixa da chao a essa unica ideia. */}
+      <FaixaCurva tom="noite" semente="perfil" style={styles.faixa} estiloCorpo={[styles.faixaCorpo, styles.faixaCorpoPrimeira]}>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>{t('social.createProfile.title')}</Text>
-        <Text style={styles.cardText}>{t('social.createProfile.desc')}</Text>
+        <ColunaLeitura centralizado>
+          <Text style={styles.cardText}>{t('social.createProfile.desc')}</Text>
+        </ColunaLeitura>
 
         <View style={styles.avatarRow}>
           {AVATAR_OPTIONS.map((emoji) => (
@@ -90,12 +104,13 @@ function ProfileSetup({ onCreated }) {
         />
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <TouchableOpacity activeOpacity={0.85} onPress={submit} disabled={saving} style={{ borderRadius: 12, overflow: 'hidden', marginTop: 6 }}>
+        <TouchableOpacity activeOpacity={0.85} onPress={submit} disabled={saving} style={{ borderRadius: 12, overflow: 'hidden', marginTop: space.grudado }}>
           <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
             {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{t('social.createProfile.cta')}</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>
+      </FaixaCurva>
     </ScrollView>
   );
 }
@@ -133,7 +148,9 @@ function PostCard({ post, myUserId, onToggleLike, onOpenComments, onOpenProfile,
         )}
       </View>
       <Text style={styles.postTitle} numberOfLines={2}>{post.title}</Text>
-      <Text style={styles.postBody} numberOfLines={4}>{post.body}</Text>
+      <ColunaLeitura>
+        <Text style={styles.postBody} numberOfLines={4}>{post.body}</Text>
+      </ColunaLeitura>
       <View style={styles.postActions}>
         <TouchableOpacity
           style={styles.postActionBtn}
@@ -214,7 +231,7 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
         {erro ? (
           <Text style={styles.emptyComments}>{t('social.profileUnavailable')}</Text>
         ) : !data ? (
-          <ActivityIndicator color={colors.accent} style={{ marginTop: 20, marginBottom: 20 }} />
+          <ActivityIndicator color={colors.accent} style={{ marginVertical: space.entre }} />
         ) : (
           <>
             <View style={styles.profilePanelHeader}>
@@ -228,7 +245,7 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
                 <Text style={styles.profilePanelStat}>{t('social.profile.following', { count: data.following })}</Text>
               </View>
               {userId !== myUserId && (
-                <TouchableOpacity disabled={busy} onPress={toggleFollow} style={[styles.followBtn, { marginTop: 10 }]}>
+                <TouchableOpacity disabled={busy} onPress={toggleFollow} style={[styles.followBtn, { marginTop: space.junto }]}>
                   <Text style={styles.followBtnText}>{t(data.isFollowing ? 'social.unfollow' : 'social.follow')}</Text>
                 </TouchableOpacity>
               )}
@@ -238,9 +255,11 @@ function UserProfilePanel({ userId, myUserId, onClose, onFollowChange }) {
               keyExtractor={(p) => String(p.id)}
               style={{ maxHeight: 260 }}
               ListEmptyComponent={
-                <Text style={styles.emptyComments}>
-                  {t(data.isFollowing || userId === myUserId ? 'social.profile.noShared' : 'social.profile.followToSee')}
-                </Text>
+                <ColunaLeitura centralizado>
+                  <Text style={styles.emptyComments}>
+                    {t(data.isFollowing || userId === myUserId ? 'social.profile.noShared' : 'social.profile.followToSee')}
+                  </Text>
+                </ColunaLeitura>
               }
               renderItem={({ item }) => (
                 <View style={styles.commentRow}>
@@ -298,7 +317,7 @@ function CommentsPanel({ post, myUserId, onClose, onModerate }) {
           </TouchableOpacity>
         </View>
         {comments === null ? (
-          <ActivityIndicator color={colors.accent} style={{ marginTop: 20 }} />
+          <ActivityIndicator color={colors.accent} style={{ marginTop: space.entre }} />
         ) : (
           <FlatList
             data={comments}
@@ -591,13 +610,20 @@ export default function SocialScreen() {
     return (
       <View style={styles.root}>
         <GradientHeader title={t('social.header.title')} subtitle={t('social.header.subtitle')} gradient={gradients.purple} />
-        <View style={styles.card}>
-          <Ionicons name="lock-closed" size={30} color={colors.gold} />
-          <Text style={styles.cardTitle}>{t('social.loginNeeded')}</Text>
-          <TouchableOpacity style={styles.primaryBtnFlat} onPress={() => navigation.navigate(ROUTES.LOGIN)}>
-            <Text style={styles.primaryBtnFlatText}>{t('social.loginCta')}</Text>
-          </TouchableOpacity>
-        </View>
+        {/* FAIXA — O PORTAO. Fotografado antes desta obra: o cartao de login
+            ficava sozinho no alto e o resto da tela era um retangulo preto de
+            600px. A faixa `rasa` da chao ao cartao sem virar bloco de cor —
+            que e exatamente o que a caixa cheia da onda faria aqui, com uma
+            frase e um botao dentro. */}
+        <FaixaCurva tom="noite" semente="portao" rasa style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+          <View style={styles.card}>
+            <Ionicons name="lock-closed" size={30} color={colors.gold} />
+            <Text style={styles.cardTitle}>{t('social.loginNeeded')}</Text>
+            <TouchableOpacity style={styles.primaryBtnFlat} onPress={() => navigation.navigate(ROUTES.LOGIN)}>
+              <Text style={styles.primaryBtnFlatText}>{t('social.loginCta')}</Text>
+            </TouchableOpacity>
+          </View>
+        </FaixaCurva>
       </View>
     );
   }
@@ -621,7 +647,7 @@ export default function SocialScreen() {
         }
       />
 
-      {profile === undefined && <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />}
+      {profile === undefined && <ActivityIndicator color={colors.accent} style={{ marginTop: space.ar }} />}
 
       {profile === null && <ProfileSetup onCreated={(p) => { setProfile(p); load(); }} />}
 
@@ -632,9 +658,14 @@ export default function SocialScreen() {
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
           ListHeaderComponent={showSearch ? <SearchPanel onFollowChange={load} /> : null}
+          // FAIXA — O FEED VAZIO. `rasa` pelo mesmo motivo do portao: duas
+          // frases e dois botoes nao enchem a caixa cheia da onda, e faixa
+          // cheia com pouco dentro e bloco de cor, nao secao.
           ListEmptyComponent={
-            <View>
-              <Text style={styles.emptyText}>{t('social.empty.body')}</Text>
+            <FaixaCurva tom="ameixa" semente="vazio" rasa style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+              <ColunaLeitura centralizado>
+                <Text style={styles.emptyText}>{t('social.empty.body')}</Text>
+              </ColunaLeitura>
               {/* Duas instruções, zero toques: o texto citava um "ícone no
                   topo" e outra tela pelo nome. Agora cada pedido tem o toque
                   que o cumpre — o primeiro abre a busca aqui mesmo, o segundo
@@ -657,11 +688,11 @@ export default function SocialScreen() {
                   <Text style={styles.emptyActionGhostText}>{t('social.empty.diaryCta')}</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </FaixaCurva>
           }
           onEndReachedThreshold={0.4}
           onEndReached={loadMore}
-          ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.accent} style={{ marginTop: 12 }} /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.accent} style={{ marginTop: space.dentro }} /> : null}
           renderItem={({ item }) => (
             <PostCard
               post={item}
@@ -698,66 +729,98 @@ export default function SocialScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, paddingBottom: 40 },
-  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 18, padding: 22, alignItems: 'center', margin: 20 },
-  cardTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginTop: 10 },
-  cardText: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 6 },
-  avatarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16, justifyContent: 'center' },
+  content: { padding: space.tela, paddingBottom: space.fimDaLista },
+
+  // A faixa sangra pra fora do padding do conteudo; o corpo dela devolve o
+  // respiro lateral. Faixa que nao sangra e cartao com onda em cima.
+  faixa: { marginHorizontal: -space.tela },
+  faixaCorpo: { paddingHorizontal: space.tela, gap: space.bloco },
+  faixaCorpoPrimeira: { paddingTop: 0 },
+
+  card: {
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 18, padding: space.entre, alignItems: 'center', gap: space.dentro,
+  },
+  cardTitle: { ...type.cartao, color: colors.text, textAlign: 'center' },
+  cardText: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
+  avatarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.junto, justifyContent: 'center' },
   avatarOption: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   avatarOptionActive: { borderColor: colors.accent, backgroundColor: colors.accent + '33' },
   avatarEmoji: { fontSize: 20 },
-  input: { backgroundColor: colors.surface, borderRadius: 12, padding: 12, color: colors.text, fontSize: 14, borderWidth: 1, borderColor: colors.border, marginTop: 12, alignSelf: 'stretch' },
-  errorText: { color: colors.amber, fontSize: 12, marginTop: 8 },
-  primaryBtn: { paddingVertical: 13, alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  primaryBtnFlat: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20, marginTop: 16 },
-  primaryBtnFlatText: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  emptyText: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20, marginTop: 40, paddingHorizontal: 20 },
-  emptyActions: { gap: 10, marginTop: 18, paddingHorizontal: 20 },
+  input: {
+    backgroundColor: colors.surface, borderRadius: 12, padding: space.dentro,
+    ...type.corpoCurto, color: colors.text, borderWidth: 1, borderColor: colors.border, alignSelf: 'stretch',
+  },
+  errorText: { ...type.apoio, color: colors.amber },
+  primaryBtn: { paddingVertical: space.dentro, alignItems: 'center' },
+  primaryBtnText: { ...type.botao, color: '#fff' },
+  primaryBtnFlat: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: space.dentro, paddingHorizontal: space.entre },
+  primaryBtnFlatText: { ...type.botao, color: '#fff' },
+
+  // ESTADO VAZIO. O marginTop de 40 saiu: quem separa agora e a faixa, e um
+  // vazio empurrado pra baixo dentro de uma faixa rasa deixava o chao de cor
+  // sozinho no topo — o defeito de "faixa virando bloco sem conteudo".
+  emptyText: { ...type.corpoCurto, color: colors.textMuted, textAlign: 'center' },
+  emptyActions: { gap: space.junto },
   emptyActionBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
-    backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
+    backgroundColor: colors.accent, borderRadius: 12, paddingVertical: space.dentro,
   },
-  emptyActionText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  emptyActionText: { ...type.botao, color: '#fff' },
   emptyActionGhost: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
-    borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingVertical: space.dentro,
   },
-  emptyActionGhostText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
-  postCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 },
-  postHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  postHeaderTouchable: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  // 48x48 é o mínimo de alvo de toque que o pre-launch report do Google Play
-  // cobra — e são justamente os controles que a política de moderação exige
+  emptyActionGhostText: { ...type.botao, color: colors.accent },
+
+  postCard: {
+    backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+    padding: space.bloco, marginBottom: space.dentro, gap: space.junto,
+  },
+  postHeader: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
+  postHeaderTouchable: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.dentro },
+  // 48x48 e o minimo de alvo de toque que o pre-launch report do Google Play
+  // cobra — e sao justamente os controles que a politica de moderacao exige
   // que a pessoa ache e consiga apertar (denunciar/bloquear/apagar).
   iconBtn: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   postAvatar: { fontSize: 24 },
-  profilePanelHeader: { alignItems: 'center', paddingBottom: 14, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
-  profilePanelAvatar: { fontSize: 40, marginBottom: 6 },
-  profilePanelStats: { flexDirection: 'row', gap: 16, marginTop: 8 },
-  profilePanelStat: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
-  postAuthor: { color: colors.text, fontWeight: '700', fontSize: 13 },
-  postMeta: { color: colors.textMuted, fontSize: 11 },
-  postTitle: { color: colors.text, fontWeight: '800', fontSize: 15, marginBottom: 4 },
-  postBody: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
-  postActions: { flexDirection: 'row', gap: 20, marginTop: 12 },
-  postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  postActionText: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
-  searchWrap: { backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 14 },
-  searchInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderRadius: 10, paddingHorizontal: 10 },
-  searchInput: { flex: 1, color: colors.text, fontSize: 13, paddingVertical: 8 },
-  searchResultRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-  followBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12 },
-  followBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  profilePanelHeader: { alignItems: 'center', paddingBottom: space.bloco, marginBottom: space.dentro, borderBottomWidth: 1, borderBottomColor: colors.border, gap: space.grudado },
+  profilePanelAvatar: { fontSize: 40 },
+  profilePanelStats: { flexDirection: 'row', gap: space.bloco, marginTop: space.junto },
+  profilePanelStat: { ...type.apoio, color: colors.textMuted },
+  // O nome de quem postou e o unico lugar do feed onde o peso e legitimo: e
+  // hierarquia (quem falou), do mesmo jeito que no concorrente.
+  postAuthor: { ...type.cartao, color: colors.text },
+  postMeta: { ...type.nota, color: colors.textMuted },
+  postTitle: { ...type.cartao, color: colors.text },
+  postBody: { ...type.corpoCurto, color: colors.textSecondary },
+  postActions: { flexDirection: 'row', gap: space.entre, marginTop: space.grudado },
+  postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: space.grudado },
+  postActionText: { ...type.apoio, color: colors.textMuted },
+
+  searchWrap: {
+    backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border,
+    padding: space.dentro, marginBottom: space.bloco, gap: space.junto,
+  },
+  searchInputRow: { flexDirection: 'row', alignItems: 'center', gap: space.junto, backgroundColor: colors.card, borderRadius: 10, paddingHorizontal: space.dentro },
+  searchInput: { flex: 1, ...type.corpoCurto, color: colors.text, paddingVertical: space.junto },
+  searchResultRow: { flexDirection: 'row', alignItems: 'center', gap: space.dentro, paddingVertical: space.junto },
+  followBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: space.junto, paddingHorizontal: space.dentro },
+  followBtnText: { ...type.apoio, color: '#fff' },
+
   commentsOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, top: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  commentsPanel: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, borderWidth: 1, borderColor: colors.border },
-  commentsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  commentsTitle: { color: colors.text, fontWeight: '800', fontSize: 16 },
-  emptyComments: { color: colors.textMuted, fontSize: 13, textAlign: 'center', paddingVertical: 20 },
-  commentRow: { flexDirection: 'row', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
-  commentAuthor: { color: colors.text, fontWeight: '700', fontSize: 12 },
-  commentBody: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
-  commentInputRow: { flexDirection: 'row', gap: 8, marginTop: 12, alignItems: 'center' },
-  commentInput: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, fontSize: 13, borderWidth: 1, borderColor: colors.border },
+  commentsPanel: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: space.bloco, borderWidth: 1, borderColor: colors.border },
+  commentsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.dentro },
+  commentsTitle: { ...type.cartao, color: colors.text },
+  emptyComments: { ...type.corpoCurto, color: colors.textMuted, textAlign: 'center', paddingVertical: space.entre },
+  commentRow: { flexDirection: 'row', gap: space.junto, paddingVertical: space.junto, borderBottomWidth: 1, borderBottomColor: colors.border },
+  commentAuthor: { ...type.apoio, color: colors.text },
+  commentBody: { ...type.corpoCurto, color: colors.textSecondary, marginTop: space.grudado },
+  commentInputRow: { flexDirection: 'row', gap: space.junto, marginTop: space.dentro, alignItems: 'center' },
+  commentInput: {
+    flex: 1, backgroundColor: colors.surface, borderRadius: 10,
+    paddingHorizontal: space.dentro, paddingVertical: space.dentro,
+    ...type.corpoCurto, color: colors.text, borderWidth: 1, borderColor: colors.border,
+  },
   commentSendBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border },
 });

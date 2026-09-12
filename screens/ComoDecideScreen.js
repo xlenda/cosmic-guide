@@ -61,7 +61,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import GradientHeader from '../components/GradientHeader';
 import { useLanguage } from '../context/LanguageContext';
 import { cardComoDecide } from '../lib/comoDecide';
@@ -242,19 +244,31 @@ export default function ComoDecideScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* A ABERTURA — a pergunta de quem lê, antes de qualquer método. */}
-        <Text style={styles.chamada} testID="decide-chamada">
-          {card.chamada}
-        </Text>
-        {paragrafos.map((p, i) => (
-          <Text key={i} style={styles.explicacao}>
-            {p}
-          </Text>
-        ))}
+        {/* A ABERTURA — a pergunta de quem lê, antes de qualquer método.
+            Numa faixa própria e em coluna de leitura: é o único texto corrido
+            longo da tela, e é ele que estabelece a voz antes das dezenove
+            fichas. O TEXTO NÃO MUDOU — esta tela é vitrine do motor. */}
+        <FaixaCurva tom="ameixa" semente="decide-abertura" estiloCorpo={styles.faixaAbre}>
+          <ColunaLeitura>
+            <Text style={styles.chamada} testID="decide-chamada">
+              {card.chamada}
+            </Text>
+            {paragrafos.map((p, i) => (
+              <Text key={i} style={styles.explicacao}>
+                {p}
+              </Text>
+            ))}
+          </ColunaLeitura>
+        </FaixaCurva>
 
         {/* ------------------------------------------------------------------
             TELA POR TELA — o reconhecimento primeiro
+
+            Os cards ficam no CHÃO da tela, sem faixa: dezenove fichas dentro
+            de uma faixa só viram um paredão de cor, e a faixa deixaria de
+            significar "mudou de assunto".
         ------------------------------------------------------------------ */}
+        <View style={styles.listaCorpo}>
         <View style={styles.secaoTopo}>
           <View style={styles.secaoLinha} />
           <Text style={styles.secaoTitulo}>{card.rotulos.decisoes}</Text>
@@ -398,28 +412,37 @@ export default function ComoDecideScreen() {
           );
         })}
 
+        </View>
+
         {/* ------------------------------------------------------------------
-            A BIBLIOGRAFIA — o recibo de tudo, no fim
+            A BIBLIOGRAFIA — o recibo de tudo, no fim.
+
+            Faixa DOURADA: é o acento quente do epílogo, o degrau que diz "a
+            tela acabou e isto aqui é o recibo". A lista de fontes sempre tem
+            conteúdo (vem do motor), então não há estado vazio a proteger — mas
+            a nota e a marca entram junto pra faixa nunca fechar em cor pura.
         ------------------------------------------------------------------ */}
-        <View style={styles.secaoTopo}>
-          <View style={styles.secaoLinha} />
-          <Text style={styles.secaoTitulo}>{card.rotulos.fontes}</Text>
-          <View style={styles.secaoLinha} />
-        </View>
+        <FaixaCurva tom="dourado" semente="decide-fontes">
+          <View style={styles.secaoTopo}>
+            <View style={styles.secaoLinha} />
+            <Text style={styles.secaoTitulo}>{card.rotulos.fontes}</Text>
+            <View style={styles.secaoLinha} />
+          </View>
 
-        <Text style={styles.bibliografiaNota}>{UI.bibliografiaNota}</Text>
-        <View style={styles.bibliografia} testID="decide-bibliografia">
-          {card.fontes.map((linha, i) => (
-            <Text key={i} style={styles.bibliografiaLinha}>
-              {linha}
-            </Text>
-          ))}
-        </View>
+          <Text style={styles.bibliografiaNota}>{UI.bibliografiaNota}</Text>
+          <View style={styles.bibliografia} testID="decide-bibliografia">
+            {card.fontes.map((linha, i) => (
+              <Text key={i} style={styles.bibliografiaLinha}>
+                {linha}
+              </Text>
+            ))}
+          </View>
 
-        {recado ? <Text style={styles.nota}>{recado}</Text> : null}
+          {recado ? <Text style={styles.nota}>{recado}</Text> : null}
 
-        <Text style={styles.rodape}>{UI.rodape}</Text>
-        <Text style={styles.marca}>{UI.marca}</Text>
+          <Text style={styles.rodape}>{UI.rodape}</Text>
+          <Text style={styles.marca}>{UI.marca}</Text>
+        </FaixaCurva>
       </ScrollView>
     </View>
   );
@@ -427,30 +450,37 @@ export default function ComoDecideScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingBottom: 48, gap: 10 },
+  // Sem padding: as faixas vão de borda a borda e trazem o seu por dentro.
+  // O miolo (a lista de fichas) recebe o dele em `listaCorpo`.
+  scroll: { paddingBottom: space.fimDaLista },
 
-  chamada: { color: colors.text, fontSize: 16, lineHeight: 24, fontWeight: '700' },
-  explicacao: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  // O cabeçalho já tem folga embaixo; somar 'secao' abriria buraco.
+  faixaAbre: { paddingTop: space.bloco },
+  listaCorpo: { paddingHorizontal: space.tela, paddingTop: space.secao, gap: space.dentro },
 
-  secaoTopo: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, marginBottom: 2 },
-  secaoLinha: { flex: 1, height: 1, backgroundColor: colors.border },
-  secaoTitulo: {
-    color: colors.gold,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+  // A chamada é TÍTULO de abertura — aqui o peso é hierarquia legítima.
+  chamada: { ...type.secao, color: colors.text, marginBottom: space.bloco },
+  explicacao: { ...type.corpo, color: colors.textSecondary, marginBottom: space.entre },
+
+  secaoTopo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.dentro,
+    marginTop: space.secao,
+    marginBottom: space.bloco,
   },
+  secaoLinha: { flex: 1, height: 1, backgroundColor: colors.border },
+  secaoTitulo: { ...type.etiqueta, color: colors.gold, textTransform: 'uppercase' },
 
   card: {
     backgroundColor: colors.card,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
-    gap: 8,
+    padding: space.bloco,
+    gap: space.dentro,
   },
-  linhaTopo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  linhaTopo: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
   iconeCaixa: {
     width: 36,
     height: 36,
@@ -461,77 +491,80 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  linhaTexto: { flex: 1, gap: 3 },
-  nome: { color: colors.text, fontSize: 15, lineHeight: 21, fontWeight: '700' },
-  ondeAparece: { color: colors.textMuted, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  linhaTexto: { flex: 1, gap: space.grudado },
+  nome: { ...type.cartao, color: colors.text },
+  ondeAparece: { ...type.etiqueta, color: colors.textMuted },
 
-  chamadaCard: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  chamadaCard: { ...type.corpoCurto, color: colors.textSecondary },
 
-  corpo: { gap: 12, marginTop: 4 },
-  divisor: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  corpo: { gap: space.bloco, marginTop: space.junto },
+  divisor: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
   divisorLinha: { flex: 1, height: 1, backgroundColor: colors.border },
-  divisorEstrela: { color: colors.purple, fontSize: 12 },
+  divisorEstrela: { ...type.nota, color: colors.purple },
 
-  bloco: { gap: 8 },
-  blocoTopo: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  blocoTitulo: { fontSize: 10, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase', flex: 1 },
+  bloco: { gap: space.dentro },
+  blocoTopo: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
+  // A cor (que vem por fora, de CARA_DO_BLOCO) é o que separa as quatro
+  // camadas — não o peso. A etiqueta já carrega o letterSpacing que faz
+  // maiúscula parecer intencional.
+  blocoTitulo: { ...type.etiqueta, textTransform: 'uppercase', flex: 1 },
 
-  item: { borderLeftWidth: 2, paddingLeft: 10, gap: 6 },
-  itemTexto: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  item: { borderLeftWidth: 2, paddingLeft: space.dentro, gap: space.junto },
+  itemTexto: { ...type.corpoCurto, color: colors.textSecondary },
 
-  avisoLinha: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  avisoTexto: { flex: 1, color: colors.textMuted, fontSize: 12, lineHeight: 18, fontStyle: 'italic' },
+  avisoLinha: { flexDirection: 'row', alignItems: 'flex-start', gap: space.junto },
+  avisoTexto: { ...type.apoio, flex: 1, color: colors.textMuted, fontStyle: 'italic' },
 
   recibo: {
     borderRadius: 12,
     borderWidth: 1,
     borderStyle: 'dotted',
     borderColor: colors.border,
-    padding: 10,
-    gap: 4,
+    padding: space.dentro,
+    gap: space.grudado,
   },
   reciboPendente: { borderColor: colors.amber },
-  reciboTexto: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
-  pendenciaRotulo: { color: colors.amber, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  reciboTexto: { ...type.nota, color: colors.textMuted },
+  pendenciaRotulo: { ...type.etiqueta, color: colors.amber },
 
   verbatim: {
     backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 12,
-    gap: 5,
+    padding: space.bloco,
+    gap: space.junto,
   },
-  verbatimRotulo: { color: colors.textMuted, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  verbatimTexto: { color: colors.text, fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
-  verbatimLocus: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
-  verbatimParafrase: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  verbatimRotulo: { ...type.etiqueta, color: colors.textMuted },
+  verbatimTexto: { ...type.corpoCurto, color: colors.text, fontStyle: 'italic' },
+  verbatimLocus: { ...type.nota, color: colors.textMuted },
+  verbatimParafrase: { ...type.corpoCurto, color: colors.textSecondary },
 
-  convencaoTexto: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  convencaoTexto: { ...type.corpoCurto, color: colors.textSecondary },
 
   shareBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: colors.accent,
     borderRadius: 14,
-    paddingVertical: 11,
+    paddingVertical: space.dentro,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shareBtnTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  shareBtnTexto: { ...type.botao, color: '#fff' },
 
-  bibliografiaNota: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  bibliografiaNota: { ...type.apoio, color: colors.textMuted, marginBottom: space.bloco },
   bibliografia: {
     backgroundColor: colors.card,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
-    gap: 7,
+    padding: space.bloco,
+    gap: space.junto,
   },
-  bibliografiaLinha: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  bibliografiaLinha: { ...type.nota, color: colors.textMuted },
 
-  nota: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 6 },
-  rodape: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 14 },
-  marca: { color: colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 2 },
+  nota: { ...type.apoio, color: colors.textSecondary, textAlign: 'center', marginTop: space.bloco },
+  rodape: { ...type.apoio, color: colors.textMuted, textAlign: 'center', marginTop: space.entre },
+  marca: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.grudado },
 });

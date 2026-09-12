@@ -8,6 +8,37 @@
 // necessária e, ao terminar, devolve a pessoa pra tela de onde veio COM o
 // plano que ela já tinha escolhido (returnTo/returnParams). Antes o login
 // levava sempre pro goBack cego — quem se perdesse aí desistia da compra.
+//
+// DIAGRAMAÇÃO (12/09/2026 — lote das telas legais). Nenhum campo, nenhum
+// botão, nenhum destino e nenhuma regra de erro mudaram: os mesmos dois
+// caminhos (e-mail/senha e Google), a mesma recuperação de senha, o mesmo
+// concluirLogin.
+//
+// O DEFEITO (design/lote-legais/antes/login.png): tudo no mesmo chão preto do
+// começo ao fim, seis textos em peso 700/800 seguidos (rótulo, botão, "esqueci
+// minha senha", "continuar com Google", "criar uma") e um terço da tela morto
+// embaixo do último link. Num app inteiro tratado, esta era uma das telas que
+// ainda gritava — e é a tela que aparece no MEIO de uma compra, o momento de
+// maior risco de desistência.
+//
+// O CONSERTO:
+//   1. DUAS FAIXAS: o formulário (ameixa, a faixa principal) e as outras
+//      formas de entrar (noite — o chão que separa sem colorir). São dois
+//      assuntos: "digite seus dados" e "ou entre por outro caminho", e antes
+//      eles corriam juntos separados só por um fiozinho com "ou" no meio.
+//   2. NEGRITO VIRA EXCEÇÃO. O rótulo dos campos desce de peso 700 pra
+//      type.apoio, e "esqueci minha senha" sai do peso 700 pro mesmo degrau:
+//      são apoio, não hierarquia. O peso fica nos dois botões (é toque) e no
+//      título do cabeçalho. Cinco negritos viraram dois.
+//   3. RESPIRO EM VEZ DE BURACO. O espaço morto do fim vira `ar` deliberado
+//      antes da segunda faixa — o silêncio dos prints, que separa a decisão
+//      principal da alternativa.
+//
+// ESTADO VAZIO: as duas faixas têm conteúdo FIXO (campos e botões escritos no
+// código) — nenhuma pode ficar sem nada dentro. O que varia é o aviso de erro
+// e o de "confira seu e-mail", que aparecem e somem DENTRO da primeira faixa e
+// nunca desenham moldura própria quando estão vazios (é `''` que some, não um
+// traço mudo).
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -19,11 +50,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { funnel } from '../lib/funnel';
@@ -182,94 +216,109 @@ export default function LoginScreen() {
         subtitle={veioDoCheckout ? t('login.checkoutSubtitle') : undefined}
         onBack={() => navigation.goBack()}
       />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.content}>
-          <Text style={styles.label}>{t('login.emailLabel')}</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder={t('login.emailPlaceholder')}
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            editable={!loading}
-          />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* ScrollView porque as duas faixas somadas passam de 844px com o
+            teclado aberto — sem ele o botão do Google fica embaixo do teclado
+            e a pessoa não alcança o segundo caminho de entrada. */}
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* FAIXA 1 — o formulário. Ameixa: é a faixa principal, a decisão que
+              a tela pede. paddingTop 0 porque o GradientHeader já dá a folga de
+              cima; a onda cheia fica (o corpo é alto, é a entrada que merece). */}
+          <FaixaCurva tom="ameixa" semente="login-formulario" estiloCorpo={styles.faixaAbertura}>
+            <ColunaLeitura>
+              <Text style={styles.label}>{t('login.emailLabel')}</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t('login.emailPlaceholder')}
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                editable={!loading}
+              />
 
-          <Text style={styles.label}>{t('login.passwordLabel')}</Text>
-          <View style={styles.passwordRow}>
-            <TextInput
-              style={[styles.input, styles.passwordInput]}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry={!showPassword}
-              editable={!loading}
-            />
-            <TouchableOpacity
-              style={styles.eyeBtn}
-              onPress={() => setShowPassword((v) => !v)}
-              accessibilityRole="button"
-              accessibilityLabel={showPassword ? t('login.hidePassword') : t('login.showPassword')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          </View>
+              <Text style={[styles.label, styles.labelSeguinte]}>{t('login.passwordLabel')}</Text>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry={!showPassword}
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeBtn}
+                  onPress={() => setShowPassword((v) => !v)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
 
-          {error !== '' && <Text style={styles.errorText}>{error}</Text>}
-          {info !== '' && <Text style={styles.infoText}>{info}</Text>}
-          {info !== '' && (
-            <TouchableOpacity style={styles.inboxBtn} activeOpacity={0.8} onPress={abrirCaixaDeEntrada}>
-              <Ionicons name="mail-open" size={16} color={colors.accent} />
-              <Text style={styles.inboxBtnText}>{t('login.openInboxCta')}</Text>
-            </TouchableOpacity>
-          )}
+              {error !== '' && <Text style={styles.errorText}>{error}</Text>}
+              {info !== '' && <Text style={styles.infoText}>{info}</Text>}
+              {info !== '' && (
+                <TouchableOpacity style={styles.inboxBtn} activeOpacity={0.8} onPress={abrirCaixaDeEntrada}>
+                  <Ionicons name="mail-open" size={16} color={colors.accent} />
+                  <Text style={styles.inboxBtnText}>{t('login.openInboxCta')}</Text>
+                </TouchableOpacity>
+              )}
 
-          {loading ? (
-            <ActivityIndicator color={colors.accent} style={{ marginTop: 20 }} />
-          ) : (
-            <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={handleSubmit}>
-              <Text style={styles.btnText}>{mode === MODE.SIGN_IN ? t('login.mode.signIn') : t('login.mode.signUp')}</Text>
-            </TouchableOpacity>
-          )}
+              {loading ? (
+                <ActivityIndicator color={colors.accent} style={styles.carregando} />
+              ) : (
+                <TouchableOpacity style={styles.btn} activeOpacity={0.85} onPress={handleSubmit}>
+                  <Text style={styles.btnText}>{mode === MODE.SIGN_IN ? t('login.mode.signIn') : t('login.mode.signUp')}</Text>
+                </TouchableOpacity>
+              )}
 
-          {mode === MODE.SIGN_IN && (
-            <TouchableOpacity
-              style={styles.forgotLink}
-              activeOpacity={0.7}
-              onPress={handleForgotPassword}
-              disabled={loading || resetting}
-            >
-              <Text style={styles.forgotText}>
-                {resetting ? t('login.forgot.sending') : t('login.forgot.cta')}
-              </Text>
-            </TouchableOpacity>
-          )}
+              {mode === MODE.SIGN_IN && (
+                <TouchableOpacity
+                  style={styles.forgotLink}
+                  activeOpacity={0.7}
+                  onPress={handleForgotPassword}
+                  disabled={loading || resetting}
+                >
+                  <Text style={styles.forgotText}>
+                    {resetting ? t('login.forgot.sending') : t('login.forgot.cta')}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </ColunaLeitura>
+          </FaixaCurva>
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>{t('login.divider')}</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          {/* FAIXA 2 — as outras formas de entrar. Noite (ardósia): o chão que
+              separa sem colorir. O fio com "ou" no meio saiu: a troca de chão
+              faz o mesmo trabalho e não parece remendo. `rasa` porque o corpo
+              é um botão e um link — onda cheia aqui seria mais chão que
+              conteúdo (o defeito ALTO da Home). */}
+          <FaixaCurva tom="noite" semente="login-alternativas" grude rasa>
+            <ColunaLeitura>
+              <Text style={styles.dividerText}>{t('login.divider')}</Text>
 
-          {googleLoading ? (
-            <ActivityIndicator color={colors.text} />
-          ) : (
-            <TouchableOpacity style={styles.googleBtn} activeOpacity={0.85} onPress={handleGoogle} disabled={loading}>
-              <Ionicons name="logo-google" size={18} color={colors.text} />
-              <Text style={styles.googleBtnText}>{t('login.google')}</Text>
-            </TouchableOpacity>
-          )}
+              {googleLoading ? (
+                <ActivityIndicator color={colors.text} style={styles.carregando} />
+              ) : (
+                <TouchableOpacity style={styles.googleBtn} activeOpacity={0.85} onPress={handleGoogle} disabled={loading}>
+                  <Ionicons name="logo-google" size={18} color={colors.text} />
+                  <Text style={styles.googleBtnText}>{t('login.google')}</Text>
+                </TouchableOpacity>
+              )}
 
-          <TouchableOpacity onPress={toggleMode} style={styles.switchLink} disabled={loading}>
-            <Text style={styles.switchText}>
-              {mode === MODE.SIGN_IN ? t('login.switchToSignUp') : t('login.switchToSignIn')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity onPress={toggleMode} style={styles.switchLink} disabled={loading}>
+                <Text style={styles.switchText}>
+                  {mode === MODE.SIGN_IN ? t('login.switchToSignUp') : t('login.switchToSignIn')}
+                </Text>
+              </TouchableOpacity>
+            </ColunaLeitura>
+          </FaixaCurva>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -277,17 +326,24 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, gap: 6 },
-  label: { color: colors.textSecondary, fontSize: 13, fontWeight: '700', marginTop: 14, marginBottom: 6 },
+  flex: { flex: 1 },
+  // As faixas trazem o próprio paddingHorizontal (space.tela).
+  content: { paddingBottom: space.fimDaLista },
+  faixaAbertura: { paddingTop: 0 },
+  // O rótulo é APOIO, não hierarquia: era peso 700 em 13px, agora é o degrau
+  // de apoio sem peso reposto (a lei da fundação — não repor fontWeight depois
+  // do spread).
+  label: { ...type.apoio, color: colors.textSecondary, marginBottom: space.junto },
+  labelSeguinte: { marginTop: space.entre },
   input: {
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    ...type.corpoCurto,
     color: colors.text,
-    fontSize: 15,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: space.bloco,
+    paddingVertical: space.dentro,
   },
   // Campo de senha com o "olhinho" sobreposto à direita — o paddingRight extra
   // impede a senha digitada de passar por baixo do ícone.
@@ -299,35 +355,39 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: space.bloco,
   },
-  errorText: { color: colors.red, fontSize: 13, marginTop: 14, textAlign: 'center', lineHeight: 19 },
-  infoText: { color: colors.gold, fontSize: 13, marginTop: 14, textAlign: 'center', lineHeight: 19 },
+  errorText: { ...type.apoio, color: colors.red, marginTop: space.bloco, textAlign: 'center' },
+  infoText: { ...type.apoio, color: colors.gold, marginTop: space.bloco, textAlign: 'center' },
+  carregando: { marginTop: space.entre },
   btn: {
     backgroundColor: colors.accent,
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: space.bloco,
     alignItems: 'center',
-    marginTop: 20,
+    // `ar` — o silêncio antes da decisão. Era 20 cru; o degrau maior é o certo
+    // aqui, porque o defeito do app era aperto, não folga.
+    marginTop: space.ar,
   },
-  btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-  dividerText: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
+  btnText: { ...type.botao, color: '#fff' },
+  // "Esqueci minha senha" também é apoio: perdeu o peso 700 e ganhou espaço.
+  forgotLink: { alignItems: 'center', marginTop: space.entre, paddingVertical: space.grudado },
+  forgotText: { ...type.apoio, color: colors.textSecondary },
+  // O "ou" virou etiqueta centralizada: o fio dos dois lados saiu junto com a
+  // necessidade dele (a faixa é que separa agora).
+  dividerText: { ...type.etiqueta, color: colors.textMuted, textAlign: 'center' },
   googleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
     borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface,
-    paddingVertical: 14, marginTop: 14,
+    paddingVertical: space.bloco, marginTop: space.entre,
   },
-  googleBtnText: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  switchLink: { alignItems: 'center', marginTop: 18 },
-  switchText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
-  forgotLink: { alignItems: 'center', marginTop: 14, paddingVertical: 4 },
-  forgotText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+  googleBtnText: { ...type.botao, color: colors.text },
+  switchLink: { alignItems: 'center', marginTop: space.entre },
+  switchText: { ...type.botao, color: colors.accent },
   inboxBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
     borderRadius: 12, borderWidth: 1, borderColor: colors.border,
-    paddingVertical: 11, marginTop: 12,
+    paddingVertical: space.dentro, marginTop: space.bloco,
   },
-  inboxBtnText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+  inboxBtnText: { ...type.apoio, color: colors.accent },
 });

@@ -71,9 +71,11 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import CosmicSoundPlayer from '../components/CosmicSoundPlayer';
 import OneTimeLock from '../components/OneTimeLock';
 import { useLanguage } from '../context/LanguageContext';
@@ -459,17 +461,41 @@ export default function JornadaScreen() {
           gradient={gradients.purple}
         />
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={styles.intro}>{t('jornada.intro')}</Text>
+          {/* A ABERTURA — o que a Jornada é, e onde a pessoa está nela. Uma
+              faixa só, com o parágrafo em coluna de leitura: é a primeira
+              dobra "de uma ideia só" do concorrente. */}
+          <FaixaCurva tom="ameixa" semente="jornada-abre" estiloCorpo={styles.faixaAbre}>
+            <ColunaLeitura>
+              <Text style={styles.intro}>{t('jornada.intro')}</Text>
+            </ColunaLeitura>
 
-          <View style={styles.resumoRow}>
-            <Ionicons name="footsteps" size={16} color={colors.teal} />
-            <Text style={styles.resumoTexto}>
-              {t('jornada.resumo', {
-                feitas: estado.trilhasConcluidas,
-                total: trilhas.length,
-              })}
-            </Text>
-          </View>
+            <View style={styles.resumoRow}>
+              <Ionicons name="footsteps" size={16} color={colors.teal} />
+              <Text style={styles.resumoTexto}>
+                {t('jornada.resumo', {
+                  feitas: estado.trilhasConcluidas,
+                  total: trilhas.length,
+                })}
+              </Text>
+            </View>
+          </FaixaCurva>
+
+          {/* O ARCO — chão próprio (violeta), porque é outro assunto: a trilha
+              é leitura, o arco é contagem de dias. A faixa é o que diz isso
+              sem precisar de um título gritando.
+
+              ESTADO VAZIO: os três ramos do arco (escolher / em curso / selo)
+              são excludentes e um deles sempre existe quando `arco !== null`.
+              Quando o arco ainda nem carregou (`arco === null`), a faixa vem
+              `rasa` e SEM corpo — onda baixa fechando a abertura, nunca um
+              bloco de cor vazio. */}
+          <FaixaCurva
+            tom="violeta"
+            semente="jornada-arco"
+            grude
+            rasa={arco === null}
+            estiloCorpo={arco === null ? styles.faixaVazia : styles.faixaCorpo}
+          >
 
           {/* ---------------------------------------------------------------
               O ARCO DE 7 DIAS
@@ -628,7 +654,12 @@ export default function JornadaScreen() {
               </TouchableOpacity>
             </View>
           ) : null}
+          </FaixaCurva>
 
+          {/* AS TRILHAS — o terceiro chão. É onde a pessoa escolhe o que ler,
+              e a lista sempre tem as quatro trilhas (vêm do motor), então não
+              há estado vazio a proteger aqui. */}
+          <FaixaCurva tom="noite" semente="jornada-trilhas" grude estiloCorpo={styles.faixaCorpo}>
           <Text style={styles.grupo}>{t('jornada.trilhas.title')}</Text>
 
           {trilhas.map((tr) => {
@@ -684,7 +715,14 @@ export default function JornadaScreen() {
             );
           })}
 
-          {/* ---- Medalhas da Jornada inteira (dependem de trilhas fechadas) ---- */}
+          {/* ---- Medalhas da Jornada inteira (dependem de trilhas fechadas) ----
+              SEM faixa, e é decisão, não esquecimento: o orçamento de quatro
+              faixas por arquivo (a regra do guia; cinco vira textura) é
+              disputado com a tela DE DENTRO da trilha, que é onde a pessoa
+              volta todo dia. As medalhas ficam dentro do chão das trilhas, que
+              é o assunto delas — medalha é o placar da trilha, não outro
+              assunto. O `space.ar` em volta é o que as separa. */}
+          <View style={styles.medalhasBloco}>
           <Text style={styles.grupo}>{t('jornada.medalhasJornada')}</Text>
           {estado.medalhasJornada.length === 0 ? (
             <Text style={styles.hint}>{t('jornada.medalhasJornada.vazio')}</Text>
@@ -708,6 +746,8 @@ export default function JornadaScreen() {
               </Text>
             </View>
           ) : null}
+          </View>
+          </FaixaCurva>
         </ScrollView>
       </View>
     );
@@ -752,18 +792,29 @@ export default function JornadaScreen() {
           <Text style={styles.voltarTexto}>{t('jornada.voltar')}</Text>
         </TouchableOpacity>
 
-        {/* ---- Progresso, visível antes de qualquer conteúdo ---- */}
-        <View style={styles.progressoBloco}>
-          <Text style={styles.progressoTexto}>
-            {t('jornada.trilha.progresso', { feitos, total: progresso.total })}
-          </Text>
-          <Bolinhas
-            feitos={feitos}
-            total={progresso.total}
-            atual={progresso.diaAtual}
-            rotulo={t('jornada.trilha.progresso', { feitos, total: progresso.total })}
-          />
-        </View>
+        {/* ---- Progresso, visível antes de qualquer conteúdo ----
+             É a barra de passos do concorrente: a primeira coisa da tela diz
+             onde você está na trilha, antes de qualquer palavra do conteúdo.
+             Numa faixa própria, o degrau fica óbvio sem título nenhum.
+             SEMPRE tem conteúdo (a contagem e as bolinhas existem em qualquer
+             dia), então não há estado vazio a proteger. */}
+        <FaixaCurva tom="ameixa" semente="jornada-passo" estiloCorpo={styles.faixaAbre}>
+          <View style={styles.progressoBloco}>
+            <Text style={styles.progressoTexto}>
+              {t('jornada.trilha.progresso', { feitos, total: progresso.total })}
+            </Text>
+            <Bolinhas
+              feitos={feitos}
+              total={progresso.total}
+              atual={progresso.diaAtual}
+              rotulo={t('jornada.trilha.progresso', { feitos, total: progresso.total })}
+            />
+          </View>
+        </FaixaCurva>
+
+        {/* O miolo da tela do dia: fora de faixa (o orçamento de quatro já foi
+            gasto), então é aqui que ele recebe o gutter e o ritmo. */}
+        <View style={styles.diaCorpo}>
 
         {/* ---- O que acabou de acontecer ---- */}
         {diaFechadoAgora ? (
@@ -1008,6 +1059,7 @@ export default function JornadaScreen() {
             </Text>
           </View>
         ) : null}
+        </View>
       </ScrollView>
     </View>
   );
@@ -1016,23 +1068,33 @@ export default function JornadaScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scroll: { padding: 20, paddingBottom: 48, gap: 12 },
+  // Sem padding horizontal: as faixas vão de borda a borda (é o que faz a
+  // troca de chão se ler como seção) e cada uma traz o `space.tela` por dentro.
+  scroll: { paddingBottom: space.fimDaLista },
 
-  intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  hint: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
-  body: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  // O cabeçalho já tem folga embaixo; somar o 'secao' da faixa abriria buraco.
+  faixaAbre: { paddingTop: space.bloco },
+  // O corpo padrão de faixa do meio: o degrau 'secao' em cima e embaixo é o
+  // que faz a tela respirar — o degrau que o app quase não usava.
+  faixaCorpo: { gap: space.entre },
+  // Estado vazio: faixa rasa não pode desenhar meia tela de cor.
+  faixaVazia: { paddingTop: 0, paddingBottom: 0 },
+
+  medalhasBloco: { marginTop: space.ar, gap: space.entre },
+
+  intro: { ...type.corpo, color: colors.textSecondary },
+  hint: { ...type.apoio, color: colors.textMuted },
+  body: { ...type.corpo, color: colors.textSecondary },
 
   grupo: {
+    ...type.etiqueta,
     color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
     textTransform: 'uppercase',
-    marginTop: 10,
   },
 
-  resumoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  resumoTexto: { color: colors.teal, fontSize: 13, fontWeight: '700' },
+  resumoRow: { flexDirection: 'row', alignItems: 'center', gap: space.junto, marginTop: space.entre },
+  // O placar se separa pela COR (teal), não pelo peso.
+  resumoTexto: { ...type.apoio, color: colors.teal },
 
   // ---- arco de 7 dias ----
   // Mesma moldura do cartão do passo de hoje (styles.hoje), com a borda neutra:
@@ -1044,61 +1106,59 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 10,
+    padding: space.bloco,
+    gap: space.bloco,
   },
-  arcoTitulo: { color: colors.text, fontSize: 17, fontWeight: '800' },
-  arcoConvites: { gap: 8 },
+  arcoTitulo: { ...type.cartao, color: colors.text },
+  arcoConvites: { gap: space.dentro },
   arcoConvite: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: space.dentro,
     backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingVertical: 11,
-    paddingHorizontal: 14,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.bloco,
   },
   arcoConviteCat: {
+    ...type.etiqueta,
     color: colors.purple,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
     textTransform: 'uppercase',
     width: 66,
   },
   arcoConviteTexto: {
+    ...type.corpoCurto,
     color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
     flex: 1,
-    lineHeight: 19,
   },
-  arcoDia: { color: colors.text, fontSize: 16, fontWeight: '800', lineHeight: 23 },
-  arcoConviteAtivo: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  arcoDia: { ...type.cartao, color: colors.text },
+  arcoConviteAtivo: { ...type.corpo, color: colors.textSecondary },
   arcoMarcado: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: 'rgba(95,217,140,0.12)',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(95,217,140,0.45)',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginTop: 4,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.bloco,
   },
-  arcoMarcadoTexto: { color: colors.green, fontSize: 13, fontWeight: '800', flex: 1 },
-  arcoTrocar: { color: colors.textMuted, fontSize: 11, fontWeight: '700', lineHeight: 17 },
+  // O verde já É o destaque desta linha; o peso era redundante.
+  arcoMarcadoTexto: { ...type.corpoCurto, color: colors.green, flex: 1 },
+  arcoTrocar: { ...type.nota, color: colors.textMuted },
   arcoTrocarConfirma: { color: colors.amber },
-  arcoSelo: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  arcoSeloTextos: { flex: 1, gap: 2 },
-  arcoSeloTitulo: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  arcoSeloPlacar: { color: colors.gold, fontSize: 14, fontWeight: '800' },
+  arcoSelo: { flexDirection: 'row', gap: space.dentro, alignItems: 'flex-start' },
+  arcoSeloTextos: { flex: 1, gap: space.grudado },
+  arcoSeloTitulo: { ...type.cartao, color: colors.text },
+  arcoSeloPlacar: { ...type.corpoCurto, color: colors.gold },
 
   // ---- bolinhas ----
-  dots: { flexDirection: 'row', gap: 6, alignItems: 'center', marginTop: 4 },
+  // A barra de progresso do concorrente, em pontos. Dimensões de DESENHO
+  // (10px de bolinha) — não são degraus de leitura.
+  dots: { flexDirection: 'row', gap: space.junto, alignItems: 'center', marginTop: space.junto },
   dot: {
     width: 10,
     height: 10,
@@ -1116,71 +1176,76 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 6,
+    padding: space.bloco,
+    gap: space.junto,
   },
   trilhaTravada: { opacity: 0.6 },
-  trilhaTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  trilhaNome: { color: colors.text, fontSize: 17, fontWeight: '800', flex: 1 },
-  trilhaSub: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  trilhaTop: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
+  // Nome de item de lista: `cartao` é exatamente este degrau.
+  trilhaNome: { ...type.cartao, color: colors.text, flex: 1 },
+  trilhaSub: { ...type.corpoCurto, color: colors.textSecondary },
   trilhaBottom: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 6,
-    gap: 10,
+    marginTop: space.junto,
+    gap: space.dentro,
   },
-  trilhaProgresso: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  trilhaCta: { color: colors.teal, fontSize: 13, fontWeight: '800' },
+  trilhaProgresso: { ...type.apoio, color: colors.textMuted },
+  // A chamada se destaca pela COR (teal), não pelo peso.
+  trilhaCta: { ...type.apoio, color: colors.teal },
   trilhaCtaTravada: { color: colors.textMuted },
 
   // ---- dentro da trilha ----
-  voltar: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  voltarTexto: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  voltar: { flexDirection: 'row', alignItems: 'center', gap: space.grudado, paddingHorizontal: space.tela, paddingTop: space.bloco },
+  voltarTexto: { ...type.apoio, color: colors.textMuted },
 
-  progressoBloco: { gap: 4 },
-  progressoTexto: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  progressoBloco: { gap: space.junto },
+  progressoTexto: { ...type.cartao, color: colors.text },
+
+  // O miolo da tela do dia, que não é faixa: recebe o gutter e o ritmo aqui.
+  diaCorpo: { paddingHorizontal: space.tela, paddingTop: space.secao, gap: space.entre },
 
   feito: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: 'rgba(95,217,140,0.12)',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(95,217,140,0.45)',
-    padding: 12,
+    padding: space.bloco,
   },
-  feitoTexto: { color: colors.green, fontSize: 14, fontWeight: '800', flex: 1 },
-  erro: { color: colors.amber, fontSize: 13, lineHeight: 19 },
+  feitoTexto: { ...type.corpoCurto, color: colors.green, flex: 1 },
+  erro: { ...type.corpoCurto, color: colors.amber },
 
   hoje: {
     backgroundColor: colors.card,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.purple,
-    padding: 16,
-    gap: 10,
+    padding: space.bloco,
+    gap: space.bloco,
   },
   kicker: {
+    ...type.etiqueta,
     color: colors.purple,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  diaLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  diaTitulo: { color: colors.text, fontSize: 19, fontWeight: '800' },
-  leitura: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
+  diaLabel: { ...type.apoio, color: colors.textMuted },
+  // Título do dia: hierarquia de verdade, o peso aqui é legítimo.
+  diaTitulo: { ...type.secao, color: colors.text },
+  // A LEITURA DO DIA — o texto mais longo da tela, e o motivo dela existir.
+  // `corpo` é o degrau do "Casamentos de Áries" do concorrente: 17px, peso
+  // normal, entrelinha larga.
+  leitura: { ...type.corpo, color: colors.textSecondary },
   blocoLabel: {
+    ...type.etiqueta,
     color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
     textTransform: 'uppercase',
-    marginTop: 4,
   },
-  pergunta: { color: colors.gold, fontSize: 15, lineHeight: 22, fontWeight: '700' },
+  // A pergunta do diário já é dourada; a cor basta como destaque.
+  pergunta: { ...type.corpo, color: colors.gold },
 
   // ---- dobra ----
   dobra: {
@@ -1194,56 +1259,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    gap: 10,
+    paddingHorizontal: space.bloco,
+    paddingVertical: space.dentro,
+    gap: space.dentro,
   },
-  dobraTitulo: { color: colors.textSecondary, fontSize: 13, fontWeight: '800', flex: 1 },
-  dobraCorpo: { paddingHorizontal: 14, paddingBottom: 12, gap: 8 },
-  fonteLinha: { gap: 1 },
-  fonteObra: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', lineHeight: 18 },
-  fonteAutor: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  dobraTitulo: { ...type.corpoCurto, color: colors.textSecondary, flex: 1 },
+  dobraCorpo: { paddingHorizontal: space.bloco, paddingBottom: space.bloco, gap: space.dentro },
+  fonteLinha: { gap: space.grudado },
+  fonteObra: { ...type.apoio, color: colors.textSecondary },
+  fonteAutor: { ...type.nota, color: colors.textMuted },
 
   // ---- botões ----
   principal: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: colors.accent,
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: space.bloco,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: space.grudado,
   },
   principalOcupado: { opacity: 0.6 },
-  principalTexto: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  principalTexto: { ...type.botao, color: '#fff' },
   secundario: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.bloco,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secundarioTexto: { color: colors.teal, fontSize: 13, fontWeight: '800' },
+  secundarioTexto: { ...type.botao, color: colors.teal },
 
   espera: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: 'rgba(255,200,92,0.10)',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,200,92,0.35)',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginTop: 4,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.bloco,
   },
-  esperaTexto: { color: colors.gold, fontSize: 13, fontWeight: '700', flex: 1, lineHeight: 19 },
+  esperaTexto: { ...type.corpoCurto, color: colors.gold, flex: 1 },
 
   // ---- dias anteriores ----
   anterior: {
@@ -1256,29 +1320,30 @@ const styles = StyleSheet.create({
   anteriorHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    gap: space.dentro,
+    paddingHorizontal: space.bloco,
+    paddingVertical: space.dentro,
   },
-  anteriorTextos: { flex: 1, gap: 1 },
-  anteriorDia: { color: colors.textMuted, fontSize: 11, fontWeight: '800' },
-  anteriorTitulo: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
-  anteriorRever: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
-  anteriorCorpo: { paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
+  anteriorTextos: { flex: 1, gap: space.grudado },
+  anteriorDia: { ...type.etiqueta, color: colors.textMuted },
+  anteriorTitulo: { ...type.corpoCurto, color: colors.textSecondary },
+  anteriorRever: { ...type.nota, color: colors.textMuted },
+  anteriorCorpo: { paddingHorizontal: space.bloco, paddingBottom: space.bloco, gap: space.bloco },
 
   // ---- dias à frente ----
-  futuro: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 },
-  futuroTexto: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  // Linha apagada, sem texto de erro: não dá pra errar o que não é oferecido.
+  futuro: { flexDirection: 'row', alignItems: 'center', gap: space.dentro, paddingHorizontal: space.grudado },
+  futuroTexto: { ...type.corpoCurto, color: colors.textMuted },
 
   // ---- medalhas ----
   medalha: {
     flexDirection: 'row',
-    gap: 12,
+    gap: space.dentro,
     backgroundColor: colors.card,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
+    padding: space.bloco,
     alignItems: 'flex-start',
   },
   medalhaNova: { borderColor: colors.gold, backgroundColor: 'rgba(255,200,92,0.08)' },
@@ -1290,28 +1355,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  medalhaTexto: { flex: 1, gap: 2 },
+  medalhaTexto: { flex: 1, gap: space.grudado },
   medalhaKicker: {
+    ...type.etiqueta,
     color: colors.gold,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  medalhaNome: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  medalhaLegenda: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+  // O NOME da medalha é o que se printa — é o título deste card.
+  medalhaNome: { ...type.cartao, color: colors.text },
+  medalhaLegenda: { ...type.corpoCurto, color: colors.textSecondary },
 
   alvo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.junto,
     borderRadius: 14,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: 'rgba(255,200,92,0.45)',
-    paddingVertical: 11,
-    paddingHorizontal: 14,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.bloco,
   },
-  alvoTexto: { color: colors.gold, fontSize: 13, fontWeight: '800', flex: 1 },
-  alvoFaltam: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
+  alvoTexto: { ...type.corpoCurto, color: colors.gold, flex: 1 },
+  alvoFaltam: { ...type.nota, color: colors.textMuted },
 });

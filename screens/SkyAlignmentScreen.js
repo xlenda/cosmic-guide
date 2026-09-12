@@ -18,7 +18,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import { useLanguage } from '../context/LanguageContext';
 import { getAnyBirthData } from '../lib/birthData';
@@ -27,6 +27,16 @@ import CosmicScene from '../components/CosmicScene';
 import GradientHeader from '../components/GradientHeader';
 import PremiumCosmicCard from '../components/PremiumCosmicCard';
 import SkyAlignmentStage from '../components/SkyAlignmentStage';
+// AS PECAS DE DIAGRAMACAO (design/PECAS-DE-DIAGRAMACAO.md, lote de acao
+// 12/09/2026). Esta tela ja tinha composicao no topo (titulo em serifa grande
+// + o palco), mas TUDO corria sobre o mesmo chao: convite, gesto e recibo
+// empilhados, e o recibo — que e a ficha de rotulo->valor mais literal do app
+// inteiro — era desenhado na mao com Ionicon + dois Text. A tabela de dados
+// existe exatamente pra isso, e ela ja traz a lei de nao fabricar embutida
+// (linha sem valor SOME, nunca traco mudo).
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
+import TabelaDados from '../components/TabelaDados';
 import {
   buildCosmicShareCardContent,
   cosmicShareCardPack,
@@ -125,21 +135,6 @@ function diskItems(positions, highlightedPlanet, highlightColor) {
     longitude: position.longitude,
     color: position.planet === highlightedPlanet ? highlightColor : '#A99BAB',
   }));
-}
-
-function ReceiptRow({ icon, label, value, testID }) {
-  if (!value) return null;
-  return (
-    <View style={styles.receiptRow} testID={testID}>
-      <View style={styles.receiptIcon}>
-        <Ionicons name={icon} size={15} color={colors.gold} />
-      </View>
-      <View style={styles.receiptCopy}>
-        <Text style={styles.receiptLabel}>{label}</Text>
-        <Text style={styles.receiptValue}>{value}</Text>
-      </View>
-    </View>
-  );
 }
 
 function PrimaryAction({ icon, label, onPress, testID }) {
@@ -474,9 +469,23 @@ export default function SkyAlignmentScreen() {
         keyboardShouldPersistTaps="handled"
         testID="sky-alignment-scroll"
       >
+        {/* FAIXA 1 — O CONVITE E O GESTO. Uma faixa `noite` que abre a
+            tela e vai ate o palco: convite, instrucao e o arrastar sao uma
+            coisa so. Fica `rasa` enquanto nao ha ceu (carregando, sem
+            nascimento, erro): com um cartao de estado dentro, a caixa cheia
+            da onda seria mais chao de cor do que conteudo. */}
+        <FaixaCurva
+          tom="noite"
+          semente="convite"
+          rasa={!hasSky}
+          style={styles.faixa}
+          estiloCorpo={[styles.faixaCorpo, styles.faixaCorpoPrimeira]}
+        >
         <View style={styles.intro}>
           <Text style={styles.title}>{t('alignment.title')}</Text>
-          <Text style={styles.body}>{t('alignment.body')}</Text>
+          <ColunaLeitura>
+            <Text style={styles.body}>{t('alignment.body')}</Text>
+          </ColunaLeitura>
         </View>
 
         {snapshot.loading && (
@@ -511,7 +520,6 @@ export default function SkyAlignmentScreen() {
         )}
 
         {!snapshot.loading && hasSky && stagePositions && stageEncounter && (
-          <>
             <SkyAlignmentStage
               positions={stagePositions}
               encounter={stageEncounter}
@@ -536,8 +544,15 @@ export default function SkyAlignmentScreen() {
               }}
               testID="sky-alignment-stage"
             />
+        )}
+        </FaixaCurva>
 
-            {revealed && receipt && (
+        {/* FAIXA 2 — O RECIBO. So existe depois do gesto, e e outro assunto:
+            sai de "faca" e entra em "de onde isto veio". O dourado e o acento
+            quente da casa — a prova de origem e o que a tela tem de mais
+            valioso, e ela merece chao proprio. */}
+        {revealed && receipt && hasSky && (
+          <FaixaCurva tom="dourado" semente="recibo" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
               <View
                 accessibilityLiveRegion="polite"
                 style={styles.receipt}
@@ -550,12 +565,30 @@ export default function SkyAlignmentScreen() {
                   <Text style={styles.receiptTitle}>{t('alignment.receipt.title')}</Text>
                 </View>
 
-                <ReceiptRow
-                  icon="person-outline"
-                  label={t('alignment.receipt.data')}
-                  value={dataValue}
-                  testID="sky-alignment-receipt-data"
-                />
+                {/* A FICHA. Antes eram seis ReceiptRow desenhados na mao,
+                    cada um com um `if (!value) return null` proprio; agora e
+                    UMA tabela e o filtro e da peca (lib/filtroDado.js): linha
+                    sem valor e sem convite simplesmente nao existe. Vem em
+                    dois pedacos de proposito — o aviso sobre a qualidade do
+                    dado precisa aparecer COLADO na linha do dado, nao no pe
+                    da ficha. */}
+                {/* CADA LINHA CONTINUA COM O SEU testID LITERAL, numa View
+                    em volta. Nao e enfeite: test/storeMetadata.test.js e
+                    test/skyAlignmentScreen.test.js procuram a string
+                    testID="sky-alignment-receipt-orb" NO CODIGO-FONTE, e e
+                    ela que ancora um claim ja publicado na ficha da Play
+                    Store. Um nome montado em runtime (`${testID}-${chave}`)
+                    nao aparece num grep de fonte e apagaria essa evidencia.
+                    A View e de custo zero e preserva a prova.
+                    E cada tabela e uma linha so, ou um grupo: a ficha vem
+                    partida de proposito — o aviso sobre a qualidade do dado
+                    precisa aparecer COLADO na linha do dado, nao no pe. */}
+                <View testID="sky-alignment-receipt-data">
+                  <TabelaDados
+                    itens={[{ chave: 'data', rotulo: t('alignment.receipt.data'), valor: dataValue }]}
+                    testID="sky-alignment-receipt-ficha"
+                  />
+                </View>
                 {!exactData && !fixedOffsetData && (
                   <Text style={styles.warning}>{t('alignment.receipt.warningDateOnly')}</Text>
                 )}
@@ -565,30 +598,30 @@ export default function SkyAlignmentScreen() {
                 {result.dataQuality?.warnings?.includes('birth_time_ignored_without_timezone') && (
                   <Text style={styles.warning}>{t('alignment.receipt.warningNoLocation')}</Text>
                 )}
-                <ReceiptRow
-                  icon="calculator-outline"
-                  label={t('alignment.receipt.calculation')}
-                  value={calculationValue}
-                  testID="sky-alignment-receipt-calculation"
-                />
-                <ReceiptRow
-                  icon="git-compare-outline"
-                  label={t('alignment.receipt.aspect')}
-                  value={aspectValue}
-                  testID="sky-alignment-receipt-aspect"
-                />
-                <ReceiptRow
-                  icon="radio-button-on-outline"
-                  label={t('alignment.receipt.orb')}
-                  value={orbValue}
-                  testID="sky-alignment-receipt-orb"
-                />
-                <ReceiptRow
-                  icon="library-outline"
-                  label={t('alignment.receipt.source')}
-                  value={sourceValue}
-                  testID="sky-alignment-receipt-source"
-                />
+                <View testID="sky-alignment-receipt-calculation">
+                  <TabelaDados
+                    itens={[{ chave: 'calculation', rotulo: t('alignment.receipt.calculation'), valor: calculationValue }]}
+                    testID="sky-alignment-receipt-calculo"
+                  />
+                </View>
+                <View testID="sky-alignment-receipt-aspect">
+                  <TabelaDados
+                    itens={[{ chave: 'aspect', rotulo: t('alignment.receipt.aspect'), valor: aspectValue }]}
+                    testID="sky-alignment-receipt-asp"
+                  />
+                </View>
+                <View testID="sky-alignment-receipt-orb">
+                  <TabelaDados
+                    itens={[{ chave: 'orb', rotulo: t('alignment.receipt.orb'), valor: orbValue }]}
+                    testID="sky-alignment-receipt-orbe"
+                  />
+                </View>
+                <View testID="sky-alignment-receipt-source">
+                  <TabelaDados
+                    itens={[{ chave: 'source', rotulo: t('alignment.receipt.source'), valor: sourceValue }]}
+                    testID="sky-alignment-receipt-fonte"
+                  />
+                </View>
                 {!!completeSourceDetails && (
                   <>
                     <Pressable
@@ -623,12 +656,12 @@ export default function SkyAlignmentScreen() {
                     )}
                   </>
                 )}
-                <ReceiptRow
-                  icon="shield-checkmark-outline"
-                  label={t('alignment.receipt.limit')}
-                  value={limitValue}
-                  testID="sky-alignment-receipt-limit"
-                />
+                <View testID="sky-alignment-receipt-limit">
+                  <TabelaDados
+                    itens={[{ chave: 'limit', rotulo: t('alignment.receipt.limit'), valor: limitValue }]}
+                    testID="sky-alignment-receipt-limites"
+                  />
+                </View>
 
                 {shareCardContent ? (
                   <View style={styles.shareSection} testID="sky-alignment-share-card-section">
@@ -689,8 +722,7 @@ export default function SkyAlignmentScreen() {
                   testID="sky-alignment-next-action"
                 />
               </View>
-            )}
-          </>
+          </FaixaCurva>
         )}
 
         <Text style={styles.differentiation}>{t('alignment.differentiation')}</Text>
@@ -708,33 +740,41 @@ const displayFont = Platform.select({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background, overflow: 'hidden' },
+  // Sem gap no contentContainer: gap do pai vence o marginTop:-1 do `grude` e
+  // abre uma tira preta entre as faixas. Quem da respiro e a propria faixa.
   scroll: {
     width: '100%',
     maxWidth: 680,
     alignSelf: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 48,
+    paddingTop: space.entre,
+    paddingBottom: space.fimDaLista,
   },
-  intro: { paddingHorizontal: 4, marginBottom: 18 },
+  // Esta tela NAO tem paddingHorizontal no scroll (a faixa precisa sangrar de
+  // ponta a ponta); quem devolve o respiro lateral e o corpo da faixa.
+  faixa: {},
+  faixaCorpo: { paddingHorizontal: space.entre, gap: space.entre },
+  faixaCorpoPrimeira: { paddingTop: 0 },
+
+  intro: { gap: space.dentro },
+  // A serifa e o display continuam: sao a identidade desta tela, e o degrau
+  // `display` da escala tem exatamente o peso de hierarquia que ela pedia.
   title: {
+    ...type.display,
     color: colors.text,
     fontFamily: displayFont,
-    fontSize: 31,
-    lineHeight: 37,
-    fontWeight: '700',
     letterSpacing: -0.7,
-    marginTop: 8,
   },
-  body: { color: colors.textSecondary, fontSize: 14, lineHeight: 22, marginTop: 10 },
+  body: { ...type.corpo, color: colors.textSecondary },
+
   stateCard: {
     alignItems: 'center',
     borderRadius: 26,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: 'rgba(21,16,25,0.94)',
-    paddingHorizontal: 22,
-    paddingVertical: 28,
+    paddingHorizontal: space.entre,
+    paddingVertical: space.secao,
+    gap: space.dentro,
   },
   stateIcon: {
     width: 48,
@@ -747,28 +787,26 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(227,184,95,0.28)',
   },
   stateTitle: {
+    ...type.titulo,
     color: colors.text,
     fontFamily: displayFont,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '700',
     textAlign: 'center',
-    marginTop: 15,
   },
-  stateBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 22, textAlign: 'center', marginTop: 8 },
+  stateBody: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
+
   receipt: {
     borderRadius: 28,
     borderWidth: 1,
     borderColor: 'rgba(227,184,95,0.42)',
     backgroundColor: '#171118',
-    padding: 18,
-    marginTop: 18,
+    padding: space.bloco,
+    gap: space.dentro,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 18,
   },
-  receiptHeader: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 4 },
+  receiptHeader: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
   receiptSeal: {
     width: 38,
     height: 38,
@@ -779,44 +817,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(227,184,95,0.3)',
   },
-  receiptTitle: { color: colors.text, fontFamily: displayFont, fontSize: 22, lineHeight: 28, fontWeight: '700' },
-  receiptRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  receiptIcon: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(227,184,95,0.07)' },
-  receiptCopy: { flex: 1 },
-  receiptLabel: { color: colors.textMuted, fontSize: 10, lineHeight: 14, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase' },
-  receiptValue: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, marginTop: 3 },
-  warning: { color: colors.amber, fontSize: 12, lineHeight: 18, marginTop: 10, paddingHorizontal: 4 },
+  receiptTitle: { ...type.titulo, color: colors.text, fontFamily: displayFont },
+  // receiptRow/receiptIcon/receiptLabel/receiptValue sairam: a ficha agora e
+  // components/TabelaDados.js, que traz o mesmo desenho (rotulo a esquerda,
+  // valor a direita, fio fino entre as linhas) E o filtro de nao fabricar.
+  warning: { ...type.apoio, color: colors.amber },
   sourceDisclosure: {
     minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
-    paddingHorizontal: 12,
-    marginTop: 8,
+    gap: space.junto,
+    paddingHorizontal: space.dentro,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(227,184,95,0.24)',
     backgroundColor: 'rgba(227,184,95,0.055)',
   },
-  sourceDisclosureText: { flex: 1, color: '#EBD49E', fontSize: 12, lineHeight: 18, fontWeight: '800' },
+  sourceDisclosureText: { flex: 1, ...type.apoio, color: '#EBD49E' },
   sourceDetails: {
+    ...type.apoio,
     color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 19,
-    marginTop: 10,
-    padding: 12,
+    padding: space.dentro,
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.025)',
   },
   shareSection: {
-    gap: 14,
-    paddingTop: 20,
-    marginTop: 4,
+    gap: space.bloco,
+    paddingTop: space.bloco,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(227,184,95,0.28)',
   },
-  shareHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  shareHeader: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
   shareSeal: {
     width: 38,
     height: 38,
@@ -828,36 +860,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(227,184,95,0.3)',
   },
-  shareHeaderCopy: { flex: 1, gap: 2 },
-  shareTitle: { color: colors.text, fontFamily: displayFont, fontSize: 18, lineHeight: 23, fontWeight: '700' },
-  shareBody: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  shareHeaderCopy: { flex: 1, gap: space.grudado },
+  shareTitle: { ...type.cartao, color: colors.text, fontFamily: displayFont },
+  shareBody: { ...type.apoio, color: colors.textMuted },
   sharePreview: { width: '72%', maxWidth: 260, alignSelf: 'center' },
   shareButton: {
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 9,
-    paddingHorizontal: 18,
+    gap: space.junto,
+    paddingHorizontal: space.bloco,
     borderRadius: 24,
     borderCurve: 'continuous',
     backgroundColor: colors.gold,
   },
   shareButtonDisabled: { opacity: 0.7 },
-  shareButtonText: { color: '#21151A', fontSize: 14, lineHeight: 19, fontWeight: '900' },
-  sharePrivacy: { color: colors.textMuted, fontSize: 11, lineHeight: 17, textAlign: 'center' },
-  shareFeedback: { color: '#EBD49E', fontSize: 12, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
-  actionShell: { width: '100%', borderRadius: 24, overflow: 'hidden', marginTop: 18 },
-  action: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 18 },
-  actionText: { flex: 1, color: '#21151A', fontSize: 14, lineHeight: 19, fontWeight: '900', textAlign: 'center' },
+  shareButtonText: { ...type.botao, color: '#21151A' },
+  sharePrivacy: { ...type.nota, color: colors.textMuted, textAlign: 'center' },
+  shareFeedback: { ...type.apoio, color: '#EBD49E', textAlign: 'center' },
+  actionShell: { width: '100%', borderRadius: 24, overflow: 'hidden', marginTop: space.bloco },
+  action: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto, paddingHorizontal: space.bloco },
+  actionText: { flex: 1, ...type.botao, color: '#21151A', textAlign: 'center' },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
   differentiation: {
+    ...type.apoio,
     color: colors.textMuted,
     fontFamily: displayFont,
-    fontSize: 13,
-    lineHeight: 20,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 24,
+    marginTop: space.secao,
+    paddingHorizontal: space.entre,
   },
 });

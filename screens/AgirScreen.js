@@ -20,10 +20,19 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import DailyMissionsCard from '../components/DailyMissionsCard';
+// AS PECAS DE DIAGRAMACAO (design/PECAS-DE-DIAGRAMACAO.md, lote de acao
+// 12/09/2026). Esta tela era o caso mais puro do diagnostico: CINCO assuntos
+// independentes (ideia de encontro, desafio de 7 dias, gesto do dia, meta da
+// semana, sonhos do casal) empilhados em cards identicos sobre o MESMO chao,
+// separados so por um titulo de 16px em peso 800. O olho lia uma lista de
+// quinze itens, nao cinco assuntos. As faixas dao o corte que o titulo nao
+// dava; a coluna de leitura tira o paragrafo da borda.
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { useDentroDeAba } from '../context/AbaContext';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -233,13 +242,15 @@ export default function AgirScreen() {
         <GradientHeader title={t('home.card.agir.title')} subtitle={t('home.card.agir.subtitle')} onBack={() => navigation.goBack()} gradient={HEADER_GRADIENT} />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {!dentroDeAba && <DailyMissionsCard />}
-          <View style={[styles.emptyProfile, { paddingVertical: 36 }]}>
+          <View style={[styles.emptyProfile, { paddingVertical: space.ar }]}>
             <Ionicons name="heart-outline" size={40} color={colors.accent} />
             <Text style={styles.emptyProfileTitle}>{t('agir.empty.title')}</Text>
-            <Text style={styles.emptyProfileDesc}>
-              {t('agir.empty.desc')}
-            </Text>
-            <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
+            <ColunaLeitura centralizado>
+              <Text style={styles.emptyProfileDesc}>
+                {t('agir.empty.desc')}
+              </Text>
+            </ColunaLeitura>
+            <TouchableOpacity style={[styles.btn, { marginTop: space.junto }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
               <Text style={styles.btnText}>{t('agir.empty.cta')}</Text>
             </TouchableOpacity>
           </View>
@@ -257,6 +268,9 @@ export default function AgirScreen() {
             que acumulam token, trocáveis por brindes na Loja). */}
         {!dentroDeAba && <DailyMissionsCard />}
 
+        {/* FAIXA 1 — A IDEIA DE ENCONTRO. O chao neutro ('noite'): e a dobra
+            de abertura, e a acao principal da tela mora nela (sortear). */}
+        <FaixaCurva tom="noite" semente="encontro" style={styles.faixa} estiloCorpo={[styles.faixaCorpo, styles.faixaCorpoPrimeira]}>
         {/* 1) Ideia de encontro */}
         <Text
           style={styles.sectionTitle}
@@ -265,7 +279,9 @@ export default function AgirScreen() {
           {t('agir.ideas.title')}
         </Text>
         <View style={styles.card}>
-          <Text style={styles.mutedText}>{t('agir.ideas.subtitle')}</Text>
+          <ColunaLeitura>
+            <Text style={styles.mutedText}>{t('agir.ideas.subtitle')}</Text>
+          </ColunaLeitura>
           {loaded && linguagem && (
             <View style={styles.switchRow}>
               <Switch
@@ -279,7 +295,7 @@ export default function AgirScreen() {
               </Text>
             </View>
           )}
-          <TouchableOpacity style={[styles.btn, { marginTop: 12, alignSelf: 'flex-start' }]} onPress={sortear}>
+          <TouchableOpacity style={[styles.btn, { alignSelf: 'flex-start' }]} onPress={sortear}>
             <Text style={styles.btnText}>{t('agir.ideas.draw')}</Text>
           </TouchableOpacity>
         </View>
@@ -287,7 +303,9 @@ export default function AgirScreen() {
         {idea && (
           <View key={drawKey} style={[styles.card, styles.ideaCard]}>
             <Text style={styles.fractionBadge}>{t(idea.tag)}</Text>
-            <Text style={styles.ideaText}>{t(idea.text)}</Text>
+            <ColunaLeitura centralizado>
+              <Text style={styles.ideaText}>{t(idea.text)}</Text>
+            </ColunaLeitura>
             <TouchableOpacity style={styles.favBtn} onPress={() => toggleFav(idea.id)}>
               <Text style={styles.favBtnText}>{favorites.includes(idea.id) ? t('agir.ideas.inFavs') : t('agir.ideas.addFav')}</Text>
             </TouchableOpacity>
@@ -295,20 +313,20 @@ export default function AgirScreen() {
         )}
 
         {loaded && (
-          <View style={[styles.card, { marginTop: 14 }]}>
+          <View style={styles.card}>
             {favList.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateIcon}>🤍</Text>
                 <Text style={styles.emptyStateTitle}>{t('agir.ideas.emptyFavTitle')}</Text>
                 <Text style={styles.emptyStateDesc}>{t('agir.ideas.emptyFavDesc')}</Text>
-                <TouchableOpacity style={[styles.btn, { marginTop: 14 }]} onPress={sortearEVer}>
+                <TouchableOpacity style={[styles.btn, { marginTop: space.junto }]} onPress={sortearEVer}>
                   <Text style={styles.btnText}>{t('agir.ideas.emptyFavCta')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <>
                 <Text style={styles.overline}>{t('agir.ideas.favCount', { count: favList.length })}</Text>
-                <View style={{ marginTop: 10 }}>
+                <View style={{ marginTop: space.junto }}>
                   {favList.map((f) => (
                     <View key={f.id} style={styles.listItem}>
                       <TouchableOpacity onPress={() => toggleFav(f.id)}>
@@ -326,19 +344,28 @@ export default function AgirScreen() {
           </View>
         )}
 
+        </FaixaCurva>
+
+        {/* FAIXA 2 — O QUE SE FAZ TODO DIA. `grude` porque encosta na de cima.
+            Desafio de 7 dias e gesto do dia sao o MESMO assunto (o gesto
+            pequeno, repetido) e por isso dividem uma faixa so em vez de
+            virarem dois blocos soltos. */}
+        <FaixaCurva tom="ameixa" semente="rotina" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* 2) Desafio de 7 dias */}
         <View style={styles.sectionHeadRow}>
           <Text style={styles.sectionTitle}>{t('agir.challenge.title')}</Text>
           {loaded && <Text style={styles.sectionHeadAction}>{done.length}/{CHALLENGE.length}</Text>}
         </View>
         <View style={styles.card}>
-          <Text style={styles.mutedText}>{t('agir.challenge.subtitle')}</Text>
+          <ColunaLeitura>
+            <Text style={styles.mutedText}>{t('agir.challenge.subtitle')}</Text>
+          </ColunaLeitura>
           {loaded && (
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${progress}%` }]} />
             </View>
           )}
-          <View style={{ marginTop: 10 }}>
+          <View style={{ marginTop: space.junto }}>
             {CHALLENGE.map((c, idx) => {
               const isDone = done.includes(c.id);
               return (
@@ -360,17 +387,40 @@ export default function AgirScreen() {
         {/* 3) Gesto do dia */}
         <Text style={styles.sectionTitle}>{t('agir.gesture.title')}</Text>
         <View style={[styles.card, { alignItems: 'center' }]}>
-          <Text style={styles.mutedText}>{t('agir.gesture.subtitle')}</Text>
+          <ColunaLeitura centralizado>
+            <Text style={styles.mutedText}>{t('agir.gesture.subtitle')}</Text>
+          </ColunaLeitura>
           <View style={styles.gestureBox}>
-            <Text style={{ fontSize: 26 }}>💛</Text>
-            <Text style={styles.gestureText}>{t(gesture)}</Text>
+            <Text style={styles.gestureEmoji}>💛</Text>
+            <ColunaLeitura centralizado>
+              <Text style={styles.gestureText}>{t(gesture)}</Text>
+            </ColunaLeitura>
           </View>
         </View>
 
+        </FaixaCurva>
+
+        {/* FAIXA 3 — O QUE VOCES QUEREM. Meta da semana e sonhos do casal sao
+            o mesmo assunto em dois prazos.
+            ROSA, E NAO VIOLETA — MEDIDO NA FOTO (390x844, 12/09/2026). Com
+            'violeta' o pixel desta faixa deu rgb(75,51,102): contraste 1,865
+            contra o fundo, praticamente o teto de 1,869 que o lote da Home
+            registrou como "lavando a tela em faixa longa" — e esta faixa E
+            longa (meta + sonhos + a lista inteira). O 'rosa' resolve em
+            rgb(64,30,53):
+              contra o fundo   1,865 -> 1,381  (o mesmo patamar do 'noite'
+                                                calibrado, 1,399)
+              contra a ameixa  dE 31,1 -> 16,9 (continua sendo outro assunto,
+                                                sem gritar)
+            Fica na mesma familia cromatica da ameixa (339 graus contra 320),
+            que e o que faz a tela parecer o mesmo app. */}
+        <FaixaCurva tom="rosa" semente="planos" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* 4) Meta da semana */}
         <Text style={styles.sectionTitle}>{t('agir.goal.title')}</Text>
         <View style={styles.card}>
-          <Text style={styles.mutedText}>{t('agir.goal.subtitle')}</Text>
+          <ColunaLeitura>
+            <Text style={styles.mutedText}>{t('agir.goal.subtitle')}</Text>
+          </ColunaLeitura>
           <View style={styles.field}>
             <Text style={styles.label}>{t('agir.goal.label')}</Text>
             <TextInput
@@ -413,7 +463,9 @@ export default function AgirScreen() {
           )}
         </View>
         <View style={styles.card}>
-          <Text style={styles.mutedText}>{t('agir.dreamsDesc')}</Text>
+          <ColunaLeitura>
+            <Text style={styles.mutedText}>{t('agir.dreamsDesc')}</Text>
+          </ColunaLeitura>
 
           <View style={styles.dreamInputRow}>
             <TextInput
@@ -438,7 +490,7 @@ export default function AgirScreen() {
           )}
 
           {loaded && dreams.length > 0 && (
-            <View style={{ marginTop: 14 }}>
+            <View style={{ marginTop: space.junto }}>
               {dreams.map((d) => (
                 <View key={d.id} style={styles.listItem}>
                   <TouchableOpacity onPress={() => toggleDream(d.id)}>
@@ -454,6 +506,8 @@ export default function AgirScreen() {
           )}
         </View>
 
+        </FaixaCurva>
+
         <Text style={styles.disclaimer}>
           As ideias, desafios e metas de vocês ficam salvos apenas neste aparelho.
         </Text>
@@ -464,81 +518,106 @@ export default function AgirScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  // O padding horizontal sai da escala. O gap do container NAO existe: com gap
+  // no contentContainer aparece uma tira preta entre uma faixa e a seguinte,
+  // porque o gap do pai e aplicado DEPOIS do marginTop:-1 do `grude` e vence
+  // (medido no lote das praticas). Quem da respiro agora e a propria faixa.
+  scrollContent: { padding: space.tela, paddingBottom: space.fimDaLista },
 
-  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 20, marginBottom: 10 },
-  sectionHeadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
-  sectionHeadAction: { color: colors.accent, fontSize: 13, fontWeight: '700' },
-  overline: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  mutedText: { color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
+  // A faixa SANGRA pra fora do padding do scroll: faixa que nao sangra e
+  // cartao com onda em cima. O corpo dela respira nas laterais de volta.
+  faixa: { marginHorizontal: -space.tela },
+  faixaCorpo: { paddingHorizontal: space.tela, gap: space.bloco },
+  // A PRIMEIRA FAIXA NAO LEVA O paddingTop DA PECA: a caixa da onda ja tem
+  // ONDA_ALTURA e, logo abaixo do cabecalho (que traz folga propria), somar o
+  // space.secao padrao abre um chao liso grande demais antes da primeira
+  // palavra — a faixa lendo como bloco de cor em vez de secao.
+  faixaCorpoPrimeira: { paddingTop: 0 },
 
-  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 16 },
+  // O titulo de secao era fontSize 16 / peso '800' — o negrito que o
+  // diagnostico chamou de "grita em vez de convidar". Agora e hierarquia de
+  // verdade (type.secao) e quem separa e o espaco, nao o peso.
+  sectionTitle: { ...type.secao, color: colors.text, marginBottom: space.dentro },
+  sectionHeadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sectionHeadAction: { ...type.apoio, color: colors.accent },
+  overline: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
+  mutedText: { ...type.corpoCurto, color: colors.textSecondary },
 
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
-  switchLabel: { flex: 1, color: colors.textSecondary, fontSize: 13 },
+  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: space.bloco, gap: space.dentro },
 
-  ideaCard: { marginTop: 14, alignItems: 'center' },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
+  switchLabel: { flex: 1, ...type.apoio, color: colors.textSecondary },
+
+  ideaCard: { alignItems: 'center' },
   fractionBadge: {
-    color: colors.accent, fontSize: 12, fontWeight: '700',
-    backgroundColor: colors.accent + '22', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
+    ...type.nota, color: colors.accent,
+    backgroundColor: colors.accent + '22', borderRadius: 10,
+    paddingHorizontal: space.dentro, paddingVertical: space.grudado,
   },
-  ideaText: { color: colors.text, fontSize: 17, textAlign: 'center', marginTop: 14 },
-  favBtn: { marginTop: 14, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: colors.border },
-  favBtnText: { color: colors.text, fontWeight: '700' },
+  ideaText: { ...type.corpo, color: colors.text, textAlign: 'center' },
+  favBtn: { paddingVertical: space.junto, paddingHorizontal: space.bloco, borderRadius: 999, borderWidth: 1, borderColor: colors.border },
+  favBtnText: { ...type.botao, color: colors.text },
 
-  emptyState: { alignItems: 'center', paddingVertical: 12 },
-  emptyStateIcon: { fontSize: 32, marginBottom: 8 },
-  emptyStateTitle: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
-  emptyStateDesc: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 4 },
+  // ESTADO VAZIO. O respiro vertical e generoso de proposito: dentro de uma
+  // faixa, um vazio apertado faz o chao de cor parecer bloco sem conteudo —
+  // o defeito ALTO que o revisor achou na Home.
+  emptyState: { alignItems: 'center', paddingVertical: space.bloco, gap: space.junto },
+  emptyStateIcon: { fontSize: 32 },
+  emptyStateTitle: { ...type.cartao, color: colors.text, textAlign: 'center' },
+  emptyStateDesc: { ...type.apoio, color: colors.textMuted, textAlign: 'center' },
 
-  listItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  listItem: { flexDirection: 'row', alignItems: 'center', gap: space.dentro, paddingVertical: space.junto },
   listItemIcon: { fontSize: 18 },
-  listItemTag: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  listItemText: { color: colors.textSecondary, fontSize: 14, marginTop: 2 },
+  listItemTag: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
+  listItemText: { ...type.corpoCurto, color: colors.textSecondary, marginTop: space.grudado },
   listItemTextDone: { textDecorationLine: 'line-through', opacity: 0.7 },
 
-  progressTrack: { height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden', marginTop: 12 },
+  progressTrack: { height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden' },
   progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
 
   opt: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    flexDirection: 'row', alignItems: 'flex-start', gap: space.dentro,
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, padding: 12, marginBottom: 8,
+    borderRadius: 12, padding: space.dentro, marginBottom: space.junto,
   },
   optSel: { borderColor: colors.gold, backgroundColor: colors.gold + '18' },
   optCheck: { fontSize: 16, lineHeight: 20 },
-  optText: { flex: 1, color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
-  optDay: { color: colors.gold, fontWeight: '800' },
-  completeText: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 14 },
-  completeTextInline: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+  optText: { flex: 1, ...type.corpoCurto, color: colors.textSecondary },
+  // O dia continua marcado — pela COR, nao por mais um peso 800 no meio de
+  // um texto que ja e todo peso normal.
+  optDay: { color: colors.gold },
+  completeText: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
+  completeTextInline: { ...type.apoio, color: colors.textSecondary },
 
   gestureBox: {
-    marginTop: 10, padding: 18, borderRadius: 12, alignItems: 'center', width: '100%',
+    padding: space.bloco, borderRadius: 12, alignItems: 'center', width: '100%', gap: space.junto,
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.gold + '40',
   },
-  gestureText: { color: colors.text, fontSize: 17, textAlign: 'center', marginTop: 8 },
+  gestureEmoji: { fontSize: 26 },
+  gestureText: { ...type.corpo, color: colors.text, textAlign: 'center' },
 
-  field: { marginVertical: 10 },
-  label: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  field: { gap: space.junto },
+  label: { ...type.apoio, color: colors.textSecondary },
   input: {
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: colors.text, fontSize: 15,
+    borderRadius: 12, paddingHorizontal: space.bloco, paddingVertical: space.dentro,
+    ...type.corpoCurto, color: colors.text,
   },
 
-  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
-  btnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: space.dentro, paddingHorizontal: space.entre, alignItems: 'center' },
+  btnText: { ...type.botao, color: '#fff' },
 
-  goalCard: { marginTop: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceElevated },
-  goalText: { color: colors.text, fontSize: 16 },
+  goalCard: { padding: space.bloco, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceElevated, gap: space.dentro },
+  goalText: { ...type.corpoCurto, color: colors.text },
   goalTextDone: { textDecorationLine: 'line-through', opacity: 0.7 },
-  goalActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 12, flexWrap: 'wrap' },
-  delText: { color: colors.red, fontSize: 13, fontWeight: '700' },
+  goalActions: { flexDirection: 'row', alignItems: 'center', gap: space.bloco, flexWrap: 'wrap' },
+  delText: { ...type.apoio, color: colors.red },
 
-  dreamInputRow: { flexDirection: 'row', gap: 8, marginTop: 10, alignItems: 'center' },
+  dreamInputRow: { flexDirection: 'row', gap: space.junto, alignItems: 'center' },
 
-  disclaimer: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 20, lineHeight: 16, paddingHorizontal: 8 },
+  disclaimer: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.entre, paddingHorizontal: space.junto },
 
-  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyProfileTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginTop: 14 },
-  emptyProfileDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.secao, gap: space.dentro },
+  emptyProfileTitle: { ...type.cartao, color: colors.text, textAlign: 'center' },
+  emptyProfileDesc: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
 });

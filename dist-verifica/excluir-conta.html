@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Excluir conta — Cosmic Guide</title>
+<meta name="robots" content="index, follow" />
+<meta name="description" content="Como excluir sua conta do Cosmic Guide e o que acontece com os seus dados." />
+<!--
+  PÁGINA PÚBLICA DE SOLICITAÇÃO DE EXCLUSÃO DE CONTA.
+
+  É a URL que vai no formulário de Segurança de Dados do Google Play, campo
+  "URL de exclusão de conta". A política (obrigatória desde 2024 pra todo app
+  que permite criar conta) exige DUAS coisas, e uma não substitui a outra:
+  um caminho de exclusão DENTRO do app (Perfil → Deletar conta, que desde
+  19/08/2026 apaga a conta de verdade) e esta página, alcançável de fora,
+  sem instalar nada e sem logar.
+
+  Ela é servida a partir de public/ — o `expo export` copia essa pasta pra
+  dentro do dist/, que o scripts/deploy-vercel.sh publica em
+  cosmicguide.cloud/cosmic-guide/. O redirect /excluir-conta -> este arquivo
+  está no vercel.json gerado pelo mesmo script.
+
+  Página estática e sozinha de propósito: sem bundle, sem fonte externa, sem
+  script. Se o app quebrar, ela continua no ar — e é justamente pra quem não
+  consegue entrar no app que ela precisa existir.
+
+  As três línguas do app (PT/ES/EN) na mesma página: o revisor do Google
+  costuma ler em inglês, e o app é vendido nas três.
+
+  CADA LINHA DAS LISTAS ABAIXO FOI CONFERIDA CONTRA O CÓDIGO (24/08/2026). O que
+  "Deletar conta" realmente faz são três passos, e só isso:
+    1. supabase.rpc('delete_own_account') → apaga a linha de auth.users e, em
+       cascata, identities/sessions/refresh_tokens (supabase/001_delete_own_account.sql).
+    2. DELETE /api/subscription/account → forgetAccountData (SubscriptionRepository)
+       desvincula subscriptions, remove perfil/UGC/interações/bloqueios sociais,
+       anonimiza denúncias necessárias e grava a lápide de revogação. A linha do
+       pagamento continua sem vínculo com a conta, e a contagem antiabuso da IA
+       fica ligada só ao UUID opaco da conta já inexistente.
+    3. wipeLocalData → clearAll (context/CoupleContext.js) → cancela o push e o
+       lembrete, apaga a sessão do funil no servidor (POST /api/track/forget) e
+       roda deleteAllCoupleData (lib/coupleData.js).
+
+  O RECIBO DE "todas as sessões abertas" (a frase mais fácil de virar mentira
+  desta página): o passo 1 derruba sessions/refresh_tokens no Supabase, então
+  nenhum token NOVO é emitido; e o passo 2 grava o uuid em revoked_accounts, que
+  o requireAuth (server-patches/src/http/socialAuth.js) consulta em TODA
+  requisição autenticada — o access token que já estava na mão vira 401 na hora,
+  em vez de valer até o exp. Antes de 19/08/2026 só o passo 1 existia e essa
+  frase prometia mais do que o código fazia.
+
+  O QUE NÃO SAI, e por isso está na lista do que fica:
+    · cosmic-journal (o Diário) e cosmic-jornada-v1 — lib/coupleData.js diz, com
+      todas as letras, que ficam de fora de propósito.
+    · denúncias ainda necessárias à moderação, depois de removidos os ids,
+      detalhes livres e qualquer cópia de conteúdo da conta excluída.
+    · o recibo fiscal sem vínculo com a conta e a contagem antiabuso ligada ao
+      UUID opaco da conta já inexistente.
+    · o passo 3 só existe quando a exclusão é feita PELO APP; pedido por e-mail
+      não alcança o aparelho de ninguém.
+  Até 19/08/2026 esta página prometia que a exclusão apagava o diário. Não
+  apagava. Texto que promete o que o código não faz é defeito, não redação.
+-->
+<style>
+  :root {
+    --bg: #0E0821; --card: #1F1640; --border: #2E2352;
+    --text: #F3EEFF; --muted: #C4B8E6; --accent: #B57BFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px 64px;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  main { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 40px 0 12px; }
+  h3 { font-size: 15px; margin: 22px 0 8px; color: var(--accent); }
+  p, li { color: var(--muted); font-size: 15px; }
+  ol, ul { padding-left: 22px; }
+  a { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 8px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px 22px; margin: 18px 0;
+  }
+  .lang { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #8A7CB0; margin: 0 0 6px; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 48px 0; }
+  footer { color: #8A7CB0; font-size: 13px; margin-top: 40px; }
+</style>
+</head>
+<body>
+<main>
+
+  <h1>Cosmic Guide — excluir sua conta</h1>
+  <p class="sub">Delete your account · Eliminar tu cuenta</p>
+
+  <!-- ================= PORTUGUÊS ================= -->
+  <div class="card">
+    <p class="lang">Português</p>
+
+    <h3>Como excluir pelo app (jeito mais rápido)</h3>
+    <ol>
+      <li>Abra o Cosmic Guide e entre na sua conta.</li>
+      <li>Vá em <strong>Perfil</strong>.</li>
+      <li>Role até o fim e toque em <strong>Deletar conta</strong>.</li>
+      <li>Confirme nas duas telas de aviso. A exclusão é imediata e não tem volta.</li>
+    </ol>
+    <p>
+      Esqueceu a senha? Na tela de login toque em <strong>Esqueci minha senha</strong>,
+      recupere o acesso e siga os passos acima.
+    </p>
+
+    <h3>Não consegue entrar no app?</h3>
+    <p>
+      Escreva para <a href="mailto:contato@cosmicguide.cloud">contato@cosmicguide.cloud</a>
+      do <strong>mesmo e-mail cadastrado na conta</strong>, com o assunto
+      "Excluir minha conta". Pedidos vindos de outro endereço não são atendidos —
+      é o que impede alguém de apagar a conta de outra pessoa. O prazo é de até
+      30 dias.
+    </p>
+
+    <h3>O que é apagado</h3>
+    <ul>
+      <li>Sua conta de login (e-mail e senha) e todas as sessões abertas.</li>
+      <li>O vínculo entre a sua conta e qualquer assinatura.</li>
+      <li>Seu perfil da Comunidade, publicações, comentários, curtidas, relações
+        de seguir e bloqueios ligados à conta.</li>
+      <li>Todas as frases e a autorização da <strong>Memória Cósmica</strong>,
+        caso você tenha ativado esse recurso.</li>
+      <li>Quando você exclui <strong>pelo app</strong>, saem também deste aparelho os
+        nomes, signos, datas e horas de nascimento, a cidade e a sequência do
+        casal — e saem do nosso servidor a inscrição do lembrete diário e o
+        histórico anônimo de passos deste aparelho. Pedido por e-mail não
+        alcança o seu aparelho: para limpá-lo, use o botão do próprio app.</li>
+    </ul>
+
+    <h3>O que continua guardado, e por quê</h3>
+    <ul>
+      <li><strong>A contagem de uso das leituras com IA.</strong> Ela fica presa ao UUID opaco da conta já inexistente — sem nome, e-mail, perfil ou conteúdo do que você leu. Se ela fosse apagada, bastaria excluir a conta para ganhar de novo as leituras gratuitas, sem limite, e o custo dessas leituras é real.</li>
+      <li><strong>O Diário Cósmico continua neste aparelho.</strong> Ele é texto que
+        você escreveu, e apagar mais do que foi pedido é tão ruim quanto apagar
+        menos — então cada entrada sai por você, dentro do próprio Diário, antes
+        de excluir a conta.</li>
+      <li><strong>Denúncias ainda necessárias à moderação</strong> podem continuar
+        guardadas sem prazo definido, mas ficam anonimizadas em relação à conta
+        excluída. Se você denunciou alguém, saem o seu identificador e os detalhes
+        livres; se a denúncia era contra você, saem os identificadores e a cópia
+        do seu conteúdo. Os bloqueios são apagados.</li>
+      <li><strong>Registro de pagamento</strong> (data, valor, meio de pagamento e o
+        e-mail usado na compra): mantido por obrigação fiscal e para lidar com
+        estorno ou contestação. Ele deixa de estar ligado à sua conta, que não
+        existe mais.</li>
+      <li><strong>Estatísticas de navegação anônimas de outros aparelhos</strong> e os
+        check-ins da Chama do Casal (um código embaralhado do par mais um id
+        aleatório de aparelho): nunca tiveram nome, e-mail ou endereço de IP —
+        não há como ligá-los a você.</li>
+    </ul>
+
+    <h3>Assinatura ativa</h3>
+    <p>
+      Apagar a conta <strong>não cancela a cobrança</strong>. Se você assinou pelo
+      app, cancele antes em Play Store &gt; Assinaturas. Se assinou pelo site,
+      cancele na <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">área de compras da Hotmart</a>,
+      com o mesmo e-mail da compra.
+    </p>
+  </div>
+
+  <hr />
+
+  <!-- ================= ESPAÑOL ================= -->
+  <div class="card">
+    <p class="lang">Español</p>
+
+    <h3>Cómo eliminarla desde la app</h3>
+    <ol>
+      <li>Abre Cosmic Guide e inicia sesión.</li>
+      <li>Entra en <strong>Perfil</strong>.</li>
+      <li>Baja hasta el final y toca <strong>Eliminar cuenta</strong>.</li>
+      <li>Confirma en las dos pantallas de aviso. Es inmediato y no se puede deshacer.</li>
+    </ol>
+
+    <h3>¿No puedes entrar en la app?</h3>
+    <p>
+      Escribe a <a href="mailto:contato@cosmicguide.cloud">contato@cosmicguide.cloud</a>
+      desde el <strong>mismo correo de la cuenta</strong>, con el asunto
+      "Eliminar mi cuenta". Plazo: hasta 30 días.
+    </p>
+
+    <h3>Qué se borra</h3>
+    <ul>
+      <li>Tu cuenta de acceso (correo y contraseña) y todas las sesiones.</li>
+      <li>El vínculo entre tu cuenta y cualquier suscripción.</li>
+      <li>Tu perfil de la Comunidad, publicaciones, comentarios, Me gusta,
+        relaciones de seguimiento y bloqueos ligados a la cuenta.</li>
+      <li>Todas las frases y la autorización de la <strong>Memoria Cósmica</strong>,
+        si activaste esta función.</li>
+      <li>Cuando eliminas <strong>desde la app</strong>, salen también de este
+        dispositivo los nombres, signos, fechas y horas de nacimiento, la ciudad
+        y la racha de la pareja — y salen de nuestro servidor la suscripción del
+        recordatorio diario y el historial anónimo de pasos de este dispositivo.
+        Un pedido por correo no llega a tu dispositivo: para limpiarlo, usa el
+        botón de la propia app.</li>
+    </ul>
+
+    <h3>Qué se conserva, y por qué</h3>
+    <ul>
+      <li><strong>El conteo de uso de las lecturas con IA.</strong> Queda ligado al UUID opaco de la cuenta ya inexistente, sin nombre, correo, perfil ni contenido de lo que leíste. Si se borrara, bastaría con eliminar la cuenta para recuperar las lecturas gratuitas una y otra vez, y esas lecturas tienen un costo real.</li>
+      <li><strong>El Diario Cósmico sigue en este dispositivo.</strong> Es texto que
+        escribiste, y borrar más de lo prometido es tan malo como borrar menos:
+        cada entrada la borras vos, dentro del propio Diario, antes de eliminar
+        la cuenta.</li>
+      <li><strong>Los reportes todavía necesarios para moderación</strong> pueden
+        seguir guardados sin plazo definido, pero quedan anonimizados respecto de
+        la cuenta eliminada. Si reportaste a alguien, se quitan tu identificador y
+        los detalles libres; si el reporte era contra ti, se quitan los
+        identificadores y la copia de tu contenido. Los bloqueos se borran.</li>
+      <li><strong>El registro de pago</strong> (fecha, importe y correo de la compra),
+        por obligación fiscal y para gestionar reembolsos. Deja de estar ligado a
+        tu cuenta.</li>
+      <li><strong>Estadísticas de navegación anónimas de otros dispositivos</strong> y
+        los check-ins de la Llama de la Pareja (un código cifrado de la pareja
+        más un id aleatorio de dispositivo): sin nombre, correo ni IP.</li>
+    </ul>
+
+    <h3>Suscripción activa</h3>
+    <p>
+      Eliminar la cuenta <strong>no cancela el cobro</strong>. Si te suscribiste en
+      la app, cancela antes en Play Store &gt; Suscripciones. Si lo hiciste por el
+      sitio, cancela en el <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">área de compras de Hotmart</a>.
+    </p>
+  </div>
+
+  <hr />
+
+  <!-- ================= ENGLISH ================= -->
+  <div class="card">
+    <p class="lang">English</p>
+
+    <h3>Delete your account from the app</h3>
+    <ol>
+      <li>Open Cosmic Guide and sign in.</li>
+      <li>Go to <strong>Profile</strong>.</li>
+      <li>Scroll to the bottom and tap <strong>Delete account</strong>.</li>
+      <li>Confirm on both warning screens. Deletion is immediate and permanent.</li>
+    </ol>
+
+    <h3>Can't access the app?</h3>
+    <p>
+      Email <a href="mailto:contato@cosmicguide.cloud">contato@cosmicguide.cloud</a>
+      from the <strong>same address registered on the account</strong>, subject
+      "Delete my account". Requests from any other address are refused — that is
+      what stops someone from deleting another person's account. Handled within 30 days.
+    </p>
+
+    <h3>What is deleted</h3>
+    <ul>
+      <li>Your login account (email and password) and every active session.</li>
+      <li>The link between your account and any subscription.</li>
+      <li>Your Community profile, posts, comments, likes, follow relationships,
+        and blocks linked to the account.</li>
+      <li>Every saved sentence and the permission for <strong>Cosmic Memory</strong>,
+        if you enabled this feature.</li>
+      <li>When you delete <strong>from inside the app</strong>, this device also loses
+        the names, signs, birth dates and times, the city and the couple streak —
+        and our server loses the daily reminder subscription and this device's
+        anonymous history of steps. An email request cannot reach your device: to
+        wipe it, use the button in the app itself.</li>
+    </ul>
+
+    <h3>What is kept, and why</h3>
+    <ul>
+      <li><strong>The usage counter for AI readings.</strong> It stays tied to the opaque UUID of the account that no longer exists, with no name, email, profile, or reading content. If it were deleted, deleting your account would hand back the free readings again and again, and those readings cost real money.</li>
+      <li><strong>The Cosmic Diary stays on this device.</strong> It is text you wrote,
+        and deleting more than was promised is as bad as deleting less — so each
+        entry is removed by you, from inside the Diary itself, before you delete
+        the account.</li>
+      <li><strong>Reports that are still needed for moderation</strong> may remain
+        with no defined expiry, but they are anonymized in relation to the deleted
+        account. If you reported someone, your identifier and free-form details
+        are removed; if the report was about you, the identifiers and copy of your
+        content are removed. Blocks are deleted.</li>
+      <li><strong>Payment records</strong> (date, amount, payment method and the email
+        used at checkout) are kept to meet tax obligations and to handle refunds
+        or chargebacks. They are no longer linked to your account.</li>
+      <li><strong>Anonymous usage statistics from other devices</strong> and the Couple
+        Flame check-ins (a scrambled code for the pair plus a random device id),
+        which never contained a name, email or IP address.</li>
+    </ul>
+
+    <h3>Active subscription</h3>
+    <p>
+      Deleting the account <strong>does not cancel billing</strong>. If you subscribed
+      in the app, cancel first in Play Store &gt; Subscriptions. If you subscribed
+      on the website, cancel in your <a href="https://consumidor.hotmart.com" target="_blank" rel="noopener">Hotmart purchases area</a>
+      using the email you paid with.
+    </p>
+  </div>
+
+  <footer>
+    Cosmic Guide · <a href="/cosmic-guide/">cosmicguide.cloud</a>
+  </footer>
+
+</main>
+</body>
+</html>

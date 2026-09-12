@@ -81,7 +81,7 @@ const TONS = {
   // encostar. O alfa continua 0.82: as estrelas seguem atravessando.
   noite: 'rgba(51, 49, 60, 0.82)',      // ardósia #33313C
   // Ameixa com mais cor: a faixa "principal" de uma tela.
-  ameixa: 'rgba(59, 35, 64, 0.82)',     // família gradients.hero #3B2340
+  ameixa: 'rgba(59, 35, 64, 0.82)',     // família do hero (#3B2340 em theme.js)
   // Violeta: para a seção que precisa se destacar das vizinhas. MEDIDO na
   // vitrine (12/09/2026): a primeira tentativa era rgba(80,88,168,.55) e lia
   // AZUL no meio das ameixas — cor de outro app. Puxado de volta pro accent

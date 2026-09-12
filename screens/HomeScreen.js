@@ -16,7 +16,10 @@ import HeroSection from '../components/HeroSection';
 // dependência.
 // planetaImagem (08/08/2026, última rodada): planeta pintado 256px ou null,
 // pras miniaturas do Céu de Hoje e do card de próximos eventos. Mesmo contrato.
-import { mascoteDoSigno, planetaImagem, CENAS } from '../lib/ilustracoes';
+// CENAS não é importado aqui (12/09/2026): estava na lista de import sem um
+// único uso na tela. As cenas continuam vivas em outras telas (Compatibility,
+// LunarCalendar, Dream, Planos, Loja) — só não nesta.
+import { mascoteDoSigno, planetaImagem } from '../lib/ilustracoes';
 // O CENÁRIO CÓSMICO — céu gradiente + estrelas + ondas de silhueta. Entra como
 // PRIMEIRO filho do root (uso documentado no cabeçalho do próprio arquivo).
 import CosmicScene from '../components/CosmicScene';

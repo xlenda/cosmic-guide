@@ -2,16 +2,42 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
 import { SUPPORT_EMAIL, SUPPORT_MAILTO, HOTMART_BUYER_AREA_URL } from '../lib/supportContact';
 
-// Reexportado pra não quebrar quem já importava daqui (PrivacyScreen). A fonte
-// da verdade agora é lib/supportContact.js — inclusive o aviso de que este
-// endereço ainda não recebe mensagem (o domínio está sem MX).
+// DIAGRAMAÇÃO (12/09/2026 — lote das telas legais). Nenhuma pergunta, nenhuma
+// resposta e nenhum destino de botão mudaram: as mesmas quatro entradas do FAQ,
+// as mesmas chaves, as mesmas ações. Esta tela é o canal de suporte que a Play
+// Store exige que exista e funcione.
+//
+// O DEFEITO (design/lote-legais/antes/ajuda.png): dois cards cinzas iguais, e
+// o FAQ inteiro fechado — quatro linhas de 14px separadas por fio de 1px, o
+// resto da tela vazio e o mesmo chão do começo ao fim. Fechado é o estado
+// PADRÃO desta tela, e no estado padrão ela não tinha diagramação nenhuma.
+//
+// O CONSERTO:
+//   1. DUAS FAIXAS: as perguntas e o contato. Duas é o mínimo da peça e o
+//      certo aqui — a tela tem dois assuntos, não quatro.
+//   2. A FAIXA DO FAQ É `rasa`. Esta é a tela onde a regra do estado vazio
+//      mais importa: com tudo fechado o corpo da faixa mede pouco mais de
+//      200px, e a caixa da onda cheia (56px) desenharia um naco de chão liso
+//      quase do tamanho do conteúdo — o defeito ALTO que o revisor achou na
+//      Home. `rasa` corta a caixa pela metade sem redesenhar a curva.
+//   3. CORPO GRANDE e negrito raro: pergunta em type.cartao (17/22, peso 600),
+//      resposta em type.corpoCurto (15/24) dentro de ColunaLeitura — as
+//      respostas do FAQ têm 4 a 8 linhas, e é aí que a coluna rende.
 export { SUPPORT_EMAIL };
+
+// O lado da caixinha do ícone. É TAMANHO DE OBJETO, não degrau de espaço — a
+// escala nomeia a RELAÇÃO entre duas coisas, não o quanto um quadrado mede.
+// Fica numa constante porque o recuo da resposta e o do botão de ação são
+// calculados a partir dele: assim os três andam juntos se ele mudar.
+const LADO_ICONE = 32;
 
 // `action` transforma a resposta do FAQ em caminho: toda resposta que MANDA a
 // pessoa fazer algo ("vá em Perfil e toque em...", "preenchem no quiz do
@@ -63,11 +89,11 @@ const FAQ = [
   },
 ];
 
-function FaqItem({ question, answer, last, actionLabel, actionIcon, onAction }) {
+function FaqItem({ question, answer, primeiro, actionLabel, actionIcon, onAction }) {
   const [open, setOpen] = useState(false);
   return (
     <TouchableOpacity
-      style={[styles.row, !last && styles.rowBorder]}
+      style={[styles.row, !primeiro && styles.rowSeguinte]}
       onPress={() => setOpen((v) => !v)}
       activeOpacity={0.7}
     >
@@ -78,7 +104,11 @@ function FaqItem({ question, answer, last, actionLabel, actionIcon, onAction }) 
         <Text style={styles.faqQuestion}>{question}</Text>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
       </View>
-      {open && <Text style={styles.faqAnswer}>{answer}</Text>}
+      {open && (
+        <ColunaLeitura style={styles.colunaResposta}>
+          <Text style={styles.faqAnswer}>{answer}</Text>
+        </ColunaLeitura>
+      )}
       {open && actionLabel && (
         <TouchableOpacity style={styles.faqActionBtn} activeOpacity={0.8} onPress={onAction}>
           <Ionicons name={actionIcon} size={15} color="#fff" />
@@ -99,14 +129,17 @@ export default function HelpSupportScreen() {
     <View style={styles.root}>
       <GradientHeader title={t('help.header.title')} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>{t('help.faq.title')}</Text>
-        <View style={styles.card}>
+        {/* FAIXA 1 — as perguntas. `rasa` pelo estado FECHADO (ver o cabeçalho):
+            é o estado padrão da tela, e é nele que a onda cheia viraria bloco
+            de cor. paddingTop 0 porque o GradientHeader já dá a folga. */}
+        <FaixaCurva tom="ameixa" semente="ajuda-perguntas" rasa estiloCorpo={styles.faixaAbertura}>
+          <Text style={styles.sectionTitle}>{t('help.faq.title')}</Text>
           {FAQ.map((item, i) => (
             <FaqItem
               key={item.questionKey}
               question={t(item.questionKey)}
               answer={t(item.answerKey)}
-              last={i === FAQ.length - 1}
+              primeiro={i === 0}
               actionLabel={item.actionKey ? t(item.actionKey) : null}
               actionIcon={item.actionIcon}
               onAction={
@@ -118,22 +151,26 @@ export default function HelpSupportScreen() {
               }
             />
           ))}
-        </View>
+        </FaixaCurva>
 
-        <Text style={styles.sectionTitle}>{t('help.contact.title')}</Text>
-        <View style={styles.card}>
-          <View style={styles.cardPad}>
+        {/* FAIXA 2 — o contato. Dourado: o chão quente do epílogo, e aqui ele
+            tem função além de estética — é a linha "não achou a resposta? fala
+            com a gente", e ela precisa ler como outra coisa, não como a quinta
+            pergunta. `rasa`: o corpo é um título, uma linha e um botão. */}
+        <FaixaCurva tom="dourado" semente="ajuda-contato" grude rasa>
+          <Text style={styles.sectionTitle}>{t('help.contact.title')}</Text>
+          <ColunaLeitura>
             <Text style={styles.paragraph}>
               {t('help.contact.intro')} <Text style={styles.emailText}>{SUPPORT_EMAIL}</Text>
             </Text>
-            {/* O e-mail acima é pintado de cor de link mas nunca foi tocável —
-                parecia botão e não era. Este abre o app de e-mail de verdade. */}
-            <TouchableOpacity style={styles.contactBtn} activeOpacity={0.8} onPress={abrirEmail}>
-              <Ionicons name="mail" size={16} color="#fff" />
-              <Text style={styles.contactBtnText}>{t('support.emailCta')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          </ColunaLeitura>
+          {/* O e-mail acima é pintado de cor de link mas nunca foi tocável —
+              parecia botão e não era. Este abre o app de e-mail de verdade. */}
+          <TouchableOpacity style={styles.contactBtn} activeOpacity={0.8} onPress={abrirEmail}>
+            <Ionicons name="mail" size={16} color="#fff" />
+            <Text style={styles.contactBtnText}>{t('support.emailCta')}</Text>
+          </TouchableOpacity>
+        </FaixaCurva>
       </ScrollView>
     </View>
   );
@@ -141,33 +178,35 @@ export default function HelpSupportScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingBottom: 40 },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 10, marginTop: 8 },
-  card: {
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 16, marginBottom: 24, overflow: 'hidden',
-  },
-  cardPad: { padding: 16 },
-  paragraph: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginBottom: 12 },
-  row: { paddingHorizontal: 16, paddingVertical: 14 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
+  content: { paddingBottom: space.fimDaLista },
+  faixaAbertura: { paddingTop: 0 },
+  sectionTitle: { ...type.secao, color: colors.text, marginBottom: space.junto },
+  row: { marginTop: space.bloco },
+  // O espaço entre as perguntas É a divisória (o fio de 1px saiu com o card).
+  rowSeguinte: { marginTop: space.entre },
   rowIcon: {
-    width: 32, height: 32, borderRadius: 10, backgroundColor: colors.accent + '22',
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+    width: LADO_ICONE, height: LADO_ICONE, borderRadius: 10, backgroundColor: colors.accent + '22',
+    justifyContent: 'center', alignItems: 'center', marginRight: space.dentro,
   },
   faqHeader: { flexDirection: 'row', alignItems: 'center' },
-  faqQuestion: { color: colors.text, fontSize: 14, fontWeight: '600', flex: 1 },
-  faqAnswer: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, marginTop: 10, marginLeft: 44 },
-  emailText: { color: colors.accent, fontWeight: '700' },
+  faqQuestion: { ...type.cartao, color: colors.text, flex: 1 },
+  // A resposta alinha com a PERGUNTA, não com o ícone: 32 do ícone + 12 do
+  // respiro. Os dois saem da escala, então o recuo acompanha se ela mudar.
+  colunaResposta: { marginTop: space.dentro, marginLeft: LADO_ICONE + space.dentro, paddingHorizontal: 0 },
+  faqAnswer: { ...type.corpoCurto, color: colors.textSecondary },
+  paragraph: { ...type.corpoCurto, color: colors.textSecondary },
+  emailText: { color: colors.accent },
   faqActionBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
     backgroundColor: colors.accent, borderRadius: 12,
-    paddingVertical: 11, paddingHorizontal: 16, marginTop: 12, marginLeft: 44,
+    paddingVertical: space.dentro, paddingHorizontal: space.bloco,
+    marginTop: space.bloco, marginLeft: LADO_ICONE + space.dentro,
   },
-  faqActionText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  faqActionText: { ...type.botao, color: '#fff' },
   contactBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
-    backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
+    backgroundColor: colors.accent, borderRadius: 12,
+    paddingVertical: space.dentro, marginTop: space.bloco,
   },
-  contactBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  contactBtnText: { ...type.botao, color: '#fff' },
 });

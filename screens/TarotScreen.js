@@ -38,10 +38,11 @@ import OrbiGuide from '../components/OrbiGuide';
 import SuasInformacoes from '../components/SuasInformacoes';
 import FaixaCurva from '../components/FaixaCurva';
 import ColunaLeitura from '../components/ColunaLeitura';
-import { ONDA_ALTURA } from '../lib/ondaPath';
 import { getPerfilLeitura, setPerfilLeitura, idadeDeNascimento } from '../lib/perfilLeitura';
 // Arte das duas tiragens (11/09/2026): asset 44px ou null → card só texto.
-import { tiragemArte } from '../lib/ilustracoes';
+// CENAS (12/09/2026): a cena do Tarô, que alimenta o HeroiDoTopo desta tela.
+import { tiragemArte, CENAS } from '../lib/ilustracoes';
+import HeroiDoTopo from '../components/HeroiDoTopo';
 // O PREPARO DE WAITE (01/08/2026) — lib/waiteRegras.js existia, com pack nos
 // três idiomas e teste próprio passando, e NUNCA tinha sido ligado a uma tela.
 // O cabeçalho do módulo já dizia onde ele encaixa: "o vão que hoje está vazio —
@@ -1149,9 +1150,12 @@ export default function TarotScreen() {
       <CosmicScene />
       <LinearGradient colors={TAROT_HEADER_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
+          {/* A pergunta ('tarot.subtitle') DESCEU pro HeroiDoTopo logo abaixo
+              (12/09/2026), onde ela pousa sobre a arte no tamanho de convite.
+              Ela não sumiu e não foi reescrita — é a mesma chave, um degrau
+              adiante. O header fica com a identidade da tela e o Álbum. */}
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{t('tarot.title')}</Text>
-            <Text style={styles.subtitle}>{t('tarot.subtitle')}</Text>
           </View>
           {/* Álbum das 78 Cartas — cada carta tirada fica colecionada lá. */}
           <TouchableOpacity
@@ -1178,10 +1182,35 @@ export default function TarotScreen() {
         contentContainerStyle={{ paddingBottom: Math.max(96, insets.bottom + 88) }}
         showsVerticalScrollIndicator={false}
       >
+        {/* O HERÓI DO TOPO (12/09/2026) — o Tarô era a única tela principal que
+            abria SEM arte: header em gradiente e, logo abaixo, a fileira de
+            chips de tema. Nos prints do concorrente o terço de cima é sempre
+            uma ilustração grande, e o texto pousa nela.
+
+            A arte é CENAS.taro, que JÁ EXISTIA em lib/ilustracoes.js desde
+            08/08/2026 e não tinha um único call site no app — a cena do Tarô
+            estava no bundle que o usuário baixa, sem nunca chegar à tela.
+            Nenhuma imagem nova foi gerada: 0 KB somados ao pack.
+
+            `apoio` reusa a MESMA chave i18n que o header já mostrava
+            ('tarot.subtitle', traduzida em pt/es/en) — a pergunta que abre a
+            leitura ganha o tamanho de convite que ela sempre quis ter, e o
+            header acima fica só com o título e o botão do Álbum. Nenhuma
+            chave nova, nenhum idioma fora de paridade.
+
+            Sem `titulo`: o nome "Tarô" já está no header dois dedos acima, e
+            repetir seria dizer a mesma coisa duas vezes na mesma dobra. */}
+        <HeroiDoTopo
+          fonte={CENAS.taro}
+          apoio={t('tarot.subtitle')}
+          style={styles.heroiSobOHeader}
+          testID="tarot-heroi"
+        />
+
         {/* FAIXA 1 — ONDE COMEÇA A LEITURA. Tema + quem é você: duas perguntas
             sobre a PESSOA, antes de existir qualquer carta. Estavam soltas no
             mesmo chão do resto e por isso a tela lia como lista de campos. */}
-        <FaixaCurva tom="ameixa" semente="tarot-tema" style={styles.faixaSobOHeader} testID="tarot-faixa-tema">
+        <FaixaCurva tom="ameixa" semente="tarot-tema" testID="tarot-faixa-tema">
         <Text style={styles.sectionLabel}>{t('tarot.chooseTheme')}</Text>
         <View style={styles.themeRow}>
           {THEMES.map((themeOption) => (
@@ -2374,11 +2403,19 @@ function PreparoDeWaite({ lang, aberto, onAlternar, feitas, onMarcar, progresso,
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  // A PRIMEIRA faixa sobe ONDA_ALTURA px pra encaixar a crista da onda DENTRO
-  // do arredondado do header, em vez de abrir 56px de céu vazio entre os dois.
-  // Só vale pra faixa nº 1 de uma tela que já tem header curvo — a segunda
-  // faixa quer a onda inteira aparecendo, porque é ela que marca a virada.
-  faixaSobOHeader: { marginTop: -ONDA_ALTURA },
+  // `faixaSobOHeader` saiu em 12/09/2026: ela subia a primeira faixa
+  // ONDA_ALTURA px pra encostar a crista no header curvo. Agora quem ocupa
+  // esse espaço é o HeroiDoTopo (a arte da cena do Tarô), e puxar a onda pra
+  // cima comeria justamente a imagem. A faixa volta a nascer na posição
+  // natural, logo abaixo do herói.
+  //
+  // O herói toma o lugar dela: sobe 24px pra passar POR BAIXO do arredondado
+  // do header (borderBottomRadius: 24). Sem isto a arte começa numa reta
+  // colada na base do header e o canto redondo desenha dois cantos de céu
+  // vazio — a emenda aparece como corte, que é exatamente o que a peça
+  // existe pra evitar. O header é irmão ANTERIOR no mesmo pai, então ele
+  // segue por cima sem zIndex.
+  heroiSobOHeader: { marginTop: -24 },
   header: { paddingHorizontal: 20, paddingBottom: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   albumBtn: {

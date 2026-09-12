@@ -24,9 +24,13 @@ import { signoFromDate, moonSign, ascendantSign, houses, aspects, astrocartograp
 // medalhões do trio trocam o glifo de fonte pelo personagem do signo. A regra
 // do registro vale aqui: mascoteDoSigno() devolve o asset ou null, e null →
 // glifo de sempre. A arte é upgrade, nunca dependência.
-// elementoImagem (08/08/2026, última rodada): mesmo contrato pros 4 círculos
-// de elemento — espírito pintado ou o emoji de sempre.
-import { mascoteDoSigno, elementoImagem } from '../lib/ilustracoes';
+// elementoImagem NÃO é importado aqui (12/09/2026): a arte do elemento saiu
+// desta tela em 11/09/2026, quando o AnelProgresso tomou o miolo do círculo
+// (ver o comentário no bloco "Seus elementos"). O import continuava, sem um
+// único uso, e o comentário ainda prometia um "espírito pintado" que a tela
+// não desenha há um mês. A arte agora aparece na HOME, dentro do mesmo anel —
+// components/CabecalhoIdentidade.js.
+import { mascoteDoSigno } from '../lib/ilustracoes';
 import { cityLabel, upgradeCityTimezone } from '../lib/cities';
 // AS PEÇAS DE DIAGRAMAÇÃO (12/09/2026) — a ficha de nascimento virou tabela
 // (o print de referência) e o texto longo passou a morar numa coluna de

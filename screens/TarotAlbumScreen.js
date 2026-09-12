@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import { getAlbumState, toggleAlbumFavorite, COLLECTION_GROUPS, COLLECTION_TOTAL } from '../lib/tarotCollection';
 import { getCardName, getLocalizedCard } from '../lib/tarotThemes';
