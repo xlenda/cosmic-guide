@@ -95,9 +95,17 @@ export default function CarrosselHoroscopo({ itens, onAbrir }) {
 }
 
 const styles = StyleSheet.create({
-  // Mesmo desenho de styles.sectionTitle da Home, com o marginTop menor porque
-  // o carrossel vem logo abaixo do cabeçalho de identidade, não de um grid.
-  secao: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 18, marginBottom: 12, marginHorizontal: 20 },
+  // CENTRALIZADO desde 12/09/2026 (reforma de diagramação da Home). O
+  // carrossel mora dentro da faixa "Você hoje", junto do cabeçalho de
+  // identidade — que é centralizado. Encostado à esquerda, este título era o
+  // único elemento desalinhado da faixa e denunciava que os dois blocos ainda
+  // eram duas coisas coladas em vez de um assunto só. Componente usado APENAS
+  // pela Home (conferido), então centralizar aqui não afeta outra tela.
+  secao: {
+    color: colors.text, fontSize: 18, fontWeight: '800',
+    marginTop: 18, marginBottom: 12, marginHorizontal: 20,
+    textAlign: 'center',
+  },
   faixa: { marginHorizontal: 20 },
   card: {
     width: LARGURA,

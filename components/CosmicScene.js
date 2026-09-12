@@ -31,6 +31,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors, vinheta } from '../theme';
 
 // Hash determinístico → posição/tamanho/brilho de cada estrela. O truque do
 // sin(i*k)*grande e pegar a fração é o clássico de shader portado pra JS:
@@ -62,7 +63,12 @@ export default function CosmicScene({ waves = true, style }) {
           família do colors.background, então a transição pro que estiver
           além do cenário é invisível. */}
       <LinearGradient
-        colors={['#241448', '#140C2E', '#0E0821']}
+        // O fim do céu é colors.background, não um hex solto: o gradiente
+        // terminava em #0E0821 do tempo em que esse era o fundo do app. Hoje o
+        // fundo é #0B0712, e a diferença desenhava uma COSTURA visível onde o
+        // cenário acabava. Lendo do token, a emenda some sozinha na próxima vez
+        // que a paleta mudar.
+        colors={['#241448', '#140C2E', colors.background]}
         style={StyleSheet.absoluteFill}
       />
       {ESTRELAS.map((e, i) => (
@@ -90,6 +96,21 @@ export default function CosmicScene({ waves = true, style }) {
           <View style={[styles.onda, styles.ondaFrente]} />
         </>
       )}
+      {/* A VINHETA — a peça que faltava pro fundo virar atmosfera (12/09/2026).
+          Nos prints do concorrente o céu ESCURECE NAS BORDAS: o miolo é mais
+          claro que os cantos, e é só isso que separa profundidade de papel de
+          parede. Vem POR ÚLTIMO de propósito — precisa cair sobre o céu, as
+          estrelas E as colinas; se viesse antes, as ondas passariam por cima
+          dela e a borda de baixo voltaria a ser chapada.
+          Os alfas moram em theme.js (vinheta) porque isto é token de fundação,
+          não gosto deste componente. Vertical e não radial: o React Native não
+          tem gradiente radial, e numa tela alta e estreita é a vertical que se
+          sente. */}
+      <LinearGradient
+        colors={vinheta.cores}
+        locations={vinheta.locais}
+        style={StyleSheet.absoluteFill}
+      />
     </View>
   );
 }

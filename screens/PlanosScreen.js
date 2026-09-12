@@ -34,7 +34,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Pla
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
 import { CENAS } from '../lib/ilustracoes';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
@@ -52,6 +52,13 @@ import { funnel } from '../lib/funnel';
 // confirmação de e-mail) — quem devolve a pessoa pra cá é o App.js.
 import { saveCheckoutIntent, clearCheckoutIntent } from '../lib/checkoutIntent';
 import GradientHeader from '../components/GradientHeader';
+// Peças de diagramação (design/PECAS-DE-DIAGRAMACAO.md). A faixa curva é o
+// que separa OFERTA de O-QUE-ENTRA sem precisar de título nem de linha; a
+// lista de check leva o negrito seletivo; a coluna de leitura impede que as
+// notas legais atravessem a tela de borda a borda.
+import FaixaCurva from '../components/FaixaCurva';
+import ListaCheck from '../components/ListaCheck';
+import ColunaLeitura from '../components/ColunaLeitura';
 // Compra pela loja (Google Play Billing via RevenueCat) + o gate de
 // configuração que decide se existe botão de assinar no nativo.
 import { LOJA_ATIVA, carregarLoja, comprarPlano, restaurarCompras } from '../lib/purchases';
@@ -67,6 +74,10 @@ const HOTMART_PAY_URLS = {
   annual: 'https://pay.hotmart.com/W105128423R?off=lb6plj87',
 };
 const MOUNT_ID = 'hotmart-checkout-mount';
+// O tom da faixa de oferta mora numa constante porque DOIS lugares
+// dependem dele: a própria faixa e o fade do pé da arte, que precisa
+// terminar na mesma cor. Divergir os dois devolve a tira escura.
+const TOM_OFERTA = 'ameixa';
 
 // Quem cobra muda com a VENDA CONFIGURADA, não com a plataforma: cobrança da
 // Google Play só existe onde LOJA_ATIVA é true. Na primeira build publicada o
@@ -162,18 +173,35 @@ const COUPLE_BENEFIT_KEYS = [
 // acreditar, e por isso fica por último.
 const SOLO_BENEFIT_KEYS = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `planos.benefit.solo.${n}`);
 
+// AS DUAS LINHAS QUE GANHAM NEGRITO (12/09/2026 — diagramação). No print do
+// concorrente a lista de checks tem seis linhas e DUAS em negrito ("Entrega
+// expressa em 24 horas", "Os seus ideais interiores e desejos ocultos"): o
+// destaque significa alguma coisa porque é raro. Aqui as duas são a PRIMEIRA
+// (a oferta em si: os 7 dias grátis) e a ÚLTIMA (a razão para acreditar: a
+// fonte primária). Ambas existem nas duas listas, solo e casal — a de casal
+// abre em 'planos.benefit.1' e fecha em 'planos.benefit.8'. Não é escolha de
+// copy nova: é a mesma copy, com a ênfase onde ela já estava na intenção.
+// components/ListaCheck.js corta o excesso sozinho (MAX_DESTAQUE = 3), então
+// mesmo que alguém marque mais no futuro a tela não vira um bloco de negrito.
+const DESTAQUE_KEYS = new Set([
+  'planos.benefit.solo.1',
+  'planos.benefit.solo.8',
+  'planos.benefit.1',
+  'planos.benefit.8',
+]);
+
 function BenefitsList({ isCouple }) {
   const { t } = useLanguage();
   const keys = isCouple ? COUPLE_BENEFIT_KEYS : SOLO_BENEFIT_KEYS;
+  // `alinhado`: estas linhas têm duas e três linhas de texto. Centralizado,
+  // cada uma encolheria pro seu próprio tamanho e a coluna dos ✓ viraria
+  // zigue-zague — o oposto da fileira limpa do print.
   return (
-    <View style={styles.benefitsList}>
-      {keys.map((key) => (
-        <View key={key} style={styles.benefitRow}>
-          <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
-          <Text style={styles.benefitText}>{t(key)}</Text>
-        </View>
-      ))}
-    </View>
+    <ListaCheck
+      alinhado
+      style={styles.benefitsList}
+      itens={keys.map((key) => ({ chave: key, texto: t(key), destaque: DESTAQUE_KEYS.has(key) }))}
+    />
   );
 }
 
@@ -348,6 +376,12 @@ function HeroCena({ isCouple, title }) {
   return (
     <View style={styles.cenaWrap}>
       <Image source={isCouple ? CENAS.onboarding : CENAS.amor} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+      {/* O fade fica como estava: é ele que mantém o título legível sobre o
+          trecho claro do céu da arte. TENTEI tirá-lo e TENTEI terminá-lo no
+          tom da faixa (12/09/2026) pra faixa poder subir por cima da arte —
+          nas duas fotos a segunda linha do título ficou ilegível, porque ela
+          mora justamente no pé da cena. A faixa não sobe; ela começa onde a
+          arte acaba, que é o arranjo do próprio print do concorrente. */}
       <LinearGradient colors={['transparent', colors.background]} style={styles.cenaFade} pointerEvents="none" />
       <Text style={styles.heroTitle}>{title}</Text>
     </View>
@@ -401,7 +435,10 @@ function LegalFooter() {
   const { t } = useLanguage();
   const abrir = (screen) => navigation.getParent()?.navigate(ROUTES.PROFILE_TAB, { screen });
   return (
-    <View style={styles.legalFooter}>
+    // Coluna de leitura: a nota legal é o parágrafo mais longo e mais apagado
+    // da tela. De borda a borda ela vira parede; numa coluna centrada ela lê
+    // como rodapé — presente, alcançável, sem competir com o CTA.
+    <ColunaLeitura centralizado style={styles.legalFooter}>
       <Text style={styles.legalNote}>{t(LOJA_ATIVA ? 'planos.legal.billingNoteStore' : 'planos.legal.billingNote')}</Text>
       <View style={styles.legalLinks}>
         <TouchableOpacity onPress={() => abrir(ROUTES.TERMS)} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
@@ -416,7 +453,7 @@ function LegalFooter() {
           <Text style={styles.legalLink}>{t('planos.legal.support')}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ColunaLeitura>
   );
 }
 
@@ -599,10 +636,27 @@ function PlanosScreenWeb() {
         {!aberto && (
           <HeroCena isCouple={isCouple} title={t(isCouple ? 'planos.unlockTitle' : 'planos.unlockTitleSolo')} />
         )}
+        {/* DUAS FAIXAS, não um cartão (12/09/2026 — diagramação). Era um
+            <View style={styles.card}> só, com preço, benefício, CTA e nota
+            legal correndo juntos sobre o mesmo fundo: o olho não tinha onde
+            trocar de assunto e a tela lia como lista. As faixas dão o corte
+            que o print do concorrente dá — PREÇO numa faixa, O QUE ENTRA na
+            seguinte, cada uma com seu chão e a borda de cima em onda. Nada
+            saiu: o conteúdo é o mesmo, só parou de correr junto. */}
         {!aberto && (
-          <View style={styles.card}>
+          <FaixaCurva tom={TOM_OFERTA} semente="oferta" style={styles.faixa}>
             <PlanPicker selected={selectedPlan} onSelect={setSelectedPlan} />
-            <Text style={styles.currencyNote}>{t('planos.currencyNote')}</Text>
+            <ColunaLeitura centralizado>
+              <Text style={styles.currencyNote}>{t('planos.currencyNote')}</Text>
+            </ColunaLeitura>
+          </FaixaCurva>
+        )}
+        {!aberto && (
+          <FaixaCurva tom="violeta" semente="entra" grude style={styles.faixa}>
+            {/* SEM TÍTULO de propósito: a troca de chão É o corte. Um
+                "O que entra" aqui seria copy nova em três idiomas pra dizer o
+                que a faixa já diz sozinha — e o portão de paridade EN/PT/ES
+                cobra cada chave. A peça existe exatamente pra isso. */}
             <BenefitsList isCouple={isCouple} />
             {/* Enquanto a sessão do Supabase não resolve, o botão vira spinner:
                 clicar nesse meio-tempo mandaria pro login quem JÁ está logado. */}
@@ -616,14 +670,16 @@ function PlanosScreenWeb() {
             {/* Rodapé de confiança do CTA — só afirma o que os Termos e o FAQ
                 já garantem por escrito (cancelamento a qualquer momento na área
                 de compras da Hotmart, acesso até o fim do período pago). */}
-            <Text style={styles.trustNote}>{t('planos.trust')}</Text>
-            {/* Deslogado vê o preço primeiro e só depois a conta — mas fica
-                sabendo do passo antes de tocar, em vez de ser surpreendido por
-                um formulário de cadastro. */}
-            {!user && !authLoading && (
-              <Text style={styles.loginNote}>{t('planos.loginRequired.text')}</Text>
-            )}
-          </View>
+            <ColunaLeitura centralizado>
+              <Text style={styles.trustNote}>{t('planos.trust')}</Text>
+              {/* Deslogado vê o preço primeiro e só depois a conta — mas fica
+                  sabendo do passo antes de tocar, em vez de ser surpreendido
+                  por um formulário de cadastro. */}
+              {!user && !authLoading && (
+                <Text style={styles.loginNote}>{t('planos.loginRequired.text')}</Text>
+              )}
+            </ColunaLeitura>
+          </FaixaCurva>
         )}
 
         {aberto && carregando && (
@@ -886,13 +942,16 @@ function PlanosScreenNative() {
                   <Text style={styles.btnText}>{t(`planos.cta.${selectedPlan}`)}</Text>
                 </TouchableOpacity>
               )}
-              {/* Cancelamento e cobrança do jeito que valem numa loja. */}
-              <Text style={styles.trustNote}>{t('planos.trustStore')}</Text>
-              {/* Mesma nota da web: a conta é o passo seguinte, e a pessoa sabe
-                  disso antes de tocar — depois de já ter visto preço e benefício. */}
-              {!user && !authLoading && !carregando && (
-                <Text style={styles.loginNote}>{t('planos.loginRequired.text')}</Text>
-              )}
+              <ColunaLeitura centralizado>
+                {/* Cancelamento e cobrança do jeito que valem numa loja. */}
+                <Text style={styles.trustNote}>{t('planos.trustStore')}</Text>
+                {/* Mesma nota da web: a conta é o passo seguinte, e a pessoa
+                    sabe disso antes de tocar — depois de já ter visto preço e
+                    benefício. */}
+                {!user && !authLoading && !carregando && (
+                  <Text style={styles.loginNote}>{t('planos.loginRequired.text')}</Text>
+                )}
+              </ColunaLeitura>
               {!carregando && (
                 <TouchableOpacity onPress={restaurar} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
                   <Text style={styles.restoreLink}>{t('planos.store.restore')}</Text>
@@ -952,18 +1011,24 @@ export default function PlanosScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingBottom: 40 },
+  // O `padding: 20` fica: é ele que a faixa anula com marginHorizontal:-20.
+  // `fimDaLista` no pé pra última linha nunca morar embaixo da barra de abas.
+  content: { padding: 20, paddingBottom: space.fimDaLista },
   card: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     borderRadius: 18, padding: 22, alignItems: 'center',
   },
   cardTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  benefitsList: { alignSelf: 'stretch', marginTop: 16, gap: 10 },
-  benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  benefitText: { flex: 1, color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  // `entre` (24), não 16: a lista de benefícios é o próximo ASSUNTO depois do
+  // preço, não a próxima linha dele. benefitRow/benefitText saíram — quem
+  // desenha a linha agora é components/ListaCheck.js, com a entrelinha da
+  // escala (type.corpoCurto: 15/24, em vez de 13/19 apertado).
+  benefitsList: { alignSelf: 'stretch', marginTop: space.entre },
   cardText: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 10 },
   errorText: { color: colors.gold, fontSize: 14, textAlign: 'center', fontWeight: '600' },
-  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 24, marginTop: 18, alignSelf: 'stretch', alignItems: 'center' },
+  // `entre` (24) acima do CTA: o botão é a próxima DECISÃO depois de ler a
+  // lista, e 18 o deixava colado na última linha dela.
+  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 24, marginTop: space.entre, alignSelf: 'stretch', alignItems: 'center' },
   btnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border },
   btnGhostText: { color: colors.text, fontSize: 14, fontWeight: '700' },
@@ -980,23 +1045,43 @@ const styles = StyleSheet.create({
   ctaLoader: { marginTop: 18, alignSelf: 'stretch' },
   // Nota discreta sob o CTA de quem está deslogado: menor e mais apagada que o
   // botão de propósito, ela informa o próximo passo sem competir com ele.
-  loginNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 12 },
-  currencyNote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 10, paddingHorizontal: 8 },
+  loginNote: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.dentro },
+  // paddingHorizontal saiu: quem dá a margem lateral agora é a
+  // ColunaLeitura em volta, e somar os dois estreitaria demais a linha.
+  currencyNote: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.dentro },
 
   // Rodapé legal: presente e alcançável, mas discreto de propósito — quem
   // procura já sabe o que procura, e quem não procura não deve ser distraído
   // do CTA logo acima.
-  legalFooter: { marginTop: 22, alignItems: 'center' },
+  // `secao` (32): o rodapé legal é outro assunto, não o fim da faixa.
+  legalFooter: { marginTop: space.secao, alignItems: 'center' },
   legalNote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', paddingHorizontal: 8 },
   legalLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 },
   legalLink: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' },
   legalSep: { color: colors.textMuted, fontSize: 12 },
 
+  // A FAIXA CURVA sangra: as margens negativas anulam o padding:20 do
+  // `content` exatamente como o topo cênico logo abaixo já fazia. Faixa que
+  // não sangra vira cartão — e cartão é o que esta tela era antes.
+  // marginTop -1 no `grude` da segunda faixa mata o fio de fundo entre as duas.
+  faixa: { marginHorizontal: -20 },
+
   // TOPO CÊNICO — full-bleed no padrão das âncoras (Loja/Tarô): margens
   // negativas anulam o padding:20 do content, a arte cola no header e o fade
   // funde o terço inferior no fundo. O título pousa sobre o fade, com sombra
   // sutil pra continuar legível sobre qualquer trecho claro da arte.
-  cenaWrap: { marginTop: -20, marginHorizontal: -20, marginBottom: 14 },
+  // marginBottom 0: a faixa de oferta encosta na cena e a onda dela faz o
+  // corte. Com 14 de folga aparecia um fio do fundo entre arte e faixa.
+  // marginBottom NEGATIVO: a caixa da onda tem ONDA_ALTURA px cujo topo é
+  // transparente — é isso que faz a curva. Se a faixa começar logo abaixo
+  // da arte, esse trecho transparente mostra o fundo da tela e lê como um
+  // buraco morto entre a cena e o primeiro preço (MEDIDO na foto,
+  // 12/09/2026). Puxando a CENA pra baixo em vez de puxar a faixa pra cima,
+  // a onda passa a se desenhar sobre o pé da arte SEM cobrir o título, que
+  // é o que quebrou nas duas tentativas anteriores. -28 é metade da caixa:
+  // o suficiente pra crista morder a arte e pouco pra não alcançar a
+  // segunda linha do título.
+  cenaWrap: { marginTop: -20, marginHorizontal: -20, marginBottom: -28 },
   cenaImg: { width: '100%', height: 180 },
   cenaFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 64 },
   heroTitle: {
@@ -1042,7 +1127,9 @@ const styles = StyleSheet.create({
 
   // Rodapé de confiança do CTA: menor e mais quieto que o botão, como a
   // loginNote — informa, não compete.
-  trustNote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 10 },
+  // type.nota (11/17) em vez de 11/16 cru, e `bloco` de respiro: a nota de
+  // confiança é o texto que fecha o CTA, não a linha colada nele.
+  trustNote: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.bloco },
   // "Restaurar compras" — obrigatório num app de loja (reinstalou/trocou de
   // aparelho), e discreto de propósito: quem procura já sabe o que procura.
   restoreLink: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', textDecorationLine: 'underline', marginTop: 14 },

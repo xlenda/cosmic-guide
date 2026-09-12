@@ -866,15 +866,24 @@ export default function TarotAlbumScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={temNota ? `${getCardName(card, lang)} — ${UI.seloHistoria}` : getCardName(card, lang)}
                     >
-                      <Image source={getTarotImage(card.id)} style={styles.thumbImage} resizeMode="cover" />
-                      {/* Selo de carta com nota de história — só nas 7 que
-                          a pesquisa achou, e só depois de revelada (marcar
-                          carta não vista seria spoiler). */}
-                      {temNota ? (
-                        <View style={styles.selo} pointerEvents="none" testID={`album-selo-${card.id}`}>
-                          <Ionicons name="bookmark" size={9} color="#1F1640" />
-                        </View>
-                      ) : null}
+                      <View style={styles.thumbArte}>
+                        <Image source={getTarotImage(card.id)} style={styles.thumbImage} resizeMode="cover" />
+                        {/* Selo de carta com nota de história — só nas 7 que
+                            a pesquisa achou, e só depois de revelada (marcar
+                            carta não vista seria spoiler). */}
+                        {temNota ? (
+                          <View style={styles.selo} pointerEvents="none" testID={`album-selo-${card.id}`}>
+                            <Ionicons name="bookmark" size={11} color="#1F1640" />
+                          </View>
+                        ) : null}
+                      </View>
+                      {/* O nome embaixo da arte, discreto: é assim que a grade
+                          do concorrente se lê como baralho e não como mosaico
+                          de miniaturas anônimas. O nome já existia só na
+                          accessibilityLabel — agora também é visível. */}
+                      <Text style={styles.thumbNome} numberOfLines={2}>
+                        {getCardName(card, lang)}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -1542,49 +1551,57 @@ const styles = StyleSheet.create({
   marca: { color: colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 4 },
 
   // ---- seções do álbum ----
-  albumTools: { marginBottom: 18, gap: 10 },
+  albumTools: { marginBottom: space.secao, gap: space.dentro },
   searchBox: {
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: space.dentro,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 14,
     backgroundColor: colors.card,
-    paddingHorizontal: 14,
+    paddingHorizontal: space.bloco,
   },
-  searchInput: { flex: 1, color: colors.text, fontSize: 14, paddingVertical: 10 },
-  filterRow: { gap: 8 },
+  searchInput: { flex: 1, ...type.corpoCurto, color: colors.text, paddingVertical: space.dentro },
+  filterRow: { gap: space.junto },
   filterChip: {
-    minHeight: 38,
+    minHeight: 40,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    paddingHorizontal: 14,
+    paddingHorizontal: space.bloco,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterChipActive: { borderColor: colors.gold, backgroundColor: colors.gold + '18' },
-  filterChipText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  // Chip é toque: `botao` (peso 600). Era peso 800 — o filtro gritava mais
+  // alto que o título da seção que ele filtra.
+  filterChipText: { ...type.botao, color: colors.textMuted },
   filterChipTextActive: { color: colors.gold },
+  // Estado vazio: é a primeira tela de quem ainda não virou carta nenhuma.
+  // Ganha o ar de um bloco de verdade em vez de uma caixinha apertada.
   albumEmpty: {
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 18,
     backgroundColor: colors.card,
-    padding: 22,
-    gap: 8,
-    marginBottom: 20,
+    paddingHorizontal: space.entre,
+    paddingVertical: space.secao,
+    gap: space.dentro,
+    marginBottom: space.secao,
   },
-  albumEmptyTitle: { color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  albumEmptyBody: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
-  section: { marginBottom: 22 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
-  sectionCount: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  albumEmptyTitle: { ...type.secao, color: colors.text, textAlign: 'center' },
+  albumEmptyBody: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
+  // `secao` entre um grupo do baralho e o próximo, e `bloco` do cabeçalho pra
+  // grade que ele nomeia — o degrau que separa "outro assunto" de "mesmo
+  // assunto". Era 22/10, que lia como a mesma distância pros dois.
+  section: { marginBottom: space.secao },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: space.junto, marginBottom: space.bloco },
+  sectionTitle: { ...type.cartao, color: colors.text, flex: 1 },
+  sectionCount: { ...type.apoio, color: colors.textMuted },
   grupoNota: {
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -1596,20 +1613,30 @@ const styles = StyleSheet.create({
   },
   notaTitulo: { color: colors.text, fontSize: 14, fontWeight: '800', lineHeight: 20 },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  // 23% + gap de 8 fecha 4 colunas na largura de celular; em telas muito
-  // estreitas quebra pra 3 sozinho (flexWrap), sem conta manual de largura.
-  thumb: {
-    width: '23%',
+  // A GRADE DO BARALHO (12/09/2026). Antes: 4 colunas a 23% com gap 8 e
+  // nenhum rótulo — um mosaico apertado de miniaturas anônimas. O baralho do
+  // concorrente é 3 COLUNAS, com ar de sobra entre elas e o nome discreto
+  // embaixo de cada carta: a arte fica grande o bastante pra se reconhecer, e
+  // o olho pousa carta a carta em vez de varrer uma parede.
+  // O gap vertical é maior que o horizontal de propósito: o nome embaixo já
+  // separa as linhas, e `space.entre` evita que ele cole na carta de baixo.
+  grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: space.dentro, rowGap: space.entre },
+  // 31% + columnGap de 12 fecha 3 colunas; em tela muito estreita quebra pra
+  // 2 sozinho (flexWrap), sem conta manual de largura.
+  thumb: { width: '31%' },
+  thumbPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
+  thumbArte: {
+    width: '100%',
     aspectRatio: 0.66,
-    borderRadius: 10,
+    borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  thumbPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
   thumbImage: { width: '100%', height: '100%' },
+  // Peso normal e cor de apoio: o rótulo NOMEIA a carta, não compete com ela.
+  thumbNome: { ...type.nota, color: colors.textSecondary, textAlign: 'center', marginTop: space.junto },
   hiddenGroup: {
     width: '100%',
     minHeight: 82,
@@ -1626,13 +1653,15 @@ const styles = StyleSheet.create({
   hiddenGroupCopy: { flex: 1 },
   hiddenGroupTitle: { color: colors.text, fontSize: 13, lineHeight: 18, fontWeight: '900' },
   hiddenGroupBody: { color: colors.textMuted, fontSize: 10, lineHeight: 15, marginTop: 2 },
+  // Cresce junto com a carta: na grade de 3 colunas a miniatura tem ~1/3 a
+  // mais de largura, e o selo de 16px virava um respingo.
   selo: {
     position: 'absolute',
-    top: 3,
-    right: 3,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    top: space.grudado,
+    right: space.grudado,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: colors.gold,
     alignItems: 'center',
     justifyContent: 'center',

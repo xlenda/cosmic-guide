@@ -4,7 +4,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients, zodiacSigns } from '../theme';
+// `space` e `type` entram na reforma de diagramação (12/09/2026): todo espaço
+// novo desta tela sai da ESCALA da fundação, nunca de número cru — há teste
+// que falha se um valor solto aparecer nos estilos das peças.
+import { colors, gradients, zodiacSigns, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import HeroSection from '../components/HeroSection';
 // O MASCOTE DO HERO (08/08/2026) — o signo do usuário como personagem do pack
@@ -34,6 +37,22 @@ import WaveDivider from '../components/WaveDivider';
 // BandaSection saiu do import em 10/09/2026: as duas zonas que a Home montava
 // (o céu e a rosa do casal) viraram missões. O componente segue vivo e usado
 // por outras telas.
+// A FAIXA CURVA (12/09/2026) — o recurso nº 1 dos 66 prints do concorrente:
+// cada assunto entra numa faixa cuja borda de cima é uma ONDA, e o CHÃO muda de
+// faixa pra faixa. É o que faz a tela deles ler como paisagem enquanto a Home
+// lia como lista: aqui tudo corria junto sobre o mesmo fundo, sem nada dizendo
+// ao olho "mudou de assunto" além de um título em negrito.
+//
+// Por que ela e não os dois recursos que já existiam no repo:
+//   · WaveDivider desenha só a BORDA e não muda o chão — corte solto, não seção;
+//   · BandaSection muda o chão mas com raio 40 nos QUATRO cantos, ou seja, um
+//     card gigante que some no meio da tela em vez de sangrar de ponta a ponta.
+// Os dois seguem vivos e usados por outras telas; nenhum foi tocado.
+//
+// A COLUNA DE LEITURA entra junto porque faixa sem coluna não resolve metade do
+// diagnóstico: o texto continuaria indo de borda a borda dentro da faixa nova.
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import CardGrid from '../components/CardGrid';
 import NotifPromptCard from '../components/NotifPromptCard';
 import DailyMissionsCard from '../components/DailyMissionsCard';
@@ -1269,7 +1288,63 @@ export default function HomeScreen() {
 
             Sem data de nascimento salva, `identidade` é null e o bloco vira
             um convite pra preencher o Mapa — nunca um signo chutado. */}
-        <CabecalhoIdentidade identidade={identidade} onMapa={() => navigation.navigate(ROUTES.BIRTH_CHART)} />
+        {/* ═══ FAIXA 1 · VOCÊ HOJE ═══ (12/09/2026, reforma de diagramação)
+            AGRUPAMENTO — POR QUE ESTES DOIS SÃO UM GRUPO. O cabeçalho de
+            identidade (Sol/Lua/Ascendente + os anéis de elemento) e o carrossel
+            do horóscopo respondem à MESMA pergunta: "quem eu sou e como está o
+            meu céu hoje". Eram dois blocos soltos no mesmo chão escuro, com o
+            título "Horóscopo Diário" flutuando entre eles sem nada dizendo que
+            os dois pertencem um ao outro. Agora dividem um chão só, e a faixa
+            faz o trabalho que o título fazia mal.
+
+            NADA SOME: cabeçalho, anéis e carrossel entram inteiros, na mesma
+            ordem, com os mesmos props. O que muda é o chão embaixo deles e o
+            fato de o assunto passar a ter uma borda visível.
+
+            OS ANÉIS DE ELEMENTO FICAM, e ficam de propósito: são dados REAIS
+            calculados do mapa de nascimento (contagem de planetas × 10), o
+            concorrente não tem nada parecido, e a referência dele nesse lugar
+            mostra "Amor 82%" — número que não sai de conta nenhuma e que a
+            doutrina proíbe. Preservar isto é preservar a única vantagem
+            medível que a Home já tinha.
+
+            TOM 'ameixa': é a faixa PRINCIPAL da tela, a que abre. */}
+        {/* estiloCorpo paddingTop 0: o cabeçalho da tela (saudação + data +
+            mascote) já termina com folga própria, e somar o degrau 'secao'
+            da faixa abria um buraco morto entre os dois — medido na foto
+            home-cheia-dobra1-depois antes da correção. */}
+        {/* A FAIXA ACOMPANHA O CONTEÚDO QUE TEM (12/09/2026, terceira
+            correção — apontada por revisor que fotografou a tela).
+
+            O QUE ESTAVA ERRADO. Sem data de nascimento salva, `identidade` é
+            null e o CabecalhoIdentidade encolhe de uma ficha inteira (três
+            chips + botão + quatro anéis de elemento) para UM comprimido de
+            39px. A faixa, porém, continuava com o degrau `secao` embaixo e a
+            mesma onda alta em cima: medido na foto, a faixa media 361px pra
+            256px de conteúdo, com 73px de ameixa acima do comprimido e 32px
+            abaixo das bolinhas. Um botão sozinho boiando no meio de um bloco
+            de cor não lê como seção — lê como chão pintado por engano, que é
+            o oposto do que a faixa existe pra fazer.
+
+            ESTADO VAZIO BONITO NÃO É A FAIXA CHEIA DE NADA. A faixa continua
+            existindo (o carrossel do horóscopo é conteúdo de verdade e merece
+            o envelope), mas encolhe pro tamanho do que carrega: o degrau de
+            baixo cai de `secao` pra `entre`, e o convite ganha o respiro que
+            ele mesmo pede em vez de herdar o de uma ficha que não está lá.
+
+            POR QUE NÃO "NENHUMA FAIXA". Testado mentalmente e descartado: sem
+            a faixa, o carrossel cairia direto no céu e a faixa 2 ('seu
+            caminho') viraria a primeira — a tela abriria sem o degrau de chão
+            que marca "aqui é o seu céu de hoje", e o convite pra preencher o
+            Mapa perderia justamente o destaque que faz alguém tocá-lo. */}
+        <FaixaCurva
+          tom="ameixa"
+          semente="voce-hoje"
+          rasa={!identidade}
+          estiloCorpo={{ paddingTop: 0, paddingBottom: identidade ? space.secao : space.entre }}
+          testID="home-faixa-voce-hoje"
+        >
+          <CabecalhoIdentidade identidade={identidade} onMapa={() => navigation.navigate(ROUTES.BIRTH_CHART)} />
 
         {/* HORÓSCOPO DIÁRIO EM CARROSSEL (11/09/2026, referência do dono:
             "Lauren · Horóscopo Diário" — a faixa de cards deslizáveis, um
@@ -1280,7 +1355,8 @@ export default function HomeScreen() {
             inventado é proibido, e o motor não calcula nada que vire
             porcentagem. Sem céu calculado, `itensHoroscopo` é [] e o
             componente devolve null: nenhum card genérico tapando buraco. */}
-        <CarrosselHoroscopo itens={itensHoroscopo} onAbrir={() => navigation.navigate(ROUTES.HOROSCOPE, { sign })} />
+          <CarrosselHoroscopo itens={itensHoroscopo} onAbrir={() => navigation.navigate(ROUTES.HOROSCOPE, { sign })} />
+        </FaixaCurva>
 
         {/* DIÁRIO CÓSMICO — sobe pro topo (10/09/2026, pedido do dono: "a parte
             do diário cósmico e a sequência do dia de hoje pode colocar no
@@ -1305,6 +1381,26 @@ export default function HomeScreen() {
             Relatórios) e mantém o testID de sempre — nada do e2e muda. As
             bolinhas e rótulos ganharam versão em branco porque agora moram
             sobre o roxo, não sobre o card escuro. */}
+        {/* ═══ FAIXA 2 · SEU CAMINHO ═══ (12/09/2026)
+            AGRUPAMENTO — POR QUE ESTES QUATRO SÃO UM GRUPO. Diário+Sequência,
+            Pensamento do dia, Missões de hoje e a Linha de hoje respondem todos
+            a "o que eu já construí e o que faço agora". Estavam espalhados em
+            quatro superfícies separadas por outros assuntos (o catálogo inteiro
+            de cards caía NO MEIO deles), cada uma com fundo e borda próprios —
+            quatro caixas dizendo variações da mesma coisa, que é exatamente o
+            confete que o dono apontou.
+
+            O QUE MUDOU DE LUGAR, E O QUE NÃO MUDOU. Pensamento, Missões e Linha
+            de hoje SOBEM pra junto do card de Diário+Sequência, de onde nunca
+            deviam ter se separado. Nada foi apagado e nada foi cortado: os
+            quatro entram inteiros, com os mesmos testIDs, os mesmos navigate e
+            a mesma lógica. O catálogo de cards, que antes os partia ao meio,
+            DESCE pra faixa 3 — é ele que era o intruso aqui, não eles.
+
+            TOM 'noite': um degrau mais neutro que a faixa de cima. O contraste
+            entre ameixa e noite é o que marca a virada de assunto — de "o seu
+            céu" pra "o seu caminho". */}
+        <FaixaCurva tom="noite" semente="seu-caminho" grude testID="home-faixa-seu-caminho">
         <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.topoCard}>
           <TouchableOpacity
             testID="home-diary-bar"
@@ -1358,67 +1454,6 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </LinearGradient>
-
-        {/* O CATÁLOGO, LOGO NA ENTRADA (10/09/2026, pedido do dono: "explorar
-            funções tem que estar logo no começo quando ele entra no app"). Fica
-            aqui, colado na porta do Explorar, e não no fim do rolo: quem abre o
-            app pra escolher o que fazer não devia ter que rolar a tela inteira
-            até achar o que existe.
-
-            Em grupos, e não numa fileira só — 28 cards com o mesmo peso visual
-            viram parede, e o olho não escolhe parede. É a mesma divisão de
-            09/08 (Leituras, Práticas, Datas, Curiosidades, Casal).
-
-            O testID leva prefixo `home-card` porque a mesma feature também
-            existe no Explorar como `card-<key>`; sem prefixo distinto, todo
-            getByTestId do e2e acharia dois elementos e estouraria. */}
-        <Text style={styles.sectionTitle}>{t('home.sectionExplore')}</Text>
-        <Text style={styles.sectionSubtitle}>{t('home.sectionExploreSubtitle')}</Text>
-        <View style={styles.gutterWrap}>
-          <CardGrid items={leiturasCardItems} testIDPrefix="home-card" />
-        </View>
-
-        {praticasCardItems.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>{t('home.sectionPraticas')}</Text>
-            <Text style={styles.sectionSubtitle}>{t('home.sectionPraticasSubtitle')}</Text>
-            <View style={styles.gutterWrap}>
-              <CardGrid items={praticasCardItems} testIDPrefix="home-card" />
-            </View>
-          </>
-        )}
-
-        {datasCardItems.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>{t('home.sectionDatas')}</Text>
-            <Text style={styles.sectionSubtitle}>{t('home.sectionDatasSubtitle')}</Text>
-            <View style={styles.gutterWrap}>
-              <CardGrid items={datasCardItems} testIDPrefix="home-card" />
-            </View>
-          </>
-        )}
-
-        {curiosidadesCardItems.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>{t('home.sectionCuriosidades')}</Text>
-            <Text style={styles.sectionSubtitle}>{t('home.sectionCuriosidadesSubtitle')}</Text>
-            <View style={styles.gutterWrap}>
-              <CardGrid items={curiosidadesCardItems} testIDPrefix="home-card" />
-            </View>
-          </>
-        )}
-
-        {coupleCardItems.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>{t('home.sectionCouple')}</Text>
-            <Text style={styles.sectionSubtitle}>{t('home.sectionCoupleSubtitle')}</Text>
-            <View style={styles.gutterWrap}>
-              <CardGrid items={coupleCardItems} testIDPrefix="home-card" />
-            </View>
-          </>
-        )}
-
-
 
         {/* Opt-in de notificação no momento certo: só depois da 1ª atividade
             real, uma vez só (ver components/NotifPromptCard.js). */}
@@ -1617,7 +1652,131 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
           </TouchableOpacity>
         )}
+        </FaixaCurva>
 
+        {/* ═══ FAIXA 3 · EXPLORE O COSMOS ═══ (12/09/2026)
+            AGRUPAMENTO — POR QUE ESTAS CINCO GRADES SÃO UM GRUPO SÓ. Leituras,
+            Práticas, Datas do céu, Curiosidades e Recursos de casal são cinco
+            grades do MESMO assunto: o catálogo do que dá pra fazer no app. Cada
+            uma trazia um título em negrito de 18px e um subtítulo de 12px
+            encostados na borda esquerda — dez textos curtos, todos com o mesmo
+            peso visual, competindo entre si e com o conteúdo pessoal acima.
+
+            AGORA É UMA FAIXA COM UMA ABERTURA SÓ. O título do grupo e a linha
+            que o explica entram UMA VEZ, centralizados na coluna de leitura,
+            como o "Relatórios de Astrologia" do print 20.55.53. Os cinco
+            subgrupos continuam existindo com seus nomes — eles são a divisão
+            que o dono pediu em 09/08 e que impede 28 cards de virarem parede —
+            mas viram RÓTULOS dentro da faixa, não cinco viradas de assunto.
+            Nada some: as cinco grades entram inteiras, na mesma ordem, com os
+            mesmos itens e os mesmos testIDs.
+
+            O CATÁLOGO DESCEU, e desceu de propósito. Ele estava partindo o
+            grupo "Seu caminho" ao meio: o card de Diário+Sequência ficava
+            ANTES dele e o Pensamento/Missões DEPOIS, com 28 cards no meio.
+            Continua acima do epílogo e da porta do Explorar, então quem abre o
+            app pra escolher o que fazer segue achando o catálogo sem rolar a
+            tela inteira — o pedido de 10/09 continua atendido.
+
+            TOM 'ameixa', e NÃO 'violeta' — corrigido olhando a foto
+            (home-cheia-dobra4-depois, primeira rodada). O violeta é o tom mais
+            claro da paleta e esta é a faixa MAIS LONGA da tela: várias dobras
+            de chão claro apagavam o céu estrelado do CosmicScene e roubavam o
+            contraste da arte dos 28 cards, que é escura. Um tom pensado pra
+            destacar UMA seção curta vira lavagem quando cobre metade do rolo.
+            A ameixa devolve o fundo escuro que as artes precisam, e a virada
+            de assunto continua legível porque a faixa de cima é 'noite': a
+            alternância noite→ameixa é a mesma do print 20.55.53, onde o
+            catálogo do concorrente também mora em chão ESCURO. */}
+        <FaixaCurva tom="ameixa" semente="explore-cosmos" grude testID="home-faixa-explore">
+          <ColunaLeitura centralizado>
+            <Text style={styles.faixaTitulo}>{t('home.sectionExplore')}</Text>
+            <Text style={styles.faixaApoio}>{t('home.sectionExploreSubtitle')}</Text>
+          </ColunaLeitura>
+
+          {/* O CATÁLOGO, LOGO NA ENTRADA (10/09/2026, pedido do dono: "explorar
+              funções tem que estar logo no começo quando ele entra no app"). Fica
+              aqui, colado na porta do Explorar, e não no fim do rolo: quem abre o
+              app pra escolher o que fazer não devia ter que rolar a tela inteira
+              até achar o que existe.
+
+              Em grupos, e não numa fileira só — 28 cards com o mesmo peso visual
+              viram parede, e o olho não escolhe parede. É a mesma divisão de
+              09/08 (Leituras, Práticas, Datas, Curiosidades, Casal).
+
+              O testID leva prefixo `home-card` porque a mesma feature também
+              existe no Explorar como `card-<key>`; sem prefixo distinto, todo
+              getByTestId do e2e acharia dois elementos e estouraria. */}
+          {/* O título do GRUPO já foi dito no alto da faixa. Aqui vai o nome
+              desta grade — antes ela era a única sem nome próprio. */}
+          <Text style={styles.grupoRotulo}>{t('home.sectionLeituras')}</Text>
+          <Text style={styles.grupoApoio}>{t('home.sectionLeiturasSubtitle')}</Text>
+          <View style={styles.gutterWrap}>
+            <CardGrid items={leiturasCardItems} testIDPrefix="home-card" />
+          </View>
+
+          {praticasCardItems.length > 0 && (
+            <>
+              <Text style={styles.grupoRotulo}>{t('home.sectionPraticas')}</Text>
+              <Text style={styles.grupoApoio}>{t('home.sectionPraticasSubtitle')}</Text>
+              <View style={styles.gutterWrap}>
+                <CardGrid items={praticasCardItems} testIDPrefix="home-card" />
+              </View>
+            </>
+          )}
+
+          {datasCardItems.length > 0 && (
+            <>
+              <Text style={styles.grupoRotulo}>{t('home.sectionDatas')}</Text>
+              <Text style={styles.grupoApoio}>{t('home.sectionDatasSubtitle')}</Text>
+              <View style={styles.gutterWrap}>
+                <CardGrid items={datasCardItems} testIDPrefix="home-card" />
+              </View>
+            </>
+          )}
+
+          {curiosidadesCardItems.length > 0 && (
+            <>
+              <Text style={styles.grupoRotulo}>{t('home.sectionCuriosidades')}</Text>
+              <Text style={styles.grupoApoio}>{t('home.sectionCuriosidadesSubtitle')}</Text>
+              <View style={styles.gutterWrap}>
+                <CardGrid items={curiosidadesCardItems} testIDPrefix="home-card" />
+              </View>
+            </>
+          )}
+
+          {coupleCardItems.length > 0 && (
+            <>
+              <Text style={styles.grupoRotulo}>{t('home.sectionCouple')}</Text>
+              <Text style={styles.grupoApoio}>{t('home.sectionCoupleSubtitle')}</Text>
+              <View style={styles.gutterWrap}>
+                <CardGrid items={coupleCardItems} testIDPrefix="home-card" />
+              </View>
+            </>
+          )}
+
+        </FaixaCurva>
+
+        {/* ═══ FAIXA 4 · EPÍLOGO ═══ (12/09/2026)
+            AGRUPAMENTO — POR QUE ESTES TRÊS SÃO UM GRUPO. Órbi, Alinhe seu céu
+            e a porta do Explorar são as três SAÍDAS da Home: cada um leva a
+            outro lugar do app em vez de mostrar conteúdo aqui. Eram três cards
+            grandes empilhados no mesmo chão escuro, sem nada dizendo que a
+            tela tinha acabado e que ali começava o "pra onde ir agora".
+
+            O SOM DO CÉU entra junto por ser da mesma natureza (um controle, não
+            uma leitura) e por já viver encostado neles.
+
+            TOM 'dourado': o acento quente da paleta do Cosmic — a faixa que
+            fecha. É a mistura ameixa-quente e não o dourado puro em alfa, que
+            medido na vitrine some sobre fundo quase preto.
+
+            A ONDA SOLTA DO FIM SAIU. Havia um <WaveDivider /> DEPOIS da porta
+            do Explorar, ou seja, uma borda sem nada embaixo: ela existia pra
+            separar o conteúdo pessoal de um card de Evento Cósmico que foi
+            removido em 10/09 e nunca foi substituído. Agora a virada é a borda
+            desta faixa, que tem chão de verdade. */}
+        <FaixaCurva tom="dourado" semente="epilogo" grude testID="home-faixa-epilogo">
         {/* Órbi continua acessível, mas depois do bloco de hoje. Assim ele não
             disputa a primeira dobra com o caminho dominante, o alinhamento e
             a porta de Explore. */}
@@ -1683,28 +1842,6 @@ export default function HomeScreen() {
             </LinearGradient>
           </TouchableOpacity>
         )}
-
-        {/* ZONA DO CÉU [AUTO-DECISION: onda 1 REMOVIDA] — no lugar da colina,
-            a seção inteira ganha CHÃO: daqui até o fim do card de próximos
-            dias é uma faixa 'claro' arredondada (BandaSection). O corte que a
-            onda 1 fazia agora é a borda de cima da própria zona — manter as
-            duas seria dupla-borda. Hero e grupo do dia (diário, sequência,
-            pensamento, missões, linha de hoje, som, retrospectiva) ficam no
-            céu escuro de propósito: a abertura respira no cenário, e a
-            PRIMEIRA mudança de chão coincide com a primeira virada de assunto
-            ("o seu hoje" → "o céu sobre você"). */}
-        
-
-        {/* ZONA DO AMOR [AUTO-DECISION: onda 2 REMOVIDA] — o grupo do
-            AMOR/CASAL (frase do dia + cartão de compatibilidade) ganha chão
-            próprio 'rosa': o mesmo degrau do claro puxado um fio pro rosa
-            (#2A1840 — MUITO sutil, vizinho de tom; o gradiente da frase já
-            grita sozinho), porque rosa é a cor da família amor no app
-            inteiro. Entre duas zonas o céu escuro aparece no vão das margens
-            — o ritmo escuro→claro→escuro→rosa é a própria diagramação do
-            concorrente, sem precisar de colina entre duas bordas
-            arredondadas. */}
-        
 
         {/* ALINHE SEU CÉU e a PORTA DO EXPLORAR desceram pro fim (10/09/2026,
             pedido do dono: "alinhe seu céu também pode pôr embaixo" e
@@ -1808,10 +1945,7 @@ export default function HomeScreen() {
             </LinearGradient>
           </Pressable>
         </View>
-
-        {/* A única onda preservada separa o conteúdo pessoal do epílogo sobre
-            o céu de hoje. */}
-        <WaveDivider />
+        </FaixaCurva>
 
         {/* O CARD "EVENTO CÓSMICO" SAIU DA HOME (10/09/2026, pedido do dono:
             "pode tirar o evento cósmico"). Com o catálogo inteiro visível
@@ -2249,6 +2383,45 @@ const styles = StyleSheet.create({
   horoDatesRecibo: { marginTop: 8 },
   horoText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
   horoLink: { color: colors.accent, fontSize: 13, fontWeight: '700', marginTop: 12 },
+  // ── DIAGRAMAÇÃO EM FAIXAS (12/09/2026) ─────────────────────────────────
+  // O título de uma FAIXA: dito uma vez, centralizado na coluna de leitura,
+  // como o "Relatórios de Astrologia" do print 20.55.53. Usa type.titulo da
+  // fundação — o negrito continua sendo hierarquia (título de faixa), nunca
+  // ênfase espalhada.
+  faixaTitulo: {
+    ...type.titulo,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  // A linha que explica a faixa. Peso NORMAL e cinza claro — nos prints o
+  // corpo do texto nunca é branco puro nem negrito; o app tinha 471 usos de
+  // peso '800' contra dois de peso leve, e é isso que faz tudo gritar junto.
+  faixaApoio: {
+    ...type.corpo,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: space.dentro,
+  },
+  // O rótulo de um GRUPO dentro da faixa (Leituras, Práticas, Datas…). Um
+  // degrau ABAIXO do título da faixa de propósito: são subdivisões de um
+  // assunto só, não cinco viradas de assunto. Sem marginHorizontal porque a
+  // faixa já traz o gutter no padding dela.
+  grupoRotulo: {
+    ...type.secao,
+    color: colors.text,
+    marginTop: space.secao,
+    marginBottom: space.grudado,
+    // +4 pra bater no gutter das grades: a faixa já dá 16 de padding e o
+    // gutterWrap dos CardGrid soma mais 4 (o gutter 20 histórico da tela).
+    // Sem isto o rótulo fica 4px à esquerda dos cards que ele nomeia.
+    paddingHorizontal: space.grudado,
+  },
+  grupoApoio: {
+    ...type.apoio,
+    color: colors.textMuted,
+    marginBottom: space.dentro,
+    paddingHorizontal: space.grudado,
+  },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 28, marginBottom: 12, marginHorizontal: 20 },
   // Título de seção que abre uma virada que JÁ tem respiro próprio — o
   // "Explore" logo após o paddingTop da zona clara, e o epílogo logo após a

@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import { TAROT_DECK, getSpreadPattern } from '../lib/tarotDeck';
 import { drawTarotCards } from '../lib/tarotShuffle';
 import { getTarotImage } from '../lib/tarotImages';
@@ -36,6 +36,9 @@ import OrbiGuide from '../components/OrbiGuide';
 // (gênero, idade, profissão, relacionamento), local e sem login. O componente
 // só desenha; carregar e gravar é lib/perfilLeitura, daqui.
 import SuasInformacoes from '../components/SuasInformacoes';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
+import { ONDA_ALTURA } from '../lib/ondaPath';
 import { getPerfilLeitura, setPerfilLeitura, idadeDeNascimento } from '../lib/perfilLeitura';
 // Arte das duas tiragens (11/09/2026): asset 44px ou null → card só texto.
 import { tiragemArte } from '../lib/ilustracoes';
@@ -98,7 +101,19 @@ const THEMES = [
   { key: 'Saúde', guideId: 'wellbeing', icon: 'medkit', color: '#86AAA1' },
 ];
 
-const TAROT_HEADER_GRADIENT = ['#120C18', '#2A1B2B', '#5A4430'];
+// CABEÇALHO DO TARÔ — o degradê de canto a canto do topo da tela.
+//
+// A TERCEIRA PARADA SAIU DO SÉPIA (12/09/2026, item 4 do conserto de
+// diagramação). Era '#5A4430', que em Lab dá L31/C17/h68: matiz AMARELO-MARROM.
+// O resto do app vive entre 302° e 339° (o próprio gradiente, nas duas
+// primeiras paradas, está em 307° e 324°) — então o canto quente do Tarô
+// terminava fora da roda da casa e lia como sépia, o mesmo defeito que o tom
+// 'dourado' da FaixaCurva tinha pelo mesmo motivo.
+//
+// '#5A3A44' mantém o CALOR e o peso (L28/C16, praticamente os mesmos L31/C17)
+// e traz o matiz pra 359° — a borda quente da família, vizinha do rosa (339°),
+// não do amarelo. O canto continua sendo o dourado do Tarô; para de ser bege.
+const TAROT_HEADER_GRADIENT = ['#120C18', '#2A1B2B', '#5A3A44'];
 const TAROT_ACTION_GRADIENT = ['#A98242', '#E0BE78', '#8C672F'];
 const PROFILE_THEME_BY_INTENT = Object.freeze({
   love: 'Amor',
@@ -1155,9 +1170,18 @@ export default function TarotScreen() {
 
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={{ padding: 20, paddingBottom: Math.max(96, insets.bottom + 88) }}
+        // SEM padding horizontal aqui (12/09/2026). A faixa curva sangra de
+        // ponta a ponta — é essa borda que faz a seção parecer paisagem em vez
+        // de card. Quem precisa da margem lateral é cada bloco, e a própria
+        // FaixaCurva já traz `space.tela` dentro. O que fica de fora da faixa
+        // pede styles.foraDaFaixa.
+        contentContainerStyle={{ paddingBottom: Math.max(96, insets.bottom + 88) }}
         showsVerticalScrollIndicator={false}
       >
+        {/* FAIXA 1 — ONDE COMEÇA A LEITURA. Tema + quem é você: duas perguntas
+            sobre a PESSOA, antes de existir qualquer carta. Estavam soltas no
+            mesmo chão do resto e por isso a tela lia como lista de campos. */}
+        <FaixaCurva tom="ameixa" semente="tarot-tema" style={styles.faixaSobOHeader} testID="tarot-faixa-tema">
         <Text style={styles.sectionLabel}>{t('tarot.chooseTheme')}</Text>
         <View style={styles.themeRow}>
           {THEMES.map((themeOption) => (
@@ -1225,7 +1249,12 @@ export default function TarotScreen() {
             setPerfil(salvo);
           }}
         />
+        </FaixaCurva>
 
+        {/* FAIXA 2 — A TIRAGEM. Outro chão, outra onda: daqui pra baixo o
+            assunto deixa de ser você e passa a ser as cartas. `grude` encosta
+            esta faixa na de cima sem o fio de antialias no meio. */}
+        <FaixaCurva tom="noite" semente="tarot-tiragem" grude testID="tarot-faixa-tiragem">
         {!drawn ? (
           <View style={styles.emptyWrap}>
             {/* `bonusReadings > 0` entrou em 10/09/2026, junto do TUDO_LIBERADO
@@ -1242,16 +1271,21 @@ export default function TarotScreen() {
                   color={theme.color}
                   style={{ marginBottom: 12 }}
                 />
-                <Text style={styles.emptyTitle}>
-                  {/* Duas frases, dois públicos. "Volta amanhã" só sai pra
-                      quem realmente vai ter tiragem amanhã (assinante). Pra
-                      quem não assina, a verdade é que a prévia é uma só e não
-                      renova — dizer o contrário é prometer o que o app não
-                      vai cumprir. */}
-                  {limiteDiarioReal
-                    ? t('tarot.dailyBlocked', { theme: themeLabel })
-                    : t('tarot.previewBlocked')}
-                </Text>
+                {/* Coluna de leitura: a frase do estado vazio não vai mais de
+                    borda a borda. Centralizada e estreita é como o concorrente
+                    desenha toda tela de uma ideia só. */}
+                <ColunaLeitura centralizado>
+                  <Text style={styles.emptyTitle}>
+                    {/* Duas frases, dois públicos. "Volta amanhã" só sai pra
+                        quem realmente vai ter tiragem amanhã (assinante). Pra
+                        quem não assina, a verdade é que a prévia é uma só e não
+                        renova — dizer o contrário é prometer o que o app não
+                        vai cumprir. */}
+                    {limiteDiarioReal
+                      ? t('tarot.dailyBlocked', { theme: themeLabel })
+                      : t('tarot.previewBlocked')}
+                  </Text>
+                </ColunaLeitura>
                 {bonusReadings > 0 ? (
                   <TouchableOpacity
                     testID="tarot-bonus-draw"
@@ -2015,6 +2049,7 @@ export default function TarotScreen() {
             ))}
           </>
         )}
+        </FaixaCurva>
       </ScrollView>
 
       <StoriesReader
@@ -2339,6 +2374,11 @@ function PreparoDeWaite({ lang, aberto, onAlternar, feitas, onMarcar, progresso,
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  // A PRIMEIRA faixa sobe ONDA_ALTURA px pra encaixar a crista da onda DENTRO
+  // do arredondado do header, em vez de abrir 56px de céu vazio entre os dois.
+  // Só vale pra faixa nº 1 de uma tela que já tem header curvo — a segunda
+  // faixa quer a onda inteira aparecendo, porque é ela que marca a virada.
+  faixaSobOHeader: { marginTop: -ONDA_ALTURA },
   header: { paddingHorizontal: 20, paddingBottom: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   albumBtn: {
@@ -2352,18 +2392,29 @@ const styles = StyleSheet.create({
   // (22/800, muito ar em cima) — o padrão medido no concorrente premium. O vão
   // entre o header e o primeiro título deixa o cenário aparecer — é o respiro
   // que faz a tela ler como paisagem, não como lista.
-  sectionLabel: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
-  themeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 20 },
+  // O `marginTop: 34` saiu: quem dá o ar em cima agora é a própria FaixaCurva
+  // (paddingTop `secao`), e somar os dois abria um buraco de 66px. Peso 700 em
+  // vez de 800 — a lei da escala é que negrito é hierarquia, e este é o único
+  // título desta seção, não precisa gritar mais alto que o título da tela.
+  sectionLabel: { ...type.secao, color: colors.text, textAlign: 'center', alignSelf: 'center', marginBottom: space.bloco, letterSpacing: 0.2 },
+  themeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.dentro, marginBottom: space.entre },
   themeChip: {
     width: '31%', minHeight: 64, backgroundColor: '#171419', borderRadius: 14,
-    paddingVertical: 11, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#4B4146', gap: 5,
+    paddingVertical: space.dentro, paddingHorizontal: space.junto, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#4B4146', gap: space.grudado + 1,
   },
   themeChipDisabled: { opacity: 0.48 },
-  themeText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  // Rótulo de chip é RÓTULO, não ênfase: `type.botao` (peso 600) no lugar do
+  // 700 solto em 12px. O selecionado se distingue por COR e borda, que é como
+  // o concorrente distingue — não por engordar a fonte.
+  themeText: { ...type.nota, fontWeight: '600', color: colors.textSecondary, textAlign: 'center' },
   themeTextSelected: { color: colors.text },
-  emptyWrap: { alignItems: 'center', marginTop: 4 },
-  emptyTitle: { color: colors.textSecondary, fontSize: 15, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20, lineHeight: 24 },
+  emptyWrap: { alignItems: 'center' },
+  // O ESTADO VAZIO é o que mais estraga app bonito, e aqui ele é uma frase só
+  // no meio da tela. `corpo` centralizado, sem o paddingHorizontal cru: a
+  // coluna de leitura passou a ser responsabilidade da ColunaLeitura que o
+  // envolve, calculada em caracteres por linha e não em pixels chutados.
+  emptyTitle: { ...type.corpo, color: colors.textSecondary, textAlign: 'center', marginBottom: space.entre },
   questionCard: {
     width: '100%',
     alignItems: 'stretch',
@@ -2371,19 +2422,25 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.gold + '35',
-    padding: 18,
-    marginBottom: 16,
+    padding: space.entre,
+    marginBottom: space.bloco,
   },
-  guideIntro: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
-  guideIntroCopy: { flex: 1, marginLeft: 8 },
-  guideTitle: { color: '#FFF8EC', fontSize: 19, lineHeight: 24, fontWeight: '800', marginTop: 5 },
-  guideBody: { color: '#C8BEC8', fontSize: 12, lineHeight: 18, marginTop: 6 },
-  guidePrompt: { color: '#E9D5AD', fontSize: 12, lineHeight: 17, fontWeight: '800', marginTop: 15, marginBottom: 9 },
-  focusList: { gap: 8 },
+  guideIntro: { flexDirection: 'row', alignItems: 'center', marginBottom: space.entre },
+  guideIntroCopy: { flex: 1, marginLeft: space.dentro },
+  guideTitle: { ...type.secao, color: '#FFF8EC', marginTop: space.grudado },
+  // ERA 12/18 EM PESO NORMAL — o degrau mais apertado do app inteiro, e é
+  // justamente a fala do Órbi, o texto que mais gente lê nesta tela. Agora
+  // `corpoCurto` (15/24): mesmo peso, mais corpo e entrelinha de leitura.
+  guideBody: { ...type.corpoCurto, color: '#C8BEC8', marginTop: space.junto },
+  // A pergunta acima das opções guia a escolha — é hierarquia de verdade, e
+  // por isso mantém peso; mas em `cartao` (17/600) em vez de 12px/800. Peso
+  // alto em corpo pequeno é o que o app fazia 471 vezes e o que lia como grito.
+  guidePrompt: { ...type.cartao, color: '#E9D5AD', marginTop: space.entre, marginBottom: space.dentro },
+  focusList: { gap: space.dentro },
   focusOption: {
-    minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10,
+    minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: space.dentro,
     borderRadius: 14, borderWidth: 1, borderColor: '#4B4146',
-    backgroundColor: '#1B171D', paddingVertical: 10, paddingHorizontal: 12,
+    backgroundColor: '#1B171D', paddingVertical: space.dentro, paddingHorizontal: space.bloco,
   },
   choicePressed: { opacity: 0.82, transform: [{ scale: 0.995 }] },
   focusDot: {
@@ -2391,7 +2448,10 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   focusDotCore: { width: 8, height: 8, borderRadius: 4 },
-  focusOptionText: { flex: 1, color: '#BDB4BC', fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  // Texto de opção não é título: peso normal. Era 13/700 — a opção escolhida
+  // já se distingue pela COR (#FFF8EC) e pelo ponto preenchido; engordar a
+  // fonte das cinco ao mesmo tempo não distinguia nada, só pesava a tela.
+  focusOptionText: { flex: 1, ...type.corpoCurto, color: '#BDB4BC' },
   focusOptionTextSelected: { color: '#FFF8EC' },
   guideReceipt: {
     marginTop: 12, borderRadius: 16, borderLeftWidth: 2, borderLeftColor: colors.gold,

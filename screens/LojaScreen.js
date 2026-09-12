@@ -4,8 +4,9 @@ import { Alert } from '../lib/webAlert';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients, setGoldThemeActive } from '../theme';
+import { colors, gradients, setGoldThemeActive, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
 import { getTokenBalance, spendTokens } from '../lib/tokens';
 import { addShield, getShieldCount } from '../lib/streakShield';
 import {
@@ -262,6 +263,11 @@ export default function LojaScreen() {
           </LinearGradient>
         </View>
 
+        {/* FAIXA 1 — AS RECOMPENSAS. Sangra até as bordas com a mesma margem
+            negativa que a cena do topo já usava pra anular o padding do
+            content. Sem a faixa as duas seções corriam no mesmo chão e a Loja
+            lia como uma lista só, com dois títulos no meio dela. */}
+        <FaixaCurva tom="ameixa" semente="loja-recompensas" style={[styles.faixaSangra, styles.faixaPrimeira]} testID="loja-faixa-recompensas">
         <Text style={styles.sectionTitle}>{t('loja.sectionRewards')}</Text>
         {REWARDS.filter((r) => !r.webOnly || Platform.OS === 'web').map((reward) => {
           const affordable = balance >= reward.cost;
@@ -291,8 +297,13 @@ export default function LojaScreen() {
           );
         })}
 
-        {/* Brindes: mimos do nicho (ritual, wallpapers, tiragem exclusiva) com
-            entrega automática real — catálogo e regras em lib/brindes.js. */}
+        </FaixaCurva>
+
+        {/* FAIXA 2 — OS BRINDES. Mimos do nicho (ritual, wallpapers, tiragem
+            exclusiva) com entrega automática real — catálogo e regras em
+            lib/brindes.js. Outro chão, outra onda: é outro tipo de coisa, e
+            agora o olho vê isso sem precisar ler os dois títulos. */}
+        <FaixaCurva tom="noite" semente="loja-brindes" grude style={styles.faixaSangra} testID="loja-faixa-brindes">
         <Text style={styles.sectionTitle}>{t('loja.sectionBrindes')}</Text>
         <Text style={styles.sectionSubtitle}>{t('loja.sectionBrindesSubtitle')}</Text>
         {getBrindesDisponiveis()
@@ -334,6 +345,7 @@ export default function LojaScreen() {
               </View>
             );
           })}
+        </FaixaCurva>
       </ScrollView>
 
       {/* Conteúdo do brinde resgatado — abre na hora do resgate e sempre que
@@ -380,22 +392,30 @@ const styles = StyleSheet.create({
   cenaWrap: { marginTop: -20, marginHorizontal: -20 },
   cenaImg: { width: '100%', height: 200 },
   cenaFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 66 },
-  balanceWrap: { borderRadius: 20, overflow: 'hidden', marginTop: -28, marginBottom: 24 },
+  // `marginBottom` foi a ZERO: quem dá o respiro abaixo do saldo agora é a
+  // onda da faixa logo em seguida. Somar os dois deixava uma faixa de fundo
+  // preto morto entre o cartão dourado e a curva — buraco, não respiro.
+  balanceWrap: { borderRadius: 20, overflow: 'hidden', marginTop: -28 },
   balanceCard: { paddingVertical: 22, alignItems: 'center' },
   balanceValue: { color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 6 },
   balanceLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2, fontWeight: '600' },
   // COMPOSIÇÃO CENTRADA (08/08/2026): título de seção grande e centrado, com
   // muito ar em cima — o padrão do concorrente premium (22/800, simétrico).
-  sectionTitle: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
+  // O `marginTop: 34` saiu: a FaixaCurva já traz `space.secao` de respiro em
+  // cima, e somar os dois abria um buraco de 66px no alto de cada seção.
+  sectionTitle: { ...type.secao, color: colors.text, textAlign: 'center', alignSelf: 'center', marginBottom: space.bloco, letterSpacing: 0.2 },
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
+    // Alinhado pelo TOPO, não pelo centro: com a descrição em 2-3 linhas o
+    // `center` empurrava o ícone pro meio do parágrafo e o botão pra baixo —
+    // três elementos em três alturas diferentes na mesma linha.
+    alignItems: 'flex-start',
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+    padding: space.bloco,
+    marginBottom: space.dentro,
   },
   cardIconWrap: {
     width: 44,
@@ -406,24 +426,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  cardTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  cardDesc: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 3 },
-  costRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-  costText: { color: colors.gold, fontSize: 12, fontWeight: '700' },
+  // A MESMA MARGEM NEGATIVA DA CENA DO TOPO: anula o padding:20 do content pra
+  // a faixa sangrar até as bordas. Card tem borda nos quatro lados e some no
+  // meio da tela; faixa é o CHÃO embaixo dos cards e precisa tocar a borda.
+  faixaSangra: { marginHorizontal: -20 },
+  // A PRIMEIRA faixa sobe `space.entre` pra encostar a crista da onda no
+  // rodapé do cartão de saldo. Sem isso sobrava uma tira de fundo preto entre
+  // o dourado e a curva — a onda precisa NASCER de alguma coisa, e quando
+  // nasce do vazio ela lê como erro de recorte em vez de virada de seção.
+  faixaPrimeira: { marginTop: -space.entre },
+  // Era 14/800 — peso máximo, e num corpo MENOR que o do texto de apoio. Vira
+  // `corpoCurto` com peso 600: perde o grito, ganha um degrau de tamanho.
+  // NÃO vai pra `cartao` (17): a linha tem ícone à esquerda e botão à direita,
+  // e a 17 o título quebrava em duas linhas em quase toda recompensa — foi o
+  // que a foto mostrou, e diagramação que precisa de 4 linhas onde cabiam 2
+  // não é respiro, é aperto disfarçado de escala.
+  cardTitle: { ...type.corpoCurto, fontWeight: '600', color: colors.text },
+  cardDesc: { ...type.apoio, color: colors.textSecondary, marginTop: space.grudado },
+  costRow: { flexDirection: 'row', alignItems: 'center', gap: space.grudado, marginTop: space.junto },
+  costText: { ...type.apoio, fontWeight: '600', color: colors.gold },
   redeemBtn: {
     backgroundColor: colors.accent,
     borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    marginLeft: 10,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.bloco,
+    marginLeft: space.dentro,
   },
   redeemBtnLow: { backgroundColor: colors.surfaceElevated },
-  redeemBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  redeemBtnText: { ...type.botao, color: '#fff' },
 
   // O subtítulo acompanha o título de seção centrado logo acima; o marginTop
   // negativo encosta nele (o título já traz os 14 de respiro embaixo).
-  sectionSubtitle: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: -6, marginBottom: 10, textAlign: 'center', alignSelf: 'center' },
-  ownedText: { color: colors.green, fontSize: 12, fontWeight: '700' },
+  sectionSubtitle: { ...type.apoio, color: colors.textMuted, marginTop: -space.dentro, marginBottom: space.bloco, textAlign: 'center', alignSelf: 'center' },
+  ownedText: { ...type.apoio, fontWeight: '600', color: colors.green },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(6,3,18,0.7)', justifyContent: 'flex-end' },
   modalSheet: {

@@ -60,9 +60,14 @@ import { useNavigation } from '@react-navigation/native';
 // O fade cinematográfico da cena full-bleed (09/08/2026) — funde o terço
 // inferior da arte no colors.background da tela.
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+// AS PEÇAS DE DIAGRAMAÇÃO (12/09/2026) — o texto longo parou de ir de borda a
+// borda (ColunaLeitura) e a leitura entregue ganhou chão próprio (FaixaCurva).
+// Ver design/PECAS-DE-DIAGRAMACAO.md.
+import ColunaLeitura from '../components/ColunaLeitura';
+import FaixaCurva from '../components/FaixaCurva';
 // O CENÁRIO CÓSMICO (08/08/2026) — primeiro filho do root, atrás de tudo; o
 // root mantém colors.background por baixo (ver o cabeçalho do componente).
 import CosmicScene from '../components/CosmicScene';
@@ -607,14 +612,39 @@ export default function DreamScreen() {
   return (
     <View style={styles.root}>
       <CosmicScene />
-      <GradientHeader title="Sonhos" subtitle="Interpretação simbólica" gradient={gradients.teal} />
+      {/* CABEÇALHO NA FAMÍLIA DA CASA, COM O VERDE PRESERVADO (12/09/2026,
+          item 4 do conserto de diagramação).
+
+          O QUE ESTAVA ERRADO, MEDIDO. `gradients.teal` é ['#5C9E96','#526F8E']
+          — em Lab, h186 -> h264. Um giro de 78° que SAI da roda da casa (302°
+          a 339°) pelos dois lados, e claro demais: L61 e L46, contra L10-L18
+          do gradients.hero. Era o cabeçalho que mais destoava dos quatro.
+
+          O QUE FOI PRESERVADO, E POR QUÊ. O VERDE-TEAL É IDENTIDADE DESTA
+          FEATURE — é a cor do Sonhos no app inteiro (o cadeado da tela usa
+          `gradients.teal`, a vitrine e os ícones seguem ele). Apagar o verde
+          seria uniformizar identidade, que a regra proíbe. Então o ACENTO fica
+          e o RESTO entra na família: a parada da esquerda continua verde
+          (#2B4A44, h180) e a da direita pousa em #40416A (h294), dentro da
+          roda. As duas descem pra L29 — a luz do hero. Lido em sequência com
+          Horóscopo e Mapa, agora é a mesma casa com a porta verde; antes era
+          outra casa. `gradients.teal` continua intacto no theme.js e segue
+          valendo pro cadeado e pro resto da feature. */}
+      <GradientHeader title="Sonhos" subtitle="Interpretação simbólica" gradient={['#2B4A44', '#40416A']} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.disclaimer}>{t('dream.disclaimer')}</Text>
+          {/* A COLUNA DE LEITURA (12/09/2026) — este parágrafo abre a tela com
+              NOVE linhas de borda a borda (medido em 390px,
+              design/lote-texto-longo/antes/sonho-vazio-dobra1-390x844.png).
+              Nos prints de referência nenhum texto encosta na margem. Nada do
+              texto mudou: ele só parou de usar a largura inteira. */}
+          <ColunaLeitura>
+            <Text style={styles.disclaimer}>{t('dream.disclaimer')}</Text>
+          </ColunaLeitura>
 
           {step === STEP.INTRO && (
             <View style={styles.section}>
@@ -633,10 +663,12 @@ export default function DreamScreen() {
                 <LinearGradient colors={['transparent', colors.background]} style={styles.cenaFade} pointerEvents="none" />
               </View>
 
-              <Text style={styles.instructions}>
-                Descreva o sonho que você teve com o máximo de detalhes que lembrar — lugares, pessoas,
-                sensações, o que aconteceu.
-              </Text>
+              <ColunaLeitura>
+                <Text style={styles.instructions}>
+                  Descreva o sonho que você teve com o máximo de detalhes que lembrar — lugares, pessoas,
+                  sensações, o que aconteceu.
+                </Text>
+              </ColunaLeitura>
 
               <TextInput
                 style={styles.input}
@@ -698,10 +730,21 @@ export default function DreamScreen() {
                   voz do aparelho. */}
               <BotaoOuvir texto={reading.body} style={styles.ouvirBtn} />
 
-              <View style={styles.resultCard}>
-                <Text style={styles.resultTitle}>{reading.title}</Text>
-                <Text style={styles.resultBody}>{reading.body}</Text>
-              </View>
+              {/* A LEITURA ENTREGUE — o produto da tela (12/09/2026).
+                  Ganhou CHÃO PRÓPRIO: a faixa curva separa "o que você contou"
+                  do "o que isso diz", que é o corte de assunto mais forte da
+                  tela e que antes não existia — os dois corriam sobre o mesmo
+                  fundo. O card continua lá dentro, com a moldura de sempre; a
+                  faixa é o chão embaixo dele, não um segundo card. Translúcida:
+                  o céu do CosmicScene continua atravessando. */}
+              <FaixaCurva tom="ameixa" semente="leitura-do-sonho" style={styles.faixaLeitura}>
+                <View style={styles.resultCard}>
+                  <Text style={styles.resultTitle}>{reading.title}</Text>
+                  <ColunaLeitura>
+                    <Text style={styles.resultBody}>{reading.body}</Text>
+                  </ColunaLeitura>
+                </View>
+              </FaixaCurva>
 
               {/* Denúncia da saída de IA — rodapé do resultado, exigido pela
                   política de Conteúdo Gerado por IA do Google Play. */}
@@ -762,10 +805,11 @@ export default function DreamScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   scrollContent: { padding: 20, paddingBottom: 40, gap: 16 },
+  // O texto de abertura (e o mesmo rodapé do resultado) pela escala da
+  // fundação: 13/20, o degrau de APOIO — a linha que explica, não a que grita.
   disclaimer: {
+    ...type.apoio,
     color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
     textAlign: 'center',
   },
   section: { gap: 14, alignItems: 'stretch' },
@@ -777,9 +821,8 @@ const styles = StyleSheet.create({
   cenaImg: { width: '100%', height: 200 },
   cenaFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 66 },
   instructions: {
+    ...type.corpoCurto,
     color: colors.textSecondary,
-    fontSize: 15,
-    lineHeight: 22,
     textAlign: 'center',
   },
   input: {
@@ -819,8 +862,16 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     gap: 10,
   },
-  resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  resultBody: { color: colors.textSecondary, fontSize: 15, lineHeight: 24 },
+  // A LEITURA pela escala da fundação (12/09/2026): título de seção (20/700) e
+  // corpo 17/27 em peso NORMAL — a medida do print "Plutão na Casa 7", onde o
+  // texto de leitura é o produto. Era 18/800 e 15/24. Sem fontWeight reposto
+  // no corpo: peso é hierarquia, não ênfase.
+  resultTitle: { ...type.secao, color: colors.text, textAlign: 'center' },
+  resultBody: { ...type.corpo, color: colors.textSecondary },
+  // A FAIXA DA LEITURA: faixa é chão e sangra de ponta a ponta — o
+  // scrollContent tem padding 20, que a deixaria ilhada. O `gap: 16` do
+  // scrollContent já separa os irmãos; `secao` aqui é o degrau de ASSUNTO.
+  faixaLeitura: { marginHorizontal: -20, marginTop: space.junto, marginBottom: space.junto },
   // O botão do modo história — contorno no teal da tela, sem fundo: porta
   // pra mesma leitura, não call-to-action.
   historiaBtn: {

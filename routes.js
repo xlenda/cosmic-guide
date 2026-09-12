@@ -48,6 +48,15 @@ export const ROUTES = {
   IDADE_REAL: 'IdadeReal',
   PROFECCOES: 'Profeccoes',
   COMO_DECIDE: 'ComoDecide',
+  // A VITRINE DAS PEÇAS (12/09/2026) — screens/PecasDemoScreen.js empilha as
+  // seis peças de diagramação pra conferir empilhamento e emenda.
+  //
+  // SÓ EXISTE EM __DEV__. "Escondida" não era esconder: até 12/09 a rota
+  // entrava no roteador de produção e /pecas era URL pública — ferramenta de
+  // quem constrói servida a quem compra, com dados de exemplo e sem i18n. O
+  // nome segue aqui porque App.js o cita dentro da guarda; em build de
+  // produção não há tela, nem path, nem chunk. Não é tela de produto.
+  PECAS_DEMO: 'PecasDemo',
   COFFEE: 'Coffee',
   // A MADRE MARIA (11/09/2026, decisão do dono: "vai ficar tudo fundido no
   // cosmic guide como um só"). É o app de reconquista inteiro — apresentação,

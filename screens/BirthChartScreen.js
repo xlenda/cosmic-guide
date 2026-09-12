@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { colors, gradients, zodiacSigns } from '../theme';
+import { colors, gradients, zodiacSigns, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 // O CENÁRIO CÓSMICO (08/08/2026) — primeiro filho do root, atrás de tudo; o
 // root mantém colors.background por baixo (ver o cabeçalho do componente).
@@ -28,6 +28,12 @@ import { signoFromDate, moonSign, ascendantSign, houses, aspects, astrocartograp
 // de elemento — espírito pintado ou o emoji de sempre.
 import { mascoteDoSigno, elementoImagem } from '../lib/ilustracoes';
 import { cityLabel, upgradeCityTimezone } from '../lib/cities';
+// AS PEÇAS DE DIAGRAMAÇÃO (12/09/2026) — a ficha de nascimento virou tabela
+// (o print de referência) e o texto longo passou a morar numa coluna de
+// leitura em vez de ir de borda a borda. Ver design/PECAS-DE-DIAGRAMACAO.md.
+import TabelaDados from '../components/TabelaDados';
+import ColunaLeitura from '../components/ColunaLeitura';
+import FaixaCurva from '../components/FaixaCurva';
 import { offsetHoursFor, formatOffset } from '../lib/timezone';
 import { getBirthData } from '../lib/coupleData';
 import { nomeDoSigno } from '../lib/synastry';
@@ -662,11 +668,58 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', 
             </>
           );
         })()}
-        <Text style={[styles.summaryMeta, styles.summaryMetaRecibo]}>
-          {formatBirthDate(chart.date, lang)}{chart.time ? ` · ${chart.time}` : ` · ${t('birthchart.noTime')}`}
-          {chart.zone ? ` · UTC${formatOffset(chart.zone.offset)}` : ''}
-          {chart.zone && chart.zone.dst ? ` · ${t('birthchart.dst')}` : ''}
-        </Text>
+        {/* O RECIBO DO INSTANTE, AGORA EM TABELA (12/09/2026).
+            Era UMA linha corrida — "09 de jan. de 1989 · 13:42 · UTC-02:00" —
+            e o print de referência (WhatsApp 20.55.50) mostra exatamente esta
+            informação como FICHA: rótulo à esquerda, valor à direita, fio fino
+            entre as linhas, e os valores que vêm de escolha (data, hora) dentro
+            de uma pílula. Texto corrido não se compara nem se confere; a ficha,
+            sim — e é onde a pessoa nota que faltou a cidade.
+            NADA SUMIU e NADA FOI FABRICADO: as mesmas quatro informações de
+            sempre, com as MESMAS funções de formatação (formatBirthDate,
+            formatOffset, cityLabel). A cidade, que a linha corrida nunca
+            mostrava apesar de estar salva, aparece agora. Hora e local sem
+            valor viram CONVITE apagado e tocável (abre o mesmo formulário do
+            botão ✏️); sem convite a linha sumiria — a lei de components/
+            TabelaDados.js + lib/filtroDado.js. */}
+        <ColunaLeitura style={styles.fichaColuna}>
+          <TabelaDados
+            testID="birthchart-ficha-nascimento"
+            itens={[
+              {
+                chave: 'data',
+                rotulo: t('birthchart.ficha.data'),
+                valor: formatBirthDate(chart.date, lang),
+                pilula: true,
+              },
+              {
+                chave: 'hora',
+                rotulo: t('birthchart.ficha.hora'),
+                valor: chart.time,
+                convite: t('birthchart.ficha.convite.hora'),
+                pilula: true,
+                onPress: formulario ? onToggleForm : undefined,
+              },
+              {
+                chave: 'local',
+                rotulo: t('birthchart.ficha.local'),
+                valor: chart.city ? cityLabel(chart.city) : null,
+                convite: t('birthchart.ficha.convite.local'),
+                onPress: formulario ? onToggleForm : undefined,
+              },
+              // O fuso só existe quando há cidade COM timezone e hora
+              // (describeZone devolve null fora disso) — então esta linha
+              // simplesmente não aparece quando não há o que dizer.
+              {
+                chave: 'fuso',
+                rotulo: t('birthchart.ficha.fuso'),
+                valor: chart.zone
+                  ? `UTC${formatOffset(chart.zone.offset)}${chart.zone.dst ? ` · ${t('birthchart.dst')}` : ''}`
+                  : null,
+              },
+            ]}
+          />
+        </ColunaLeitura>
         {/* O FORMULÁRIO, recolhido: o botão reaproveita o título que o próprio
             form sempre teve (chart.birthData) — nenhuma chave nova — e o form
             expandido é EXATAMENTE o de sempre, 100% operável (data, hora,
@@ -722,13 +775,25 @@ function ChartResult({ chart, isCouple, onFixTime, onFixCity, aba = 'essencia', 
           propósito: é o resumo do céu inteiro (os 10 planetas) e prepara a
           lista detalhada que vem embaixo. Null (sem data ou sem motor) →
           nada renderiza, nunca um número inventado. */}
-      {!!elementos && <ElementosSection elementos={elementos} temHora={!!chart.time} />}
-
-      {/* A ONDA: fecha o bloco cenográfico (trio + elementos flutuando) e abre
-          a parte de cards da tela. Uma só, de propósito — divisória, não
-          papel de parede. Fica fora do condicional dos elementos porque o trio
-          flutua sempre, com ou sem motor de elementos. */}
-      <WaveDivider />
+      {/* A FAIXA CURVA (12/09/2026) — os elementos ganham CHÃO PRÓPRIO.
+          Os anéis de elemento são o que o Cosmic faz melhor que o concorrente
+          (e o dado é real, calculado dos 10 planetas), mas eles flutuavam no
+          mesmo fundo de tudo o mais, então liam como "mais uma linha da lista".
+          A faixa muda a cor do chão embaixo deles: o olho lê "mudou de
+          assunto" sem precisar de título nem de linha reta, que é o recurso
+          nº 1 dos prints de referência. Translúcida de propósito — o céu do
+          CosmicScene continua atravessando (ver components/FaixaCurva.js).
+          A onda da faixa já FAZ o corte que o WaveDivider fazia aqui: manter
+          os dois empilharia duas ondas seguidas. O WaveDivider segue vivo e
+          em uso no Horóscopo — aqui ele virou a borda da própria faixa. */}
+      {!!elementos && (
+        <FaixaCurva tom="ameixa" semente="elementos" style={styles.faixaElementos}>
+          <ElementosSection elementos={elementos} temHora={!!chart.time} />
+        </FaixaCurva>
+      )}
+      {/* Sem motor de elementos não há faixa — e o corte entre o bloco
+          cenográfico e os cards continua precisando existir. */}
+      {!elementos && <WaveDivider />}
 
       {/* SUB-ABAS PÍLULA (09/08/2026, Diagramação Espelho): daqui pra baixo a
           tela mostra UMA seção por vez — quem escolhe é a fileira de pílulas
@@ -1291,7 +1356,25 @@ export default function BirthChartScreen() {
   return (
     <View style={styles.root}>
       <CosmicScene />
-      <GradientHeader title={t('home.card.birthchart.title')} subtitle={t('birthchart.header.subtitle')} onBack={() => navigation.goBack()} gradient={['#3A4AB5', '#6C7BFF']} />
+      {/* CABEÇALHO NA FAMÍLIA DA CASA (12/09/2026, item 4 do conserto de
+          diagramação: "quatro paletas de cabeçalho brigando").
+
+          O QUE ESTAVA ERRADO, MEDIDO. O gradiente era ['#3A4AB5','#6C7BFF'] —
+          azul-royal. Em Lab isso dá L36/C66/h297 e L57/C75/h295. O MATIZ já
+          estava quase certo (a casa vive entre 302° e 339°); o que gritava era
+          o CROMA e a LUZ: 66-75 de croma contra 19-22 do gradients.hero, e L57
+          contra L18. Navegando Horóscopo -> Mapa, o olho não lia "outra tela
+          do mesmo app", lia "outro app" — que é exatamente o item 6 do
+          diagnóstico original (coerência).
+
+          O QUE FOI PRESERVADO, E POR QUÊ. O AZUL-VIOLETA fica: é acento de
+          identidade desta tela (o céu de nascimento) e casa com o azul de
+          Água nos anéis de elemento, que são dado calculado de verdade. O que
+          sai é o excesso — o novo par é L22/C37/h301 e L38/C47/h301:
+          mesmo matiz, croma dentro da faixa da paleta e luz no nível do hero.
+          Continua sendo O cabeçalho azul do app; para de ser um bloco de cor
+          de outro produto. */}
+      <GradientHeader title={t('home.card.birthchart.title')} subtitle={t('birthchart.header.subtitle')} onBack={() => navigation.goBack()} gradient={['#332C63', '#5B4F9C']} />
       <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, paddingBottom: activeChart ? 120 : 40 }} showsVerticalScrollIndicator={false}>
         {coupleLoading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
@@ -1601,6 +1684,21 @@ const styles = StyleSheet.create({
   // largura toda (o pai tem alignItems center, que encolheria o formCard).
   formWrap: { alignSelf: 'stretch', marginTop: 12 },
   summaryMeta: { color: colors.textMuted, fontSize: 12 },
+  // A FICHA EM TABELA (12/09/2026): a coluna estica de volta pra largura toda
+  // (o pai é centrado e encolheria a tabela até virar duas palavras grudadas),
+  // e `secao` acima é o degrau que separa a identidade do recibo — o degrau
+  // que a tela não usava e que faz a composição respirar.
+  fichaColuna: { alignSelf: 'stretch', marginTop: space.secao },
+  // A FAIXA DOS ELEMENTOS (12/09/2026). Faixa é CHÃO: tem que sangrar de ponta
+  // a ponta. O ScrollView desta tela tem `padding: 20`, que a deixaria ilhada
+  // com 20px de fundo velho dos dois lados — a margem negativa devolve a
+  // largura da tela. `space.secao` acima e abaixo é o degrau que separa
+  // assuntos (e o que a tela não usava).
+  faixaElementos: {
+    marginHorizontal: -20,
+    marginTop: space.secao,
+    marginBottom: space.secao,
+  },
   // A mesma linha de sempre — agora recibo do HERÓI: pequena, central, logo
   // abaixo do nome do signo solar.
   summaryMetaRecibo: {
@@ -1676,10 +1774,24 @@ const styles = StyleSheet.create({
   elementoEmojiPeq: { fontSize: 11, marginTop: 1 },
   // A ficha do Sol: três colunas discretas sob o nome do signo. Rótulo em
   // caixa alta miúda, valor em peso — o mesmo par rótulo/valor do resto do app.
-  fichaSol: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginTop: 10, marginBottom: 2 },
-  fichaSolItem: { alignItems: 'center', minWidth: 78 },
-  fichaSolRotulo: { color: colors.textMuted, fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase' },
-  fichaSolValor: { color: colors.text, fontSize: 13, fontWeight: '700', marginTop: 3 },
+  // A FICHA DO SOL — três colunas de peso igual (12/09/2026).
+  // MEDIDO NO NAVEGADOR em 390px (design/lote-texto-longo/antes/
+  // mapa-cheio-dobra1-390x844.png): com `minWidth: 78` + gap 22 a fileira pede
+  // 278px e o rótulo "MODALIDADE" (10px com letterSpacing 1.2) estoura a
+  // própria coluna e INVADE a vizinha — as palavras se sobrepõem no print.
+  // A largura fixa era a causa: trocada por flex/flexBasis 0, que é a regra
+  // de components/FileiraDeTres.js (três colunas de peso igual, alinhadas
+  // pelo topo). Agora cada coluna recebe um terço do que existe, em qualquer
+  // largura de tela, e o rótulo quebra em duas linhas em vez de invadir.
+  fichaSol: { flexDirection: 'row', alignItems: 'flex-start', alignSelf: 'stretch', gap: space.junto, marginTop: space.dentro, marginBottom: 2 },
+  fichaSolItem: { flex: 1, flexBasis: 0, alignItems: 'center' },
+  // O letterSpacing 1.2 do degrau `etiqueta` foi feito pra rótulo SOLTO;
+  // em três colunas de 11px numa tela de 390 ele é o que ainda deixava
+  // 'POLARIDADE' e 'MODALIDADE' encostadas (medido no navegador). Meia
+  // unidade devolve o ar entre as palavras e mantém a maiúscula
+  // intencional — a única sobrescrita da fundação aqui, e declarada.
+  fichaSolRotulo: { ...type.etiqueta, letterSpacing: 0.6, color: colors.textMuted, textTransform: 'uppercase', textAlign: 'center' },
+  fichaSolValor: { ...type.apoio, color: colors.text, fontWeight: '700', marginTop: space.grudado, textAlign: 'center' },
   elementoNome: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
   // O chip de %: pill pequena SOBREPOSTA no canto superior direito do círculo
   // (o desenho do concorrente) — fundo escuro do cenário + borda na cor do

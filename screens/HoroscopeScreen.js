@@ -38,10 +38,15 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, gradients, zodiacSigns } from '../theme';
+import { colors, gradients, zodiacSigns, space, type } from '../theme';
 import CosmicScene from '../components/CosmicScene';
 import GradientHeader from '../components/GradientHeader';
 import WaveDivider from '../components/WaveDivider';
+// AS PEÇAS DE DIAGRAMAÇÃO (12/09/2026) — a leitura longa deixou de ir de borda
+// a borda (ColunaLeitura) e o recibo do céu ganhou chão próprio (FaixaCurva).
+// Ver design/PECAS-DE-DIAGRAMACAO.md.
+import ColunaLeitura from '../components/ColunaLeitura';
+import FaixaCurva from '../components/FaixaCurva';
 import OneTimeLock from '../components/OneTimeLock';
 // AS SUB-ABAS PÍLULA (09/08/2026, Onda Diagramação Espelho) — Ontem/Hoje/Amanhã
 // saíram da fileira no topo do rolo e flutuam na pílula em cima do dock, como
@@ -399,7 +404,15 @@ export default function HoroscopeScreen() {
                       (o blockCard indenta 18). Um botão POR bloco: quem toca
                       ouve este capítulo, não a tela inteira. */}
                   <BotaoOuvir texto={textoFalado} style={styles.ouvirBtn} />
-                  <View style={styles.blockCard} testID={`horoscope-block-${bloco.id}`}>
+                  {/* A COLUNA DE LEITURA (12/09/2026) — o parágrafo parou de ir
+                      de borda a borda. Nos prints de referência nenhum texto
+                      encosta na margem: a leitura mora numa coluna mais
+                      estreita, centrada. Em 390px a coluna calculada é maior
+                      que a tela, então o celular continua usando a largura
+                      toda (o certo); o efeito aparece no tablet e na web
+                      larga, onde a linha atravessava 1200px e ninguém achava
+                      o começo da linha seguinte. Ver components/ColunaLeitura.js. */}
+                  <ColunaLeitura style={styles.blockCard} testID={`horoscope-block-${bloco.id}`}>
                     {leituraLinhas.map((line, i) => (
                       <Text key={line.key + i} style={[styles.line, i > 0 && styles.lineSpaced]}>
                         {t(line.key, resolveVars(line.vars, t, lang))}
@@ -434,11 +447,19 @@ export default function HoroscopeScreen() {
                           ))}
                       </>
                     )}
-                  </View>
+                  </ColunaLeitura>
                   {/* O céu bruto do dia, logo depois da primeira leitura: os
                       mesmos três fatos de sempre (nada foi apagado), agora no
-                      lugar de recibo. */}
-                  {indice === 0 && <FichaDoCeu f={f} t={t} lang={lang} />}
+                      lugar de recibo — e agora numa FAIXA CURVA, que é o que
+                      separa "o que o céu diz de você" (leitura) de "que céu é
+                      esse" (ficha). Antes os dois corriam sobre o mesmo fundo
+                      e liam como um bloco só. A faixa sangra até as bordas
+                      (o ScrollView tem padding 20; ver styles.faixaCeu). */}
+                  {indice === 0 && (
+                    <FaixaCurva tom="noite" semente="ceu-do-dia" style={styles.faixaCeu}>
+                      <FichaDoCeu f={f} t={t} lang={lang} />
+                    </FaixaCurva>
+                  )}
                 </View>
               );
             })}
@@ -596,10 +617,26 @@ const styles = StyleSheet.create({
   // As abas no fluxo, não flutuando: desliga o absoluto do PillTabs.
   abasTopo: { position: 'relative', left: 0, right: 0, bottom: 0, marginTop: 12, marginBottom: 2 },
   // A ficha do signo sob o nome — mesmo par rótulo/valor da ficha do Sol.
-  fichaRow: { flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 8 },
-  fichaItem: { alignItems: 'center', minWidth: 72 },
-  fichaRotulo: { color: colors.textMuted, fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' },
-  fichaValor: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 2 },
+  // A FICHA DO SIGNO — três colunas de peso igual (12/09/2026).
+  // MESMO defeito e MESMA causa do Mapa, medido no navegador em 390px
+  // (design/lote-texto-longo/antes/horoscopo-cheio-dobra2-390x844.png): com
+  // `minWidth: 72` o rótulo "MODALIDADE" estoura a coluna e invade a vizinha,
+  // e as palavras se sobrepõem no print. Largura fixa trocada por flex —
+  // a regra de components/FileiraDeTres.js. Um terço da tela por coluna, em
+  // qualquer largura, e o rótulo quebra em vez de invadir.
+  fichaRow: { flexDirection: 'row', alignItems: 'flex-start', alignSelf: 'stretch', gap: space.junto, marginTop: space.dentro },
+  fichaItem: { flex: 1, flexBasis: 0, alignItems: 'center' },
+  // O letterSpacing 1.2 do degrau `etiqueta` foi feito pra rótulo SOLTO;
+  // em três colunas de 11px numa tela de 390 ele é o que ainda deixava
+  // 'POLARIDADE' e 'MODALIDADE' encostadas (medido no navegador). Meia
+  // unidade devolve o ar entre as palavras e mantém a maiúscula
+  // intencional — a única sobrescrita da fundação aqui, e declarada.
+  fichaRotulo: { ...type.etiqueta, letterSpacing: 0.6, color: colors.textMuted, textTransform: 'uppercase', textAlign: 'center' },
+  fichaValor: { ...type.apoio, color: colors.text, fontWeight: '700', marginTop: space.grudado, textAlign: 'center' },
+  // A FAIXA DO CÉU: faixa é chão e precisa sangrar de ponta a ponta — o
+  // ScrollView tem padding 20, que a deixaria ilhada. `secao` em volta é o
+  // degrau entre assuntos.
+  faixaCeu: { marginHorizontal: -20, marginTop: space.secao, marginBottom: space.secao },
   // A ficha de nascimento sob a ficha do signo — chips e pílula no desenho do
   // CabecalhoIdentidade da Home (mesmas cores, mesmos tamanhos), pra as duas
   // telas lerem como a mesma coisa. Dourado é a única cor de ação do app; o
@@ -645,12 +682,20 @@ const styles = StyleSheet.create({
   // borda, como no concorrente premium (caixa é só pro interativo e pro
   // recibo). O paddingHorizontal preserva o alinhamento que o texto tinha
   // dentro do card; a única linha que resta é o borderTop do methodToggle.
-  blockCard: { paddingHorizontal: 18 },
+  // A leitura agora mora numa <ColunaLeitura>, que ja traz o proprio
+  // paddingHorizontal (space.dentro) e o maxWidth de legibilidade. Repor 18px
+  // aqui somaria dois recuos. Sobra o respiro VERTICAL, que a coluna nao opina.
+  blockCard: { alignSelf: 'center' },
   // O Ouvir acompanha a indentação da leitura solta (blockCard = 18) e cola
   // no texto que vai falar.
   ouvirBtn: { marginLeft: 18, marginBottom: 12 },
-  line: { color: colors.textSecondary, fontSize: 15, lineHeight: 25 },
-  lineSpaced: { marginTop: 12 },
+  // O CORPO DA LEITURA pela escala da fundação (12/09/2026): 17px com
+  // entrelinha 27 (~1,6) e peso NORMAL, em cinza claro — a medida tirada do
+  // print "Plutão na Casa 7" do concorrente, onde o texto de leitura é o
+  // produto. Era 15/25. Sem fontWeight reposto: a lei da fundação é que peso
+  // é hierarquia, não ênfase.
+  line: { ...type.corpo, color: colors.textSecondary },
+  lineSpaced: { marginTop: space.entre },
   // O método é discreto de propósito — menor, apagado, atrás de um toque —, e
   // discreto NÃO é escondido: fica no mesmo cartão do bloco a que se refere,
   // com rótulo próprio, e a ressalva que enquadra a leitura nunca é removida.

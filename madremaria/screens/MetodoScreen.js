@@ -61,6 +61,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 
+import ColunaLeitura from '../../components/ColunaLeitura';
+import FaixaCurva from '../../components/FaixaCurva';
+import TabelaDados from '../../components/TabelaDados';
 import BotonPrimario from '../components/BotonPrimario';
 import CajaLimites from '../components/CajaLimites';
 import HiloFondo from '../components/HiloFondo';
@@ -70,6 +73,7 @@ import { t } from '../datos/textos';
 import { MAZO, PROBABILIDAD_INVERTIDA } from '../lib/mazo';
 import { completarMissao } from '../lib/missoes';
 import RUTAS from '../routes';
+import { space } from '../../theme';
 import { colores, espacio, radio, tipo } from '../theme';
 
 /* ===================================================================================
@@ -111,21 +115,35 @@ const LINEAS_NO = comoLista('metodo.respuestas.no.lineas');
    PECAS DE DESENHO
    =================================================================================== */
 
-/** Cabecalho numerado de secao. O numero em aguja (8,3:1 sobre noche, AAA) e a
- *  progressao visivel do "recibo": cinco passos, na ordem em que a leitura acontece. */
-function Seccion({ n, titulo, children }) {
+/** Cabecalho numerado de secao, dentro de uma FAIXA CURVA. O numero em aguja
+ *  (8,3:1 sobre noche, AAA) e a progressao visivel do "recibo": cinco passos, na
+ *  ordem em que a leitura acontece.
+ *
+ *  DIAGRAMACAO (12/09/2026). O separador entre secoes era `borderTopWidth: 1` —
+ *  uma LINHA RETA cortando a tela, que e literalmente o que os 66 prints do
+ *  concorrente nunca fazem. Cinco secoes assim, todas no mesmo fundo, e a tela
+ *  do argumento le como um documento de termos. Agora cada passo tem CHAO
+ *  PROPRIO e a borda de cima e uma onda, com a semente tirada do TITULO da secao
+ *  pra que cada uma tenha a sua curva.
+ *
+ *  O NUMERO CONTINUA SENDO O SEPARADOR DE VERDADE, e por isso ele nao mudou: a
+ *  faixa diz "outro assunto", o 01/02/03 diz "outro PASSO, nesta ordem". A onda
+ *  substitui o fio, nao a numeracao. */
+function Seccion({ n, titulo, tom, children }) {
   return (
-    <View style={estilos.seccion}>
-      <View style={estilos.seccionCabecera}>
-        <Cuerpo tabular style={estilos.seccionNumero} accessible={false}>
-          {String(n).padStart(2, '0')}
-        </Cuerpo>
-        <Cuerpo accessibilityRole="header" style={estilos.seccionTitulo}>
-          {titulo}
-        </Cuerpo>
-      </View>
-      {children}
-    </View>
+    <FaixaCurva tom={tom} semente={titulo} grude style={estilos.seccion}>
+      <ColunaLeitura>
+        <View style={estilos.seccionCabecera}>
+          <Cuerpo tabular style={estilos.seccionNumero} accessible={false}>
+            {String(n).padStart(2, '0')}
+          </Cuerpo>
+          <Cuerpo accessibilityRole="header" style={estilos.seccionTitulo}>
+            {titulo}
+          </Cuerpo>
+        </View>
+        {children}
+      </ColunaLeitura>
+    </FaixaCurva>
   );
 }
 
@@ -274,23 +292,29 @@ export default function MetodoScreen({ navigation }) {
           onScroll={alDesplazar}
           scrollEventThrottle={16}
         >
-          <Pressable
-            onPress={volver}
-            accessibilityRole="button"
-            accessibilityLabel={t('comunes.volver')}
-            hitSlop={espacio.md}
-            style={estilos.volver}
-          >
-            <View style={estilos.volverTraza} />
-            <Rotulo>{t('comunes.volver')}</Rotulo>
-          </Pressable>
+          {/* A ABERTURA fica FORA de faixa: e a primeira dobra e ela respira
+              contra o fundo do app, com o fio 'tenso' cruzando atras. Faixa aqui
+              jogaria a onda pro topo da tela, bem onde a curva do HiloFondo
+              passa — duas curvas diferentes no mesmo lugar. */}
+          <ColunaLeitura style={estilos.abertura}>
+            <Pressable
+              onPress={volver}
+              accessibilityRole="button"
+              accessibilityLabel={t('comunes.volver')}
+              hitSlop={espacio.md}
+              style={estilos.volver}
+            >
+              <View style={estilos.volverTraza} />
+              <Rotulo>{t('comunes.volver')}</Rotulo>
+            </Pressable>
 
-          <Sobreceja style={estilos.sobreceja}>{t('metodo.sobreceja')}</Sobreceja>
-          <Titulo accessibilityRole="header">{t('metodo.titulo')}</Titulo>
-          <Cuerpo style={estilos.entrada}>{t('metodo.entrada')}</Cuerpo>
+            <Sobreceja style={estilos.sobreceja}>{t('metodo.sobreceja')}</Sobreceja>
+            <Titulo accessibilityRole="header">{t('metodo.titulo')}</Titulo>
+            <Cuerpo style={estilos.entrada}>{t('metodo.entrada')}</Cuerpo>
+          </ColunaLeitura>
 
           {/* --- 01. o sorteio -------------------------------------------------- */}
-          <Seccion n={1} titulo={t('metodo.sorteo.titulo')}>
+          <Seccion n={1} tom="noite" titulo={t('metodo.sorteo.titulo')}>
             <Micro style={estilos.parrafo}>
               {t('metodo.sorteo.cuerpo', { cartas: TOTAL_CARTAS })}
             </Micro>
@@ -298,20 +322,31 @@ export default function MetodoScreen({ navigation }) {
               {t('metodo.sorteo.orientacion', { prob: PROB_INVERTIDA })}
             </Micro>
 
+            {/* A FICHA DO SORTEIO — agora em components/TabelaDados.js.
+                Era exatamente a peca: cinco pares rotulo->valor, rotulo a
+                esquerda, valor a direita, uma linha cada. A diferenca e que a
+                peca traz o FIO FINO entre as linhas (a ficha daqui nao tinha
+                nenhum: cinco linhas coladas sem divisoria, que e o "texto
+                corrido nao se compara nem se confere" do briefing) e passa cada
+                linha pelo filtro de nao-fabricar. Aqui os cinco valores sao
+                constantes do proprio codigo e nunca faltam — o filtro nao muda
+                nada hoje, e e de graca no dia em que um deles virar dado. */}
             <View style={estilos.ficha}>
               <Sobreceja style={estilos.fichaTitulo}>{t('metodo.ficha.titulo')}</Sobreceja>
-              {FICHA.map((fila) => (
-                <View key={fila.clave} style={estilos.fichaFila}>
-                  <Micro style={estilos.fichaClave}>{t(fila.clave)}</Micro>
-                  <Micro style={estilos.fichaValor}>{t(fila.valor)}</Micro>
-                </View>
-              ))}
+              <TabelaDados
+                itens={FICHA.map((fila) => ({
+                  chave: fila.clave,
+                  rotulo: t(fila.clave),
+                  valor: t(fila.valor),
+                }))}
+                testID="metodo-ficha"
+              />
               <Micro style={estilos.fichaPie}>{t('metodo.ficha.pie')}</Micro>
             </View>
           </Seccion>
 
           {/* --- 02. o que as respostas mudam, e o que nao ---------------------- */}
-          <Seccion n={2} titulo={t('metodo.respuestas.titulo', { preguntas: TOTAL_RESPUESTAS })}>
+          <Seccion n={2} tom="ameixa" titulo={t('metodo.respuestas.titulo', { preguntas: TOTAL_RESPUESTAS })}>
             <Sobreceja style={estilos.grupo}>{t('metodo.respuestas.si')}</Sobreceja>
             <Lineas lineas={LINEAS_SI} colorTraza={colores.aguja} />
 
@@ -322,7 +357,7 @@ export default function MetodoScreen({ navigation }) {
           </Seccion>
 
           {/* --- 03. de onde vem o texto ---------------------------------------- */}
-          <Seccion n={3} titulo={t('metodo.texto.titulo')}>
+          <Seccion n={3} tom="noite" titulo={t('metodo.texto.titulo')}>
             <Micro style={estilos.parrafo}>
               {t('metodo.texto.cuerpo', { cartas: TOTAL_CARTAS })}
             </Micro>
@@ -333,7 +368,7 @@ export default function MetodoScreen({ navigation }) {
           </Seccion>
 
           {/* --- 04. sem IA, sem rede ------------------------------------------- */}
-          <Seccion n={4} titulo={t('metodo.offline.titulo')}>
+          <Seccion n={4} tom="ameixa" titulo={t('metodo.offline.titulo')}>
             <Micro style={estilos.parrafo}>{t('metodo.offline.cuerpo')}</Micro>
             {/* A prova que a pessoa pode fazer sozinha, em papel: e a unica linha
                 da tela que ela consegue verificar sem abrir o codigo. */}
@@ -345,7 +380,7 @@ export default function MetodoScreen({ navigation }) {
           </Seccion>
 
           {/* --- 05. onde a leitura se acaba ------------------------------------ */}
-          <Seccion n={5} titulo={t('metodo.limites.titulo')}>
+          <Seccion n={5} tom="violeta" titulo={t('metodo.limites.titulo')}>
             <Micro style={estilos.parrafo}>{t('metodo.limites.entrada')}</Micro>
             {/* Mesmo componente da sintese, palavra por palavra. Se um dia o
                 texto mudar la, muda aqui junto — que e exatamente o motivo de a
@@ -353,16 +388,18 @@ export default function MetodoScreen({ navigation }) {
             <CajaLimites style={estilos.caja} />
           </Seccion>
 
-          <Cuerpo style={estilos.cierre}>{t('metodo.cierre')}</Cuerpo>
+          <ColunaLeitura style={estilos.fecho}>
+            <Cuerpo style={estilos.cierre}>{t('metodo.cierre')}</Cuerpo>
 
-          <BotonPrimario
-            titulo={t('metodo.ayuda')}
-            onPress={irAAyuda}
-            variante="fantasma"
-            style={estilos.botonAyuda}
-          />
+            <BotonPrimario
+              titulo={t('metodo.ayuda')}
+              onPress={irAAyuda}
+              variante="fantasma"
+              style={estilos.botonAyuda}
+            />
 
-          <Micro style={estilos.version}>{t('legal.version')}</Micro>
+            <Micro style={estilos.version}>{t('legal.version')}</Micro>
+          </ColunaLeitura>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -383,12 +420,29 @@ const estilos = StyleSheet.create({
   segura: {
     flex: 1,
   },
+  // SEM padding e SEM maxWidth (12/09/2026). Os dois moravam aqui, no
+  // ScrollView, e por isso TUDO herdava a mesma largura — inclusive o que
+  // devia sangrar. A faixa curva e CHAO: capada em 560 e recuada 24px de cada
+  // lado ela vira um card gigante com onda em cima, que e o que BandaSection.js
+  // ja fazia e nao e o efeito dos prints.
+  //
+  // O recuo e a largura de leitura passaram pra ColunaLeitura, que e por onde
+  // cada bloco de TEXTO agora entra. O chao sangra, o texto respeita a coluna:
+  // e isso que separa "paisagem" de "documento".
   scroll: {
-    padding: espacio.xl,
     paddingBottom: espacio.xxxl,
-    maxWidth: 560,
     width: '100%',
-    alignSelf: 'center',
+  },
+
+  // `ar` (48) so no topo. Embaixo nao leva nada: a primeira faixa ja abre com
+  // `secao` (32) de padding proprio MAIS a altura da onda, e somar margem a uma
+  // faixa e sempre somar duas vezes (medido na foto da Privacidade, onde o par
+  // abriu ~112px de buraco).
+  abertura: {
+    paddingTop: space.ar,
+  },
+  fecho: {
+    paddingTop: space.secao,
   },
 
   volver: {
@@ -411,11 +465,14 @@ const estilos = StyleSheet.create({
     marginTop: espacio.md,
   },
 
+  // O FIO RETO MORREU AQUI. Era `borderTopWidth: GROSOR` + `marginTop` — a
+  // linha reta que corta a tela, e o vao escuro entre uma secao e a outra.
+  // Quem separa agora e a mudanca de chao da faixa, e o respiro e padding
+  // DENTRO dela (margem por fora abriria um rasgo de fundo entre duas faixas
+  // que precisam encostar, e mataria o `grude`).
   seccion: {
-    marginTop: espacio.xxl,
-    paddingTop: espacio.xl,
-    borderTopWidth: GROSOR,
-    borderTopColor: colores.bordeSuave,
+    paddingTop: space.secao,
+    paddingBottom: space.secao,
   },
   seccionCabecera: {
     flexDirection: 'row',
@@ -432,56 +489,60 @@ const estilos = StyleSheet.create({
     flex: 1,
   },
 
+  // RECUO 48 -> 24 (12/09/2026). O `espacio.xxxl` (48) alinhava o paragrafo com
+  // o TITULO da secao, sob o numero — certo quando a tela inteira tinha 560px de
+  // largura. Dentro da ColunaLeitura (que ja recua dos dois lados) somar 48 de
+  // um lado so estrangulava a linha e desequilibrava a coluna: margem grande a
+  // esquerda e pequena a direita le como texto torto, nao como hierarquia.
+  // `entre` (24) mantem a indentacao legivel sem comer a leitura.
+  //
+  // `entre` tambem no topo (era espacio.md/12): dois paragrafos de cinco linhas
+  // a 12px de distancia colam num bloco so.
   parrafo: {
-    marginTop: espacio.md,
-    marginLeft: espacio.xxxl,
+    marginTop: space.entre,
+    marginLeft: space.entre,
   },
 
+  // A CAIXA da ficha continua: ela e o "recibo" em penumbra, um degrau acima do
+  // chao da faixa, e e o que faz o bloco de dados se destacar do paragrafo.
+  // `bloco` (16) de padding — o degrau de padding interno de card.
+  // Sem `marginLeft` (era espacio.xxxl/48, o recuo sob o numero da secao):
+  // dentro da ColunaLeitura, 48px de recuo sobravam da largura util e a ficha
+  // ficava estreita demais pro par rotulo/valor caber na mesma linha.
   ficha: {
-    marginTop: espacio.lg,
-    marginLeft: espacio.xxxl,
-    padding: espacio.lg,
+    marginTop: space.entre,
+    padding: space.bloco,
     borderRadius: radio.md,
     backgroundColor: colores.penumbra,
     borderWidth: GROSOR,
     borderColor: colores.bordeSuave,
   },
   fichaTitulo: {
-    marginBottom: espacio.md,
+    marginBottom: space.bloco,
   },
-  fichaFila: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: espacio.xs,
-  },
-  fichaClave: {
-    flex: 1,
-    paddingRight: espacio.md,
-  },
-  // O valor e o dado: papel, para ser lido de relance como se le um recibo.
-  fichaValor: {
-    flex: 1,
-    color: colores.papel,
-    textAlign: 'right',
-  },
+  // As tres regras de layout de FILA (fichaFila/fichaClave/fichaValor) sairam:
+  // quem desenha a linha rotulo->valor agora e components/TabelaDados.js, e ela
+  // traz o fio fino entre as linhas que esta ficha nao tinha.
   fichaPie: {
-    marginTop: espacio.md,
-    paddingTop: espacio.md,
+    marginTop: space.bloco,
+    paddingTop: space.bloco,
     borderTopWidth: GROSOR,
     borderTopColor: colores.bordeSuave,
   },
 
   grupo: {
-    marginTop: espacio.lg,
-    marginLeft: espacio.xxxl,
+    marginTop: space.secao,
+    marginLeft: space.entre,
   },
   lineas: {
-    marginLeft: espacio.xxxl,
+    marginLeft: space.entre,
   },
+  // `dentro` (12) e nao `sm` (8): sao linhas irmas curtas, mas de uma a duas
+  // linhas cada — 8px cola uma na outra quando alguma quebra.
   linea: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginTop: espacio.sm,
+    marginTop: space.dentro,
   },
   // O risco alinha com a PRIMEIRA linha do texto ao lado: metade da entrelinha de
   // tipo.micro menos metade da propria espessura. Lendo o token, se a escala
@@ -497,16 +558,16 @@ const estilos = StyleSheet.create({
   },
 
   fuente: {
-    marginTop: espacio.md,
-    marginLeft: espacio.xxxl,
+    marginTop: space.entre,
+    marginLeft: space.entre,
   },
 
   prueba: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    marginTop: espacio.lg,
-    marginLeft: espacio.xxxl,
-    padding: espacio.lg,
+    marginTop: space.entre,
+    marginLeft: space.entre,
+    padding: space.bloco,
     borderRadius: radio.md,
     backgroundColor: colores.penumbra,
   },
@@ -522,15 +583,14 @@ const estilos = StyleSheet.create({
   },
 
   caja: {
-    marginTop: espacio.lg,
-    marginLeft: espacio.xxxl,
+    marginTop: space.entre,
+    marginLeft: space.entre,
   },
 
+  // Mesmo motivo do `seccion`: sem fio reto. O fecho ja esta fora de faixa
+  // (volta pro fundo do app), e essa volta ao chao original ja diz "acabou".
   cierre: {
-    marginTop: espacio.xxl,
-    paddingTop: espacio.xl,
-    borderTopWidth: GROSOR,
-    borderTopColor: colores.bordeSuave,
+    marginTop: space.entre,
   },
   botonAyuda: {
     marginTop: espacio.xl,

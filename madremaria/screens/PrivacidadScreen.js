@@ -42,15 +42,19 @@
 import { useCallback } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 
+import ColunaLeitura from '../../components/ColunaLeitura';
+import FaixaCurva from '../../components/FaixaCurva';
 import BotonPrimario from '../components/BotonPrimario';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, Rotulo, Sobreceja, Titulo } from '../components/Texto';
 import { t } from '../datos/textos';
+import { space } from '../../theme';
 import { colores, espacio, radio, tipo } from '../theme';
 
-/** Largura de leitura. Acima disto a linha fica longa demais e o olho se perde
- *  ao voltar para a esquerda — o texto centraliza e as bordas respiram. */
-const ANCHO_LECTURA = 560;
+// A largura de leitura saiu daqui (12/09/2026): era `const ANCHO_LECTURA = 560`,
+// um numero de pixels. Passou a ser components/ColunaLeitura.js, que calcula a
+// largura em CARACTERES POR LINHA contra o tamanho do corpo — se a fonte crescer,
+// a coluna acompanha, e um valor em px nao acompanha.
 
 /** Espessura do risco de cada item da lista. Mesmo 1px de CajaLimites. */
 const GROSOR = 1;
@@ -63,15 +67,34 @@ function lineas(clave) {
   return Array.isArray(valor) ? valor : [String(valor)];
 }
 
-/** Bloco de secao: cabecalho + conteudo. So layout, nenhuma copy propria. */
-function Seccion({ titulo, children }) {
+/** Bloco de secao: cabecalho + conteudo, dentro de uma FAIXA CURVA.
+ *
+ *  DIAGRAMACAO (12/09/2026). Antes cada secao era so um `marginTop` no mesmo
+ *  fundo: cinco assuntos diferentes correndo juntos sobre uma cor so, que e
+ *  exatamente o defeito que o dono viu nos prints do concorrente ("parece
+ *  lista"). Agora cada secao tem CHAO PROPRIO e a borda de cima e uma onda —
+ *  o olho le "mudou de assunto" antes de ler o titulo.
+ *
+ *  A SEMENTE E O TITULO DA SECAO. Cada faixa recebe uma onda diferente porque
+ *  a semente muda; duas faixas com a mesma semente desenhariam a mesma curva, e
+ *  onda repetida vira papel de parede (o oposto do objetivo).
+ *
+ *  `grude` sempre: todas as secoes desta tela sao empilhadas, e sem ele fica
+ *  uma meia-linha de antialias entre um preenchimento e o seguinte.
+ *
+ *  A COLUNA DE LEITURA ENTRA AQUI DENTRO, e nao em volta da faixa: a faixa
+ *  precisa SANGRAR de ponta a ponta (chao), enquanto o texto precisa ficar
+ *  estreito (leitura). Envolver a faixa na coluna faria o chao virar card. */
+function Seccion({ titulo, tom, children }) {
   return (
-    <View style={estilos.seccion}>
-      <Rotulo accessibilityRole="header" style={estilos.seccionTitulo}>
-        {titulo}
-      </Rotulo>
-      {children}
-    </View>
+    <FaixaCurva tom={tom} semente={titulo} grude style={estilos.seccion}>
+      <ColunaLeitura>
+        <Rotulo accessibilityRole="header" style={estilos.seccionTitulo}>
+          {titulo}
+        </Rotulo>
+        {children}
+      </ColunaLeitura>
+    </FaixaCurva>
   );
 }
 
@@ -112,60 +135,78 @@ export default function PrivacidadScreen({ navigation, onVolver }) {
           contentContainerStyle={estilos.contenido}
           showsVerticalScrollIndicator={false}
         >
-          <View style={estilos.columna}>
+          {/* A ABERTURA fica FORA de faixa: e a primeira dobra, e ela respira
+              contra o fundo do app (com o fio vermelho atras) em vez de ganhar
+              um chao proprio. Faixa na abertura empurraria a onda pro topo da
+              tela, onde ela briga com a curva do HiloFondo. */}
+          <ColunaLeitura style={estilos.abertura}>
             <Sobreceja>{t('privacidad.sobreceja')}</Sobreceja>
             <Titulo accessibilityRole="header" style={estilos.titulo}>
               {t('privacidad.titulo')}
             </Titulo>
             <Cuerpo style={estilos.entrada}>{t('privacidad.entrada')}</Cuerpo>
+          </ColunaLeitura>
 
-            <Seccion titulo={t('privacidad.guarda.titulo')}>
-              {lineas('privacidad.guarda.lineas').map((linea) => (
-                <Item key={linea}>{linea}</Item>
-              ))}
-              <Micro style={estilos.pieSeccion}>{t('privacidad.guarda.pie')}</Micro>
-              <Micro style={estilos.pieSeccion}>{t('privacidad.recordatorio')}</Micro>
-            </Seccion>
+          {/* OS TONS ALTERNAM, e e a alternancia que faz a paisagem: duas
+              faixas seguidas do mesmo tom voltariam a ser um fundo so. A ordem
+              e noite -> ameixa -> noite -> ameixa -> violeta, com o violeta
+              guardado pro PAGAMENTO, que e a secao que mais precisa se destacar
+              das vizinhas. Nenhum tom `rosa` nem `dourado` aqui: esta e a tela
+              do documento, nao a do ritual. */}
+          <Seccion tom="noite" titulo={t('privacidad.guarda.titulo')}>
+            {lineas('privacidad.guarda.lineas').map((linea) => (
+              <Item key={linea}>{linea}</Item>
+            ))}
+            <Micro style={estilos.pieSeccion}>{t('privacidad.guarda.pie')}</Micro>
+            <Micro style={estilos.pieSeccion}>{t('privacidad.recordatorio')}</Micro>
+          </Seccion>
 
-            <Seccion titulo={t('privacidad.no.titulo')}>
-              {lineas('privacidad.no.lineas').map((linea) => (
-                <Item key={linea}>{linea}</Item>
-              ))}
-              <Micro style={estilos.pieSeccion}>{t('privacidad.no.pie')}</Micro>
-            </Seccion>
+          <Seccion tom="ameixa" titulo={t('privacidad.no.titulo')}>
+            {lineas('privacidad.no.lineas').map((linea) => (
+              <Item key={linea}>{linea}</Item>
+            ))}
+            <Micro style={estilos.pieSeccion}>{t('privacidad.no.pie')}</Micro>
+          </Seccion>
 
-            <Seccion titulo={t('privacidad.red.titulo')}>
-              <Cuerpo>{t('privacidad.red.cuerpo')}</Cuerpo>
-            </Seccion>
+          <Seccion tom="noite" titulo={t('privacidad.red.titulo')}>
+            <Cuerpo>{t('privacidad.red.cuerpo')}</Cuerpo>
+          </Seccion>
 
-            <Seccion titulo={t('privacidad.borrar.titulo')}>
-              <Cuerpo>{t('privacidad.borrar.cuerpo')}</Cuerpo>
-            </Seccion>
+          <Seccion tom="ameixa" titulo={t('privacidad.borrar.titulo')}>
+            <Cuerpo>{t('privacidad.borrar.cuerpo')}</Cuerpo>
+          </Seccion>
 
-            <Seccion titulo={t('privacidad.pago.titulo')}>
-              <Cuerpo>{t('privacidad.pago.cuerpo')}</Cuerpo>
-            </Seccion>
+          <Seccion tom="violeta" titulo={t('privacidad.pago.titulo')}>
+            <Cuerpo>{t('privacidad.pago.cuerpo')}</Cuerpo>
+          </Seccion>
 
-            {/* O fecho vai numa caixa em penumbra: e a unica linha da tela que
-                fala do FUTURO do app, e separa-la evita que ela seja lida como
-                mais uma das declaracoes sobre o presente. */}
+          {/* O fecho vai numa caixa em penumbra: e a unica linha da tela que
+              fala do FUTURO do app, e separa-la evita que ela seja lida como
+              mais uma das declaracoes sobre o presente. Continua caixa e nao
+              faixa de proposito: faixa e CHAO de secao, e o fecho nao e uma
+              secao — e um aparte no fim do documento. */}
+          <ColunaLeitura>
             <View style={estilos.cierre}>
               <Cuerpo>{t('privacidad.cierre')}</Cuerpo>
               <Micro style={estilos.version}>{t('legal.version')}</Micro>
             </View>
-          </View>
+          </ColunaLeitura>
         </ScrollView>
 
         {/* O botao fica FORA do ScrollView: numa tela de documento longo, a saida
             nao pode depender de rolar ate o fim. */}
         <View style={estilos.pie}>
-          <View style={estilos.columna}>
+          {/* A MESMA ColunaLeitura do texto: o botao nasce alinhado com o
+              paragrafo e nao com a borda da tela. Era o que a `columna` local
+              fazia — a peca faz igual, e passa a valer a largura calculada em
+              CARACTERES (que acompanha a fonte) em vez de um 560 fixo. */}
+          <ColunaLeitura>
             <BotonPrimario
               titulo={t('comunes.volver')}
               variante="fantasma"
               onPress={volver}
             />
-          </View>
+          </ColunaLeitura>
         </View>
       </SafeAreaView>
     </View>
@@ -183,18 +224,27 @@ const estilos = StyleSheet.create({
   scroll: {
     flex: 1,
   },
+  // SEM paddingHorizontal (12/09/2026): as faixas precisam SANGRAR de ponta a
+  // ponta pra serem chao e nao card. O recuo lateral passou a ser da
+  // ColunaLeitura, que e onde ele deve morar — o texto ganha gutter, o chao
+  // nao. Mesmo motivo do paddingTop: a abertura traz o proprio respiro.
   contenido: {
-    paddingHorizontal: espacio.xl,
-    paddingTop: espacio.xl,
     paddingBottom: espacio.xxl,
   },
 
-  // A coluna de leitura: mesma largura no scroll e no pe, para que o botao
-  // nasca alinhado com o texto e nao com a borda da tela.
-  columna: {
-    width: '100%',
-    maxWidth: ANCHO_LECTURA,
-    alignSelf: 'center',
+  // A ABERTURA. `ar` (48) no topo: o silencio deliberado antes da primeira
+  // palavra (antes era espacio.xl/24, o degrau de "blocos irmaos" — e abertura
+  // e primeira secao nao sao irmas).
+  //
+  // EMBAIXO NAO LEVA NADA, e isso foi MEDIDO na foto e nao decidido no papel: a
+  // primeira faixa ja abre com `secao` (32) de padding proprio E com a altura
+  // da onda em cima dele. Um `ar` aqui somava a tudo isso e abria ~112px de
+  // nada entre o paragrafo de abertura e o primeiro rotulo — buraco, nao
+  // respiro (o proprio theme.js avisa: "se aparecer tres vezes na mesma tela,
+  // nao e mais respiro: e buraco"). O espaco que separa os dois ja e o da
+  // faixa; somar margem a uma faixa e sempre somar duas vezes.
+  abertura: {
+    paddingTop: space.ar,
   },
 
   titulo: {
@@ -204,17 +254,28 @@ const estilos = StyleSheet.create({
     marginTop: espacio.lg,
   },
 
+  // O respiro DENTRO da faixa. A onda ocupa o topo da caixa, entao o conteudo
+  // comeca abaixo dela: `secao` (32) em cima, e o mesmo embaixo pra faixa
+  // seguinte nao encostar no ultimo paragrafo. O `marginTop` que existia aqui
+  // morreu junto — a separacao entre secoes agora e a MUDANCA DE CHAO, e somar
+  // margem a ela abriria um rasgo de fundo entre duas faixas que deviam
+  // encostar.
   seccion: {
-    marginTop: espacio.xxl,
+    paddingTop: space.secao,
+    paddingBottom: space.secao,
   },
   seccionTitulo: {
-    marginBottom: espacio.md,
+    marginBottom: espacio.lg,
   },
 
+  // `entre` (24) e nao `sm` (8): cada item aqui e um PARAGRAFO de duas a seis
+  // linhas, nao uma linha de lista. Com 8px dois paragrafos de tres linhas
+  // colam um no outro e viram um bloco so de texto — que e exatamente o que a
+  // foto do "antes" mostra.
   item: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginTop: espacio.sm,
+    marginTop: space.entre,
   },
   // Alinha com a PRIMEIRA linha do texto ao lado: metade da entrelinha de
   // tipo.cuerpo (a que <Cuerpo> usa), menos metade da propria espessura. Ler o
@@ -236,7 +297,8 @@ const estilos = StyleSheet.create({
   },
 
   cierre: {
-    marginTop: espacio.xxl,
+    marginTop: space.ar,
+    marginBottom: space.entre,
     padding: espacio.lg,
     borderRadius: radio.md,
     backgroundColor: colores.penumbra,

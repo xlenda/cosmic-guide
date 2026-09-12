@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { colors, zodiacSigns } from '../theme';
+import { colors, space, type, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -150,21 +150,22 @@ export default function OnboardingChoiceScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: space.fimDaLista },
   backRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 44 },
-  backRowText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginLeft: 2 },
-  orbi: { alignSelf: 'center', marginTop: 8 },
+  backRowText: { ...type.botao, color: colors.textSecondary, marginLeft: space.grudado },
+  orbi: { alignSelf: 'center', marginTop: space.junto },
+  // type.titulo (24/30, peso 700): título de tela. O peso 800 saiu — nesta
+  // tela ele competia com os 12 nomes de signo logo abaixo, que também
+  // estavam em 700. `entre` (24) de respiro antes da grade.
   pickerTitle: {
+    ...type.titulo,
     color: colors.text,
-    fontSize: 24,
-    lineHeight: 29,
-    fontWeight: '800',
     letterSpacing: -0.4,
-    marginTop: 8,
-    marginBottom: 22,
+    marginTop: space.bloco,
+    marginBottom: space.entre,
     textAlign: 'center',
   },
-  pickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
+  pickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.dentro, justifyContent: 'space-between' },
   pickerItem: {
     width: '31%',
     minHeight: 88,
@@ -178,7 +179,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   pickerGlyph: { fontSize: 27 },
-  pickerName: { color: colors.textSecondary, fontSize: 12, marginTop: 7, fontWeight: '700' },
-  savingWrap: { paddingVertical: 40, alignItems: 'center' },
-  errorText: { color: colors.red, fontSize: 13, textAlign: 'center', marginBottom: 12 },
+  // Peso normal, como o corpo de texto do concorrente: são doze nomes
+  // irmãos, nenhum é hierarquia sobre o outro. Quem destaca é o glifo
+  // colorido acima, que já é o elemento forte do card.
+  pickerName: { ...type.apoio, color: colors.textSecondary, marginTop: space.junto },
+  savingWrap: { paddingVertical: space.ar, alignItems: 'center' },
+  errorText: { ...type.corpoCurto, color: colors.red, textAlign: 'center', marginBottom: space.dentro },
 });

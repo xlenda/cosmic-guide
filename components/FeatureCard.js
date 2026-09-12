@@ -92,7 +92,29 @@ export default function FeatureCard({ title, subtitle, icon, gradient, arte, des
             pointerEvents="none"
           />
           <View style={styles.textoSobreposto}>
-            <Text style={styles.tituloBanner} numberOfLines={2}>{title}</Text>
+            {/* TRÊS LINHAS, NÃO DUAS (12/09/2026, achado de auditoria — medido
+                no navegador, não estimado).
+                
+                Com numberOfLines={2} o título era CORTADO: clientHeight 38
+                (2 × 19 de entrelinha) com scrollHeight 57 — a terceira linha
+                inteira sumia no overflow, no meio da frase. Não era caso raro
+                de tela estreita: acontecia na largura normal do card (145px,
+                medida no build) em dois títulos do INGLÊS, que é mais longo
+                que o português — 'That dream is trying to tell you something'
+                e 'Almost everything you were told is false'.
+                
+                Por que 3 e não encurtar o texto: a copy nova foi escrita pra
+                persuadir, e cortá-la pra caber num número seria deixar o
+                layout mandar na mensagem. Medido o PIOR CASO (título de 3
+                linhas + o subtítulo mais longo já limitado a 2): o bloco de
+                texto dá 106px dentro do corpo curto de 116 — cabe, com 10px
+                de arte ainda à mostra. O texto cresce PRA CIMA (o corpo é
+                justifyContent 'flex-end'), então uma linha a mais come um
+                naco da ilustração e nunca estoura o card nem empurra a grade.
+                
+                O clamp continua existindo de propósito: é o freio pra um
+                título futuro absurdo. Só subiu de 2 pra 3. */}
+            <Text style={styles.tituloBanner} numberOfLines={3}>{title}</Text>
             <Text style={styles.subtituloBanner} numberOfLines={2}>{subtitle}</Text>
           </View>
           {locked && (

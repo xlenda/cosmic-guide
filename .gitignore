@@ -54,3 +54,10 @@ nul
 # projeto nativo gerado pelo prebuild (CNG) — o EAS regera no servidor
 android/
 ios/
+
+# Fotos de auditoria de design (12/09/2026): 80MB de PNG de antes/depois.
+# Um `git add -A` distraido enfia isso no historico e revert NAO desfaz.
+design/**/*.png
+_shot-tmp.js
+shot-lote.js
+_*-tmp.js

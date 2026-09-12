@@ -50,7 +50,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { colors, zodiacSigns } from '../theme';
+import { colors, space, type, zodiacSigns } from '../theme';
+// Coluna de leitura (design/PECAS-DE-DIAGRAMACAO.md): a pergunta e a dica
+// desta tela são o texto de UMA ideia só. De borda a borda a pergunta
+// quebra em três linhas curtas e perde o ar do print do concorrente, onde
+// o parágrafo vive numa coluna central mais estreita.
+import ColunaLeitura from '../components/ColunaLeitura';
 import StoriesReader from '../components/StoriesReader';
 import DatePickerModal from '../components/DatePickerModal';
 import CityPickerModal from '../components/CityPickerModal';
@@ -81,6 +86,18 @@ const ITEM_ALTURA = 44;
 const HORAS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTOS = Array.from({ length: 60 }, (_, i) => i);
 const SOLO_STEP_IDS = ['intent', 'situation', 'outcome', 'birth', 'time', 'city', 'reveal'];
+
+// A pergunta e as linhas de apoio da tela SEMPRE dentro da coluna de leitura
+// (components/ColunaLeitura.js). São 7 passos com o mesmo desenho; definir
+// aqui evita repetir a decisão sete vezes — e evita que o oitavo passo, no
+// dia em que existir, nasça de borda a borda por esquecimento.
+function Fala({ estilo, children, ...resto }) {
+  return (
+    <ColunaLeitura centralizado>
+      <Text style={estilo} {...resto}>{children}</Text>
+    </ColunaLeitura>
+  );
+}
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -395,7 +412,7 @@ export default function OnboardingPerguntasScreen({
         {passo === 0 && (
           <View style={styles.passo}>
             <Text style={styles.adaptiveEyebrow}>{t('onboarding.adaptive.first')}</Text>
-            <Text style={styles.pergunta}>{t('onboarding.intent.title')}</Text>
+            <Fala estilo={styles.pergunta}>{t('onboarding.intent.title')}</Fala>
             <View style={styles.intentGrid}>
               {ONBOARDING_INTENTS.map((item) => {
                 const selected = intencao === item.id;
@@ -469,7 +486,7 @@ export default function OnboardingPerguntasScreen({
               </View>
             )}
             <Text style={styles.adaptiveEyebrow}>{t('onboarding.adaptive.understood')}</Text>
-            <Text style={styles.pergunta}>{t(`onboarding.situation.${intencao}.title`)}</Text>
+            <Fala estilo={styles.pergunta}>{t(`onboarding.situation.${intencao}.title`)}</Fala>
             <View style={styles.intentGrid}>
               {situacoes.map((item) => {
                 const selected = situacao === item.id;
@@ -525,7 +542,7 @@ export default function OnboardingPerguntasScreen({
               </View>
             )}
             <Text style={styles.adaptiveEyebrow}>{t('onboarding.adaptive.next')}</Text>
-            <Text style={styles.pergunta}>{t('onboarding.outcome.title')}</Text>
+            <Fala estilo={styles.pergunta}>{t('onboarding.outcome.title')}</Fala>
             <View style={styles.intentGrid}>
               {ONBOARDING_OUTCOMES.map((item) => {
                 const selected = resultado === item.id;
@@ -574,7 +591,7 @@ export default function OnboardingPerguntasScreen({
 
         {passo === 3 && (
           <View style={styles.passo}>
-            <Text style={styles.pergunta}>{t('onboarding.q.birth.title')}</Text>
+            <Fala estilo={styles.pergunta}>{t('onboarding.q.birth.title')}</Fala>
             <TouchableOpacity
               style={styles.pilula}
               onPress={() => setDataAberta(true)}
@@ -610,8 +627,8 @@ export default function OnboardingPerguntasScreen({
         {passo === 4 && (
           <View style={styles.passo}>
             {palco({ compacto: true })}
-            <Text style={styles.pergunta}>{t('onboarding.q.time.title')}</Text>
-            <Text style={styles.dica}>{t('onboarding.q.time.why')}</Text>
+            <Fala estilo={styles.pergunta}>{t('onboarding.q.time.title')}</Fala>
+            <Fala estilo={styles.dica}>{t('onboarding.q.time.why')}</Fala>
             <View style={styles.relogio}>
               <ColunaNumeros
                 dados={HORAS}
@@ -655,15 +672,15 @@ export default function OnboardingPerguntasScreen({
             >
               <Text style={styles.atalhoTexto}>{t('onboarding.q.time.skip')}</Text>
             </TouchableOpacity>
-            <Text style={styles.nota}>{t('onboarding.q.time.skipNote')}</Text>
+            <Fala estilo={styles.nota}>{t('onboarding.q.time.skipNote')}</Fala>
           </View>
         )}
 
         {passo === 5 && (
           <View style={styles.passo}>
             {palco({ compacto: true })}
-            <Text style={styles.pergunta}>{t('onboarding.q.city.title')}</Text>
-            <Text style={styles.dica}>{t('onboarding.q.city.why')}</Text>
+            <Fala estilo={styles.pergunta}>{t('onboarding.q.city.title')}</Fala>
+            <Fala estilo={styles.dica}>{t('onboarding.q.city.why')}</Fala>
             <TouchableOpacity
               style={styles.pilula}
               onPress={() => setCidadeAberta(true)}
@@ -689,7 +706,7 @@ export default function OnboardingPerguntasScreen({
 
         {passo === 6 && (
           <View style={styles.passo}>
-            <Text style={styles.pergunta}>{t('onboarding.q.reveal.title')}</Text>
+            <Fala estilo={styles.pergunta}>{t('onboarding.q.reveal.title')}</Fala>
             {/* RECOMPENSA 2 — com hora+cidade, Lua e Ascendente acendem ao
                 lado do mascote (parAceso). Sem eles, o palco segue só com o
                 Sol — nada aceso na base de chute. */}
@@ -775,49 +792,53 @@ const styles = StyleSheet.create({
 
   // paddingBottom 160 ≥ 140: lei do dvh — o botão do pé nunca morre atrás de
   // barra de navegador/teclado; o conteúdo rola até folgar.
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 160 },
+  // paddingTop `secao` (32), não 18: é o degrau que faz a tela deles
+  // respirar, e é justamente o que faltava entre a barra de progresso e a
+  // pergunta. paddingBottom 160 ≥ 140 continua (lei do dvh).
+  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: space.secao, paddingBottom: 160 },
   passo: { flex: 1, justifyContent: 'center' },
 
+  // type.display (32/40) é o degrau da primeira dobra de uma tela de uma
+  // ideia só — e a entrelinha sobe de 34 pra 40, que é onde uma pergunta de
+  // duas linhas para de parecer amassada. `entre` (24) abaixo: as opções
+  // são a RESPOSTA da pergunta, não a linha seguinte dela.
   pergunta: {
+    ...type.display,
     color: colors.text,
-    fontSize: 29,
-    lineHeight: 34,
-    fontWeight: '800',
     textAlign: 'center',
     letterSpacing: -0.8,
-    marginBottom: 16,
+    marginBottom: space.entre,
   },
+  // type.corpoCurto (15/24): entrelinha de leitura, não de legenda.
   dica: {
+    ...type.corpoCurto,
     color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
     textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 6,
+    marginTop: space.dentro,
+    marginBottom: space.junto,
   },
+  // type.etiqueta: peso 600 (não 800) e o letterSpacing já vem junto — é
+  // ele que faz maiúscula parecer intencional em vez de grito.
   adaptiveEyebrow: {
+    ...type.etiqueta,
     color: colors.gold,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.4,
     textTransform: 'uppercase',
     textAlign: 'center',
-    marginTop: 18,
-    marginBottom: 8,
+    marginBottom: space.dentro,
   },
   nota: {
+    ...type.nota,
     color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: space.bloco,
   },
 
-  intentGrid: { gap: 9, marginTop: 6 },
+  // `junto` (8) entre irmãs; sem marginTop porque a pergunta já deu `entre`.
+  intentGrid: { gap: space.junto },
   intentCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 14, borderCurve: 'continuous', paddingVertical: 12, paddingHorizontal: 13,
+    borderRadius: 14, borderCurve: 'continuous', paddingVertical: space.bloco, paddingHorizontal: space.bloco,
   },
   intentCardSelected: { borderColor: colors.gold, backgroundColor: colors.gold + '10' },
   intentCardPressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
@@ -827,8 +848,10 @@ const styles = StyleSheet.create({
   },
   intentIconSelected: { backgroundColor: colors.gold + '24' },
   intentTextWrap: { flex: 1 },
-  intentLabel: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '700' },
-  intentDescription: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  // type.cartao (17/22, peso 600): nome de item de lista. Era 15/700 —
+  // pequeno e pesado ao mesmo tempo, o pior dos dois.
+  intentLabel: { flex: 1, ...type.cartao, color: colors.text },
+  intentDescription: { ...type.apoio, color: colors.textSecondary, marginTop: space.grudado },
   planPreview: {
     marginTop: 14, padding: 14, borderRadius: 16,
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.gold + '66',
@@ -838,17 +861,17 @@ const styles = StyleSheet.create({
   planPreviewStep: { color: colors.text, fontSize: 13, fontWeight: '700', lineHeight: 20 },
   responseBubble: {
     alignSelf: 'center',
-    marginTop: 12,
+    marginTop: space.bloco,
     maxWidth: 310,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.bloco,
     borderRadius: 14,
     borderCurve: 'continuous',
     backgroundColor: colors.gold + '0E',
     borderWidth: 1,
     borderColor: colors.gold + '38',
   },
-  responseBubbleText: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  responseBubbleText: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
 
   inputNome: {
     color: colors.text,
@@ -956,13 +979,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     minHeight: 50,
     alignSelf: 'stretch',
-    marginTop: 22,
+    // `secao` (32): o Continuar fecha a tela inteira, não o bloco acima dele.
+    marginTop: space.secao,
   },
   continuarApagado: { opacity: 0.4 },
   continuarTexto: { color: '#21151A', fontSize: 16, fontWeight: '800' },
 
-  atalho: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 10, marginTop: 6 },
-  atalhoTexto: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+  atalho: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 10, marginTop: space.dentro },
+  atalhoTexto: { ...type.botao, color: colors.textSecondary },
   coupleLink: {
     minHeight: 44,
     alignSelf: 'center',
@@ -971,7 +995,7 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: 12,
   },
-  coupleLinkText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  coupleLinkText: { ...type.botao, color: colors.textSecondary },
 
   erro: { color: colors.red, fontSize: 13, textAlign: 'center', marginBottom: 10 },
   salvando: { paddingVertical: 24, alignItems: 'center' },

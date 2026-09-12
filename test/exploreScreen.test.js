@@ -42,7 +42,28 @@ test('a primeira dobra preserva o caminho personalizado e as portas permanentes'
 
   // o catálogo abre a Home, logo depois do caminho personalizado
   assert.ok(primary < catalogo, 'o caminho personalizado vem antes do catálogo');
-  assert.ok(catalogo < daily, 'o catálogo vem antes da linha de hoje');
+
+  // A ORDEM ENTRE CATÁLOGO E LINHA DE HOJE SE INVERTEU EM 12/09/2026, na
+  // reforma de diagramação em faixas, e este teste mudou junto — pelo mesmo
+  // motivo que ele já mudou em 10/09: travar a ordem antiga seria travar uma
+  // tela que não é a que está no ar.
+  //
+  // O QUE ACONTECEU. O catálogo (28 cards, cinco grades) estava PARTINDO AO
+  // MEIO o grupo "Seu caminho": o card de Diário+Sequência ficava antes dele e
+  // o Pensamento do dia, as Missões e a linha de hoje ficavam depois. Eram
+  // quatro superfícies do MESMO assunto separadas por um catálogo inteiro.
+  // Agrupá-las exigia que o catálogo saísse do meio delas, e a regra do dono
+  // pra esse caso é explícita: bloco que precisa sair da primeira dobra DESCE,
+  // não some.
+  //
+  // O QUE O PEDIDO DE 10/09 QUERIA CONTINUA VALENDO. Ele era "explorar funções
+  // tem que estar logo no começo quando ele entra no app" — ou seja, não
+  // enterrado no fim do rolo. O catálogo segue ANTES de Órbi, de Alinhe seu
+  // Céu e da porta do Explorar, que são o epílogo. O que passou à frente dele
+  // foi só a linha de hoje: UMA linha de 28px sem fundo nem borda, não uma
+  // superfície que disputa atenção.
+  assert.ok(daily < catalogo, 'a linha de hoje fecha o grupo "Seu caminho", antes do catálogo');
+  assert.ok(catalogo < orbi, 'o catálogo vem antes do epílogo (Órbi, Alinhe seu Céu, porta do Explorar)');
   assert.ok(daily < orbi, 'Órbi fica depois da linha de hoje');
   // e as duas portas fecham o rolo
   assert.ok(orbi < alignment, 'Alinhe seu Céu desceu pro epílogo, depois do Órbi');

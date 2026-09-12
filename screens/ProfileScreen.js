@@ -14,7 +14,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from '../lib/webAlert';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, zodiacSigns } from '../theme';
+import { colors, space, type, zodiacSigns } from '../theme';
+// UMA faixa curva nesta tela, e só uma: em volta da IDENTIDADE do topo.
+// O resto do Perfil é lista de ajustes — faixa em cima de linha de ajuste
+// viraria textura, e a peça pede duas a quatro por tela, não uma por
+// bloco. Aqui ela resolve um problema real: quem você é e o que você pode
+// mudar corriam sobre o mesmo chão, sem nada dizendo onde um acaba.
+import FaixaCurva from '../components/FaixaCurva';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import { useCouple } from '../context/CoupleContext';
@@ -500,7 +506,8 @@ export default function ProfileScreen() {
     <View style={styles.root}>
       <GradientHeader title={t('profile.header.title')} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.couple}>
+        <FaixaCurva tom="ameixa" semente="identidade" style={styles.faixaIdentidade}>
+          <View style={styles.couple}>
           <View style={styles.coupleAvatar}>
             <Ionicons name="heart" size={26} color={colors.pink} />
           </View>
@@ -541,7 +548,8 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </>
           )}
-        </View>
+          </View>
+        </FaixaCurva>
 
         {/* ORDEM DA TELA (convenção iOS/Android, reordenada em 26/07/2026 a
             partir de relato de tester real): conta/entrada no TOPO → ajustes no
@@ -764,35 +772,59 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingBottom: 40 },
-  couple: { alignItems: 'center', marginBottom: 28, marginTop: 8 },
+  content: { padding: 20, paddingBottom: space.fimDaLista },
+  // A faixa já dá `secao` (32) em cima e embaixo: as margens daqui zeram,
+  // senão o respiro dobra e o bloco de identidade vira um buraco.
+  couple: { alignItems: 'center' },
+  // Sangra pra fora do padding:20 do `content` — faixa que não sangra é
+  // cartão, e cartão é exatamente o que o resto da tela já é.
+  // marginTop -20 cola a faixa no GradientHeader: com folga, um fio do
+  // fundo aparecia entre o header e a onda.
+  faixaIdentidade: { marginHorizontal: -20, marginTop: -20, marginBottom: space.entre },
   coupleAvatar: {
     width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surfaceElevated,
     justifyContent: 'center', alignItems: 'center', marginBottom: 12,
     borderWidth: 1, borderColor: colors.border,
   },
   coupleNamesRow: { flexDirection: 'row', alignItems: 'center' },
-  coupleNames: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  coupleSigns: { color: colors.textMuted, fontSize: 13, marginTop: 4, textAlign: 'center' },
+  // type.secao (20/26, peso 700): o nome da pessoa é o único lugar do
+  // Perfil onde o peso é hierarquia de verdade — é o que o print do
+  // concorrente faz (negrito no título da tela e no nome, e para por aí).
+  coupleNames: { ...type.secao, color: colors.text, textAlign: 'center' },
+  coupleSigns: { ...type.corpoCurto, color: colors.textMuted, marginTop: space.junto, textAlign: 'center' },
   coupleCta: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: colors.accent, borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 10, marginTop: 12,
+    paddingHorizontal: space.entre, paddingVertical: space.dentro, marginTop: space.bloco,
   },
-  coupleCtaText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 10, marginTop: 8 },
+  coupleCtaText: { ...type.botao, color: '#fff' },
+  // type.etiqueta: o rótulo de seção do print é MAIÚSCULA pequena com
+  // letterSpacing, não negrito grande. Assim ele organiza sem disputar com
+  // o nome da pessoa lá em cima nem com os rótulos das linhas.
+  sectionTitle: {
+    ...type.etiqueta,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    marginBottom: space.dentro,
+    marginTop: space.junto,
+  },
   card: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 16, overflow: 'hidden', marginBottom: 24,
+    borderRadius: 16, overflow: 'hidden', marginBottom: space.secao,
   },
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
+  // `bloco` (16) em cima e embaixo: a linha de ajuste ganha a altura de
+  // toque confortável e a lista para de parecer comprimida.
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.bloco, paddingVertical: space.bloco },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   rowIcon: {
     width: 32, height: 32, borderRadius: 10, backgroundColor: colors.accent + '22',
     justifyContent: 'center', alignItems: 'center', marginRight: 12,
   },
-  rowLabel: { color: colors.text, fontSize: 14, fontWeight: '600', flex: 1 },
-  rowValue: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
+  // Peso NORMAL: são rótulos irmãos, nenhum é hierarquia sobre o outro.
+  // Eram 14/600 — o negrito em quinze linhas seguidas é o que fazia a tela
+  // inteira gritar no mesmo tom.
+  rowLabel: { ...type.corpo, color: colors.text, flex: 1 },
+  rowValue: { ...type.corpoCurto, color: colors.textMuted },
   langPills: { flexDirection: 'row', gap: 6 },
   langPill: {
     paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10,
@@ -809,13 +841,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     borderRadius: 14, paddingVertical: 14, marginBottom: 12,
   },
-  logoutBtnText: { color: colors.red, fontSize: 15, fontWeight: '800' },
+  logoutBtnText: { ...type.botao, color: colors.red },
   dangerBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: colors.red, borderRadius: 14, paddingVertical: 14, marginTop: 4,
   },
   dangerBtnBusy: { opacity: 0.6 },
-  dangerBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  dangerBtnText: { ...type.botao, color: '#fff' },
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 24,
   },

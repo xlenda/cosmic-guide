@@ -63,7 +63,11 @@ import { LanguageProvider, useLanguage } from './context/LanguageContext';
 // desmonta a tela, e se o áudio morasse dentro de uma tela o som cortaria no
 // meio, que é o oposto do que esta feature existe pra fazer.
 import { CosmicSoundProvider } from './context/CosmicSoundContext';
-import CosmicSoundPlayer from './components/CosmicSoundPlayer';
+// A MESMA checagem que o dock usa pra decidir se aparece (o contexto a chama
+// no arranque). Pura e síncrona: dá pra perguntar aqui, fora do provider, sem
+// hook nenhum — e é o que permite reservar o espaço dele no mesmo render.
+import { audioDisponivel } from './lib/cosmicSound';
+import CosmicSoundPlayer, { ESPACO_DO_DOCK } from './components/CosmicSoundPlayer';
 import PillPremium from './components/PillPremium';
 import HomeScreen from './screens/HomeScreen';
 import TarotScreen from './screens/TarotScreen';
@@ -109,6 +113,17 @@ const ChatScreen = lazy(() => import('./screens/ChatScreen'));
 // lazy porque só precisam carregar quando a pessoa realmente os abre.
 const HoroscopeScreen = lazy(() => import('./screens/HoroscopeScreen'));
 const ExploreScreen = lazy(() => import('./screens/ExploreScreen'));
+// A VITRINE DAS PEÇAS SÓ EXISTE EM __DEV__ (12/09/2026, achado de auditoria).
+// Ela entrava no roteador de produção sem guarda nenhuma: /pecas era uma URL
+// pública, e a vitrine é ferramenta de quem constrói, com dados de exemplo
+// escritos à mão e sem i18n — a cara errada do produto pra quem digitar o
+// caminho. Guardar aqui (e não apagar) mantém a vitrine viva pra quem
+// desenvolve: `expo start` é __DEV__, o export de produção não.
+// O mesmo __DEV__ que components/ListaCheck.js já usa. Metro/Expo o
+// substitui por `false` literal no bundle de produção, então tanto o
+// import() quanto a <Stack.Screen> e a entrada de `linking` somem na
+// minificação — a tela não vira nem chunk.
+const PecasDemoScreen = __DEV__ ? lazy(() => import('./screens/PecasDemoScreen')) : null;
 const BirthChartScreen = lazy(() => import('./screens/BirthChartScreen'));
 // Alinhe seu céu — a assinatura gestual do produto. A Home mostra apenas a
 // entrada editorial; palco, cálculo e recibo ficam num chunk próprio para quem
@@ -303,6 +318,28 @@ const ROTAS_SEM_PILL = new Set([
   ROUTES.MADRE_MARIA,
 ]);
 
+// O CAMINHO FOCADO INTEIRO, não só a folha (12/09/2026, achado de auditoria).
+//
+// navRef.getCurrentRoute() devolve a rota MAIS FUNDA (findFocusedRoute desce
+// até a folha). Dentro da Madre Maria isso é sempre um nome DELA
+// ('MadreAbas', 'Sintesis', 'Hilo'…) e NUNCA 'MadreMaria' — então
+// `ROTAS_SEM_PILL.has(rotaAtual)` com ROUTES.MADRE_MARIA na lista jamais
+// casava, e a pill de assinar do Cosmic seguia pousando em cima da barra de 3
+// zonas da Madre. O comentário dizia que estava resolvido; a medição diz que
+// não estava.
+//
+// Este caminho é o conjunto de TODOS os nomes de rota focados, da raiz até a
+// folha. Com ele, perguntar "estou dentro da Madre?" é perguntar pelo nome do
+// CONTÊINER, que é estável — e não por uma lista dos nomes das telas dela, que
+// obrigaria a lembrar deste arquivo toda vez que a Madre ganhasse uma tela.
+function caminhoFocado(state, saida = new Set()) {
+  if (!state || typeof state.index !== 'number') return saida;
+  const rota = state.routes?.[state.index];
+  if (!rota) return saida;
+  saida.add(rota.name);
+  return caminhoFocado(rota.state, saida);
+}
+
 // A PILULA FLUTUANTE, agora uma CONSTANTE. Ela morava inline dentro de
 // screenOptions; saiu para ca porque a aba Home passou a precisar cita-la pelo
 // nome (ver o ternario na <Tab.Screen> da Home). Object.freeze e escopo de
@@ -368,6 +405,8 @@ const linking = {
         screens: {
           [ROUTES.HOME_MAIN]: '',
           [ROUTES.EXPLORE]: 'explorar',
+          // /pecas só existe em __DEV__ — ver o lazy() de PecasDemoScreen.
+          ...(__DEV__ ? { [ROUTES.PECAS_DEMO]: 'pecas' } : null),
           [ROUTES.QUIZ]: 'quiz',
           [ROUTES.SKY_ALIGNMENT]: 'alinhe-seu-ceu',
           [ROUTES.CALENDARIO_COSMICO]: 'calendario',
@@ -480,6 +519,9 @@ function HomeStack({ initialRouteName = ROUTES.HOME_MAIN } = {}) {
       >
         <Stack.Screen name={ROUTES.HOME_MAIN} component={HomeScreen} />
         <Stack.Screen name={ROUTES.EXPLORE} component={ExploreScreen} />
+        {/* A vitrine das peças de diagramação — SÓ EM __DEV__ (ver o lazy()
+            lá em cima). Sem esta guarda, /pecas era rota pública de produção. */}
+        {__DEV__ && <Stack.Screen name={ROUTES.PECAS_DEMO} component={PecasDemoScreen} />}
         <Stack.Screen name={ROUTES.HOROSCOPE} component={HoroscopeScreen} />
         <Stack.Screen name={ROUTES.BIRTH_CHART} component={BirthChartScreen} />
         <Stack.Screen name={ROUTES.SKY_ALIGNMENT} component={SkyAlignmentScreen} />
@@ -692,10 +734,23 @@ function Gate() {
     relerTarotNovidade();
   }, [relerTarotNovidade]);
 
-  // Rota atual pro esconde-esconde da PillPremium: na tela de Planos a pill
-  // some (oferta em cima de oferta é ruído). Alimentada pelos MESMOS
-  // onReady/onStateChange que a bolinha do Tarô já usa — sem listener novo.
-  const [rotaAtual, setRotaAtual] = useState(null);
+  // Rota atual pro esconde-esconde das DUAS flutuantes (a pill de assinar e o
+  // dock do Som do céu): na tela de Planos a pill some (oferta em cima de
+  // oferta é ruído), e dentro da Madre Maria somem as duas. Alimentada pelos
+  // MESMOS onReady/onStateChange que a bolinha do Tarô já usa — sem listener
+  // novo.
+  //
+  // É o CAMINHO inteiro (ver caminhoFocado), não a folha: a folha, dentro da
+  // Madre, é sempre um nome de tela dela, e por isso a guarda antiga nunca
+  // pegava a Madre. Set vazio, nunca null — quem lê só faz .has().
+  const [rotasFocadas, setRotasFocadas] = useState(() => new Set());
+  const dentroDaMadre = rotasFocadas.has(ROUTES.MADRE_MARIA);
+  // O dock do Som do céu aparece — e por isso reserva espaço — só onde há Web
+  // Audio e fora da Madre Maria. As duas condições numa variável só porque
+  // MOSTRAR e RESERVAR ESPAÇO têm de concordar sempre: reservar sem mostrar
+  // deixa uma faixa morta no pé de toda tela, mostrar sem reservar é o bug
+  // que estamos consertando.
+  const mostraDock = audioDisponivel() && !dentroDaMadre;
   const [temLeituraConcluida, setTemLeituraConcluida] = useState(false);
   const relerPrimeiroValor = useCallback(() => {
     getJournalEntries()
@@ -734,7 +789,7 @@ function Gate() {
       documentTitle={DOCUMENT_TITLE}
       onReady={() => {
         setNavPronta(true);
-        setRotaAtual(navRef.getCurrentRoute()?.name || null);
+        setRotasFocadas(caminhoFocado(navRef.getRootState()));
         relerPrimeiroValor();
       }}
       // Toda navegação (troca de aba, push de tela) relê a novidade do Tarô —
@@ -743,7 +798,7 @@ function Gate() {
       onStateChange={() => {
         relerTarotNovidade();
         relerPrimeiroValor();
-        setRotaAtual(navRef.getCurrentRoute()?.name || null);
+        setRotasFocadas(caminhoFocado(navRef.getRootState()));
       }}
     >
       {/* O provider do Som do céu envolve o Tab.Navigator inteiro e o dock é
@@ -755,8 +810,20 @@ function Gate() {
       <CosmicSoundProvider>
         {/* backgroundColor aqui porque a barra de abas virou pílula flutuante
             (margens + raio): o que aparece AO REDOR dela é este View — sem a
-            cor, na web o vão sairia branco. */}
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
+            cor, na web o vão sairia branco.
+
+            O paddingBottom É O CONSERTO DO DOCK QUE COBRIA TEXTO (12/09/2026).
+            O dock é irmão do Tab.Navigator dentro deste View; encurtando o
+            View, o navegador inteiro — e portanto as 49 telas com rolagem —
+            encurta junto, e a faixa que sobra é exatamente onde o dock pousa.
+            Uma linha aqui em vez de paddingBottom repetido em 49 telas, e sem
+            o risco de esquecer a tela nº 50.
+
+            Só quando o dock EXISTE de verdade: sem Web Audio (todo o nativo,
+            navegador antigo) ele não é renderizado, e reservar espaço pra um
+            controle ausente seria uma faixa morta no pé de todas as telas.
+            A Madre esconde o dock e por isso também não reserva. */}
+        <View style={{ flex: 1, backgroundColor: colors.background, paddingBottom: mostraDock ? ESPACO_DO_DOCK : 0 }}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -898,8 +965,19 @@ function Gate() {
       </Tab.Navigator>
           {/* Pílula flutuante logo acima da barra de abas. Só aparece onde a
               Web Audio API existe (na web) e some sozinha quando a Home está
-              mostrando o card do som — ver components/CosmicSoundPlayer.js. */}
-          <CosmicSoundPlayer />
+              mostrando o card do som — ver components/CosmicSoundPlayer.js.
+
+              FORA DA MADRE MARIA (12/09/2026, achado de auditoria). Lá dentro
+              ela era vazamento de identidade em dois níveis: a pílula roxa do
+              Cosmic (colors.surfaceElevated/accent) pousada sobre o fio
+              vermelho da Madre, e um segundo controle flutuante em cima da
+              barra de 3 zonas dela — a mesma razão pela qual a barra de abas
+              do Cosmic já se esconde ali (ver ESTILO_ABA_ESCONDIDA).
+
+              O provider FICA montado de propósito: quem ligou o som na Home e
+              entrou na Madre continua ouvindo. Some o CONTROLE, não o áudio —
+              e ele volta inteiro (tocando, no mesmo preset) ao sair. */}
+          {mostraDock && <CosmicSoundPlayer />}
           {/* A pill de assinar do concorrente, na versão honesta: SÓ para
               quem comprovadamente não assina (accessConfirmed && !hasAccess),
               e some na própria tela de Planos. Ver PillPremium.js. */}
@@ -916,7 +994,7 @@ function Gate() {
               // ele seria perseguido por "assine" em toda tela. Mesmo guarda
               // de HomeScreen/FeatureGate/CalendarioCosmico.
               !isOwnerAccount &&
-              !ROTAS_SEM_PILL.has(rotaAtual)
+              ![...rotasFocadas].some((nome) => ROTAS_SEM_PILL.has(nome))
             }
             onPress={() => navRef.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
           />

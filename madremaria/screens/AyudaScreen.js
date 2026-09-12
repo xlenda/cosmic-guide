@@ -70,6 +70,9 @@ import {
 // diagnostico e pior do que nao ter diagnostico. O `with { type: 'json' }` e a
 // mesma forma usada por lib/mazo.js — atende o Metro e o Node ao mesmo tempo.
 import APP_JSON from '../../app.json' with { type: 'json' };
+import ColunaLeitura from '../../components/ColunaLeitura';
+import FaixaCurva from '../../components/FaixaCurva';
+import TabelaDados from '../../components/TabelaDados';
 import BotonPrimario from '../components/BotonPrimario';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, Rotulo, Sobreceja, Titulo } from '../components/Texto';
@@ -77,6 +80,7 @@ import { t } from '../datos/textos';
 import { borrarSeguro } from '../lib/almacen';
 import { restaurar } from '../lib/suscripcion';
 import RUTAS from '../routes';
+import { space } from '../../theme';
 import { colores, espacio, radio } from '../theme';
 
 /* ===================================================================================
@@ -461,23 +465,36 @@ export default function AyudaScreen({ navigation }) {
           contentContainerStyle={estilos.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          <Pressable
-            onPress={volver}
-            accessibilityRole="button"
-            accessibilityLabel={t('comunes.volver')}
-            hitSlop={espacio.md}
-            style={estilos.volver}
-          >
-            <View style={estilos.volverTraza} />
-            <Rotulo>{t('comunes.volver')}</Rotulo>
-          </Pressable>
+          {/* A ABERTURA na coluna de leitura: o paragrafo de entrada ia de
+              borda a borda. Fora de faixa, como nas outras duas telas do lote —
+              primeira dobra respira contra o fundo do app, com o fio atras. */}
+          <ColunaLeitura style={estilos.abertura}>
+            <Pressable
+              onPress={volver}
+              accessibilityRole="button"
+              accessibilityLabel={t('comunes.volver')}
+              hitSlop={espacio.md}
+              style={estilos.volver}
+            >
+              <View style={estilos.volverTraza} />
+              <Rotulo>{t('comunes.volver')}</Rotulo>
+            </Pressable>
 
-          <Sobreceja style={estilos.sobreceja}>{t('ayuda.sobreceja')}</Sobreceja>
-          <Titulo accessibilityRole="header">{t('ayuda.titulo')}</Titulo>
-          <Cuerpo style={estilos.entrada}>{t('ayuda.entrada')}</Cuerpo>
+            <Sobreceja style={estilos.sobreceja}>{t('ayuda.sobreceja')}</Sobreceja>
+            <Titulo accessibilityRole="header">{t('ayuda.titulo')}</Titulo>
+            <Cuerpo style={estilos.entrada}>{t('ayuda.entrada')}</Cuerpo>
+          </ColunaLeitura>
 
-          {/* --- as cinco categorias, acordeao de uma aberta por vez ------------- */}
-          <View style={estilos.lista}>
+          {/* --- as cinco categorias, acordeao de uma aberta por vez -------------
+              A faixa entra AQUI, em volta da lista inteira, e nao em volta de
+              cada cartao: cartao ja se separa do vizinho sozinho (tem borda nos
+              quatro lados). O que faltava era separar O BLOCO DAS CATEGORIAS do
+              bloco de escrever — dois assuntos diferentes que corriam no mesmo
+              chao, com um fio reto de 1px entre eles.
+              `noite` e o tom mais neutro: os cartoes ja tem contraste proprio, e
+              um chao forte aqui competiria com a leitura de qual esta aberto. */}
+          <FaixaCurva tom="noite" semente="categorias" grude style={estilos.faixaLista}>
+            <View style={estilos.lista}>
             {CATEGORIAS.map((cat) => {
               const estaAbierta = cat.id === abierta;
               return (
@@ -516,10 +533,14 @@ export default function AyudaScreen({ navigation }) {
                 </View>
               );
             })}
-          </View>
+            </View>
+          </FaixaCurva>
 
-          {/* --- escrever: so depois dos passos, e so com categoria escolhida ---- */}
-          <View style={estilos.escribir}>
+          {/* --- escrever: so depois dos passos, e so com categoria escolhida ----
+              Chao PROPRIO (`ameixa`), que e o que substitui o fio reto de 1px
+              que separava este bloco do acordeao. */}
+          <FaixaCurva tom="ameixa" semente="escrever" grude style={estilos.escribir}>
+            <ColunaLeitura>
             <Sobreceja>{t('ayuda.escribir.sobreceja')}</Sobreceja>
             <Cuerpo style={estilos.escribirTitulo}>{t('ayuda.escribir.titulo')}</Cuerpo>
             <Micro style={estilos.escribirCuerpo}>{t('ayuda.escribir.cuerpo')}</Micro>
@@ -529,12 +550,26 @@ export default function AyudaScreen({ navigation }) {
               <Sobreceja style={estilos.diagnosticoTitulo}>
                 {t('ayuda.diagnostico.titulo')}
               </Sobreceja>
-              {diagnostico.map((linea) => (
-                <View key={linea.clave} style={estilos.filaDiagnostico}>
-                  <Micro style={estilos.filaClave}>{linea.clave}</Micro>
-                  <Micro style={estilos.filaValor}>{linea.valor}</Micro>
-                </View>
-              ))}
+              {/* O payload em components/TabelaDados.js: mesmo par clave->valor,
+                  agora com o fio fino entre as linhas.
+
+                  ATENCAO AO FILTRO DE NAO-FABRICAR. A peca some com a linha que
+                  nao tem valor — o que esta CERTO numa ficha de perfil e seria
+                  ERRADO aqui: este bloco e o corpo de um e-mail de suporte, e
+                  uma linha que some do payload e um campo de diagnostico que o
+                  atendente nao recebe. Por isso `valor` nunca chega vazio: o
+                  useMemo la em cima ja troca o ausente por t('...sinDato'), que
+                  e uma resposta honesta e explicita ("nao ha dado"), e nao um
+                  traco mudo. O filtro ve uma string de verdade e mantem a
+                  linha — que e o comportamento que esta tela precisa. */}
+              <TabelaDados
+                itens={diagnostico.map((linea) => ({
+                  chave: linea.clave,
+                  rotulo: linea.clave,
+                  valor: linea.valor,
+                }))}
+                testID="ayuda-diagnostico"
+              />
               <Micro style={estilos.diagnosticoPie}>{t('ayuda.diagnostico.pie')}</Micro>
             </View>
 
@@ -553,10 +588,13 @@ export default function AyudaScreen({ navigation }) {
             ) : null}
 
             <Micro style={estilos.directo}>{t('ayuda.escribir.directo', { correo })}</Micro>
-          </View>
+            </ColunaLeitura>
+          </FaixaCurva>
 
-          <Micro style={estilos.pie}>{t('ayuda.pie')}</Micro>
-          <Micro style={estilos.version}>{t('legal.version')}</Micro>
+          <ColunaLeitura style={estilos.fecho}>
+            <Micro style={estilos.pie}>{t('ayuda.pie')}</Micro>
+            <Micro style={estilos.version}>{t('legal.version')}</Micro>
+          </ColunaLeitura>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -578,12 +616,29 @@ const estilos = StyleSheet.create({
   segura: {
     flex: 1,
   },
+  // SEM padding e SEM maxWidth (12/09/2026), mesmo motivo do Metodo: os dois
+  // moravam no ScrollView e capavam TUDO na mesma largura, inclusive o que
+  // precisa sangrar. Faixa capada em 560 com 24px de recuo vira card gigante —
+  // que e o que components/BandaSection.js ja faz, e nao e o efeito dos prints.
+  // O recuo e a largura de leitura foram pra ColunaLeitura, bloco a bloco.
   scroll: {
-    padding: espacio.xl,
     paddingBottom: espacio.xxxl,
-    maxWidth: 560,
     width: '100%',
-    alignSelf: 'center',
+  },
+
+  // `ar` (48) so no topo. Embaixo nao leva nada: a faixa seguinte ja abre com
+  // `secao` (32) de padding proprio MAIS a altura da onda, e somar margem a uma
+  // faixa e sempre somar duas vezes (medido na foto da Privacidade, onde o par
+  // abriu ~112px de buraco entre a abertura e o primeiro rotulo).
+  abertura: {
+    paddingTop: space.ar,
+  },
+  faixaLista: {
+    paddingTop: space.secao,
+    paddingBottom: space.secao,
+  },
+  fecho: {
+    paddingTop: space.secao,
   },
 
   volver: {
@@ -607,8 +662,13 @@ const estilos = StyleSheet.create({
     marginTop: espacio.md,
   },
 
+  // GUTTER PROPRIO (12/09/2026). O recuo lateral vinha do ScrollView, que agora
+  // nao tem nenhum — sem isto os cartoes encostariam na borda da tela. NAO usa
+  // ColunaLeitura: card nao e paragrafo, ele quer a largura util toda (a coluna
+  // e pra texto corrido). `tela` (16) e o recuo horizontal padrao do app.
+  // Sem marginTop: o respiro de cima e o padding da propria faixa.
   lista: {
-    marginTop: espacio.xl,
+    paddingHorizontal: space.tela,
   },
   tarjeta: {
     backgroundColor: colores.penumbra,
@@ -706,55 +766,46 @@ const estilos = StyleSheet.create({
     marginBottom: espacio.sm,
   },
 
+  // O FIO RETO MORREU. Era `borderTopWidth` + `marginTop`: a linha reta que
+  // separava "escolher a categoria" de "escrever". Quem separa agora e a
+  // mudanca de chao da faixa `ameixa`, e o respiro e padding DENTRO dela
+  // (margem por fora abriria um rasgo entre duas faixas que devem encostar).
   escribir: {
-    marginTop: espacio.xxl,
-    paddingTop: espacio.xl,
-    borderTopWidth: GROSOR,
-    borderTopColor: colores.bordeSuave,
+    paddingTop: space.secao,
+    paddingBottom: space.secao,
   },
   escribirTitulo: {
-    marginTop: espacio.sm,
+    marginTop: space.dentro,
   },
+  // `bloco` (16): a distancia entre um rotulo e o conteudo que ele nomeia.
   escribirCuerpo: {
-    marginTop: espacio.sm,
+    marginTop: space.bloco,
   },
 
   diagnostico: {
-    marginTop: espacio.lg,
-    padding: espacio.lg,
+    marginTop: space.entre,
+    padding: space.bloco,
     borderRadius: radio.md,
     backgroundColor: colores.penumbra,
     borderWidth: GROSOR,
     borderColor: colores.bordeSuave,
   },
   diagnosticoTitulo: {
-    marginBottom: espacio.md,
+    marginBottom: space.bloco,
   },
-  filaDiagnostico: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: espacio.xs,
-  },
-  filaClave: {
-    flex: 1,
-    paddingRight: espacio.md,
-  },
-  // O valor e o dado cru: papel, para que se leia sem esforco e a pessoa possa
-  // conferi-lo contra o que chega no correio.
-  filaValor: {
-    flex: 1,
-    color: colores.papel,
-    textAlign: 'right',
-  },
+  // filaDiagnostico/filaClave/filaValor sairam: quem desenha a linha
+  // clave->valor agora e components/TabelaDados.js, que ja poe o valor em
+  // `papel` alinhado a direita (o mesmo "recibo") e ainda traz o fio fino entre
+  // as linhas, que este bloco nao tinha.
   diagnosticoPie: {
-    marginTop: espacio.md,
-    paddingTop: espacio.md,
+    marginTop: space.bloco,
+    paddingTop: space.bloco,
     borderTopWidth: GROSOR,
     borderTopColor: colores.bordeSuave,
   },
 
   botonEscribir: {
-    marginTop: espacio.lg,
+    marginTop: space.entre,
   },
   directo: {
     marginTop: espacio.md,

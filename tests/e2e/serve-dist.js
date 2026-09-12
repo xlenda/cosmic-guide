@@ -7,7 +7,17 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.E2E_PORT || 4173;
-const DIST_DIR = path.join(__dirname, '..', '..', 'dist');
+// E2E_DIST permite servir OUTRA pasta exportada (ex.: dist-lote/) sem mexer no
+// servidor que já estiver de pé sobre dist/ — é como se fotografa um "depois"
+// enquanto outra sessão continua usando o dist/ de sempre. Sem a variável,
+// nada muda: continua dist/.
+// path.resolve aceita tanto caminho relativo a raiz do projeto ("dist-lote")
+// quanto ABSOLUTO — o absoluto e o que permite servir um export feito fora da
+// arvore do projeto, onde a limpeza de outra sessao nao o apaga no meio da
+// fotografia (aconteceu duas vezes em 12/09/2026).
+const DIST_DIR = process.env.E2E_DIST
+  ? path.resolve(__dirname, '..', '..', process.env.E2E_DIST)
+  : path.join(__dirname, '..', '..', 'dist');
 const BASE_PREFIX = '/cosmic-guide';
 
 const MIME = {
@@ -51,5 +61,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`[e2e-serve] servindo dist/ em http://localhost:${PORT}${BASE_PREFIX}/`);
+  console.log(`[e2e-serve] servindo ${path.basename(DIST_DIR)}/ em http://localhost:${PORT}${BASE_PREFIX}/`);
 });

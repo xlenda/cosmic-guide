@@ -49,6 +49,16 @@ import { useCosmicSound } from '../context/CosmicSoundContext';
 // que arrastar. A curva perceptual de verdade acontece em ganhoPerceptual().
 const NIVEIS_VOLUME = [0, 0.15, 0.3, 0.45, 0.6, 0.8, 1];
 
+// A barra de abas do Cosmic é uma pílula flutuante de 68 de altura com 10 de
+// margem embaixo (ESTILO_PILULA, em App.js). O dock pousa logo acima dela.
+const ALTURA_BARRA_ABAS = 78;
+
+// O QUE O APP TEM DE RESERVAR pro dock não cobrir conteúdo: a altura da
+// pílula (44 do botão + 4+4 de padding = 52, medido 54 no Chrome) mais um
+// respiro até o texto. Exportado porque quem reserva o espaço é App.js — o
+// número mora aqui, junto de quem o ocupa, pra não sair de sincronia.
+export const ESPACO_DO_DOCK = 62;
+
 const CHAVE_BRILHO = { alto: 'sound.bright.high', medio: 'sound.bright.mid', baixo: 'sound.bright.low' };
 
 // Motivos que o motor devolve (lib/cosmicSound.js start()) e o contexto guarda,
@@ -483,8 +493,25 @@ export default function CosmicSoundPlayer({ variant = 'dock', style }) {
   // pausar tem que ser possível de qualquer lugar, sempre.
   if (som.inlinesVisiveis > 0 && !som.tocando) return null;
 
+  // ALTURA RESERVADA, NÃO SÓ POSIÇÃO (12/09/2026, achado de auditoria).
+  //
+  // MEDIDO no Horóscopo em 390x844 (dist do HEAD): a área de rolagem vai de
+  // y=158 a y=766, a barra de abas de 766 a 834 — e o dock, em `bottom: 70`,
+  // ficava de 720 a 774. Ou seja: ele invadia os últimos 46px do CONTEÚDO e
+  // apagava palavras no meio da frase ("A Lua entrou em Libra — no dia
+  // anterior estava em Virgem", "O céu calculado deste dia" estavam debaixo
+  // dele). Não era o fim do rolo: era texto vivo, na primeira dobra.
+  //
+  // Mover o dock pra cima só empurraria o problema pra outra linha — flutuante
+  // sobre conteúdo SEMPRE cobre alguma coisa. Então quem reserva o espaço é o
+  // App (ESPACO_DO_DOCK, no padding do container do Tab.Navigator): o
+  // conteúdo encurta, o dock pousa na faixa que sobrou, e nada fica embaixo
+  // dele em tela nenhuma — em vez de 49 telas com paddingBottom na mão.
+  //
+  // `bottom` aqui é só a distância até a barra de abas (68 + 10 de margem,
+  // ver ESTILO_PILULA em App.js), e ele mora dentro da faixa reservada.
   return (
-    <View style={[s.dockArea, { bottom: 70 + insets.bottom }]} pointerEvents="box-none">
+    <View style={[s.dockArea, { bottom: ALTURA_BARRA_ABAS + insets.bottom }]} pointerEvents="box-none">
       <View style={s.pilula}>
         <TouchableOpacity
           style={s.pilulaCorpo}
