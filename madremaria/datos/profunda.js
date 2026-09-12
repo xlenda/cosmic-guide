@@ -72,6 +72,13 @@
  * deste arquivo, em `trechosDe`. O `with { type: 'json' }` e o mesmo de
  * lib/mazo.js: sem ele o Node trata o .json como ESM e recusa carregar. */
 import TEMPOS from './profunda-tempos.json' with { type: 'json' };
+/* Os mesmos tempos para os audios traduzidos, um arquivo por idioma, gerados de
+ * novo a cada gravacao por scripts/juntar-tempos-idioma.js. Import ESTATICO com
+ * caminho literal pela mesma razao do de cima (o Metro nao resolve concatenacao)
+ * — e por isso os dois arquivos existem mesmo vazios: `{}` resolve e degrada,
+ * arquivo ausente quebra o build. */
+import TEMPOS_ES from './profunda-tempos.es.json' with { type: 'json' };
+import TEMPOS_EN from './profunda-tempos.en.json' with { type: 'json' };
 
 /* ===================================================================================
    UM FECHO SO, PARA QUALQUER PESSOA (11/09)
@@ -329,8 +336,15 @@ function tempoUtilizavel(crus) {
   if (!Array.isArray(crus) || crus.length === 0) return false;
   let anterior = -1;
   for (const trecho of crus) {
-    const ini = Number(trecho?.ini);
-    const fim = Number(trecho?.fim);
+    /* `typeof` antes do Number, e nao Number sozinho: `Number(null)` e
+     * `Number('')` dao 0, que passa em Number.isFinite. Um JSON com os tempos
+     * faltando (`"ini": null` — o que o gerador escreve quando o alinhamento
+     * falha numa frase) entrava aqui como frase que comeca no segundo ZERO, e
+     * saia daqui como tempo bom: as dez frases marcadas em 0s, o realce parado
+     * na ultima desde o primeiro instante, e nenhum erro em lugar nenhum.
+     * Tempo ausente e ausencia de tempo — tem de degradar, nao virar zero. */
+    const ini = typeof trecho?.ini === 'number' ? trecho.ini : NaN;
+    const fim = typeof trecho?.fim === 'number' ? trecho.fim : NaN;
     if (!Number.isFinite(ini) || !Number.isFinite(fim)) return false;
     if (ini < anterior || fim < ini) return false;
     if (achatar(trecho?.texto).length === 0) return false;
@@ -339,12 +353,28 @@ function tempoUtilizavel(crus) {
   return true;
 }
 
-function construirTrechos(bloco) {
+/* A CHECAGEM DE FORMA, agora com o texto dentro.
+ *
+ * `tempoUtilizavel` olha so os numeros. Falta a pergunta que importa quando o
+ * JSON e de OUTRO idioma: as frases medidas sao as frases DESTE bloco? Um
+ * profunda-tempos.es.json gerado contra uma traducao anterior passa em todas as
+ * checagens numericas e desenha, na tela espanhola, o espanhol de ontem — com
+ * tempo, acendendo, sem erro nenhum. Pior que nao acender.
+ *
+ * Entao: emendadas, as frases tem de dar de volta o texto do bloco, palavra por
+ * palavra — a mesma regra que test/madremaria-profunda.test.js ja cobra do
+ * portugues. Nao bate, degrada. Vale para os tres idiomas porque mora aqui, no
+ * unico lugar por onde os tres passam. */
+function frasesSaoDoBloco(crus, paragrafos) {
+  return achatar(crus.map((t) => t.texto).join(' ')) === achatar(paragrafos.join(' '));
+}
+
+function construirTrechos(bloco, tabela = TEMPOS) {
   const paragrafos = paragrafosDe(bloco);
-  const medido = TEMPOS && typeof TEMPOS === 'object' ? TEMPOS[bloco.audio] : null;
+  const medido = tabela && typeof tabela === 'object' ? tabela[bloco.audio] : null;
   const crus = medido ? medido.trechos : null;
 
-  if (!tempoUtilizavel(crus)) {
+  if (!tempoUtilizavel(crus) || !frasesSaoDoBloco(crus, paragrafos)) {
     return paragrafos.map((texto, i) =>
       Object.freeze({ ini: null, fim: null, texto, paragrafo: i })
     );
@@ -480,16 +510,18 @@ function audioDe(id) {
 export function trechosDe(id) {
   if (!id) return SEM_TRECHOS;
 
-  /* FORA DO PORTUGUES, NINGUEM ACENDE — e e de proposito.
-   * profunda-tempos.json cronometra as frases PORTUGUESAS. A frase traduzida
-   * cai em outro segundo e tem outro numero de frases: casar os dois acenderia
-   * a frase errada enquanto a voz diz outra, que e pior do que nao acender
-   * nada. Entao cada PARAGRAFO traduzido vira um trecho sem tempo — o mesmo
-   * retorno que este arquivo ja entrega para bloco sem JSON, e a tela desenha
-   * exatamente o que desenhava antes do realce existir.
+  /* O IDIOMA MANDA NOS TEMPOS. Desde que existe .m4a traduzido, cada idioma tem
+   * o seu profunda-tempos.<lang>.json, medido na propria gravacao. O que NUNCA
+   * pode acontecer e cruzar os dois: o segundo portugues sobre a frase espanhola
+   * acende a frase errada enquanto a voz diz outra, que e pior do que nao acender
+   * nada. Por isso a tabela vem do mapa por idioma, e audio ainda nao gravado
+   * simplesmente nao esta la — `construirTrechos` entao devolve um trecho por
+   * PARAGRAFO com `ini: null`, a mesma degradacao de sempre: a tela desenha o
+   * texto traduzido inteiro e nada acende.
    *
-   * Quando houver .m4a traduzido e um profunda-tempos.<lang>.json medido no
-   * MESMO commit da gravacao, este ramo passa a ler o JSON do idioma. */
+   * A mesma degradacao pega o arquivo TORTO — tempos medidos contra uma traducao
+   * anterior — porque `construirTrechos` confere, palavra por palavra, que as
+   * frases medidas sao as frases deste bloco. */
   const lang = idiomaMadre();
   if (lang !== IDIOMA_PADRAO && BLOCOS_POR_IDIOMA[lang]) {
     const chave = `${lang}:${id}`;
@@ -499,9 +531,15 @@ export function trechosDe(id) {
     const traduzido = BLOCOS_POR_IDIOMA[lang][id];
     if (!traduzido) return TRECHOS_POR_AUDIO.get(audioDe(id)) || SEM_TRECHOS;
 
+    /* O dicionario do idioma so tem `titulo` e `texto`; `audio` e `id` moram no
+     * bloco portugues e nao mudam nunca (o nome do .m4a e resolvido por require
+     * estatico). O arquivo traduzido e o MESMO nome com o idioma no meio
+     * (profunda-7.es.m4a), e por isso a tabela do idioma e indexada pelo mesmo
+     * `audio` — `audioDe` continua sendo o unico ponto de traducao id -> audio. */
     const trechos = Object.freeze(
-      paragrafosDe(traduzido).map((texto, i) =>
-        Object.freeze({ ini: null, fim: null, texto, paragrafo: i })
+      construirTrechos(
+        { audio: audioDe(id), texto: traduzido.texto },
+        TEMPOS_POR_IDIOMA[lang]
       )
     );
     CACHE_TRECHOS_TRADUZIDOS.set(chave, trechos);
@@ -523,7 +561,19 @@ export function trechosDe(id) {
  */
 export function duracaoDe(id) {
   if (!id) return 0;
-  const medido = TEMPOS && typeof TEMPOS === 'object' ? TEMPOS[audioDe(id)] : null;
+  /* A duracao tambem e por IDIOMA: o mesmo bloco dura 51,5s em espanhol e 54,2s
+   * em portugues. Devolver a portuguesa para quem ouve o audio espanhol deixaria
+   * a barra correndo na escala errada ate o player carregar — e e justamente
+   * nesses primeiros segundos que ela serve para alguma coisa.
+   *
+   * E sem fallback para o portugues de proposito: fora do PT, `audioDaCarta` de
+   * lib/audios.js devolve null quando nao ha gravacao no idioma, e o botao nem
+   * aparece. Nao ha o que cronometrar, e um 0 honesto e o que `useFraseAtual`
+   * ja sabe tratar — devolver o segundo portugues seria descrever um audio que
+   * ninguem vai ouvir. */
+  const lang = idiomaMadre();
+  const tabela = lang === IDIOMA_PADRAO ? TEMPOS : TEMPOS_POR_IDIOMA[lang];
+  const medido = tabela && typeof tabela === 'object' ? tabela[audioDe(id)] : null;
   const duracao = Number(medido?.duracao);
   return Number.isFinite(duracao) && duracao > 0 ? duracao : 0;
 }
@@ -542,28 +592,58 @@ export function duracaoDe(id) {
    grava como "ja ouvido" e o segundo e nome de arquivo .m4a resolvido por require
    ESTATICO pelo Metro.
 
-   O CONTRATO "TEXTO = VOZ" VALE SO NO PORTUGUES, E ISSO E DECLARADO
-   -----------------------------------------------------------------
-   Os dez .m4a existem so em portugues. Em es/en a pessoa LE traduzido e OUVE
-   portugues — os cabecalhos de datos/profunda.es.js e datos/profunda.en.js
-   dizem isso em voz alta, e o teste de "palavra por palavra" contra
-   docs/ROTEIRO-LEITURA-PROFUNDA.md continua varrendo o PT, que e de onde a
-   regra nasce.
+   O CONTRATO "TEXTO = VOZ" AGORA VALE NOS TRES, ONDE HA GRAVACAO
+   --------------------------------------------------------------
+   A voz clonada (b8boGhcWbCyPtZnKW69X, eleven_multilingual_v2) fala os tres
+   idiomas, e os .m4a traduzidos chegam como <id>.<lang>.m4a. Onde a gravacao
+   existe, o texto de profunda.es.js / profunda.en.js e a transcricao dela, do
+   mesmo jeito que o portugues — trocar uma palavra aqui sem regravar quebra o
+   contrato em silencio, nos tres. O teste contra docs/ROTEIRO-LEITURA-PROFUNDA.md
+   continua varrendo so o PT, que e de onde o roteiro nasce.
 
-   E O REALCE POR FRASE DESLIGA, DE PROPOSITO
-   ------------------------------------------
-   datos/profunda-tempos.json tem o segundo de cada frase PORTUGUESA. Casar
-   aquele tempo com a frase traduzida acenderia a frase errada — pior do que nao
-   acender nenhuma. Entao `trechosDe` devolve os PARAGRAFOS com `ini: null` fora
-   do portugues: o caminho de degradacao que este arquivo ja documenta
-   ("a tela desenha exatamente o que desenhava antes desta feature, nada acende,
-   e nada quebra"). Quando houver audio traduzido, entra um
-   profunda-tempos.<lang>.json e este ramo passa a consultar o JSON do idioma. */
+   O REALCE POR FRASE SEGUE O IDIOMA
+   ---------------------------------
+   Cada idioma tem o seu profunda-tempos.<lang>.json, gerado dos .tempos.json da
+   propria gravacao por scripts/juntar-tempos-idioma.js. `trechosDe` le a tabela
+   do idioma ATIVO — nunca a de outro: o segundo portugues sobre a frase
+   espanhola acenderia a frase errada, pior do que nao acender nenhuma.
+
+   E A DEGRADACAO CONTINUA SENDO A MESMA, por dois caminhos:
+     · audio ainda nao gravado naquele idioma  -> id ausente da tabela
+     · tempos medidos contra uma traducao anterior -> o texto emendado nao bate,
+       palavra por palavra, com o texto do bloco (`frasesSaoDoBloco`)
+   Nos dois, cada PARAGRAFO vira um trecho com `ini: null`: a tela desenha o
+   texto traduzido inteiro, nada acende, e nada quebra. */
 import { PROFUNDA_ES } from './profunda.es.js';
 import { PROFUNDA_EN } from './profunda.en.js';
 import { IDIOMA_PADRAO, idiomaMadre } from './textos.js';
 
 const BLOCOS_POR_IDIOMA = { es: PROFUNDA_ES, en: PROFUNDA_EN };
+
+/* Um texto, um tempo: a tabela do idioma so pode ser lida junto com o texto do
+ * MESMO idioma. Manter os dois mapas com as mesmas chaves e o que garante que
+ * ninguem acende frase espanhola com segundo portugues. */
+const TEMPOS_POR_IDIOMA = { es: TEMPOS_ES, en: TEMPOS_EN };
+
+/* O portao do realce traduzido precisa de tempos medidos para provar que a
+ * frase ACENDE — e enquanto uma gravacao nao chega, profunda-tempos.es.json e
+ * um `{}` honesto. Inventar segundos dentro dele para o teste passar seria
+ * exatamente o defeito que este arquivo inteiro existe para impedir; entao o
+ * teste injeta a tabela, e o arquivo que vai para a loja segue vazio ate a voz
+ * existir. So o mapa troca: idioma, cache, chave do audio e a checagem palavra
+ * por palavra continuam sendo o codigo de producao. */
+export function _inyectarTemposParaTests(lang, tabela) {
+  TEMPOS_POR_IDIOMA[lang] = tabela;
+  for (const chave of [...CACHE_TRECHOS_TRADUZIDOS.keys()]) {
+    if (chave.startsWith(`${lang}:`)) CACHE_TRECHOS_TRADUZIDOS.delete(chave);
+  }
+}
+
+export function _reiniciarTemposParaTests() {
+  TEMPOS_POR_IDIOMA.es = TEMPOS_ES;
+  TEMPOS_POR_IDIOMA.en = TEMPOS_EN;
+  CACHE_TRECHOS_TRADUZIDOS.clear();
+}
 
 /* Lista explicita, e nao "tudo que nao e id/audio": um campo novo no bloco nasce
  * em portugues nos tres idiomas (fallback honesto) em vez de nascer traduzido

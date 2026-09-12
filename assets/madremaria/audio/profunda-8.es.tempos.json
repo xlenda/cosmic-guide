@@ -1,0 +1,40 @@
+{
+ "duracao": 43.095,
+ "trechos": [
+  {
+   "ini": 0.0,
+   "fim": 5.143,
+   "texto": "Ahora tengo que decirte algo sobre lo que mostraron esas tres cartas."
+  },
+  {
+   "ini": 5.468,
+   "fim": 11.575,
+   "texto": "El nudo que apareció ahí no se ató en un día, y tampoco se va a desatar en un día."
+  },
+  {
+   "ini": 11.9,
+   "fim": 20.99,
+   "texto": "Se fue apretando de poco — una conversación que no pasó, una respuesta que quedó fría, un silencio que duró más de lo que debía."
+  },
+  {
+   "ini": 21.315,
+   "fim": 25.24,
+   "texto": "Y por eso no te voy a prometer un vuelco de un día para el otro."
+  },
+  {
+   "ini": 25.565,
+   "fim": 32.763,
+   "texto": "Quien te promete eso te está vendiendo prisa, y la prisa en asuntos de amor suele apretar más el nudo."
+  },
+  {
+   "ini": 33.088,
+   "fim": 36.756,
+   "texto": "Lo que yo te voy a ofrecer es otra cosa: tiempo."
+  },
+  {
+   "ini": 37.198,
+   "fim": 43.095,
+   "texto": "Trece lunas, una por vez, y cada una de ellas con un trabajo tuyo."
+  }
+ ]
+}

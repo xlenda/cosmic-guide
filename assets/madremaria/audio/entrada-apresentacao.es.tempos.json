@@ -1,0 +1,25 @@
+{
+ "duracao": 7.941,
+ "trechos": [
+  {
+   "ini": 0.0,
+   "fim": 1.939,
+   "texto": "Soy yo de nuevo, la Madre María."
+  },
+  {
+   "ini": 1.974,
+   "fim": 4.11,
+   "texto": "Ahora es el turno de tus cartas."
+  },
+  {
+   "ini": 4.226,
+   "fim": 6.049,
+   "texto": "Una por vez, sin prisa."
+  },
+  {
+   "ini": 6.095,
+   "fim": 7.941,
+   "texto": "Yo leo cada una para ti."
+  }
+ ]
+}

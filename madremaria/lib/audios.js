@@ -8,6 +8,12 @@
 // para .m4a (AAC), que toca nas tres plataformas — iOS, Android e web. A
 // conversao esta registrada em scripts/converter-audios.sh para poder ser
 // refeita quando chegarem as outras 33 cartas.
+//
+// IDIOMA: o mapa de baixo (POR_IDIOMA) e a razao deste import. textos.js nao
+// importa nada de lib/, entao nao ha ciclo; e ele so puxa os dicionarios, que
+// a Madre ja carrega em toda tela.
+import { IDIOMA_PADRAO, idiomaMadre } from '../datos/textos';
+
 const AUDIOS = {
   // AS TRES CARTAS da leitura de entrada (screens/LeituraDeEntradaScreen.js).
   'carta-4': require('../../assets/madremaria/audio/carta-4.m4a'),
@@ -80,9 +86,118 @@ const AUDIOS = {
   'profunda-b5': require('../../assets/madremaria/audio/profunda-b5.m4a'),
 };
 
-/** Devolve o modulo do audio, ou null. Null quer dizer "nao desenhe o botao". */
+/* =====================================================================
+ * A MESMA VOZ NOS TRES IDIOMAS (12/09)
+ * =====================================================================
+ * O mapa de cima e o PORTUGUES. Espanhol e ingles moram aqui embaixo, um
+ * mapa por idioma, chaveados pelo MESMO id - `ritual-cafe` em POR_IDIOMA.es
+ * e o `ritual-cafe.es.m4a`, nao um id novo. Assim nenhuma tela precisa saber
+ * que existe idioma: ela segue passando o id que sempre passou.
+ *
+ * POR QUE NAO UMA CHAVE SO ('ritual-cafe.es'): as telas montam o id na mao
+ * ('ritual-' + ritual.id, carta.audio, bloco.audio). Cada uma teria de
+ * aprender a colar o idioma no fim - sete lugares para errar, e o que erra
+ * fica MUDO, que e o defeito que ninguem ve no QA.
+ *
+ * POR QUE 54 LINHAS ESCRITAS A MAO, e nao um laco: pelo mesmo motivo do mapa
+ * de cima - o Metro resolve require no BUILD, com caminho literal. Montar
+ * 'audio/' + id + '.' + lang + '.m4a' nao resolve nada.
+ *
+ * A LISTA e a saida de _montar-lote.js, que colhe o texto pela mesma porta que
+ * a tela usa (getRitual / blocosDaVariante / t) - sao os 27 ids que tem
+ * traducao de verdade, em ES e EN. A ordem espelha a do mapa PT, para as duas
+ * se lerem lado a lado.
+ *
+ * carta-4/5/6 NAO estao aqui, e NAO devem entrar por geracao: sao as TRES
+ * UNICAS gravacoes ORIGINAIS deste app - a voz do proprio dono, gravada por
+ * ele (datos/lenormand.js:6 aponta a origem: C:\TAROT\AUDIO PORTUGUES\4,5,6.ogg).
+ * Todo o resto do app e a voz clonada. Gerar essas tres em ES/EN poria a voz
+ * sintetica no lugar da voz dele no meio da leitura de entrada, e ninguem
+ * perceberia a troca: mesmo nome de arquivo, duracao parecida.
+ * Fora do portugues elas ficam MUDAS (o fallback abaixo devolve null e o botao
+ * some). E ausencia honesta, nao defeito - so o dono pode regrava-las.
+ * ===================================================================== */
+const POR_IDIOMA = {
+  es: {
+    'ritual-cafe': require('../../assets/madremaria/audio/ritual-cafe.es.m4a'),
+    'ritual-mao': require('../../assets/madremaria/audio/ritual-mao.es.m4a'),
+    'ritual-cartas': require('../../assets/madremaria/audio/ritual-cartas.es.m4a'),
+    'ritual-sonho': require('../../assets/madremaria/audio/ritual-sonho.es.m4a'),
+    'ritual-caminhada': require('../../assets/madremaria/audio/ritual-caminhada.es.m4a'),
+    'ritual-canto': require('../../assets/madremaria/audio/ritual-canto.es.m4a'),
+    'ritual-respiro': require('../../assets/madremaria/audio/ritual-respiro.es.m4a'),
+    'entrada-lenormand-32': require('../../assets/madremaria/audio/entrada-lenormand-32.es.m4a'),
+    'entrada-lenormand-21': require('../../assets/madremaria/audio/entrada-lenormand-21.es.m4a'),
+    'entrada-lenormand-22': require('../../assets/madremaria/audio/entrada-lenormand-22.es.m4a'),
+    'entrada-lenormand-33': require('../../assets/madremaria/audio/entrada-lenormand-33.es.m4a'),
+    'entrada-lenormand-35': require('../../assets/madremaria/audio/entrada-lenormand-35.es.m4a'),
+    'entrada-lenormand-16': require('../../assets/madremaria/audio/entrada-lenormand-16.es.m4a'),
+    'entrada-anuncio-extra': require('../../assets/madremaria/audio/entrada-anuncio-extra.es.m4a'),
+    'entrada-anuncio-estrela': require('../../assets/madremaria/audio/entrada-anuncio-estrela.es.m4a'),
+    'entrada-presenca': require('../../assets/madremaria/audio/entrada-presenca.es.m4a'),
+    'entrada-apresentacao': require('../../assets/madremaria/audio/entrada-apresentacao.es.m4a'),
+    'profunda-7': require('../../assets/madremaria/audio/profunda-7.es.m4a'),
+    'profunda-8': require('../../assets/madremaria/audio/profunda-8.es.m4a'),
+    'profunda-9': require('../../assets/madremaria/audio/profunda-9.es.m4a'),
+    'profunda-10': require('../../assets/madremaria/audio/profunda-10.es.m4a'),
+    'profunda-11': require('../../assets/madremaria/audio/profunda-11.es.m4a'),
+    'profunda-b1': require('../../assets/madremaria/audio/profunda-b1.es.m4a'),
+    'profunda-b2': require('../../assets/madremaria/audio/profunda-b2.es.m4a'),
+    'profunda-b3': require('../../assets/madremaria/audio/profunda-b3.es.m4a'),
+    'profunda-b4': require('../../assets/madremaria/audio/profunda-b4.es.m4a'),
+    'profunda-b5': require('../../assets/madremaria/audio/profunda-b5.es.m4a'),
+  },
+  en: {
+    'ritual-cafe': require('../../assets/madremaria/audio/ritual-cafe.en.m4a'),
+    'ritual-mao': require('../../assets/madremaria/audio/ritual-mao.en.m4a'),
+    'ritual-cartas': require('../../assets/madremaria/audio/ritual-cartas.en.m4a'),
+    'ritual-sonho': require('../../assets/madremaria/audio/ritual-sonho.en.m4a'),
+    'ritual-caminhada': require('../../assets/madremaria/audio/ritual-caminhada.en.m4a'),
+    'ritual-canto': require('../../assets/madremaria/audio/ritual-canto.en.m4a'),
+    'ritual-respiro': require('../../assets/madremaria/audio/ritual-respiro.en.m4a'),
+    'entrada-lenormand-32': require('../../assets/madremaria/audio/entrada-lenormand-32.en.m4a'),
+    'entrada-lenormand-21': require('../../assets/madremaria/audio/entrada-lenormand-21.en.m4a'),
+    'entrada-lenormand-22': require('../../assets/madremaria/audio/entrada-lenormand-22.en.m4a'),
+    'entrada-lenormand-33': require('../../assets/madremaria/audio/entrada-lenormand-33.en.m4a'),
+    'entrada-lenormand-35': require('../../assets/madremaria/audio/entrada-lenormand-35.en.m4a'),
+    'entrada-lenormand-16': require('../../assets/madremaria/audio/entrada-lenormand-16.en.m4a'),
+    'entrada-anuncio-extra': require('../../assets/madremaria/audio/entrada-anuncio-extra.en.m4a'),
+    'entrada-anuncio-estrela': require('../../assets/madremaria/audio/entrada-anuncio-estrela.en.m4a'),
+    'entrada-presenca': require('../../assets/madremaria/audio/entrada-presenca.en.m4a'),
+    'entrada-apresentacao': require('../../assets/madremaria/audio/entrada-apresentacao.en.m4a'),
+    'profunda-7': require('../../assets/madremaria/audio/profunda-7.en.m4a'),
+    'profunda-8': require('../../assets/madremaria/audio/profunda-8.en.m4a'),
+    'profunda-9': require('../../assets/madremaria/audio/profunda-9.en.m4a'),
+    'profunda-10': require('../../assets/madremaria/audio/profunda-10.en.m4a'),
+    'profunda-11': require('../../assets/madremaria/audio/profunda-11.en.m4a'),
+    'profunda-b1': require('../../assets/madremaria/audio/profunda-b1.en.m4a'),
+    'profunda-b2': require('../../assets/madremaria/audio/profunda-b2.en.m4a'),
+    'profunda-b3': require('../../assets/madremaria/audio/profunda-b3.en.m4a'),
+    'profunda-b4': require('../../assets/madremaria/audio/profunda-b4.en.m4a'),
+    'profunda-b5': require('../../assets/madremaria/audio/profunda-b5.en.m4a'),
+  },
+};
+
+/** Devolve o modulo do audio no IDIOMA ATIVO, ou null.
+ *  Null quer dizer "nao desenhe o botao" — components/BotaoOuvir.js faz
+ *  `if (!fonte ...) return null`, entao nao sobra botao morto na tela.
+ *
+ *  SEM GRAVACAO NO IDIOMA, NAO CAI NO PORTUGUES. Tocar o PT para quem
+ *  escolheu ingles seria a Madre falando outra lingua por cima de uma tela
+ *  traduzida — pior que o silencio, porque quebra a ilusao inteira em vez de
+ *  so faltar. Sumir o botao ja e o comportamento da casa para audio ausente
+ *  (o cabecalho deste arquivo: "Sem arquivo, o botao nao renderiza"), e a tela
+ *  continua com o texto palavra por palavra, que e o que a pessoa le hoje sem
+ *  fone. Nada de meia-voz.
+ *
+ *  Idioma novo com a tela ABERTA nao trava: MadreMariaApp.js monta a arvore
+ *  com `key={lang}`, entao trocar no Perfil descarta e remonta tudo, e este
+ *  resolver roda de novo. Nenhum consumidor guarda o modulo em useMemo/useState
+ *  — BotaoOuvir chama audioDaCarta a cada render e as telas so passam o id. */
 export function audioDaCarta(id) {
   if (!id) return null;
+  const lang = idiomaMadre();
+  if (lang !== IDIOMA_PADRAO) return POR_IDIOMA[lang]?.[id] ?? null;
   return AUDIOS[id] ?? null;
 }
 

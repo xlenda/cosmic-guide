@@ -1,0 +1,25 @@
+{
+ "duracao": 8.034,
+ "trechos": [
+  {
+   "ini": 0.0,
+   "fim": 2.543,
+   "texto": "It is me again, Madre Maria."
+  },
+  {
+   "ini": 2.821,
+   "fim": 4.412,
+   "texto": "Now it is your cards’ turn."
+  },
+  {
+   "ini": 4.586,
+   "fim": 6.258,
+   "texto": "One at a time, no rush."
+  },
+  {
+   "ini": 6.339,
+   "fim": 8.034,
+   "texto": "I read each one for you."
+  }
+ ]
+}
