@@ -1,9 +1,9 @@
 # Continuar amanhã
 
-**Onde parou:** 12/09/2026, 01:40
-**Tudo salvo em:** branch `madre-maria-fusao` (3 commits)
-**Testes:** 2333, todos passando
-**Publicado?** Ainda não
+**Onde parou:** 12/09/2026, 03:10
+**Tudo salvo em:** branch `madre-maria-fusao` (5 commits)
+**Testes:** 2359, todos passando · build web fechando limpo
+**Publicado?** Ainda não — é o próximo passo
 
 ---
 
@@ -26,26 +26,23 @@ A Madre Maria inteira agora vive dentro do Cosmic Guide, atrás do card
 
 ## O que falta — 3 coisas
 
-### 1. Os áudios em espanhol e inglês
+### 1. Os áudios em espanhol e inglês — ✅ **FEITO**
 
-**Você já autorizou.** Falta rodar.
+**54 gravações** (27 por idioma), com a mesma voz clonada do app. Custaram
+34 mil caracteres — 8,5% do saldo. Zero falhas.
 
-São 62 gravações (31 em cada idioma), com a **mesma voz** que já está no app —
-o ElevenLabs faz a mesma voz falar os três idiomas, não precisa clonar de novo.
+O texto acende junto com a fala em 11 blocos por idioma, com os segundos
+medidos na **própria gravação** de cada idioma (o mesmo bloco dura 51,5s em
+espanhol e 54,2s em português — cruzar os tempos faria o texto acender fora
+de hora).
 
-| | |
-|---|---|
-| Custo | 7% do seu saldo (sobram 398 mil caracteres) |
-| Gerador | pronto e testado, já está no servidor |
+Se faltar áudio num idioma, **o botão some** — nunca toca o português para
+quem escolheu inglês.
 
-**Para ouvir antes:** `Downloads\MADRE-MARIA-VOZ-3-IDIOMAS\` — três provas da
-mesma frase em PT, ES e EN.
-
-> **Um detalhe que importa:** em 11 dos áudios o texto acende na tela junto com
-> a fala, palavra por palavra. Esses precisam ser gerados com o texto traduzido
-> já pronto (está), senão a Madre fala uma coisa e a tela mostra outra. O
-> gerador já cuida disso — mede o tempo de cada frase automaticamente. Testei:
-> a medição bateu com o áudio real no terceiro decimal.
+> **Três cartas ficam mudas em ES/EN de propósito** (`carta-4/5/6`): são as
+> únicas gravações originais do app — **a sua voz**. Gerar essas poria voz
+> sintética no lugar da sua, com o mesmo nome de arquivo e duração parecida.
+> Ninguém perceberia a troca. Só você pode regravá-las — ou aceitar o clone ali.
 
 ### 2. Publicar
 
