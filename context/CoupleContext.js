@@ -48,7 +48,13 @@ import { checkAccountAccess, autoLinkDeviceCodes } from '../lib/accountSubscript
 // checkSoloSubscriptionStatus, combineAccessResults, FeatureGate) continua no
 // código calculando normalmente; só o resultado é sobrescrito no ponto único
 // abaixo. Os cenários do portão terão de voltar junto.
-const TUDO_LIBERADO = true;
+//
+// MUDOU DE CASA EM 11/09/2026 (fusão da Madre Maria): o valor agora vive em
+// lib/paywallGlobal.js, porque a Madre Maria embutida defere a ele e não pode
+// importar este arquivo (ela leria acesso de fora do render, onde hook não
+// roda, e arrastaria React + providers para dentro do `node --test`). O
+// comportamento aqui é idêntico ao de antes; só a linha do valor saiu daqui.
+import { TUDO_LIBERADO } from '../lib/paywallGlobal';
 import { unsubscribeFromWebPush } from '../lib/webPush';
 import { cancelDailyThought } from '../lib/notifications';
 import { resetFunnelSession } from '../lib/funnel';

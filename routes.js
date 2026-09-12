@@ -49,6 +49,14 @@ export const ROUTES = {
   PROFECCOES: 'Profeccoes',
   COMO_DECIDE: 'ComoDecide',
   COFFEE: 'Coffee',
+  // A MADRE MARIA (11/09/2026, decisão do dono: "vai ficar tudo fundido no
+  // cosmic guide como um só"). É o app de reconquista inteiro — apresentação,
+  // as cinco perguntas, as três cartas, o tabuleiro de 365 casas — montado como
+  // UMA tela do HomeStack (madremaria/MadreMariaApp.js). Vive aqui, e não numa
+  // aba própria, porque é a porta do card 'tarotAmor' da Home: mesma stack,
+  // navigate() nu, e o voltar do Android devolve a pessoa pra Home.
+  // Os dados dela são ISOLADOS (prefixo 'mm-hr.' em madremaria/lib/almacen.js).
+  MADRE_MARIA: 'MadreMaria',
   COMPATIBILITY: 'Compatibility',
   QUIZ: 'Quiz',
   // AS SEIS DE CASAL VIRARAM DUAS (10/09/2026, pedido do dono). As rotas

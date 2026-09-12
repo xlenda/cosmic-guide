@@ -769,12 +769,22 @@ export default function HomeScreen() {
     { key: 'comovoceta', title: t('home.card.comovoceta.title'), subtitle: t('home.card.comovoceta.subtitle'), icon: 'heart-half', gradient: ['#FF7BD5', '#FF6B7A'], onPress: () => navigation.navigate(ROUTES.COMO_VOCE_TA) },
     { key: 'birthchart', title: t('home.card.birthchart.title'), subtitle: t('home.card.birthchart.subtitle'), icon: 'compass', gradient: ['#5CA8FF', '#6C7BFF'], onPress: () => navigation.navigate(ROUTES.BIRTH_CHART) },
     { key: 'tarot', title: t('home.card.tarot.title'), subtitle: t('home.card.tarot.subtitle'), icon: 'sparkles', gradient: ['#FF6BA0', '#B57BFF'], onPress: () => navigation.getParent()?.navigate(ROUTES.TAROT_TAB) },
-    // TARÔ DO AMOR (11/09/2026, pedido do dono: "preciso tarot do amor em
-    // cima também" — é onde o funil vai entrar). Não é tela nova: é a porta
-    // direta pro tema Amor que o Tarô já tinha. Navegação aninhada: a aba
-    // Tarô é um Stack (App.js TarotStack), então o parâmetro vai pra tela de
-    // dentro, não pra aba.
-    { key: 'tarotAmor', title: t('home.card.tarotAmor.title'), subtitle: t('home.card.tarotAmor.subtitle'), icon: 'heart', gradient: ['#FF6BA0', '#C88C88'], onPress: () => navigation.getParent()?.navigate(ROUTES.TAROT_TAB, { screen: ROUTES.TAROT_MAIN, params: { initialTheme: 'Amor' } }) },
+    // TRAGA SEU AMOR DE VOLTA — a porta da MADRE MARIA (11/09/2026, decisão do
+    // dono: "vai ficar tudo fundido no cosmic guide como um só... vc vai fundir
+    // a madre maria na parte de taro do amor"). Até 11/09 este card abria o tema
+    // Amor do Tarô do próprio Cosmic; agora abre o app de reconquista inteiro —
+    // a Madre se apresenta, faz as cinco perguntas, tira as três cartas.
+    //
+    // A 'key' NÃO muda, e isso é deliberado: há três amarrações por ela
+    // (CARDS_DESTAQUE logo abaixo, ORDEM_TOPO, e o TILES de lib/ilustracoes.js).
+    // Renomear a key apagaria o destaque e a ilustração sem erro nenhum.
+    //
+    // navigate() NU, sem getParent(): a Madre é uma <Stack.Screen> DESTA stack
+    // (App.js, ao lado de COFFEE), não de outra aba. O getParent() antigo existia
+    // só porque o destino era a aba Tarô; mantê-lo mandaria a ação pro Tab pai,
+    // que não conhece este nome, e ela desceria de volta — funcionando por
+    // acaso hoje e quebrando no dia em que algum irmão declarasse o mesmo nome.
+    { key: 'tarotAmor', title: t('home.card.tarotAmor.title'), subtitle: t('home.card.tarotAmor.subtitle'), icon: 'heart', gradient: ['#FF6BA0', '#C88C88'], onPress: () => navigation.navigate(ROUTES.MADRE_MARIA) },
     { key: 'compatibility', title: t('home.card.compatibility.title'), subtitle: t('home.card.compatibility.subtitle'), icon: 'heart', gradient: ['#FF8C5C', '#FF6B7A'], onPress: () => navigation.navigate(ROUTES.COMPATIBILITY) },
     // AS SEIS DE CASAL VIRARAM DUAS (10/09/2026, pedido do dono: "junte tudo
     // em 2 funções só"). Cada porta abre as três telas antigas em abas — nada

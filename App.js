@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState, Suspense, lazy } from 
 import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { getFocusedRouteNameFromRoute, NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -11,6 +11,12 @@ import { StatusBar } from 'expo-status-bar';
 
 import { colors } from './theme';
 import { ROUTES } from './routes';
+/* O mapa de URL da Madre Maria. Vem de madremaria/enlaces.js e NAO de
+ * madremaria/MadreMariaApp.js de proposito: a tela entra por lazy() e o
+ * `linking` abaixo e lido no arranque, antes de qualquer chunk preguicoso
+ * chegar. enlaces.js so importa strings (zero React, zero tela), entao o lazy
+ * da Madre continua valendo. O cabecalho daquele arquivo explica inteiro. */
+import { ENLACES_MADRE } from './madremaria/enlaces';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AlertHost } from './components/AlertHost';
 import PasswordRecoveryModal from './components/PasswordRecoveryModal';
@@ -154,6 +160,13 @@ const ComoVoceTaScreen = lazy(() => import('./screens/ComoVoceTaScreen'));
 const QuizCosmicoScreen = lazy(() => import('./screens/QuizCosmicoScreen'));
 const WallpaperScreen = lazy(() => import('./screens/WallpaperScreen'));
 const CoffeeScreen = lazy(() => import('./screens/CoffeeScreen'));
+// A MADRE MARIA — o app de reconquista inteiro como UMA tela (11/09/2026).
+// lazy() aqui, no escopo de MODULO, E o mecanismo de chunk: o bundle dela (as
+// 19 telas, o baralho, as 9 faces tipograficas de 3,99MB) so baixa quando
+// alguem toca o card "Traga seu amor de volta". Declarar dentro do corpo de
+// HomeStack criaria um componente NOVO a cada render e desmontaria a tela a
+// cada troca de aba — a mesma armadilha do withFeatureGate documentada abaixo.
+const MadreMariaScreen = lazy(() => import('./madremaria/MadreMariaApp'));
 const QuizScreen = lazy(() => import('./screens/QuizScreen'));
 const DiaryScreen = lazy(() => import('./screens/DiaryScreen'));
 const SocialScreen = lazy(() => import('./screens/SocialScreen'));
@@ -284,7 +297,38 @@ const ROTAS_SEM_PILL = new Set([
   // O alinhamento é um gesto de foco. A oferta flutuante não pode cobrir o
   // palco nem disputar o toque com o fallback acessível da experiência.
   ROUTES.SKY_ALIGNMENT,
+  // A MADRE MARIA (11/09/2026): dentro dela a barra do Cosmic ja se esconde
+  // (ver ESTILO_ABA_ESCONDIDA) e a barra de 3 zonas DELA ocupa o pe da tela.
+  // A pill flutuante pousaria exatamente em cima dessa barra.
+  ROUTES.MADRE_MARIA,
 ]);
+
+// A PILULA FLUTUANTE, agora uma CONSTANTE. Ela morava inline dentro de
+// screenOptions; saiu para ca porque a aba Home passou a precisar cita-la pelo
+// nome (ver o ternario na <Tab.Screen> da Home). Object.freeze e escopo de
+// modulo de proposito: objeto novo a cada render remontaria o estilo da barra
+// a toa.
+const ESTILO_PILULA = Object.freeze({
+  backgroundColor: colors.surface,
+  borderTopWidth: 0,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 32,
+  marginHorizontal: 12,
+  marginBottom: 10,
+  height: 68,
+  paddingBottom: 5,
+  paddingTop: 5,
+  shadowColor: '#000',
+  shadowOpacity: 0.35,
+  shadowRadius: 16,
+  shadowOffset: { width: 0, height: 8 },
+  elevation: 12,
+});
+
+// A pilula DESLIGADA: `display:'none'` e o desligamento que o bottom-tabs v6
+// entende em web E em nativo. Usada so quando a Madre Maria esta em foco.
+const ESTILO_ABA_ESCONDIDA = Object.freeze({ display: 'none' });
 
 const TRANSICAO_STACK = {
   ...TransitionPresets.SlideFromRightIOS,
@@ -337,6 +381,14 @@ const linking = {
           [ROUTES.COMO_VOCE_TA]: 'como-voce-ta',
           [ROUTES.QUIZ_COSMICO]: 'voce-sabia',
           [ROUTES.WALLPAPER]: 'papel-de-parede',
+
+          // A MADRE MARIA (11/09/2026): o app de reconquista inteiro vive sob
+          // /amor, com as telas dela aninhadas (o mapa sai de
+          // madremaria/MadreMariaApp.js, junto das <Stack.Screen> que descreve).
+          // Sem isto a Madre nao teria URL: o F5 dentro dela devolveria a pessoa
+          // para a Home e o Voltar do navegador SAIRIA DO APP — o jeito mais
+          // silencioso de perder alguem no meio do funil.
+          [ROUTES.MADRE_MARIA]: { path: 'amor', screens: ENLACES_MADRE },
         },
       },
       // URL estável da quarta aba na web. A raiz é o hub de salas; o feed
@@ -476,6 +528,12 @@ function HomeStack({ initialRouteName = ROUTES.HOME_MAIN } = {}) {
         <Stack.Screen name={ROUTES.QUIZ_COSMICO} component={QuizCosmicoScreen} />
         <Stack.Screen name={ROUTES.WALLPAPER} component={WallpaperScreen} />
         <Stack.Screen name={ROUTES.COFFEE} component={CoffeeScreen} />
+        {/* A MADRE MARIA (11/09/2026). Sem withFeatureGate na borda: o paywall
+            dela defere ao do Cosmic por dentro (madremaria/lib/suscripcion.js),
+            e hoje TUDO_LIBERADO=true. Vizinha de COFFEE e PALM de proposito —
+            sao as duas telas que o plano do dia dela abre, e como irmas na
+            MESMA stack o navigate() nu de la sobe um nivel e pousa aqui. */}
+        <Stack.Screen name={ROUTES.MADRE_MARIA} component={MadreMariaScreen} />
         <Stack.Screen name={ROUTES.COMPATIBILITY} component={CompatibilityScreen} />
         <Stack.Screen name={ROUTES.QUIZ} component={QuizScreen} />
         <Stack.Screen name={ROUTES.DIARY} component={DiaryScreen} />
@@ -708,23 +766,7 @@ function Gate() {
           // toda tela — a mesma classe de bug do quiz no Safari que custou
           // lead (ver mobile-web-real.md). Em fluxo, o conteúdo termina acima
           // dela por construção, em qualquer viewport.
-          tabBarStyle: {
-            backgroundColor: colors.surface,
-            borderTopWidth: 0,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: 32,
-            marginHorizontal: 12,
-            marginBottom: 10,
-            height: 68,
-            paddingBottom: 5,
-            paddingTop: 5,
-            shadowColor: '#000',
-            shadowOpacity: 0.35,
-            shadowRadius: 16,
-            shadowOffset: { width: 0, height: 8 },
-            elevation: 12,
-          },
+          tabBarStyle: ESTILO_PILULA,
           tabBarActiveTintColor: colors.purple,
           tabBarInactiveTintColor: colors.textMuted,
           // A aba ativa ganha um leito arredondado próprio dentro da pílula —
@@ -750,7 +792,40 @@ function Gate() {
         <Tab.Screen
           name={ROUTES.HOME_TAB}
           component={HomeStack}
-          options={{ tabBarLabel: t('tab.home') }}
+          options={({ route }) => ({
+            tabBarLabel: t('tab.home'),
+            // DUAS BARRAS INFERIORES, NUNCA (11/09/2026). A Madre Maria traz a
+            // barra de 3 zonas dela (madremaria/components/BarraInferior.js),
+            // que e position:absolute no pe da tela. Com a pilula do Cosmic
+            // desenhada ao mesmo tempo, a pessoa via DUAS barras de navegacao
+            // empilhadas competindo — o oposto de "parece o mesmo app". A
+            // barra da Madre fica: a navegacao de 3 zonas dela e parte da alma
+            // do produto. Some a de FORA.
+            //
+            // getFocusedRouteNameFromRoute devolve a rota focada do navegador
+            // filho IMEDIATO desta aba — o HomeStack — entao aqui o valor e
+            // 'MadreMaria' cru, e nao um nome de aba de dentro da Madre.
+            // undefined antes da primeira navegacao (a stack ainda nao tem
+            // estado): cai no padrao, que e a Home, e a pilula aparece.
+            //
+            // POR QUE AQUI E NAO NA <Stack.Screen> DA MADRE: no v6
+            // `tabBarStyle` declarado numa tela de navegador ANINHADO nao sobe
+            // para o tab pai (isso era v5). Tem de ser calculado na propria
+            // Tab.Screen, como esta.
+            //
+            // POR QUE NAO withFeatureGate/HOC nem componente calculado no
+            // render: trocar o `component` desmonta o HomeStack inteiro a cada
+            // troca de aba. Aqui so muda um ESTILO — a arvore nao se mexe.
+            // ESTILO_PILULA repetido de proposito no ramo do else, NUNCA
+            // `undefined`: as `options` da Screen sao fundidas sobre as
+            // `screenOptions` do Navigator com Object.assign, e Object.assign
+            // COPIA um undefined explicito por cima. `: undefined` apagaria a
+            // pilula e deixaria a barra cinza padrao em toda a aba Home.
+            tabBarStyle:
+              getFocusedRouteNameFromRoute(route) === ROUTES.MADRE_MARIA
+                ? ESTILO_ABA_ESCONDIDA
+                : ESTILO_PILULA,
+          })}
           listeners={({ navigation }) => ({
             tabPress: () => {
               const tab = navigation.getState().routes.find((route) => route.name === ROUTES.HOME_TAB);

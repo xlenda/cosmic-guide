@@ -1,0 +1,1038 @@
+[
+  {
+    "id": "major-00",
+    "nombre": "El Loco",
+    "escena": "el caminante con el hatillo al hombro y el pie al borde del precipicio, y el perro tirando de su ropa",
+    "consejo": "El paso pide confianza, no garantía — pero mira dónde pisas antes de saltar.",
+    "consejoInv": "Antes de arriesgar, pregúntate si es coraje o huida; si lo que frena es miedo, ponle nombre al miedo.",
+    "amor": "El pie al borde pregunta si este acercamiento nace de apertura o de impulso. Antes del salto, combina libertad con un límite claro.",
+    "claves": [
+      "salto de fe",
+      "nuevos comienzos",
+      "espontaneidad",
+      "libertad"
+    ]
+  },
+  {
+    "id": "major-01",
+    "nombre": "El Mago",
+    "escena": "la mesa con los cuatro símbolos de los palos, una mano apuntando al cielo y otra a la tierra",
+    "consejo": "Las herramientas ya están sobre tu mesa; lo que falta es elegir cuál usar primero.",
+    "consejoInv": "Verifica si la promesa — tuya o de alguien — tiene respaldo: el talento disperso no manifiesta nada.",
+    "amor": "El Mago reúne intención y recursos sobre la mesa. En vez de seducir con promesas, muestra con una acción qué vínculo quieres construir.",
+    "claves": [
+      "poder personal",
+      "habilidad",
+      "manifestación",
+      "acción"
+    ]
+  },
+  {
+    "id": "major-02",
+    "nombre": "La Sacerdotisa",
+    "escena": "la guardiana sentada entre las columnas blanca y negra, con el rollo de la ley medio escondido en el manto",
+    "consejo": "No todo necesita decirse o decidirse ahora; espera el dato que todavía no llegó.",
+    "consejoInv": "O te están escondiendo algo, o estás ignorando lo que ya sabes por dentro — verifica cuál de los dos.",
+    "amor": "Entre las dos columnas, la Sacerdotisa protege lo que aún no se dijo. Observa los silencios y pide contexto antes de llenar vacíos con suposiciones.",
+    "claves": [
+      "intuición",
+      "misterio",
+      "sabiduría interior",
+      "subconsciente"
+    ]
+  },
+  {
+    "id": "major-03",
+    "nombre": "La Emperatriz",
+    "escena": "el trono acolchado en el campo de trigo maduro, con el cetro en la mano y el escudo de Venus al lado",
+    "consejo": "Deja crecer en el tiempo que la cosa pide — cuidar aquí también es producir.",
+    "consejoInv": "Cuidar de todo el mundo y de nada tuyo seca la fuente; recoge un poco hacia dentro.",
+    "amor": "En el campo de trigo, el afecto crece con presencia sostenida. Mira si el cuidado circula entre ambos o si alguien se volvió la única fuente del vínculo.",
+    "claves": [
+      "abundancia",
+      "fertilidad",
+      "naturaleza",
+      "creatividad"
+    ]
+  },
+  {
+    "id": "major-04",
+    "nombre": "El Emperador",
+    "escena": "el trono de piedra con cabezas de carnero, en una montaña seca sin nada verde alrededor",
+    "consejo": "Define la regla y el límite antes de seguir — aquí la estructura es protección, no prisión.",
+    "consejoInv": "Demasiada rigidez y ninguna estructura terminan igual: nada se sostiene.",
+    "amor": "El trono de piedra pregunta qué límites dan seguridad al vínculo y cuáles se volvieron mando. Nombra una regla que proteja a ambos sin controlar al otro.",
+    "claves": [
+      "autoridad",
+      "estructura",
+      "control",
+      "liderazgo"
+    ]
+  },
+  {
+    "id": "major-05",
+    "nombre": "El Hierofante",
+    "escena": "el maestro entre dos columnas bendiciendo a dos discípulos, con las llaves cruzadas a los pies",
+    "consejo": "Vale consultar a quien ya recorrió ese camino antes de inventar el tuyo.",
+    "consejoInv": "La regla heredada puede ya no servir — cuestiónala, pero sabe qué estás dejando atrás.",
+    "amor": "Ante el maestro y sus discípulos, revisa qué reglas de pareja fueron heredadas. Conserva solo las que aún representan los valores de ambos.",
+    "claves": [
+      "tradición",
+      "conformidad",
+      "espiritualidad institucional",
+      "enseñanza"
+    ]
+  },
+  {
+    "id": "major-06",
+    "nombre": "Los Enamorados",
+    "escena": "el ángel sobre dos figuras, entre el árbol del conocimiento y el árbol de la vida: el instante antes de la elección",
+    "consejo": "Elige por lo que valoras, no por lo más fácil — y elige una sola cosa.",
+    "consejoInv": "Si la decisión se trabó, es porque dos valores tuyos están en conflicto; nómbralos antes de decidir.",
+    "amor": "Bajo el ángel, los Enamorados muestran el instante anterior a elegir. La pregunta central es si deseo, acuerdo y valores apuntan al mismo vínculo.",
+    "claves": [
+      "elecciones",
+      "alineación de valores",
+      "amor",
+      "armonía"
+    ]
+  },
+  {
+    "id": "major-07",
+    "nombre": "El Carro",
+    "escena": "el conductor de pie entre dos esfinges de colores opuestos, sin riendas en las manos",
+    "consejo": "Sostén la dirección con la voluntad, no con la fuerza — las dos esfinges tiran hacia lados opuestos.",
+    "consejoInv": "Sin rumbo definido, la energía se vuelve agitación; detente y di hacia dónde antes de acelerar.",
+    "amor": "Las esfinges tiran en sentidos opuestos mientras el conductor sostiene el rumbo. Hablen de una dirección común antes de acelerar la relación.",
+    "claves": [
+      "determinación",
+      "voluntad",
+      "victoria",
+      "control"
+    ]
+  },
+  {
+    "id": "major-08",
+    "nombre": "La Fuerza",
+    "escena": "la mujer cerrando la boca del león con las propias manos, sin violencia, bajo el símbolo del infinito",
+    "consejo": "Firmeza con gentileza dobla lo que la fuerza bruta solo irrita.",
+    "consejoInv": "La duda sobre ti está haciendo el trabajo que el obstáculo no logró hacer.",
+    "amor": "La mujer toca al león sin violencia. Una conversación firme y amable puede mostrar si la relación recibe límites o solo responde a la presión.",
+    "claves": [
+      "coraje",
+      "paciencia",
+      "compasión",
+      "fuerza interior"
+    ]
+  },
+  {
+    "id": "major-09",
+    "nombre": "El Ermitaño",
+    "escena": "el viejo en lo alto de la montaña con una estrella dentro de la linterna, iluminando solo el próximo paso",
+    "consejo": "Recogerse un tiempo aquí es método, no huida — la linterna muestra un paso a la vez.",
+    "consejoInv": "El retiro se volvió aislamiento; pide ayuda a una persona específica, no al mundo en general.",
+    "amor": "La linterna ilumina solo el siguiente paso. Un tiempo de retiro puede aclarar el vínculo, siempre que no se convierta en desaparición sin conversación.",
+    "claves": [
+      "introspección",
+      "búsqueda interior",
+      "soledad",
+      "orientación"
+    ]
+  },
+  {
+    "id": "major-10",
+    "nombre": "La Rueda de la Fortuna",
+    "escena": "la rueda girando en el cielo con las cuatro criaturas en las esquinas, cada una leyendo su propio libro",
+    "consejo": "Lo que gira no pide control, pide posición — mira en qué punto de la vuelta estás.",
+    "consejoInv": "Si el mismo ciclo se repite, busca tu parte en él: ahí es donde existe elección.",
+    "amor": "La rueda invita a reconocer el ciclo del vínculo: cercanía, distancia, reparación o repetición. Busca dónde tu respuesta todavía puede cambiar la vuelta.",
+    "claves": [
+      "ciclos",
+      "destino",
+      "cambio",
+      "suerte"
+    ]
+  },
+  {
+    "id": "major-11",
+    "nombre": "La Justicia",
+    "escena": "la figura sentada con la espada en alto en una mano y la balanza en la otra, entre las cortinas",
+    "consejo": "Mira el hecho antes que el sentimiento y asume tu parte de la cuenta.",
+    "consejoInv": "Hay un desequilibrio real; antes de acusar, revisa qué parte de él es tuya.",
+    "amor": "Espada y balanza piden verdad con medida. Separa hechos, interpretación y responsabilidad de cada persona antes de buscar un veredicto sobre el vínculo.",
+    "claves": [
+      "verdad",
+      "equilibrio",
+      "ley",
+      "causa y efecto"
+    ]
+  },
+  {
+    "id": "major-12",
+    "nombre": "El Colgado",
+    "escena": "el hombre colgado boca abajo de un pie, sereno, con un halo alrededor de la cabeza",
+    "consejo": "La pausa es el trabajo ahora — insistir solo aprieta el nudo.",
+    "consejoInv": "Llevas colgado demasiado tiempo sin que nada cambie: o te entregas de verdad, o bajas.",
+    "amor": "El Colgado cambia la visión al suspender el movimiento. Deja de forzar una respuesta y mira el vínculo desde el lugar que sueles ignorar.",
+    "claves": [
+      "pausa",
+      "entrega",
+      "nueva perspectiva",
+      "sacrificio"
+    ]
+  },
+  {
+    "id": "major-13",
+    "nombre": "La Muerte",
+    "escena": "el caballero de armadura pasando con el estandarte de la rosa blanca, y el sol naciendo entre dos torres al fondo",
+    "consejo": "Algo terminó de verdad; la energía gastada en sostener es la que va a faltar para lo que viene.",
+    "consejoInv": "Sostener lo que ya terminó no lo trae de vuelta — solo aplaza el duelo y cobra intereses.",
+    "amor": "La Muerte habla de una forma de vínculo que terminó, no de muerte literal. Reconoce el cierre antes de intentar llamarlo continuidad.",
+    "claves": [
+      "transformación",
+      "fin de ciclo",
+      "transición",
+      "renovación"
+    ]
+  },
+  {
+    "id": "major-14",
+    "nombre": "La Templanza",
+    "escena": "el ángel con un pie en el agua y otro en la tierra, pasando líquido de una copa a otra",
+    "consejo": "Mezcla de a poco: aquí la dosis justa importa más que la decisión.",
+    "consejoInv": "Algún exceso está desajustando el resto; identifica uno solo y reduce ese.",
+    "amor": "El líquido pasa poco a poco entre dos copas. Ajustes pequeños y recíprocos pueden mostrar la medida del encuentro mejor que una gran declaración.",
+    "claves": [
+      "equilibrio",
+      "moderación",
+      "paciencia",
+      "armonía"
+    ]
+  },
+  {
+    "id": "major-15",
+    "nombre": "El Diablo",
+    "escena": "la pareja encadenada al bloque — con las cadenas lo bastante flojas para salir por la cabeza",
+    "consejo": "Mira la cadena y lo que te da a cambio; sin eso, el patrón continúa.",
+    "consejoInv": "La cadena se está aflojando — nombra lo que ya puedes soltar hoy.",
+    "amor": "Las cadenas permiten salir, pero también ofrecen algo a cambio. Nombra la ganancia oculta que mantiene este patrón afectivo.",
+    "claves": [
+      "apego",
+      "vicios",
+      "materialismo",
+      "sombra"
+    ]
+  },
+  {
+    "id": "major-16",
+    "nombre": "La Torre",
+    "escena": "el rayo arrancando la corona de lo alto de la torre y las dos figuras cayendo",
+    "consejo": "Lo que cayó ya estaba rajado; recoge lo que era verdadero y no reconstruyas igual.",
+    "consejoInv": "La caída se está aplazando, o viviéndose por dentro en silencio — aplazar aquí cobra intereses.",
+    "amor": "El rayo no crea la grieta: la revela. Di qué estructura del vínculo dejó de sostener verdad, seguridad o respeto.",
+    "claves": [
+      "ruptura súbita",
+      "revelación",
+      "caos",
+      "despertar"
+    ]
+  },
+  {
+    "id": "major-17",
+    "nombre": "La Estrella",
+    "escena": "la mujer arrodillada derramando dos jarras, una en la laguna y otra en la tierra, bajo ocho estrellas",
+    "consejo": "Confía lo suficiente para seguir regando el suelo: la recuperación es lenta y es real.",
+    "consejoInv": "La fe bajó — busca la cosa pequeña y concreta que todavía funciona y empieza por ella.",
+    "amor": "Bajo ocho estrellas, el agua se ofrece al estanque y a la tierra. Un reencuentro pide vulnerabilidad recíproca, no fe usada para ignorar ausencias.",
+    "claves": [
+      "esperanza",
+      "fe",
+      "renovación",
+      "inspiración"
+    ]
+  },
+  {
+    "id": "major-18",
+    "nombre": "La Luna",
+    "escena": "el camino entre dos torres, el perro y el lobo aullando y el cangrejo de río saliendo del agua",
+    "consejo": "No decidas a oscuras; espera a que aclare o pide un segundo par de ojos.",
+    "consejoInv": "Lo que asustaba está tomando forma — el miedo era más grande que el hecho.",
+    "amor": "Entre perro y lobo, el camino existe, pero la luz distorsiona los contornos. Evita decidir desde la ansiedad y pide claridad sobre lo ambiguo.",
+    "claves": [
+      "ilusión",
+      "intuición",
+      "miedo",
+      "subconsciente"
+    ]
+  },
+  {
+    "id": "major-19",
+    "nombre": "El Sol",
+    "escena": "el niño en el caballo blanco bajo los girasoles, con el sol de rostro abierto en lo alto",
+    "consejo": "Deja que sea simple y visible — no todo necesita complicación para valer.",
+    "consejoInv": "La alegría está ahí, solo opacada; busca qué está tapando la luz.",
+    "amor": "El niño bajo el sol invita a un afecto visible y sencillo. Di qué aprecias y observa si la alegría puede existir sin actuación.",
+    "claves": [
+      "alegría",
+      "éxito",
+      "vitalidad",
+      "claridad"
+    ]
+  },
+  {
+    "id": "major-20",
+    "nombre": "El Juicio",
+    "escena": "el ángel con la trompeta y las figuras levantándose de los ataúdes, con los brazos abiertos",
+    "consejo": "Un llamado antiguo volvió; responder es decidir, no esperar una señal mejor.",
+    "consejoInv": "La autocrítica no es evaluación: juzga el acto, no la persona que eres.",
+    "amor": "La trompeta llama a responder por lo pendiente. Revisa una decisión afectiva desde lo aprendido sin reducir a nadie a un error antiguo.",
+    "claves": [
+      "renacimiento",
+      "llamado interior",
+      "evaluación",
+      "absolución"
+    ]
+  },
+  {
+    "id": "major-21",
+    "nombre": "El Mundo",
+    "escena": "la figura danzando dentro de la corona de laureles, con las cuatro criaturas en las esquinas",
+    "consejo": "Cierra el ciclo por completo antes de abrir el próximo — reconocer el fin es parte de eso.",
+    "consejoInv": "Falta un detalle para cerrar y es ese el que sostiene todo; descubre cuál es.",
+    "amor": "Dentro de la corona de laureles, el ciclo pide reconocimiento completo. Celebra lo realizado por el vínculo y nombra qué necesita cierre antes de recomenzar.",
+    "claves": [
+      "conclusión",
+      "realización",
+      "integración",
+      "plenitud"
+    ]
+  },
+  {
+    "id": "paus-01",
+    "nombre": "As de Bastos",
+    "escena": "la mano saliendo de la nube sosteniendo un bastón que todavía brota hojas",
+    "consejo": "La chispa es real, pero todavía es chispa — da hoy el primer paso concreto.",
+    "consejoInv": "Las ganas existen y no salen del lugar: reduce el proyecto al paso más pequeño posible.",
+    "amor": "El bastón que brota sugiere un deseo todavía inicial. Dale forma al interés con un gesto claro y observa si existe apertura recíproca antes de alimentar expectativas.",
+    "claves": [
+      "inicio",
+      "inspiración",
+      "potencial"
+    ]
+  },
+  {
+    "id": "paus-02",
+    "nombre": "Dos de Bastos",
+    "escena": "el hombre en lo alto del castillo con el globo en la mano, mirando el mar, un bastón fijado a la pared y otro en la mano",
+    "consejo": "Elige entre el mapa y el mundo: planificar más no sustituye decidir.",
+    "consejoInv": "El miedo a lo desconocido está disfrazado de \"todavía no es hora\".",
+    "amor": "Desde el castillo, una persona sostiene el mundo mientras permanece entre dos bastones. Convierte la imaginación sobre el vínculo en una conversación sobre dirección, distancia y elección real.",
+    "claves": [
+      "planificación",
+      "decisión",
+      "expansión"
+    ]
+  },
+  {
+    "id": "paus-03",
+    "nombre": "Tres de Bastos",
+    "escena": "la figura de espaldas en el acantilado, tres bastones clavados, viendo partir los barcos",
+    "consejo": "Lo que lanzaste ya está en camino; ahora toca acompañar, no empezar de nuevo.",
+    "consejoInv": "El retraso es del plazo, no del proyecto — revisa la expectativa antes de revisar el plan.",
+    "amor": "La figura observa barcos que ya zarparon. Después de expresar tu intención, deja espacio para la respuesta de la otra persona en vez de repetir el mismo mensaje con más intensidad.",
+    "claves": [
+      "previsión",
+      "expansión",
+      "resultados"
+    ]
+  },
+  {
+    "id": "paus-04",
+    "nombre": "Cuatro de Bastos",
+    "escena": "cuatro bastones floridos formando un pórtico con guirnalda, y la fiesta ocurriendo detrás",
+    "consejo": "Algo ya fue construido y todavía no fue reconocido — reconócelo antes de seguir.",
+    "consejoInv": "O la base está inestable, o la celebración se está aplazando; cuida la casa primero.",
+    "amor": "El pórtico florido celebra una base compartida. Reconoce lo que el vínculo ya construyó y pregunta qué pequeño ritual vuelve esa sensación de hogar más recíproca.",
+    "claves": [
+      "celebración",
+      "armonía",
+      "hogar"
+    ]
+  },
+  {
+    "id": "paus-05",
+    "nombre": "Cinco de Bastos",
+    "escena": "cinco jóvenes con bastones en alto en una escaramuza confusa, más entrenamiento que guerra",
+    "consejo": "Esto es escaramuza, no guerra: arbitra lo acordado en vez de ganar la discusión.",
+    "consejoInv": "El conflicto se volvió hacia dentro — nombra lo que no dijiste.",
+    "amor": "Los cinco bastones muestran voluntades cruzadas en una disputa confusa. Antes de intentar ganar la conversación, identifica el tema real y acuerda una regla para que ambas voces tengan lugar.",
+    "claves": [
+      "conflicto",
+      "competencia",
+      "tensión"
+    ]
+  },
+  {
+    "id": "paus-06",
+    "nombre": "Seis de Bastos",
+    "escena": "el jinete coronado de laureles desfilando entre los que van a pie",
+    "consejo": "Acepta el reconocimiento sin convencerte de que es permanente.",
+    "consejoInv": "Si el mérito no llegó, revisa lo que se entregó antes de culpar al público.",
+    "amor": "El jinete recibe laureles frente al grupo. El aprecio fortalece el vínculo cuando reconoce algo concreto; ofrécelo sin colocar a nadie en un pedestal difícil de sostener.",
+    "claves": [
+      "victoria",
+      "reconocimiento",
+      "éxito"
+    ]
+  },
+  {
+    "id": "paus-07",
+    "nombre": "Siete de Bastos",
+    "escena": "la figura en lo alto del terreno defendiendo la posición contra seis bastones que suben",
+    "consejo": "Vale defender la posición, siempre que todavía sea tuya — verifica eso antes de gastar fuerza.",
+    "consejoInv": "La presión venció por cansancio; elige un solo frente y suelta los otros.",
+    "amor": "Desde el terreno alto, la figura protege su posición frente a varias presiones. Sostén un límite importante y comprueba si defender el vínculo se convirtió en defenderte dentro de él.",
+    "claves": [
+      "defensa",
+      "perseverancia",
+      "desafío"
+    ]
+  },
+  {
+    "id": "paus-08",
+    "nombre": "Ocho de Bastos",
+    "escena": "ocho bastones cruzando el cielo abierto en pleno vuelo, sin nadie en la escena",
+    "consejo": "Las cosas andan rápido ahora: responde al ritmo en vez de frenar.",
+    "consejoInv": "Lo que se atascó pide un destrabe simple, no un plan nuevo.",
+    "amor": "Ocho bastones cruzan un cielo sin obstáculos. Si el intercambio ganó velocidad, confirma intención y ritmo para que el entusiasmo no atropelle consentimiento, contexto o tiempo de respuesta.",
+    "claves": [
+      "velocidad",
+      "movimiento",
+      "progreso"
+    ]
+  },
+  {
+    "id": "paus-09",
+    "nombre": "Nueve de Bastos",
+    "escena": "el hombre herido en la cabeza, apoyado en el bastón, con ocho bastones en fila detrás como cerca",
+    "consejo": "Estás herido y todavía de pie — solo no confundas vigilancia con desconfiar de todo.",
+    "consejoInv": "La guardia alta se volvió muro; verifica si todavía existe enemigo afuera.",
+    "amor": "La figura herida sigue de guardia ante la cerca. La protección aprendida tiene sentido, pero pregunta si la persona presente está pagando por una batalla anterior.",
+    "claves": [
+      "resiliencia",
+      "cautela",
+      "persistencia"
+    ]
+  },
+  {
+    "id": "paus-10",
+    "nombre": "Diez de Bastos",
+    "escena": "la figura encorvada cargando diez bastones que le tapan la vista de la ciudad justo enfrente",
+    "consejo": "La carga necesita apoyarse, no cargarse mejor: suelta una parte o divide.",
+    "consejoInv": "Ya estás soltando carga — elige cuál sale primero y no tomes otra en su lugar.",
+    "amor": "Los diez bastones ocultan la ciudad a quien los carga. Di qué responsabilidad afectiva quedó concentrada en ti y negocia un reparto antes de que el cuidado se vuelva resentimiento.",
+    "claves": [
+      "sobrecarga",
+      "carga",
+      "responsabilidad"
+    ]
+  },
+  {
+    "id": "paus-11",
+    "nombre": "Sota de Bastos",
+    "escena": "el joven de pie en el desierto mirando la punta del bastón como quien lee una noticia",
+    "consejo": "Llegó una idea o noticia nueva; investiga antes de anunciar.",
+    "consejoInv": "Muchas ideas y ningún comienzo: elige una y dale un plazo.",
+    "amor": "El joven observa el bastón como una noticia inesperada. Acoge la curiosidad por este acercamiento, pero formula una pregunta real antes de construir una historia completa.",
+    "claves": [
+      "entusiasmo",
+      "curiosidad",
+      "mensaje"
+    ]
+  },
+  {
+    "id": "paus-12",
+    "nombre": "Caballero de Bastos",
+    "escena": "el caballo encabritado y el jinete de armadura partiendo a toda velocidad",
+    "consejo": "Buena hora para partir — con la salvedad de siempre: sabe hacia dónde.",
+    "consejoInv": "El impulso sin dirección deja proyectos a medias; termina uno antes del próximo.",
+    "amor": "El jinete parte con intensidad y poco tiempo para mirar alrededor. Muestra deseo sin crear urgencia artificial; el entusiasmo necesita dejar espacio para reciprocidad y elección.",
+    "claves": [
+      "acción",
+      "aventura",
+      "impulsividad"
+    ]
+  },
+  {
+    "id": "paus-13",
+    "nombre": "Reina de Bastos",
+    "escena": "la reina de frente, girasol en la mano y el gato negro sentado a los pies",
+    "consejo": "Sostén lo que es tuyo con calidez, sin necesidad de convencer a nadie.",
+    "consejoInv": "Si habla la inseguridad, va a sonar a control — fíjate en eso.",
+    "amor": "El girasol y el gato muestran calidez con autonomía. Expresa interés sin reducir tu propia vida y observa si admiración, espacio y presencia circulan en ambas direcciones.",
+    "claves": [
+      "confianza",
+      "determinación",
+      "independencia"
+    ]
+  },
+  {
+    "id": "paus-14",
+    "nombre": "Rey de Bastos",
+    "escena": "el rey ligeramente de lado en el trono de salamandras, bastón firme en la mano",
+    "consejo": "Lidera con la visión y delega la ejecución; centralizar aquí traba todo.",
+    "consejoInv": "La promesa quedó más grande que la entrega — ajusta el tamaño de lo que prometiste.",
+    "amor": "El Rey sostiene el bastón con firmeza y mira más allá del trono. Comparte una visión para el vínculo sin decidir a solas el papel de la otra persona.",
+    "claves": [
+      "liderazgo",
+      "visión",
+      "carisma"
+    ]
+  },
+  {
+    "id": "copas-01",
+    "nombre": "As de Copas",
+    "escena": "la mano en la nube ofreciendo la copa de cinco chorros, con la paloma descendiendo",
+    "consejo": "Hay una apertura afectiva disponible; recibir también es un acto.",
+    "consejoInv": "El canal se cerró por protección — no fuerces, pero fíjate en qué lo cerró.",
+    "amor": "La copa desborda antes de pertenecer a una historia concreta. Reconoce la apertura afectiva y ofrece presencia, sin confundir una emoción naciente con un compromiso ya establecido.",
+    "claves": [
+      "nuevo amor",
+      "intuición",
+      "apertura emocional"
+    ]
+  },
+  {
+    "id": "copas-02",
+    "nombre": "Dos de Copas",
+    "escena": "los dos mirándose e intercambiando copas bajo el caduceo y la cabeza de león",
+    "consejo": "Un vínculo entre iguales pide acuerdo dicho en voz alta, no supuesto.",
+    "consejoInv": "El intercambio está desigual; di cuál es el desequilibrio en vez de compensar en soledad.",
+    "amor": "Las dos figuras intercambian copas mirándose de frente. Explicita el acuerdo que imaginas y escucha si deseo, límite e intención tienen el mismo significado para ambos.",
+    "claves": [
+      "unión",
+      "pareja",
+      "atracción"
+    ]
+  },
+  {
+    "id": "copas-03",
+    "nombre": "Tres de Copas",
+    "escena": "las tres danzando en ronda con las copas en alto, en medio de la cosecha",
+    "consejo": "Celebra con quien estuvo a tu lado — el lazo también se mantiene en fiesta.",
+    "consejoInv": "El exceso o el chisme está corroyendo al grupo; recógete un poco.",
+    "amor": "Las tres figuras celebran en círculo, rodeadas por la cosecha. Observa cómo amistades y comunidad sostienen tu vida afectiva sin convertir el vínculo en espectáculo colectivo.",
+    "claves": [
+      "celebración",
+      "amistad",
+      "comunidad"
+    ]
+  },
+  {
+    "id": "copas-04",
+    "nombre": "Cuatro de Copas",
+    "escena": "el joven de brazos cruzados bajo el árbol, ignorando la cuarta copa que la nube ofrece",
+    "consejo": "Una oferta está extendida y no la estás mirando — fíjate en lo que ya llegó.",
+    "consejoInv": "El tedio está pasando; vuelve a aceptar las invitaciones pequeñas.",
+    "amor": "La cuarta copa se ofrece mientras la figura mantiene los brazos cruzados. Distingue desinterés de protección emocional antes de rechazar un acercamiento disponible.",
+    "claves": [
+      "apatía",
+      "contemplación",
+      "oportunidad perdida"
+    ]
+  },
+  {
+    "id": "copas-05",
+    "nombre": "Cinco de Copas",
+    "escena": "la figura de manto negro mirando las tres copas caídas, sin ver las dos todavía en pie detrás de ella",
+    "consejo": "Tres copas cayeron y dos siguen en pie — gírate hacia las que quedaron, sin apurar el duelo.",
+    "consejoInv": "El perdón está empezando a caber; sigue adelante sin exigirte olvidar.",
+    "amor": "Tres copas caídas ocupan la mirada, mientras dos permanecen en pie. Nombra la pérdida sin borrar los vínculos, apoyos o elecciones que todavía existen.",
+    "claves": [
+      "pérdida",
+      "duelo",
+      "arrepentimiento"
+    ]
+  },
+  {
+    "id": "copas-06",
+    "nombre": "Seis de Copas",
+    "escena": "el niño entregando la copa florida a otro, en el patio de la casa antigua",
+    "consejo": "La memoria es buena compañía, no dirección: visítala sin mudarte allí.",
+    "consejoInv": "Idealizar el pasado está impidiendo que el presente tome color.",
+    "amor": "La niña ofrece flores en el patio antiguo. Los recuerdos pueden abrigar el vínculo si la persona presente no es comparada continuamente con una versión idealizada del pasado.",
+    "claves": [
+      "nostalgia",
+      "recuerdos",
+      "infancia"
+    ]
+  },
+  {
+    "id": "copas-07",
+    "nombre": "Siete de Copas",
+    "escena": "las siete copas en la nube, cada una con una visión distinta, y solo una con algo real dentro",
+    "consejo": "De las siete visiones, una es real — elimina primero las opciones bonitas y vacías.",
+    "consejoInv": "La niebla se levantó: elige ahora, mientras todavía está claro.",
+    "amor": "Siete imágenes atractivas aparecen en las nubes, pero no todas tienen sustancia. Separa a la persona real de la posibilidad imaginada y formula una pregunta con respuesta concreta.",
+    "claves": [
+      "fantasía",
+      "ilusión",
+      "elecciones"
+    ]
+  },
+  {
+    "id": "copas-08",
+    "nombre": "Ocho de Copas",
+    "escena": "la figura de espaldas yéndose bajo la luna, dejando ocho copas apiladas con un hueco en el medio",
+    "consejo": "Salir de lo que ya no alimenta es una pérdida voluntaria — y a veces es el camino.",
+    "consejoInv": "Quedarse por comodidad también es elección; nombra lo que te retiene.",
+    "amor": "La figura se aleja de copas todavía en pie porque algo falta en el conjunto. Nombra qué dejó de alimentar el vínculo antes de decidir entre reparar y partir.",
+    "claves": [
+      "abandono",
+      "búsqueda",
+      "propósito"
+    ]
+  },
+  {
+    "id": "copas-09",
+    "nombre": "Nueve de Copas",
+    "escena": "el anfitrión satisfecho de brazos cruzados, con las nueve copas alineadas en la repisa detrás",
+    "consejo": "El deseo se cumplió; fíjate si todavía era el deseo correcto.",
+    "consejoInv": "La satisfacción de vitrina no sostiene — pregúntate qué querías de verdad.",
+    "amor": "El anfitrión muestra nueve copas y una satisfacción muy propia. Pregunta si placer y deseo caben en el vínculo compartido o alguien se convirtió en público de la realización ajena.",
+    "claves": [
+      "satisfacción",
+      "deseo cumplido",
+      "contento"
+    ]
+  },
+  {
+    "id": "copas-10",
+    "nombre": "Diez de Copas",
+    "escena": "el arcoíris de diez copas sobre la pareja y los dos niños bailando",
+    "consejo": "La armonía de la casa se cuida en el día común, no solo en la foto.",
+    "consejoInv": "Hay un desajuste de valores dentro de la casa; enfréntalo antes de que se vuelva rutina.",
+    "amor": "El arcoíris cubre una escena de familia y celebración. Conversa sobre qué significa armonía en los días comunes, incluidas diferencias, tareas domésticas y necesidades poco visibles.",
+    "claves": [
+      "felicidad",
+      "familia",
+      "armonía"
+    ]
+  },
+  {
+    "id": "copas-11",
+    "nombre": "Sota de Copas",
+    "escena": "el joven que mira, sorprendido, el pez que apareció dentro de la copa",
+    "consejo": "Un mensaje afectivo o creativo está surgiendo; dale espacio aunque todavía no lo entiendas.",
+    "consejoInv": "La inmadurez emocional está estorbando — tuya o suya; no te lo tomes todo personal.",
+    "amor": "El pez sorprende al joven dentro de la copa. Recibe un mensaje o emoción inesperada con curiosidad, pero confirma la intención antes de verlo como declaración definitiva.",
+    "claves": [
+      "mensaje",
+      "intuición",
+      "creatividad"
+    ]
+  },
+  {
+    "id": "copas-12",
+    "nombre": "Caballero de Copas",
+    "escena": "el caballero avanzando despacio a la orilla del río, copa extendida al frente",
+    "consejo": "La invitación es sincera; verifica si la propuesta acompaña al encanto.",
+    "consejoInv": "Una promesa bonita sin fecha es solo promesa — pide la fecha.",
+    "amor": "El caballero ofrece la copa mientras avanza despacio. Aprecia el gesto romántico y pregunta qué acción, plazo o disponibilidad acompaña la belleza de la propuesta.",
+    "claves": [
+      "romance",
+      "invitación",
+      "idealismo"
+    ]
+  },
+  {
+    "id": "copas-13",
+    "nombre": "Reina de Copas",
+    "escena": "la reina a la orilla del mar, absorta en la copa cerrada y ornamentada que solo ella ve por dentro",
+    "consejo": "Tu lectura emocional está afilada; cuídate con el mismo cuidado que ofreces.",
+    "consejoInv": "Absorber el sentimiento de los demás se volvió peso — rehaz el contorno entre tú y ellos.",
+    "amor": "La Reina contempla una copa cerrada que solo ella conoce por dentro. Escucha tu percepción sin presumir la emoción ajena; pregunta y preserva contornos afectivos.",
+    "claves": [
+      "empatía",
+      "intuición",
+      "cuidado"
+    ]
+  },
+  {
+    "id": "copas-14",
+    "nombre": "Rey de Copas",
+    "escena": "el rey en el trono en pleno mar agitado, sin mojarse",
+    "consejo": "Sentir y decidir en el mismo gesto: la madurez aquí es no ahogarse ni congelarse.",
+    "consejoInv": "Frialdad o chantaje afectivo están en juego; verifica de qué lado están.",
+    "amor": "El Rey permanece estable en un mar agitado. Acoge la emoción sin usarla como arma o escondite y elige una respuesta que preserve el respeto entre las personas.",
+    "claves": [
+      "equilibrio emocional",
+      "sabiduría",
+      "madurez"
+    ]
+  },
+  {
+    "id": "espadas-01",
+    "nombre": "As de Espadas",
+    "escena": "la mano en la nube alzando la espada, con la corona y el ramo colgando de la punta",
+    "consejo": "La verdad está disponible y corta por los dos lados — úsala una vez, con precisión.",
+    "consejoInv": "La información está distorsionada; confirma en la fuente antes de actuar.",
+    "amor": "La espada coronada pide una verdad capaz de abrir espacio, no de ganar la conversación. Elige una cuestión afectiva y exprésala con claridad y respeto.",
+    "claves": [
+      "claridad",
+      "verdad",
+      "nueva idea"
+    ]
+  },
+  {
+    "id": "espadas-02",
+    "nombre": "Dos de Espadas",
+    "escena": "la mujer vendada, de espaldas al mar, equilibrando dos espadas cruzadas sobre el pecho",
+    "consejo": "Quítate la venda antes de decidir: el impasse es falta de datos, no falta de coraje.",
+    "consejoInv": "La decisión está siendo forzada por el plazo; elige el criterio antes de elegir el lado.",
+    "amor": "Las espadas cruzadas protegen el pecho, pero la venda impide ver el vínculo entero. Descubre qué información falta antes de confundir silencio con equilibrio.",
+    "claves": [
+      "impasse",
+      "indecisión",
+      "equilibrio tenso"
+    ]
+  },
+  {
+    "id": "espadas-03",
+    "nombre": "Tres de Espadas",
+    "escena": "las tres espadas atravesando el corazón, bajo la lluvia y el cielo cerrado",
+    "consejo": "El dolor es real y nombrarlo es el trabajo de hoy — no corras a ponerlo en positivo.",
+    "consejoInv": "La recuperación comenzó, de a poco; no confundas cicatriz con herida abierta.",
+    "amor": "El corazón atravesado bajo la lluvia no pide una versión bonita del dolor. Nombra lo que hirió y observa si existe un espacio seguro para reparar.",
+    "claves": [
+      "dolor",
+      "traición",
+      "duelo emocional"
+    ]
+  },
+  {
+    "id": "espadas-04",
+    "nombre": "Cuatro de Espadas",
+    "escena": "el caballero acostado en piedra en la capilla, tres espadas en la pared y una bajo el cuerpo",
+    "consejo": "Descansar aquí es parte de la estrategia; la batalla continúa después.",
+    "consejoInv": "O paras ahora, o el cuerpo para por ti.",
+    "amor": "La figura recogida en la capilla sugiere una pausa que necesita acuerdo. Pide silencio o distancia sin convertir el descanso en desaparición afectiva.",
+    "claves": [
+      "descanso",
+      "recuperación",
+      "pausa"
+    ]
+  },
+  {
+    "id": "espadas-05",
+    "nombre": "Cinco de Espadas",
+    "escena": "el vencedor recogiendo las espadas mientras los otros dos se alejan de espaldas",
+    "consejo": "Revisa el precio de la victoria antes de celebrar — puede no valer lo que costó.",
+    "consejoInv": "Hay espacio para la reconciliación; alguien tiene que dar el primer paso y puedes ser tú.",
+    "amor": "El vencedor recoge las hojas mientras dos personas se alejan. Pregunta si ganar esta discusión preserva algo del vínculo o solo deja un campo vacío.",
+    "claves": [
+      "conflicto",
+      "derrota",
+      "disputa"
+    ]
+  },
+  {
+    "id": "espadas-06",
+    "nombre": "Seis de Espadas",
+    "escena": "el barquero llevando a la mujer y al niño a la otra orilla, seis espadas clavadas en la proa",
+    "consejo": "La travesía ya comenzó: lleva lo esencial y acepta que la orilla nueva es extraña al principio.",
+    "consejoInv": "Quieres ir y sigues amarrado — mira qué sigue atado en la otra orilla.",
+    "amor": "En la barca, la travesía incluye las espadas clavadas en la proa. Al cambiar una relación, reconoce el equipaje afectivo en vez de fingir un comienzo vacío.",
+    "claves": [
+      "transición",
+      "movimiento",
+      "dejar atrás"
+    ]
+  },
+  {
+    "id": "espadas-07",
+    "nombre": "Siete de Espadas",
+    "escena": "la figura saliendo del campamento en puntas de pie con cinco espadas, dejando dos clavadas",
+    "consejo": "La estrategia discreta puede ser legítima; si hay que esconderla de todos, no lo es.",
+    "consejoInv": "Es hora de confesar o devolver, antes de que aparezca por otra vía.",
+    "amor": "La figura sale de puntillas y deja dos espadas atrás. Distingue la privacidad legítima de un secreto que impide confianza y acuerdo en el vínculo.",
+    "claves": [
+      "estrategia",
+      "engaño",
+      "acción furtiva"
+    ]
+  },
+  {
+    "id": "espadas-08",
+    "nombre": "Ocho de Espadas",
+    "escena": "la mujer atada y vendada entre ocho espadas, con las cuerdas flojas y el suelo libre al frente",
+    "consejo": "Las cuerdas están flojas y el suelo está libre: la prisión es más mental que real.",
+    "consejoInv": "Empezaste a ver la salida; da un paso pequeño y comprueba que sostiene.",
+    "amor": "Las cuerdas flojas muestran cierto margen, aunque el miedo sea real. Identifica una pequeña elección afectiva que devuelva autonomía sin ignorar riesgos concretos.",
+    "claves": [
+      "encierro",
+      "limitación",
+      "miedo"
+    ]
+  },
+  {
+    "id": "espadas-09",
+    "nombre": "Nueve de Espadas",
+    "escena": "la figura sentada en la cama a oscuras, el rostro entre las manos, nueve espadas alineadas en la pared",
+    "consejo": "El sufrimiento está más grande en la cabeza que en el hecho — revisa el hecho por la mañana, despierto.",
+    "consejoInv": "La angustia está cediendo, o está escondida; cuéntaselo a alguien y descubre cuál de las dos.",
+    "amor": "En el dormitorio oscuro, los pensamientos pueden sonar más fuerte que la conversación real. Lleva una preocupación concreta al vínculo en vez de discutir todas las hipótesis nocturnas.",
+    "claves": [
+      "ansiedad",
+      "angustia",
+      "pesadilla"
+    ]
+  },
+  {
+    "id": "espadas-10",
+    "nombre": "Diez de Espadas",
+    "escena": "la figura caída boca abajo con diez espadas en la espalda, y el cielo ya aclarando en el horizonte",
+    "consejo": "El fondo del pozo tiene una ventaja: desde aquí solo se sube, y el día ya está aclarando.",
+    "consejoInv": "Sobreviviste — el cuidado ahora es no repetir el mismo guion por costumbre.",
+    "amor": "Las diez hojas marcan un límite mientras la aurora ya aparece. Reconoce lo que terminó o necesita terminar sin convertir ese capítulo en una identidad permanente.",
+    "claves": [
+      "fin",
+      "colapso",
+      "punto más bajo"
+    ]
+  },
+  {
+    "id": "espadas-11",
+    "nombre": "Sota de Espadas",
+    "escena": "el joven de pie en lo alto de la colina ventosa, espada en alto, mirando por encima del hombro",
+    "consejo": "La curiosidad y la vigilancia son útiles; observar no es vigilar a todo el mundo.",
+    "consejoInv": "Chismes e información torcida están circulando: no repitas lo que no confirmaste.",
+    "amor": "La Sota mira por encima del hombro, curiosa y alerta. Haz la pregunta directamente sin convertir el interés por la persona en vigilancia de cada gesto.",
+    "claves": [
+      "curiosidad",
+      "vigilancia",
+      "ideas"
+    ]
+  },
+  {
+    "id": "espadas-12",
+    "nombre": "Caballero de Espadas",
+    "escena": "el caballero a toda carrera contra el viento, espada apuntada al frente",
+    "consejo": "La rapidez es la fuerza aquí; solo verifica si vas o huyes.",
+    "consejoInv": "La prisa se está volviendo atropello — relee antes de enviar.",
+    "amor": "El Caballero avanza contra el viento con la espada delante. Antes de enviar el mensaje decisivo, comprueba si la franqueza abre diálogo o solo descarga prisa.",
+    "claves": [
+      "acción rápida",
+      "ambición",
+      "impulsividad"
+    ]
+  },
+  {
+    "id": "espadas-13",
+    "nombre": "Reina de Espadas",
+    "escena": "la reina de perfil en el trono de nubes, espada en alto y la mano abierta en invitación",
+    "consejo": "Habla con claridad y sin crueldad: la honestidad no necesita doler a propósito.",
+    "consejoInv": "La crítica está cortando a quien amas; pregunta de qué dolor viene.",
+    "amor": "La Reina mantiene la espada alzada y la mano abierta. Expresa el límite con precisión, dejando espacio para responder sin usar honestidad como permiso para herir.",
+    "claves": [
+      "claridad",
+      "honestidad",
+      "independencia"
+    ]
+  },
+  {
+    "id": "espadas-14",
+    "nombre": "Rey de Espadas",
+    "escena": "el rey de frente en el trono, espada levemente inclinada y la mirada atravesando a quien llega",
+    "consejo": "Decide por el criterio y no por el humor — y escribe el criterio.",
+    "consejoInv": "Argumento usado como poder; si estás del lado fuerte, retrocede un paso.",
+    "amor": "El Rey mira de frente y sostiene una espada ligeramente inclinada. Crea criterios justos para conversar sin convertir la lógica en dominio sobre el sentimiento ajeno.",
+    "claves": [
+      "autoridad",
+      "ética",
+      "intelecto"
+    ]
+  },
+  {
+    "id": "ouros-01",
+    "nombre": "As de Oros",
+    "escena": "la mano en la nube sosteniendo el pentáculo sobre el jardín florido, con el arco de seto abriendo camino",
+    "consejo": "Llegó una oportunidad material concreta; tómala como semilla, no como cosecha.",
+    "consejoInv": "O la oportunidad se escapó, o la base no estaba lista — verifica cuál de las dos.",
+    "amor": "La mano ofrece una semilla ante un jardín, no una historia terminada. Observa qué gesto concreto puede dar suelo al vínculo sin anticipar la cosecha.",
+    "claves": [
+      "oportunidad",
+      "prosperidad",
+      "nuevo proyecto material"
+    ]
+  },
+  {
+    "id": "ouros-02",
+    "nombre": "Dos de Oros",
+    "escena": "el malabarista equilibrando dos pentáculos en la cinta en forma de ocho, con barcos en el mar agitado detrás",
+    "consejo": "Equilibrar dos compromisos es posible hoy; un tercero derriba los dos.",
+    "consejoInv": "El malabarista se cansó: corta un compromiso en vez de acelerar.",
+    "amor": "El malabarista mantiene dos pentáculos en movimiento mientras el mar se agita. Hablen de prioridades antes de que adaptarse a todo oculte el desequilibrio entre ambos.",
+    "claves": [
+      "equilibrio",
+      "adaptación",
+      "prioridades"
+    ]
+  },
+  {
+    "id": "ouros-03",
+    "nombre": "Tres de Oros",
+    "escena": "el artesano en el andamio explicando el trabajo al monje y al maestro de obras",
+    "consejo": "El buen trabajo aquí es trabajo acordado — alinea lo que entrega cada uno.",
+    "consejoInv": "Faltó acordar antes de ejecutar; la falla es de coordinación, no de esfuerzo.",
+    "amor": "Artesano, monje y maestro observan la misma obra desde ángulos diferentes. Construyan un acuerdo donde cuidado, expectativas y aportación queden claros para ambos.",
+    "claves": [
+      "colaboración",
+      "trabajo en equipo",
+      "reconocimiento"
+    ]
+  },
+  {
+    "id": "ouros-04",
+    "nombre": "Cuatro de Oros",
+    "escena": "la figura coronada aferrada a un pentáculo, uno en la cabeza y uno bajo cada pie, con la ciudad detrás",
+    "consejo": "Guardar tiene sentido; agarrarlo todo con las dos manos es lo que impide recibir.",
+    "consejoInv": "O el miedo a perder se aflojó, o el control se apretó — verifica cuál de los dos.",
+    "amor": "La figura sujeta el pentáculo contra el pecho y mantiene otros bajo los pies. Observa si la protección afectiva se volvió control o preserva realmente el vínculo.",
+    "claves": [
+      "seguridad",
+      "control",
+      "apego material"
+    ]
+  },
+  {
+    "id": "ouros-05",
+    "nombre": "Cinco de Oros",
+    "escena": "los dos caminantes pasando por la nieve bajo el vitral encendido que no miran",
+    "consejo": "Falta amparo y hay ayuda a pocos pasos, detrás del vitral encendido: pide.",
+    "consejoInv": "La escasez está pasando; acepta la ayuda que aparezca sin leerla como derrota.",
+    "amor": "Los dos caminan juntos por la nieve sin mirar la vidriera encendida. Nombra la dificultad y busca el apoyo que el vínculo quizá no está viendo.",
+    "claves": [
+      "dificultad",
+      "exclusión",
+      "pérdida financiera"
+    ]
+  },
+  {
+    "id": "ouros-06",
+    "nombre": "Seis de Oros",
+    "escena": "el mercader pesando en la balanza y repartiendo monedas a dos mendigos arrodillados",
+    "consejo": "Dar y recibir necesitan quedar claros — quien sostiene la balanza define los términos.",
+    "consejoInv": "Verifica si la generosidad tiene precio incluido, de un lado o del otro.",
+    "amor": "Una persona sostiene la balanza mientras otras reciben monedas. Observa si apoyo y poder circulan en el vínculo o si la generosidad crea una deuda silenciosa.",
+    "claves": [
+      "generosidad",
+      "ayuda mutua",
+      "equilibrio"
+    ]
+  },
+  {
+    "id": "ouros-07",
+    "nombre": "Siete de Oros",
+    "escena": "el labrador apoyado en la azada mirando los siete pentáculos en el arbusto que todavía no cosechó",
+    "consejo": "La cosecha todavía no está lista; evaluar ahora es mejor que cosechar verde.",
+    "consejoInv": "Si el esfuerzo no rinde hace demasiado tiempo, el problema puede ser el cultivo, no la paciencia.",
+    "amor": "El labrador observa lo que creció antes de tocar la cosecha. Evalúa el vínculo por el cuidado repetido y habla de aquello que todavía requiere tiempo.",
+    "claves": [
+      "paciencia",
+      "evaluación",
+      "inversión"
+    ]
+  },
+  {
+    "id": "ouros-08",
+    "nombre": "Ocho de Oros",
+    "escena": "el artesano sentado cincelando el octavo pentáculo, con los ya listos colgados al lado",
+    "consejo": "La repetición es el método aquí: la habilidad se construye haciendo de nuevo.",
+    "consejoInv": "Perfeccionismo o trabajo sin sentido — en ambos casos le falta destino a lo que haces.",
+    "amor": "El artesano repite el gesto y cada pentáculo recibe atención propia. Elige una práctica cotidiana de cuidado que demuestre presencia más allá de las grandes declaraciones.",
+    "claves": [
+      "dedicación",
+      "aprendizaje",
+      "habilidad"
+    ]
+  },
+  {
+    "id": "ouros-09",
+    "nombre": "Nueve de Oros",
+    "escena": "la mujer en su propio jardín de viñas, con el halcón encapuchado posado en la mano",
+    "consejo": "Construiste tu propio jardín; disfrutarlo también es parte del trabajo.",
+    "consejoInv": "La independencia está más en la apariencia que en la cuenta; mira los números.",
+    "amor": "La mujer ocupa su propio jardín con el halcón posado en la mano. Conserva autonomía y placer personal para que el vínculo sea encuentro, no única fuente de seguridad.",
+    "claves": [
+      "independencia",
+      "autosuficiencia",
+      "logro"
+    ]
+  },
+  {
+    "id": "ouros-10",
+    "nombre": "Diez de Oros",
+    "escena": "las tres generaciones bajo el arco de la ciudad, los perros a los pies del viejo y los diez pentáculos repartidos por la escena",
+    "consejo": "Piensa a largo plazo y en quien viene después — el legado se construye en decisión conjunta.",
+    "consejoInv": "Hay disputa o inestabilidad en la base familiar; arregla el acuerdo, no a la persona.",
+    "amor": "Tres generaciones y dos perros ocupan el mismo arco. Pregunta qué valores, lealtades y acuerdos familiares apoyan el vínculo y cuáles necesitan actualizarse.",
+    "claves": [
+      "riqueza",
+      "legado",
+      "estabilidad"
+    ]
+  },
+  {
+    "id": "ouros-11",
+    "nombre": "Sota de Oros",
+    "escena": "el joven en el campo sosteniendo el pentáculo frente a los ojos, completamente absorto",
+    "consejo": "Un estudio o trabajo nuevo empieza despacio; toma el comienzo como aprendizaje.",
+    "consejoInv": "Planificar sin empezar es procrastinación con nombre bonito.",
+    "amor": "La Sota contempla el pentáculo como quien aprende su peso. Demuestra interés mediante una acción sencilla y observa la respuesta antes de imaginar la relación entera.",
+    "claves": [
+      "oportunidad",
+      "estudio",
+      "practicidad"
+    ]
+  },
+  {
+    "id": "ouros-12",
+    "nombre": "Caballero de Oros",
+    "escena": "el caballero detenido en el campo arado, caballo pesado e inmóvil, pentáculo en la mano",
+    "consejo": "Despacio y constante es literalmente la lectura: la constancia vence al brillo aquí.",
+    "consejoInv": "La rutina se volvió estancamiento; cambia una variable pequeña.",
+    "amor": "El Caballero permanece ante el campo arado y sostiene el pentáculo con firmeza. Valora la constancia afectiva, comprobando que la estabilidad aún incluya movimiento y elección.",
+    "claves": [
+      "método",
+      "confiabilidad",
+      "constancia"
+    ]
+  },
+  {
+    "id": "ouros-13",
+    "nombre": "Reina de Oros",
+    "escena": "la reina en el trono florido mirando el pentáculo en el regazo como quien cuida algo vivo",
+    "consejo": "Cuidar lo concreto — cuerpo, casa, dinero — también es cuidado afectivo.",
+    "consejoInv": "Cuidaste de todo menos de ti; el autocuidado aquí es material, no motivacional.",
+    "amor": "La Reina mira el pentáculo de su regazo como algo vivo. Cuida el vínculo con presencia concreta sin asumir tú solo todas las necesidades de la otra persona.",
+    "claves": [
+      "practicidad",
+      "cuidado",
+      "abundancia"
+    ]
+  },
+  {
+    "id": "ouros-14",
+    "nombre": "Rey de Oros",
+    "escena": "el rey en el trono de racimos de uva y cabezas de toro, con el castillo ya construido detrás",
+    "consejo": "La base está construida; administra con generosidad en vez de acumular.",
+    "consejoInv": "Rigidez financiera o autoritarismo: ¿el recurso te sirve a ti, o al revés?",
+    "amor": "El Rey está rodeado de uvas, toros y una construcción ya terminada. Usa la estabilidad para crear confianza, no para controlar el rumbo o la persona.",
+    "claves": [
+      "éxito material",
+      "liderazgo",
+      "seguridad"
+    ]
+  }
+]

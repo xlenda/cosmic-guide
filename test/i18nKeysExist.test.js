@@ -403,3 +403,90 @@ test('a dívida de i18n dos três motores não cresce (o número só pode cair)'
       'ganho, senão ele pode ser desfeito sem ninguém ver:\n  ' + cairam.join('\n  ')
   );
 });
+
+// ---------------------------------------------------------------------------
+// O MESMO BURACO, DO LADO DA MADRE MARIA
+// ---------------------------------------------------------------------------
+// A varredura acima cobre quatro pastas (PASTAS) contra lib/i18n.js. A Madre
+// Maria, embutida em madremaria/, NÃO entra em nenhuma das duas pontas — e não
+// deve: ela tem dicionário PRÓPRIO (madremaria/datos/textos.js, plano, um idioma
+// só) e zero chaves em comum com o do Cosmic. Adicionar 'madremaria' a PASTAS
+// compararia as chaves dela contra o dicionário ERRADO e acusaria centenas de
+// faltas falsas.
+//
+// O risco, porém, é idêntico e igualmente mudo: textos.js:2144 devolve a PRÓPRIA
+// CHAVE quando não acha ('Chave que nao existe volta como ela mesma; nunca
+// lanca'), exatamente como translate() do Cosmic. Uma chave faltante sai crua na
+// tela — 'plano.hoje.titulo' impresso pro usuário, teste verde, nada quebra.
+//
+// textos.js:2155 já anunciava o teste que faltava: `export function claves()`,
+// com o comentário 'Usada pelo teste que varre as telas.' Nenhum teste a usava,
+// nos dois repos. Este é ele.
+const PASTAS_MADRE = ['screens', 'components', 'lib', 'hooks', 'datos'];
+
+function arquivosJsMadre(pasta) {
+  const dir = path.join(RAIZ, 'madremaria', pasta);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.js') && !f.endsWith('.test.js'))
+    .map((f) => path.join(dir, f));
+}
+
+// COMENTÁRIO NÃO É CÓDIGO. Os arquivos da Madre documentam o próprio histórico
+// citando as chamadas que mudaram — TiradaScreen.js:215 explica um bug antigo
+// escrevendo t('paywall.beneficio.sinLimite') dentro de um bloco de comentário,
+// e a chave não existe mais no dicionário. São 5 arquivos com 9 chaves nessa
+// situação (OnboardingScreen, PaywallScreen, SintesisScreen, TiradaScreen e o
+// próprio textos.js). Sem remover comentário antes de varrer, o teste nasce
+// vermelho por causa de prosa, e a saída mais provável seria afrouxá-lo até não
+// pegar mais nada.
+function semComentarios(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+}
+
+// Só a forma DIRETA t('chave'). A varredura do Cosmic também aceita qualquer
+// literal com cara de chave (formas 2 e 3), mas aqui isso geraria falso positivo
+// em massa: madremaria/datos/ é dado puro e está cheio de literal pontuado que
+// não é chave de tradução (ids de carta, campos de plano, nomes de arquivo).
+// Chave montada em template continua invisível — para essas, o teto é o teste de
+// família de cada motor, como do lado do Cosmic.
+function chavesUsadasMadre() {
+  const usos = new Map();
+  for (const pasta of PASTAS_MADRE) {
+    for (const arq of arquivosJsMadre(pasta)) {
+      // textos.js é o dicionário, não consumidor — senão vira tautologia.
+      if (arq.endsWith(path.join('datos', 'textos.js'))) continue;
+      const src = semComentarios(fs.readFileSync(arq, 'utf8'));
+      const rel = path.relative(RAIZ, arq);
+      const direta = /\bt\(\s*['"]([a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+)['"]/g;
+      let m;
+      while ((m = direta.exec(src))) if (!usos.has(m[1])) usos.set(m[1], rel);
+    }
+  }
+  return usos;
+}
+
+test('toda chave t() usada na Madre Maria existe no dicionário dela', () => {
+  const { claves } = require('../madremaria/datos/textos.js');
+  const definidas = new Set(claves());
+  assert.ok(definidas.size > 0, 'textos.js não devolveu chave nenhuma — o require quebrou');
+
+  const usadas = chavesUsadasMadre();
+  assert.ok(usadas.size > 0, 'nenhuma chamada t() encontrada em madremaria/ — a varredura quebrou');
+
+  const faltando = [];
+  for (const [chave, arquivo] of usadas) {
+    if (!definidas.has(chave)) faltando.push(`${chave}  (${arquivo})`);
+  }
+
+  assert.equal(
+    faltando.length,
+    0,
+    `${faltando.length} chave(s) usadas em madremaria/ e AUSENTES em ` +
+      `madremaria/datos/textos.js — essas telas mostrariam o nome da chave ` +
+      `pro usuário:\n  ` +
+      faltando.slice(0, 40).join('\n  ') +
+      (faltando.length > 40 ? `\n  ... e mais ${faltando.length - 40}` : '')
+  );
+});

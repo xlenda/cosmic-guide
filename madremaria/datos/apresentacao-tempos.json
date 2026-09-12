@@ -1,0 +1,55 @@
+{
+  "duracao": 23.45,
+  "trechos": [
+    {
+      "ini": 0.0,
+      "fim": 2.02,
+      "texto": "Você já olhou o telefone hoje."
+    },
+    {
+      "ini": 2.42,
+      "fim": 3.44,
+      "texto": "Mais de uma vez."
+    },
+    {
+      "ini": 4.0,
+      "fim": 6.74,
+      "texto": "E virou a tela pra baixo pra fingir que não olhou."
+    },
+    {
+      "ini": 7.1,
+      "fim": 8.28,
+      "texto": "Eu sou a Madre Maria."
+    },
+    {
+      "ini": 8.76,
+      "fim": 10.0,
+      "texto": "Não tem vergonha nisso."
+    },
+    {
+      "ini": 10.44,
+      "fim": 13.08,
+      "texto": "Você chegou aqui com uma pessoa no pensamento."
+    },
+    {
+      "ini": 13.54,
+      "fim": 15.8,
+      "texto": "Agora eu vou te fazer algumas perguntas."
+    },
+    {
+      "ini": 16.08,
+      "fim": 17.88,
+      "texto": "Depois a gente lê as suas cartas."
+    },
+    {
+      "ini": 18.42,
+      "fim": 21.82,
+      "texto": "E eu caminho com você pelas treze luas, um ato por dia."
+    },
+    {
+      "ini": 22.34,
+      "fim": 23.1,
+      "texto": "Senta aqui comigo?"
+    }
+  ]
+}
