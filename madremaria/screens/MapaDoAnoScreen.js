@@ -22,6 +22,9 @@ import { Animated, Easing } from 'react-native';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import ColunaLeitura from '../../components/ColunaLeitura';
+import FaixaCurva from '../../components/FaixaCurva';
+import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { VersoDeCarta } from '../components/ScratchRevealCard';
 import { Cuerpo, Micro, Rotulo, Sobreceja, Titulo } from '../components/Texto';
@@ -155,16 +158,47 @@ export default function MapaDoAnoScreen({ navigation }) {
       <HiloFondo />
       <SafeAreaView style={estilos.area}>
         <ScrollView contentContainerStyle={estilos.contenido}>
-          <Sobreceja>{t('mapa.rotulo')}</Sobreceja>
+          <Sobreceja style={estilos.textoDoTopo}>{t('mapa.rotulo')}</Sobreceja>
 
           {dados === null ? null : dados.semAncora ? (
             /* O ano ainda nao comecou: o aviso honesto, nunca um tabuleiro
-               inventado com datas chutadas. */
-            <Cuerpo style={estilos.aviso}>{t('mapa.semAncora')}</Cuerpo>
+               inventado com datas chutadas.
+
+               O ESTADO VAZIO, CONSERTADO (12/09/2026). Fotografado antes: uma
+               frase no topo e ~550px de nada ate a barra de abas — o MESMO
+               defeito ALTO que o revisor achou no estado vazio da Home, onde a
+               faixa virou bloco de cor. Aqui era pior, porque nao havia nem
+               faixa: era a tela crua com o fio passando no meio do vazio.
+
+               O QUE NAO FOI FEITO, e e a parte que importa: NADA foi inventado
+               pra encher. Nao ha contador de dias que faltam, nao ha tabuleiro
+               fantasma com casas cinzas, nao ha "0 de 365" — o mapa nao existe
+               ainda e a tela nao pode fingir que existe (lei 1 da casa, e a
+               doutrina deste modulo proibe data chutada com todas as letras).
+
+               O que foi feito: `mapa.como` desceu pra ca. Ele ja existe, ja e
+               do mapa, e descreve exatamente a coisa que a pessoa esta
+               esperando — como as casas se abrem. Mostra-lo aqui e responder
+               "e como vai ser?", que e a pergunta que o vazio deixa no ar.
+               Nenhuma chave nova, nenhuma promessa de desfecho: ele diz o
+               mecanismo, nao o resultado.
+
+               A FAIXA E `rasa`: o mesmo prop que consertou a Home. A caixa da
+               onda cai de 56 pra 28px porque aqui ha pouco conteudo, e onda
+               cheia sobre bloco curto e o que faz a faixa ler como "bloco de
+               cor vazio". A onda NAO e redesenhada — mesmo `d`, mesma semente,
+               so a caixa encolhe — entao a secao nao troca de identidade no dia
+               em que o mapa nascer e a faixa voltar ao tamanho inteiro. */
+            <FaixaCurva tom="ameixa" semente="mapa-espera" rasa style={estilos.espera}>
+              <ColunaLeitura>
+                <Cuerpo>{t('mapa.semAncora')}</Cuerpo>
+                <Cuerpo style={estilos.esperaComo}>{t('mapa.como')}</Cuerpo>
+              </ColunaLeitura>
+            </FaixaCurva>
           ) : (
             <>
               {casaDeHoje ? (
-                <Micro style={estilos.hoje}>
+                <Micro style={[estilos.textoDoTopo, estilos.hoje]}>
                   {/* Sem lua medida, o cabecalho diz SO o dia — numero de lua
                       inventado e exatamente o que a doutrina deste modulo
                       proibe. */}
@@ -173,7 +207,7 @@ export default function MapaDoAnoScreen({ navigation }) {
                     : t('mapa.hojeSoDia', { n: casaDeHoje.n })}
                 </Micro>
               ) : null}
-              <Cuerpo style={estilos.como}>{t('mapa.como')}</Cuerpo>
+              <Cuerpo style={[estilos.textoDoTopo, estilos.como]}>{t('mapa.como')}</Cuerpo>
 
               {secoes.map((secao) => {
                 const tema = temaPorNumero(secao.lua);
@@ -362,7 +396,7 @@ export default function MapaDoAnoScreen({ navigation }) {
                 );
               })}
 
-              <Micro style={estilos.pe}>{t('mapa.pe')}</Micro>
+              <Micro style={[estilos.textoDoTopo, estilos.pe]}>{t('mapa.pe')}</Micro>
             </>
           )}
           <View style={estilos.espaco} pointerEvents="none" />
@@ -537,12 +571,39 @@ const estilos = StyleSheet.create({
   area: {
     flex: 1,
   },
+  // SEM paddingHorizontal (12/09/2026), mesma razao das telas de documento: a
+  // faixa do estado vazio precisa SANGRAR de ponta a ponta pra ser chao. Capada
+  // em 16px de cada lado ela vira card, que e o efeito recusado. O tabuleiro
+  // nao sente falta: as secoes ja se centralizam sozinhas por LARG.
+  // O recuo passou pros blocos de texto que o usavam (`rotulo`, `hoje`, `como`,
+  // `pe`) e pra ColunaLeitura do estado vazio.
   contenido: {
-    paddingHorizontal: espacio.lg,
     paddingTop: espacio.xl,
   },
-  aviso: {
-    marginTop: espacio.lg,
+  // O gutter que saiu do ScrollView. `tela` (16) e o recuo horizontal padrao do
+  // app — o mesmo valor de espacio.lg que estava la, agora nomeado pelo uso.
+  textoDoTopo: {
+    paddingHorizontal: space.tela,
+  },
+  // O ESTADO VAZIO. `bloco` (16) em cima e nao `secao` (32): a faixa e `rasa`,
+  // entao a onda dela ja ocupa so 28px, e o degrau grande de secao abriria de
+  // novo o buraco que este conserto veio fechar. Embaixo `entre` (24), porque
+  // dali pra baixo nao ha mais nada — o respiro do fim ja e o `espaco`.
+  // So `marginTop`: ele separa a faixa do rotulo que vem ANTES dela, por fora, e
+  // e isso que marginTop deve fazer. O padding que estava aqui saiu no conserto
+  // de 12/09/2026 — era DUPLICATA do que a propria FaixaCurva ja poe no corpo
+  // dela, e padding no `style` da peca vira espaco transparente entre o chao e a
+  // faixa vizinha (64px de rasgo, fotografado na tela de termos). Aqui a faixa e
+  // unica e nao tinha vizinha pra mostrar o defeito — mas duplicata que hoje nao
+  // aparece e a que volta a doer quando alguem puser a segunda.
+  espera: {
+    marginTop: space.bloco,
+  },
+  // `bloco` (16) entre as duas frases: sao dois paragrafos do mesmo assunto
+  // (o que vai acontecer, e como vai funcionar), nao dois assuntos.
+  esperaComo: {
+    marginTop: space.bloco,
+    color: colores.ceniza,
   },
   hoje: {
     marginTop: espacio.sm,

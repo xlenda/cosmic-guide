@@ -1186,7 +1186,17 @@ export default function HomeScreen() {
           </View>
         </Modal>
       )}
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      {/* flexGrow 1 no CONTEÚDO (12/09/2026). O React Navigation pinta a cena
+          com um cinza-claro próprio (rgb(242,242,242), medido) por baixo de
+          tudo; enquanto a Home era sempre mais alta que a janela, ninguém via.
+          Ao encolher a faixa 1 no estado vazio (a pessoa que ainda não salvou
+          data de nascimento), o conteúdo ficou 62px mais curto que a janela e
+          esse cinza apareceu como uma BANDA CLARA acima da barra de abas —
+          fotografado antes desta linha. `flexGrow: 1` faz o conteúdo esticar
+          até a altura da janela quando é menor que ela, e não muda nada quando
+          é maior, que é o caso de toda a outra Home. O paddingBottom continua
+          intacto. */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         {/* A pill de sequência do hero usa o MESMO streakInfo do card de
             sequência logo abaixo (lib/streak.js) — antes vinha de
             coupleData.streak, uma contagem que NENHUM arquivo do app gravava:

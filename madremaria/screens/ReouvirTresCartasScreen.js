@@ -53,6 +53,9 @@ import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import BotaoOuvir, { pararAudioAtual } from '../components/BotaoOuvir';
 import BotonPrimario from '../components/BotonPrimario';
 import CartaHilo from '../components/CartaHilo';
+import ColunaLeitura from '../../components/ColunaLeitura';
+import FaixaCurva from '../../components/FaixaCurva';
+import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, NombreCarta, Rotulo, Sobreceja, Titulo } from '../components/Texto';
 import { tiragemDeEntrada } from '../datos/lenormand';
@@ -179,12 +182,35 @@ export default function ReouvirTresCartasScreen({ navigation }) {
 
       <SafeAreaView style={estilos.seguro}>
         <ScrollView contentContainerStyle={estilos.conteudo}>
-          <Sobreceja>{t('entrada.sobreceja')}</Sobreceja>
-          <Titulo style={estilos.titulo}>{t('entrada.reouvir.titulo')}</Titulo>
-          <Cuerpo style={estilos.paragrafo}>{t('entrada.reouvir.texto')}</Cuerpo>
+          {/* A ABERTURA fora de faixa: primeira dobra, respira contra o fundo
+              do app com o fio atras. */}
+          <ColunaLeitura style={estilos.abertura}>
+            <Sobreceja>{t('entrada.sobreceja')}</Sobreceja>
+            <Titulo style={estilos.titulo}>{t('entrada.reouvir.titulo')}</Titulo>
+            <Cuerpo style={estilos.paragrafo}>{t('entrada.reouvir.texto')}</Cuerpo>
+          </ColunaLeitura>
 
-          {tiragem.map(({ carta, posicao }) => (
-            <View key={carta.id} style={estilos.bloco}>
+          {/* AS TRES CARTAS, uma por FAIXA.
+              O FIO RETO MORREU: cada bloco era `marginTop` + `borderTopWidth`,
+              uma linha reta de 1px entre uma carta e a seguinte. Quem separa
+              agora e a MUDANCA DE CHAO, e o guia e explicito — "nos prints,
+              NENHUMA linha reta corta a tela".
+              O tom alterna pelo INDICE (par noite, impar ameixa) e nao por nome
+              fixo: a tiragem vem do motor e a tela nao decide quantas cartas
+              sao. Assim nunca ha dois chaos iguais encostados.
+              A SEMENTE E O ID DA CARTA: onda propria por carta, e a MESMA onda
+              sempre que a mesma tiragem reabrir (a semente e deterministica —
+              com Math.random a tela formigaria no scroll).
+              `grude` a partir da segunda: a primeira encosta na abertura, que
+              nao e faixa. */}
+          {tiragem.map(({ carta, posicao }, indice) => (
+            <FaixaCurva
+              key={carta.id}
+              tom={indice % 2 === 0 ? 'noite' : 'ameixa'}
+              semente={carta.id}
+              grude={indice > 0}
+            >
+              <ColunaLeitura>
               <Rotulo>{t(`entrada.posicao.${posicao}`)}</Rotulo>
 
               {/* `revelada` fixo em true: aqui nao se raspa. CartaHilo continua
@@ -216,15 +242,17 @@ export default function ReouvirTresCartasScreen({ navigation }) {
                   contexto que a guarda de contato duro julgou naquele dia, seria
                   cobrar de novo uma acao que ela ja fez ou ja decidiu nao fazer. */}
               <Cuerpo style={estilos.paragrafo}>{carta.leitura}</Cuerpo>
-            </View>
+              </ColunaLeitura>
+            </FaixaCurva>
           ))}
 
-          <BotonPrimario
-            titulo={t('comunes.volver')}
-            onPress={sair}
-            variante="fantasma"
-            style={estilos.botao}
-          />
+          <ColunaLeitura style={estilos.fecho}>
+            <BotonPrimario
+              titulo={t('comunes.volver')}
+              onPress={sair}
+              variante="fantasma"
+            />
+          </ColunaLeitura>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -237,20 +265,25 @@ const estilos = StyleSheet.create({
     backgroundColor: colores.noche,
   },
   seguro: { flex: 1 },
+  // SEM padding lateral (12/09/2026): as faixas precisam SANGRAR de ponta a
+  // ponta pra serem chao e nao card. O recuo passou pra ColunaLeitura, bloco a
+  // bloco, que e onde ele deve morar.
   conteudo: {
-    padding: espacio.xl,
     paddingBottom: espacio.xxxl,
   },
+
+  // `ar` (48) no topo: o silencio antes da primeira palavra. Embaixo nada — a
+  // primeira faixa ja abre com `secao` de padding proprio mais a altura da
+  // onda, e somar margem a uma faixa e sempre somar duas vezes.
+  abertura: { paddingTop: space.ar },
+  // `ar` tambem no fecho: a tela abre e fecha com a mesma respiracao.
+  fecho: { paddingTop: space.ar },
 
   titulo: { marginTop: espacio.sm },
   paragrafo: { marginTop: espacio.lg },
 
-  bloco: {
-    marginTop: espacio.xxl,
-    paddingTop: espacio.xl,
-    borderTopWidth: 1,
-    borderTopColor: colores.bordeSuave,
-  },
+  // `bloco` MORREU com o fio reto que ele desenhava. Ver o comentario da faixa,
+  // no render.
 
   // Mesma proporcao 5:8 da leitura de entrada (as artes do baralho cigano).
   carta: {
@@ -269,5 +302,4 @@ const estilos = StyleSheet.create({
   ouvir: { alignSelf: 'center' },
   audioNota: { marginTop: espacio.md },
 
-  botao: { marginTop: espacio.xxl },
 });

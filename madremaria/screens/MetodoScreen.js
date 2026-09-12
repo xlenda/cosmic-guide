@@ -131,7 +131,7 @@ const LINEAS_NO = comoLista('metodo.respuestas.no.lineas');
  *  substitui o fio, nao a numeracao. */
 function Seccion({ n, titulo, tom, children }) {
   return (
-    <FaixaCurva tom={tom} semente={titulo} grude style={estilos.seccion}>
+    <FaixaCurva tom={tom} semente={titulo} grude>
       <ColunaLeitura>
         <View style={estilos.seccionCabecera}>
           <Cuerpo tabular style={estilos.seccionNumero} accessible={false}>
@@ -470,10 +470,15 @@ const estilos = StyleSheet.create({
   // Quem separa agora e a mudanca de chao da faixa, e o respiro e padding
   // DENTRO dela (margem por fora abriria um rasgo de fundo entre duas faixas
   // que precisam encostar, e mataria o `grude`).
-  seccion: {
-    paddingTop: space.secao,
-    paddingBottom: space.secao,
-  },
+  // SEM PADDING NA FAIXA (12/09/2026), e o motivo foi MEDIDO na foto: o `style`
+  // de FaixaCurva vai pra View de FORA, que embrulha o SVG da onda mais o corpo
+  // colorido. Padding vertical ali cria espaco TRANSPARENTE acima e abaixo do
+  // preenchimento — 32+32 = 64px de fundo do app entre cada par de faixas,
+  // fotografado na segunda dobra da tela de termos, que tem a mesma estrutura
+  // desta. O `grude` (marginTop:-1) existe pra meia-linha de antialias e nao
+  // fecha 64px.
+  // O respiro nao se perdeu: components/FaixaCurva.js ja poe `space.secao` em
+  // cima e embaixo no CORPO dela, por DENTRO do chao. Isto aqui era duplicata.
   seccionCabecera: {
     flexDirection: 'row',
     alignItems: 'flex-start',

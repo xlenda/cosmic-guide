@@ -12,7 +12,16 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
+// AS PEÇAS DE DIAGRAMAÇÃO (12/09/2026) — ver design/PECAS-DE-DIAGRAMACAO.md.
+// Esta tela era o caso de manual do diagnóstico: nove cards do MESMO tamanho,
+// da MESMA cor, empilhados no MESMO chão. Fotografada antes (390x844), a dobra
+// 2 mostrava seis checkboxes e dois cards de trilha sem nenhuma marca de "aqui
+// mudou de assunto" — o olho lia lista de configurações, não trilha de casal.
+// As três faixas dão três chãos: o que é URGENTE (SOS + o que é isto), o que
+// já foi FEITO (o placar) e o que HÁ PRA FAZER (as trilhas).
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import ScoreBar from '../components/ScoreBar';
@@ -178,7 +187,7 @@ export default function ReconectarScreen() {
           <Text style={styles.emptyProfileDesc}>
             {t('reconectar.gate.desc')}
           </Text>
-          <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
+          <TouchableOpacity style={[styles.btn, { marginTop: space.entre }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
             <Text style={styles.btnText}>{t('reconectar.gate.cta')}</Text>
           </TouchableOpacity>
         </View>
@@ -203,8 +212,13 @@ export default function ReconectarScreen() {
           </View>
         )}
 
+        {/* FAIXA 1 — O QUE É URGENTE. Chão rosa (a família do pink, o tom dos
+            assuntos de casal) com o SOS e o "o que é isto" juntos: os dois são
+            o que a pessoa lê ANTES de escolher trilha. Antes eram dois cards
+            soltos no mesmo fundo de todo o resto. */}
+        <FaixaCurva tom="rosa" semente="reconectar-agora" estiloCorpo={styles.faixaTopo}>
         {/* Modo SOS — ação mais urgente, ephemeral (nunca persiste) */}
-        <View style={[styles.card, { marginBottom: 14 }]}>
+        <View style={styles.card}>
           <TouchableOpacity style={styles.rowBtn} onPress={() => setSosOpen((v) => !v)} activeOpacity={0.8}>
             <Text style={styles.rowEmoji}>🆘</Text>
             <View style={{ flex: 1 }}>
@@ -215,12 +229,12 @@ export default function ReconectarScreen() {
             <Ionicons name={sosOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
           </TouchableOpacity>
           {sosOpen && (
-            <View style={{ marginTop: 16 }}>
+            <View style={{ marginTop: space.bloco }}>
               <Text style={styles.sosStepText}>{t(SOS_STEPS[sosStep])}</Text>
               <View style={styles.progressTrack}>
                 <View style={[styles.progressFill, { width: `${((sosStep + 1) / SOS_STEPS.length) * 100}%` }]} />
               </View>
-              <View style={{ alignItems: 'center', marginTop: 12 }}>
+              <View style={{ alignItems: 'center', marginTop: space.dentro }}>
                 {sosStep < SOS_STEPS.length - 1 ? (
                   <TouchableOpacity style={styles.btn} onPress={() => setSosStep((s) => s + 1)}>
                     <Text style={styles.btnText}>{t('reconectar.sos.next')}</Text>
@@ -235,16 +249,25 @@ export default function ReconectarScreen() {
           )}
         </View>
 
-        <View style={styles.card}>
+        {/* O "o que é isto" SEM card: é parágrafo de abertura, e parágrafo
+            pede COLUNA DE LEITURA, não moldura. A faixa já é o chão dele.
+            Em 390px a coluna não corta nada (o certo); no tablet e na web ela
+            impede a linha de atravessar a tela inteira. */}
+        <ColunaLeitura style={styles.introColuna}>
           <Text style={styles.sectionTitle}>{t('reconectar.intro.title')}</Text>
           <Text style={styles.mutedText}>
             {t('reconectar.intro.text')}
           </Text>
           <Text style={styles.disclaimer}>{t('reconectar.intro.disclaimer')}</Text>
-        </View>
+        </ColunaLeitura>
+        </FaixaCurva>
 
+        {/* FAIXA 2 — O QUE JÁ FOI FEITO. Só existe com `loaded`: sem dado
+            carregado não há faixa nenhuma, porque faixa em volta de nada é
+            exatamente o bloco de cor vazio que o revisor pegou na Home. */}
         {loaded && (
-          <View style={[styles.card, { marginTop: 14, marginBottom: 14 }]}>
+          <FaixaCurva tom="ameixa" semente="reconectar-placar" grude>
+          <View style={styles.card}>
             <Text style={styles.overline}>{t('reconectar.progress.overline')}</Text>
             <View style={styles.statRow}>
               <View style={styles.stat}>
@@ -262,7 +285,7 @@ export default function ReconectarScreen() {
                 <Text style={styles.statLabel}>{t('reconectar.progress.tracks')}</Text>
               </View>
             </View>
-            <View style={{ marginTop: 14 }}>
+            <View style={{ marginTop: space.bloco }}>
               {TRACKS.map((tr) => (
                 <ScoreBar
                   key={tr.id}
@@ -273,11 +296,16 @@ export default function ReconectarScreen() {
               ))}
             </View>
           </View>
+          </FaixaCurva>
         )}
 
+        {/* FAIXA 3 — O QUE HÁ PRA FAZER. Chão neutro (ardósia) porque é a
+            faixa MAIS LONGA da tela: cor cromática numa faixa de nove cards
+            lava a tela (foi a medida que segurou o violeta fora da Home). */}
+        <FaixaCurva tom="noite" semente="reconectar-trilhas" grude>
         <Text style={styles.pageSectionTitle}>{t('reconectar.tracksTitle')}</Text>
         {recomendada && (
-          <Text style={[styles.mutedText, { marginBottom: 10 }]}>
+          <Text style={[styles.mutedText, { marginBottom: space.dentro }]}>
             {t('reconectar.recommendedIntro')}
           </Text>
         )}
@@ -302,7 +330,7 @@ export default function ReconectarScreen() {
               </TouchableOpacity>
 
               {isOpen && (
-                <View style={{ marginTop: 14 }}>
+                <View style={{ marginTop: space.bloco }}>
                   {track.steps.map((step, i) => {
                     const checked = loaded && !!checks[`${track.id}:${i}`];
                     return (
@@ -326,6 +354,7 @@ export default function ReconectarScreen() {
         <Text style={styles.disclaimer}>
           {t('reconectar.disclaimer')}
         </Text>
+        </FaixaCurva>
       </ScrollView>
     </View>
   );
@@ -333,45 +362,60 @@ export default function ReconectarScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  // SEM padding horizontal: as faixas sangram de ponta a ponta e cada uma traz
+  // o proprio space.tela por dentro. Com o padding aqui, a faixa terminava 16px
+  // antes da borda e lia como card gigante, que e justamente o que ela nao e.
+  scrollContent: { paddingBottom: space.fimDaLista },
 
-  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 16 },
-  trackCard: { marginBottom: 14 },
+  card: {
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 16, padding: space.bloco,
+  },
+  // A primeira faixa ja traz o respiro dela; o card do SOS nao precisa somar
+  // outro em cima. So o degrau ate o paragrafo de abertura.
+  faixaTopo: { paddingTop: space.entre },
+  introColuna: { marginTop: space.entre },
+  trackCard: { marginBottom: space.bloco },
   trackCardRecommended: { borderColor: colors.gold },
 
-  rowBtn: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rowBtn: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
   rowEmoji: { fontSize: 28 },
-  rowTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  rowDesc: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
-  overline: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  // O titulo da linha sai do peso 800 pro type.cartao (600): negrito e
+  // HIERARQUIA, e aqui ele competia com o titulo de secao logo acima.
+  rowTitle: { ...type.cartao, color: colors.text },
+  rowDesc: { ...type.apoio, color: colors.textMuted, marginTop: space.grudado },
+  overline: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
 
   recommendedBadge: {
-    color: colors.gold, fontSize: 11, fontWeight: '700', marginBottom: 4,
+    ...type.etiqueta, color: colors.gold, marginBottom: space.grudado,
   },
   fractionBadge: {
     color: colors.accent, fontSize: 12, fontWeight: '700',
-    backgroundColor: colors.accent + '22', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, marginRight: 8,
+    backgroundColor: colors.accent + '22', borderRadius: 10,
+    paddingHorizontal: space.junto, paddingVertical: space.grudado, marginRight: space.junto,
   },
 
-  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 8 },
-  pageSectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 6, marginBottom: 10 },
-  mutedText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  disclaimer: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 12, lineHeight: 16 },
-  hint: { color: colors.textMuted, fontSize: 12, marginTop: 10, lineHeight: 17 },
+  sectionTitle: { ...type.secao, color: colors.text, marginBottom: space.dentro },
+  pageSectionTitle: { ...type.secao, color: colors.text, marginBottom: space.bloco },
+  // O corpo sobe pro degrau de leitura da fundacao (15/24 em vez de 14/21):
+  // e o paragrafo que explica a tela, e era o texto mais apertado dela.
+  mutedText: { ...type.corpoCurto, color: colors.textSecondary },
+  disclaimer: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.bloco },
+  hint: { ...type.apoio, color: colors.textMuted, marginTop: space.dentro },
 
-  statRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10 },
+  statRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: space.dentro },
   stat: { flex: 1, alignItems: 'center' },
-  statValue: { color: colors.text, fontSize: 22, fontWeight: '800' },
-  statLabel: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  statDivider: { width: 1, height: 30, backgroundColor: colors.border, marginHorizontal: 10 },
+  statValue: { ...type.numero, color: colors.text },
+  statLabel: { ...type.apoio, color: colors.textMuted, marginTop: space.grudado },
+  statDivider: { width: 1, height: 30, backgroundColor: colors.border, marginHorizontal: space.dentro },
 
-  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 8 },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.dentro, paddingVertical: space.junto },
   stepCheck: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: colors.gold + '99',
     justifyContent: 'center', alignItems: 'center', marginTop: 1,
   },
   stepCheckOn: { backgroundColor: colors.gold + '2E' },
-  stepText: { flex: 1, color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
+  stepText: { ...type.corpoCurto, flex: 1, color: colors.textSecondary },
   stepTextDone: { textDecorationLine: 'line-through', opacity: 0.75 },
 
   progressTrack: { height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden' },
@@ -379,19 +423,22 @@ const styles = StyleSheet.create({
 
   celebrateCard: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.gold, borderRadius: 16,
-    padding: 18, marginBottom: 14, alignItems: 'center',
+    padding: space.bloco, marginBottom: space.bloco, alignItems: 'center',
   },
-  celebrateClose: { position: 'absolute', top: 10, right: 10 },
-  celebrateEmoji: { fontSize: 30, marginBottom: 6 },
-  celebrateTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  celebrateDesc: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 4 },
+  celebrateClose: { position: 'absolute', top: space.dentro, right: space.dentro },
+  celebrateEmoji: { fontSize: 30, marginBottom: space.junto },
+  celebrateTitle: { ...type.cartao, color: colors.text },
+  celebrateDesc: { ...type.apoio, color: colors.textSecondary, textAlign: 'center', marginTop: space.grudado },
 
-  sosStepText: { color: colors.text, fontSize: 16, marginBottom: 12, lineHeight: 22 },
+  sosStepText: { ...type.corpo, color: colors.text, marginBottom: space.dentro },
 
-  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
-  btnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  btn: {
+    backgroundColor: colors.accent, borderRadius: 14,
+    paddingVertical: space.dentro, paddingHorizontal: space.entre, alignItems: 'center',
+  },
+  btnText: { ...type.botao, color: '#fff' },
 
-  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyProfileTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginTop: 14 },
-  emptyProfileDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.secao },
+  emptyProfileTitle: { ...type.cartao, color: colors.text, textAlign: 'center', marginTop: space.bloco },
+  emptyProfileDesc: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center', marginTop: space.junto },
 });

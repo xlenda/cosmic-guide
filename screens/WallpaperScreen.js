@@ -36,8 +36,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
 import { getWallpaperData, textosDaTela } from '../lib/wallpaper';
 import { useLanguage } from '../context/LanguageContext';
 import { localDayStr } from '../lib/localDay';
@@ -470,26 +471,43 @@ export default function WallpaperScreen() {
 
         {!dados.ceuDisponivel ? <Text style={styles.avisoSemCeu}>{T.semCeu}</Text> : null}
 
-        {ehWeb ? (
-          <TouchableOpacity style={styles.botaoBaixar} onPress={baixar} activeOpacity={0.8}>
-            <Ionicons name="download-outline" size={20} color={colors.background} />
-            <Text style={styles.botaoBaixarTexto}>{T.baixar}</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.cartaoSoWeb}>
-            <Ionicons name="globe-outline" size={18} color={colors.textSecondary} />
-            <Text style={styles.cartaoSoWebTexto}>{T.soWeb}</Text>
-          </View>
-        )}
+        {/* A FAIXA DA AÇÃO (12/09/2026, o lote de diagramação). A prévia, o
+            botão e as duas notas corriam soltos no mesmo fundo chapado, e o
+            botão ficava flutuando embaixo do canvas sem nada que dissesse
+            "aqui começa outra coisa" (foto em
+            design/lote-diagramacao/antes/wallpaper-dobra1.png). Uma faixa só,
+            dourada, porque o que ela contém é a OFERTA da tela: leve isto
+            embora. A prévia continua fora dela — ela é a heroina e não divide
+            chão com a ação.
+            O chão só existe onde há conteúdo: as notas são condicionais e o
+            recado também, mas o botão (ou o cartão de só-web) está SEMPRE lá,
+            então a faixa nunca desenha vazia. */}
+        {/* `rasa` MEDIDO: o corpo desta faixa da 183px (botao + duas notas).
+            Com a onda cheia de 56px o chao liso de entrada competia com o
+            proprio botao — faixa fina pede onda rasa, a licao do conserto da
+            Home. */}
+        <FaixaCurva tom="dourado" semente="wallpaper-baixar" style={styles.faixaAcao} rasa>
+          {ehWeb ? (
+            <TouchableOpacity style={styles.botaoBaixar} onPress={baixar} activeOpacity={0.8}>
+              <Ionicons name="download-outline" size={20} color={colors.background} />
+              <Text style={styles.botaoBaixarTexto}>{T.baixar}</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.cartaoSoWeb}>
+              <Ionicons name="globe-outline" size={18} color={colors.textSecondary} />
+              <Text style={styles.cartaoSoWebTexto}>{T.soWeb}</Text>
+            </View>
+          )}
 
-        {recado ? <Text style={styles.recado}>{recado}</Text> : null}
+          {recado ? <Text style={styles.recado}>{recado}</Text> : null}
 
-        {/* A nota de tamanho descreve o PNG de 1080×1920 — que só existe na
-            web. No nativo o cartão soWeb acima já disse a verdade; repetir a
-            medida do arquivo aqui seria vender um download que não acontece
-            nesta plataforma (regra do cabeçalho). */}
-        {ehWeb ? <Text style={styles.nota}>{T.tamanho}</Text> : null}
-        <Text style={styles.nota}>{T.amanha}</Text>
+          {/* A nota de tamanho descreve o PNG de 1080×1920 — que só existe na
+              web. No nativo o cartão soWeb acima já disse a verdade; repetir a
+              medida do arquivo aqui seria vender um download que não acontece
+              nesta plataforma (regra do cabeçalho). */}
+          {ehWeb ? <Text style={styles.nota}>{T.tamanho}</Text> : null}
+          <Text style={styles.nota}>{T.amanha}</Text>
+        </FaixaCurva>
       </ScrollView>
     </View>
   );
@@ -497,8 +515,13 @@ export default function WallpaperScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingBottom: 48, alignItems: 'center' },
-  previewWrap: { width: '100%', alignItems: 'center', marginTop: 8 },
+  // alignItems 'center' SAIU (12/09/2026): com ele a faixa encolhia até o
+  // tamanho do botão e virava um card dourado no meio da tela — o oposto de
+  // faixa, que sangra de ponta a ponta. Quem precisava do centro (a prévia,
+  // as notas) centraliza por conta própria. O padding lateral saiu pelo mesmo
+  // motivo; a faixa traz o dela por dentro.
+  scroll: { paddingBottom: space.ar },
+  previewWrap: { width: '100%', alignItems: 'center', marginTop: space.entre },
   previewNativo: {
     width: '100%',
     maxWidth: 300,
@@ -508,35 +531,42 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    marginTop: 8,
+    paddingHorizontal: space.entre,
+    marginTop: space.entre,
+    alignSelf: 'center',
   },
-  glifoNativo: { color: colors.gold, fontSize: 96, marginBottom: 12 },
-  linhaPequena: { color: colors.textSecondary, fontSize: 12, letterSpacing: 3, marginBottom: 16 },
-  faseNativo: { color: colors.textSecondary, fontSize: 12, marginBottom: 24 },
-  fraseNativo: { color: colors.text, fontSize: 15, lineHeight: 22, textAlign: 'center', marginBottom: 24 },
-  dataNativo: { color: colors.textMuted, fontSize: 12, marginBottom: 32 },
-  marcaNativo: { color: colors.textMuted, fontSize: 10, opacity: 0.7 },
+  // A PRÉVIA NATIVA é a maquete do PNG, não a tela: os degraus aqui imitam a
+  // composição da imagem exportada (que é "quase vazia" por regra da feature),
+  // então eles seguem a escala mas continuam mais largos que o resto do app.
+  glifoNativo: { color: colors.gold, fontSize: 96, marginBottom: space.dentro },
+  linhaPequena: { ...type.nota, color: colors.textSecondary, letterSpacing: 3, marginBottom: space.bloco },
+  faseNativo: { ...type.apoio, color: colors.textSecondary, marginBottom: space.entre },
+  fraseNativo: { ...type.corpoCurto, color: colors.text, textAlign: 'center', marginBottom: space.entre },
+  dataNativo: { ...type.apoio, color: colors.textMuted, marginBottom: space.secao },
+  marcaNativo: { ...type.nota, color: colors.textMuted, opacity: 0.7 },
   avisoSemCeu: {
+    ...type.apoio,
     color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: space.bloco,
+    marginHorizontal: space.tela,
     maxWidth: 320,
+    alignSelf: 'center',
   },
+  // A faixa da ação: só respiro ACIMA da onda — ela já traz o próprio
+  // paddingVertical `secao` por dentro.
+  faixaAcao: { marginTop: space.secao },
   botaoBaixar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.gold,
     borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    marginTop: 20,
-    gap: 8,
+    paddingVertical: space.bloco,
+    paddingHorizontal: space.entre,
+    gap: space.junto,
   },
-  botaoBaixarTexto: { color: colors.background, fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
+  botaoBaixarTexto: { ...type.botao, color: colors.background, letterSpacing: 0.5 },
   cartaoSoWeb: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -544,12 +574,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
-    marginTop: 20,
+    padding: space.bloco,
     maxWidth: 340,
-    gap: 10,
+    alignSelf: 'center',
+    gap: space.dentro,
   },
-  cartaoSoWebTexto: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, flex: 1 },
-  recado: { color: colors.teal, fontSize: 13, textAlign: 'center', marginTop: 14, maxWidth: 320 },
-  nota: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 12 },
+  cartaoSoWebTexto: { ...type.apoio, color: colors.textSecondary, flex: 1 },
+  recado: { ...type.apoio, color: colors.teal, textAlign: 'center', marginTop: space.bloco, alignSelf: 'center', maxWidth: 320 },
+  nota: { ...type.apoio, color: colors.textMuted, textAlign: 'center', marginTop: space.dentro },
 });

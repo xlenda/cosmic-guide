@@ -152,9 +152,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 // LinearGradient: só pro fallback do grid de arte (evento sem planeta único,
 // tipo aspectoExato) — a faixa em gradients.card com o emoji do motor.
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 // A CENA ILUSTRADA (08/08/2026) — o hero desenhado do pack de arte
 // (lib/ilustracoes.js, 640px), primeiro item do rolo, acima da intro.
 // planetaImagem (08/08/2026, última rodada): planeta pintado 256px ou null,
@@ -890,7 +892,23 @@ export default function CalendarioCosmicoScreen() {
           <Image source={CENAS.planeta} style={styles.cenaImg} resizeMode="cover" accessible={false} />
         </View>
 
-        <Text style={styles.intro}>{t('calendario.intro')}</Text>
+        {/* DUAS FAIXAS, E POR QUE NAO TRES (12/09/2026, lote das telas de
+            tempo). Esta tela tem tres assuntos — O MES (intro, navegacao,
+            grade, legenda), O CEU DE AGORA (temporada, Lua fora de curso,
+            aplicativo x separativo) e A LISTA de eventos. Os dois primeiros
+            ganham faixa.
+            A LISTA NAO GANHA, e e uma decisao medida, nao esquecimento: as
+            linhas do grid de eventos sao filhas DIRETAS do ScrollView de
+            proposito — o `onLayout` de cada `arteLinha` guarda um y relativo
+            ao contentContainer que o `scrollTo` usa pra abrir o dia tocado na
+            grade (posicoesRef). Embrulhar essas linhas numa faixa mete um
+            container no meio do caminho e o y passa a ser relativo a ELE: o
+            toque no dia 14 rolaria pro lugar errado. Faixa e chao; nao vale
+            quebrar a navegacao da tela por causa de um chao. */}
+        <FaixaCurva tom="ameixa" semente="calendario-o-mes" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <ColunaLeitura centralizado>
+          <Text style={styles.intro}>{t('calendario.intro')}</Text>
+        </ColunaLeitura>
 
         {/* ---- Navegação de mês ---- */}
         <View style={styles.navRow}>
@@ -1038,7 +1056,17 @@ export default function CalendarioCosmicoScreen() {
           </View>
         ) : null}
 
+        </FaixaCurva>
+
         {/* ---- A temporada corrente ---- */}
+        {/* ESTADO VAZIO DA FAIXA 2 (a licao do lote da Home). Os tres blocos
+            daqui sao condicionais: sem temporada, sem Lua fora de curso E com
+            `fases` ainda indefinido (o calculo nao voltou), a faixa nao teria
+            NADA dentro — desenharia uma onda e um bloco de cor liso, que e o
+            defeito ALTO que o revisor fotografou la. Faixa sem conteudo nao
+            existe. */}
+        {temporada || (vocEstado && vocEstado.disponivel) || fases !== undefined ? (
+        <FaixaCurva tom="noite" semente="calendario-o-ceu-de-agora" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o gancho deste bloco
             estava na QUARTA linha: "A gente ouve 'temporada de Leão' o ano
             inteiro e ninguém diz o que é. É isto: ...". Antes dele vinham o
@@ -1213,6 +1241,9 @@ export default function CalendarioCosmicoScreen() {
           </View>
         )}
 
+        </FaixaCurva>
+        ) : null}
+
         {/* ---- A lista ---- */}
         {!resultado.ceuDisponivel ? (
           // NUNCA FABRICA. Sem efeméride o motor devolve lista vazia e a razão
@@ -1286,15 +1317,24 @@ export default function CalendarioCosmicoScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingBottom: 48, gap: 12 },
+  // O padding lateral FICA aqui: as linhas do grid de eventos sao filhas
+  // diretas deste container (ver a nota das faixas no JSX) e e este padding
+  // que as afasta da borda. Quem sangra de ponta a ponta e a FAIXA, e ela
+  // cancela o mesmo valor com margem negativa.
+  scroll: { padding: 20, paddingBottom: space.fimDaLista, gap: space.dentro },
 
-  // A cena ilustrada do topo — o gap:12 do scroll já dá o respiro.
+  // -20 horizontal = o padding do scroll. A faixa devolve o gutter por dentro
+  // (paddingHorizontal do corpo da peca), entao so o CHAO vai de ponta a ponta.
+  faixa: { marginHorizontal: -20 },
+  faixaCorpo: { gap: space.bloco },
+
+  // A cena ilustrada do topo — o gap do scroll já dá o respiro.
   cenaWrap: { borderRadius: 18, overflow: 'hidden' },
   cenaImg: { width: '100%', height: 150 },
 
   // COMPOSIÇÃO CENTRADA (08/08/2026): a intro vem logo abaixo da cena-hero do
   // planeta e lê como subtítulo dele — centrada, como no padrão do concorrente.
-  intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  intro: { ...type.corpo, color: colors.textSecondary, textAlign: 'center' },
 
   navRow: {
     flexDirection: 'row',
@@ -1304,40 +1344,38 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: space.junto,
+    paddingVertical: space.junto,
   },
   navBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navLabel: { color: colors.text, fontSize: 16, fontWeight: '800', flex: 1, textAlign: 'center' },
+  navLabel: { ...type.cartao, color: colors.text, flex: 1, textAlign: 'center' },
 
   hojeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    gap: space.junto,
+    paddingVertical: space.junto,
+    paddingHorizontal: space.dentro,
   },
-  hojeBtnText: { color: colors.teal, fontSize: 13, fontWeight: '700' },
+  hojeBtnText: { ...type.apoio, color: colors.teal, fontWeight: '600' },
 
   grade: {
     backgroundColor: colors.surface,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 8,
-    gap: 4,
+    padding: space.junto,
+    gap: space.grudado,
   },
-  semana: { flexDirection: 'row', gap: 4 },
+  semana: { flexDirection: 'row', gap: space.grudado },
   semanaLabel: {
     flex: 1,
     textAlign: 'center',
+    ...type.etiqueta,
     color: colors.textMuted,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
     textTransform: 'uppercase',
-    paddingVertical: 4,
+    paddingVertical: space.grudado,
   },
   celula: {
     flex: 1,
@@ -1350,64 +1388,65 @@ const styles = StyleSheet.create({
   celulaMarcada: { backgroundColor: 'rgba(181,123,255,0.12)' },
   celulaHoje: { borderWidth: 1, borderColor: colors.teal },
   celulaSelecionada: { borderWidth: 1, borderColor: colors.purple, backgroundColor: 'rgba(181,123,255,0.22)' },
-  celulaDia: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  celulaDia: { ...type.apoio, color: colors.textMuted, fontWeight: '600' },
   celulaDiaMarcado: { color: colors.text },
-  celulaDiaHoje: { color: colors.teal, fontWeight: '800' },
+  celulaDiaHoje: { color: colors.teal },
   celulaMarca: { fontSize: 10, lineHeight: 14, color: colors.purple },
 
-  legenda: { flexDirection: 'row', gap: 16, justifyContent: 'center', flexWrap: 'wrap' },
-  legendaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legenda: { flexDirection: 'row', gap: space.bloco, justifyContent: 'center', flexWrap: 'wrap' },
+  legendaItem: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
   legendaPonto: { width: 10, height: 10, borderRadius: 3, backgroundColor: 'rgba(181,123,255,0.55)' },
   legendaHoje: { width: 10, height: 10, borderRadius: 3, borderWidth: 1, borderColor: colors.teal },
-  legendaTexto: { color: colors.textMuted, fontSize: 11 },
+  legendaTexto: { ...type.nota, color: colors.textMuted },
 
   oferta: {
     backgroundColor: 'rgba(255,200,92,0.10)',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,200,92,0.45)',
-    padding: 14,
-    gap: 8,
+    padding: space.bloco,
+    gap: space.junto,
   },
-  ofertaTopo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ofertaTitulo: { color: colors.gold, fontSize: 14, fontWeight: '800', flex: 1 },
+  ofertaTopo: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
+  ofertaTitulo: { ...type.cartao, color: colors.gold, flex: 1 },
   ofertaBtn: {
     backgroundColor: colors.accent,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: space.dentro,
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: space.grudado,
   },
-  ofertaBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  ofertaBtnText: { ...type.botao, color: '#fff' },
 
   temporada: {
     backgroundColor: colors.card,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 6,
+    padding: space.bloco,
+    gap: space.dentro,
   },
   kicker: {
+    ...type.etiqueta,
     color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  temporadaTitulo: { color: colors.gold, fontSize: 18, fontWeight: '800' },
-  temporadaQuando: { color: colors.teal, fontSize: 13, fontWeight: '700' },
+  temporadaTitulo: { ...type.secao, color: colors.gold },
+  temporadaQuando: { ...type.apoio, color: colors.teal, fontWeight: '600' },
 
   // COMPOSIÇÃO CENTRADA (08/08/2026): título de seção grande e centrado, com
   // muito ar em cima — o padrão do concorrente premium (22/800, simétrico). A
   // contagem acompanha o título centrado, como subtítulo da seção.
-  listaTitulo: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
-  listaContagem: { color: colors.textMuted, fontSize: 12, marginTop: -14, textAlign: 'center', alignSelf: 'center' },
+  // `ar` em cima: o silencio deliberado antes do titulo da secao. Era 34.
+  listaTitulo: { ...type.titulo, color: colors.text, textAlign: 'center', alignSelf: 'center', marginTop: space.ar, marginBottom: space.bloco },
+  // marginTop negativo sobe a contagem pra debaixo do titulo, anulando o
+  // marginBottom dele — os dois sao UMA coisa so (titulo + subtitulo).
+  listaContagem: { ...type.apoio, color: colors.textMuted, marginTop: -space.bloco, textAlign: 'center', alignSelf: 'center' },
 
   // ---- O grid de arte dos eventos (09/08/2026) ----
   // Linha = par de cards; align 'stretch' (default de row) iguala as alturas
   // do par mesmo com títulos de 1 e 2 linhas.
-  arteLinha: { flexDirection: 'row', gap: 12 },
+  arteLinha: { flexDirection: 'row', gap: space.dentro },
   arteVazio: { flex: 1 },
   arteCard: {
     flex: 1,
@@ -1431,9 +1470,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  artePillTexto: { color: colors.text, fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  artePillTexto: { ...type.etiqueta, color: colors.text },
   arteRodape: { paddingHorizontal: 10, paddingVertical: 10, flexGrow: 1, justifyContent: 'center' },
-  arteTitulo: { color: colors.text, fontSize: 14, fontWeight: '800', lineHeight: 18 },
+  arteTitulo: { ...type.apoio, color: colors.text, fontWeight: '600' },
 
   evento: {
     backgroundColor: colors.card,
@@ -1458,8 +1497,8 @@ const styles = StyleSheet.create({
   // O planeta pintado da linha de identificação (08/08/2026): entra ANTES do
   // emoji quando o tipo tem planeta honesto; o gap do eventoTopo já espaça.
   eventoPlaneta: { width: 30, height: 30, borderRadius: 15 },
-  eventoTitulo: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
-  eventoQuando: { color: colors.teal, fontSize: 12, fontWeight: '700' },
+  eventoTitulo: { ...type.cartao, color: colors.text, flex: 1 },
+  eventoQuando: { ...type.apoio, color: colors.teal, fontWeight: '600' },
 
   toggleRow: {
     flexDirection: 'row',
@@ -1470,13 +1509,11 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     gap: 10,
   },
-  toggleText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700', flex: 1 },
-  ficha: { gap: 8 },
+  toggleText: { ...type.apoio, color: colors.textSecondary, fontWeight: '600', flex: 1 },
+  ficha: { gap: space.junto },
   fichaLabel: {
+    ...type.etiqueta,
     color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
     textTransform: 'uppercase',
     marginTop: 2,
   },
@@ -1490,7 +1527,7 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: 'flex-start',
   },
-  indisponivelTitulo: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  indisponivelTitulo: { ...type.cartao, color: colors.text },
 
   // ---- Aplicativo × separativo ----
   faseBloco: {
@@ -1501,7 +1538,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
-  faseBlocoTitulo: { color: colors.gold, fontSize: 18, fontWeight: '800' },
+  faseBlocoTitulo: { ...type.secao, color: colors.gold },
   faseCard: {
     backgroundColor: colors.surface,
     borderRadius: 14,
@@ -1512,13 +1549,11 @@ const styles = StyleSheet.create({
   },
   faseTopo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   faseTopoTexto: { flex: 1, gap: 2 },
-  faseTitulo: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  faseSubtitulo: { color: colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+  faseTitulo: { ...type.cartao, color: colors.text },
+  faseSubtitulo: { ...type.etiqueta, color: colors.textMuted },
   faseSelo: {
+    ...type.etiqueta,
     color: colors.teal,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
     textTransform: 'uppercase',
     borderWidth: 1,
     borderColor: colors.border,
@@ -1526,8 +1561,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  faseLinha: { color: colors.text, fontSize: 14, lineHeight: 21, fontWeight: '600' },
-  faseComoResolver: { color: colors.teal, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  faseLinha: { ...type.corpoCurto, color: colors.text, fontWeight: '600' },
+  faseComoResolver: { ...type.apoio, color: colors.teal, fontWeight: '600' },
   faseCorpo: { gap: 10, marginTop: 2 },
   faseCta: {
     flexDirection: 'row',
@@ -1536,7 +1571,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
   },
-  faseCtaTexto: { color: colors.teal, fontSize: 13, fontWeight: '800' },
+  faseCtaTexto: { ...type.botao, color: colors.teal },
   faseRecibo: {
     borderRadius: 12,
     borderWidth: 1,
@@ -1549,7 +1584,7 @@ const styles = StyleSheet.create({
   divisorLinha: { flex: 1, height: 1, backgroundColor: colors.border },
   divisorEstrela: { color: colors.purple, fontSize: 12 },
   verbatim: { gap: 4, marginBottom: 6 },
-  verbatimTexto: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
+  verbatimTexto: { ...type.apoio, color: colors.textSecondary, fontStyle: 'italic' },
   shareBtn: {
     flexDirection: 'row',
     gap: 8,
@@ -1559,15 +1594,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shareBtnTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  marca: { color: colors.textMuted, fontSize: 10, textAlign: 'center' },
+  shareBtnTexto: { ...type.botao, color: '#fff' },
+  marca: { ...type.nota, color: colors.textMuted, textAlign: 'center' },
 
-  body: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  recibo: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  body: { ...type.corpoCurto, color: colors.textSecondary },
+  recibo: { ...type.apoio, color: colors.textMuted },
   // O rótulo do recibo, agora traduzido — negrito só pra ele continuar sendo
   // lido como rótulo e não como começo da frase.
   reciboMarca: { color: colors.textMuted, fontWeight: '800' },
-  note: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
-  noteStrong: { color: colors.gold, fontSize: 12, lineHeight: 18, fontWeight: '700' },
-  source: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  note: { ...type.apoio, color: colors.textSecondary },
+  noteStrong: { ...type.apoio, color: colors.gold, fontWeight: '600' },
+  source: { ...type.nota, color: colors.textMuted },
 });

@@ -493,7 +493,7 @@ export default function AyudaScreen({ navigation }) {
               chao, com um fio reto de 1px entre eles.
               `noite` e o tom mais neutro: os cartoes ja tem contraste proprio, e
               um chao forte aqui competiria com a leitura de qual esta aberto. */}
-          <FaixaCurva tom="noite" semente="categorias" grude style={estilos.faixaLista}>
+          <FaixaCurva tom="noite" semente="categorias" grude>
             <View style={estilos.lista}>
             {CATEGORIAS.map((cat) => {
               const estaAbierta = cat.id === abierta;
@@ -539,7 +539,7 @@ export default function AyudaScreen({ navigation }) {
           {/* --- escrever: so depois dos passos, e so com categoria escolhida ----
               Chao PROPRIO (`ameixa`), que e o que substitui o fio reto de 1px
               que separava este bloco do acordeao. */}
-          <FaixaCurva tom="ameixa" semente="escrever" grude style={estilos.escribir}>
+          <FaixaCurva tom="ameixa" semente="escrever" grude>
             <ColunaLeitura>
             <Sobreceja>{t('ayuda.escribir.sobreceja')}</Sobreceja>
             <Cuerpo style={estilos.escribirTitulo}>{t('ayuda.escribir.titulo')}</Cuerpo>
@@ -633,10 +633,16 @@ const estilos = StyleSheet.create({
   abertura: {
     paddingTop: space.ar,
   },
-  faixaLista: {
-    paddingTop: space.secao,
-    paddingBottom: space.secao,
-  },
+  // SEM PADDING NA FAIXA (12/09/2026), e o motivo foi MEDIDO na foto: o `style`
+  // de FaixaCurva vai pra View de FORA, que embrulha o SVG da onda mais o corpo
+  // colorido. Padding vertical ali cria espaco TRANSPARENTE acima e abaixo do
+  // preenchimento — 32+32 = 64px de fundo do app entre cada par de faixas,
+  // fotografado na segunda dobra da tela de termos. Era o proprio "rasgo de
+  // fundo entre duas faixas que devem encostar" que estes comentarios diziam
+  // estar evitando; o `grude` (marginTop:-1) existe pra meia-linha de antialias
+  // e nao fecha 64px.
+  // O respiro nao se perdeu: components/FaixaCurva.js ja poe `space.secao` em
+  // cima e embaixo no CORPO dela, por DENTRO do chao. Isto aqui era duplicata.
   fecho: {
     paddingTop: space.secao,
   },
@@ -770,10 +776,6 @@ const estilos = StyleSheet.create({
   // separava "escolher a categoria" de "escrever". Quem separa agora e a
   // mudanca de chao da faixa `ameixa`, e o respiro e padding DENTRO dela
   // (margem por fora abriria um rasgo entre duas faixas que devem encostar).
-  escribir: {
-    paddingTop: space.secao,
-    paddingBottom: space.secao,
-  },
   escribirTitulo: {
     marginTop: space.dentro,
   },

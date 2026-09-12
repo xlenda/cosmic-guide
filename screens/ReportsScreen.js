@@ -20,8 +20,10 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import FileiraDeTres from '../components/FileiraDeTres';
 import UniversoGirando from '../components/UniversoGirando';
 import AnelProgresso from '../components/AnelProgresso';
 import { getMonthActivity, getMonthTypes, getStreakInfo, STREAK_MILESTONES } from '../lib/streak';
@@ -207,12 +209,20 @@ export default function ReportsScreen() {
         gradient={gradients.gold}
       />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* TRES FAIXAS, e o porque de cada corte. A tela tinha tres cards
+            identicos (resumo / calendario / evolucao) no MESMO chao preto: o
+            diagnostico do briefing, "parece lista". Os assuntos sao mesmo
+            tres — o numero de hoje, o mes dia a dia, e a evolucao de seis
+            meses — entao cada um ganha chao proprio e semente propria.
+            O universo do topo NAO entra em faixa: e a composicao de abertura,
+            e por um chao de cor por baixo dele e o "dois fundos brigando". */}
         {/* O universo abre a tela. pointerEvents none vem de dentro dele:
-            decoração nunca rouba toque. */}
+            decoracao nunca rouba toque. */}
         <View style={styles.universoWrap}>
           <UniversoGirando size={220} testID="reports-universo" />
         </View>
 
+        <FaixaCurva tom="ameixa" semente="reports-resumo" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         <View style={styles.resumoCard}>
           <View style={styles.aneisRow}>
             <View style={styles.anelCol} testID="reports-anel-marco">
@@ -232,19 +242,34 @@ export default function ReportsScreen() {
               <Text style={styles.anelSub}>{pctMes}%</Text>
             </View>
           </View>
-          <View style={styles.numerosRow}>
-            <View style={styles.numeroItem}>
-              <Text style={styles.numeroValor}>{streakInfo.totalActiveDays}</Text>
-              <Text style={styles.numeroRotulo}>{t('reports.total')}</Text>
-            </View>
-            <View style={styles.numeroDivisor} />
-            <View style={styles.numeroItem}>
-              <Text style={styles.numeroValor}>{streakInfo.longest || 0}</Text>
-              <Text style={styles.numeroRotulo}>{t('reports.bestStreak')}</Text>
-            </View>
+          {/* A FILEIRA no lugar dos dois numeros separados por um fio vertical:
+              mesmas duas contagens, alinhadas pelo topo e com o peso igual que
+              faz as duas lerem como UMA peca.
+              DUAS COLUNAS, E NAO TRES, E O PRINT QUE DECIDIU. Montei uma
+              terceira com `ativosNoMes` — dado real, nao inventado — e a foto
+              mostrou o defeito: o anel logo acima JA mostra esse numero, com o
+              MESMO rotulo t('reports.monthActive'). A tela passava a dizer
+              "0 dias ativos no mes" duas vezes, a 200px de distancia. Repetir
+              nao e fabricar, mas e ruido, e o remedio e a propria peca: ela
+              desenha com duas colunas sem reclamar (so se recusa a desenhar
+              UMA, que ai nao e comparacao).
+              ZERO E VALOR REAL e aparece — apenasReais (lib/filtroDado.js) nao
+              engole o 0, entao quem nunca abriu o app le "0", que e a verdade,
+              em vez da coluna sumir. */}
+          <View style={styles.fileiraWrap}>
+            <FileiraDeTres
+              testID="reports-fileira"
+              itens={[
+                { chave: 'total', valor: streakInfo.totalActiveDays, rotulo: t('reports.total') },
+                { chave: 'melhor', valor: streakInfo.longest || 0, rotulo: t('reports.bestStreak') },
+              ]}
+            />
           </View>
         </View>
 
+        </FaixaCurva>
+
+        <FaixaCurva tom="noite" semente="reports-calendario" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         <View style={styles.calendarCard}>
           <View style={styles.calendarHead}>
             <TouchableOpacity onPress={goPrevMonth} style={styles.navBtn} activeOpacity={0.7} accessibilityRole="button">
@@ -302,6 +327,9 @@ export default function ReportsScreen() {
             ao mês com mais dias ativos na janela, número em cima, mês embaixo.
             Mês zerado ainda mostra uma base fininha — barra que some lê como
             "faltou dado", não como "zero". */}
+        </FaixaCurva>
+
+        <FaixaCurva tom="dourado" semente="reports-evolucao" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         <View style={styles.evolucaoCard} testID="reports-evolucao">
           <Text style={styles.evolucaoTitulo}>{t('reports.evolutionTitle')}</Text>
           <Text style={styles.evolucaoDesc}>{t('reports.evolutionDesc')}</Text>
@@ -322,6 +350,7 @@ export default function ReportsScreen() {
             })}
           </View>
         </View>
+        </FaixaCurva>
       </ScrollView>
     </View>
   );
@@ -329,71 +358,74 @@ export default function ReportsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  // O gutter saiu daqui e foi pras faixas: quem sangra de ponta a ponta e a
+  // FAIXA, e e ela que devolve o respiro lateral por dentro.
+  scrollContent: { paddingBottom: space.fimDaLista },
 
-  universoWrap: { alignItems: 'center', marginTop: -6, marginBottom: 4 },
+  faixa: { width: '100%' },
+  faixaCorpo: { gap: space.bloco },
+
+  universoWrap: { alignItems: 'center', marginBottom: space.grudado },
 
   resumoCard: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 18, padding: 16, marginBottom: 16,
+    borderRadius: 18, padding: space.bloco,
   },
   aneisRow: { flexDirection: 'row', justifyContent: 'space-around' },
   anelCol: { alignItems: 'center', flex: 1 },
-  anelValor: { color: colors.text, fontSize: 17, fontWeight: '800' },
-  anelRotulo: { color: colors.text, fontSize: 12, fontWeight: '700', marginTop: 8, textAlign: 'center' },
-  anelSub: { color: colors.textMuted, fontSize: 11, marginTop: 2, textAlign: 'center' },
-  numerosRow: {
-    flexDirection: 'row', alignItems: 'center', marginTop: 16, paddingTop: 14,
+  anelValor: { ...type.cartao, color: colors.text },
+  anelRotulo: { ...type.apoio, color: colors.text, marginTop: space.junto, textAlign: 'center' },
+  anelSub: { ...type.nota, color: colors.textMuted, marginTop: space.grudado, textAlign: 'center' },
+  // O fio que separava os dois numeros virou o degrau de secao: e o espaco
+  // que diz "acabou o anel, comecou o placar", e nao mais um risco vertical.
+  fileiraWrap: {
+    marginTop: space.entre, paddingTop: space.entre,
     borderTopWidth: 1, borderTopColor: colors.border,
   },
-  numeroItem: { flex: 1, alignItems: 'center' },
-  numeroDivisor: { width: 1, height: 28, backgroundColor: colors.border },
-  numeroValor: { color: colors.text, fontSize: 20, fontWeight: '800' },
-  numeroRotulo: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
 
   calendarCard: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 18, padding: 16, marginBottom: 16,
+    borderRadius: 18, padding: space.bloco,
   },
-  calendarHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  calendarHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.bloco },
   navBtn: {
     width: 36, height: 36, borderRadius: 10, backgroundColor: colors.surfaceElevated,
     justifyContent: 'center', alignItems: 'center',
   },
-  monthLabel: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  monthLabel: { ...type.cartao, color: colors.text },
 
-  weekdayRow: { flexDirection: 'row', marginBottom: 8 },
-  weekdayLabel: { width: `${100 / 7}%`, textAlign: 'center', color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  weekdayRow: { flexDirection: 'row', marginBottom: space.junto },
+  weekdayLabel: { width: `${100 / 7}%`, textAlign: 'center', ...type.etiqueta, color: colors.textMuted },
 
   daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  dayCell: { width: `${100 / 7}%`, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  dayCell: { width: `${100 / 7}%`, alignItems: 'center', justifyContent: 'center', marginBottom: space.junto },
   dayCircle: {
     width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center',
     borderWidth: 1.5, borderColor: 'transparent',
   },
-  // O fundo do dia ativo é inline: vem da cor do tipo dominante (TIPOS), com
+  // O fundo do dia ativo e inline: vem da cor do tipo dominante (TIPOS), com
   // o dourado — cor de conquista do app — como neutro pra dia sem tipo.
   dayCircleToday: { borderColor: colors.gold },
-  dayNumber: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
-  dayNumberActive: { color: colors.background, fontWeight: '800' },
+  dayNumber: { ...type.apoio, color: colors.textSecondary },
+  dayNumberActive: { color: colors.background, fontWeight: '600' },
 
-  legenda: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
-  legendaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legenda: { flexDirection: 'row', flexWrap: 'wrap', gap: space.dentro, marginTop: space.junto },
+  legendaItem: { flexDirection: 'row', alignItems: 'center', gap: space.grudado },
   legendaBola: { width: 10, height: 10, borderRadius: 5 },
-  legendaTexto: { color: colors.textMuted, fontSize: 11 },
+  legendaTexto: { ...type.nota, color: colors.textMuted },
 
   evolucaoCard: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 18, padding: 16,
+    borderRadius: 18, padding: space.bloco,
   },
-  evolucaoTitulo: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  evolucaoDesc: { color: colors.textMuted, fontSize: 12, marginTop: 2, marginBottom: 14 },
-  barrasRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 },
+  evolucaoTitulo: { ...type.cartao, color: colors.text },
+  evolucaoDesc: { ...type.apoio, color: colors.textMuted, marginTop: space.grudado, marginBottom: space.bloco },
+  barrasRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space.junto },
   barraCol: { flex: 1, alignItems: 'center' },
-  barraValor: { color: colors.textSecondary, fontSize: 11, fontWeight: '700', marginBottom: 4 },
+  barraValor: { ...type.nota, color: colors.textSecondary, marginBottom: space.grudado },
   barraTrilho: { height: 88, width: '100%', justifyContent: 'flex-end', alignItems: 'center' },
   barra: { width: '70%', maxWidth: 28, borderRadius: 6, backgroundColor: colors.gold + '77' },
   barraAtual: { backgroundColor: colors.gold },
-  barraMes: { color: colors.textMuted, fontSize: 11, marginTop: 6, textTransform: 'capitalize' },
-  barraMesAtual: { color: colors.text, fontWeight: '700' },
+  barraMes: { ...type.nota, color: colors.textMuted, marginTop: space.junto, textTransform: 'capitalize' },
+  barraMesAtual: { color: colors.text, fontWeight: '600' },
 });

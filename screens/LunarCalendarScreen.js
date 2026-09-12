@@ -66,8 +66,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 // O fade cinematográfico da cena full-bleed (09/08/2026) — funde o terço
 // inferior da arte no colors.background da tela.
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 // A CENA ILUSTRADA (08/08/2026) — o hero desenhado do pack de arte
 // (lib/ilustracoes.js, 640px), entre o header e o cartão da fase de hoje.
 import { CENAS } from '../lib/ilustracoes';
@@ -418,18 +420,29 @@ export default function LunarCalendarScreen() {
 
         <Text style={styles.disclaimer}>{t('lunar.disclaimer')}</Text>
 
+        {/* AS DUAS FAIXAS DESTA TELA, e por que não são três. O topo — cena
+            da Lua + cartão de hoje — NÃO ganha faixa: a arte já sangra de
+            ponta a ponta e funde no fundo por um gradiente próprio; pôr um
+            chão de cor por cima disso é o "dois fundos brigando" que o guia do
+            HeroiDoTopo proíbe. As duas seções que corriam soltas no mesmo
+            preto são a Lua fora de curso e a grade do mês — e é entre elas que
+            o assunto muda de verdade. */}
+
         {/* ==================================================================
             LUA FORA DE CURSO — as DUAS definições, e a divergência à vista
         ================================================================== */}
+        <FaixaCurva tom="ameixa" semente="lunar-fora-de-curso" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         <View style={styles.vocBloco} testID="voc-bloco">
           <Text style={styles.vocKicker}>{UI.kicker}</Text>
           <Text style={styles.vocTitulo}>{UI.titulo}</Text>
 
           {/* Prende primeiro, fonte depois: o print que circula, e só então de
               onde cada régua vem. */}
-          <Text style={styles.vocIntro}>{UI.intro}</Text>
-          <Text style={styles.vocIntro}>{UI.porQueDuas}</Text>
-          <Text style={styles.vocIntro}>{UI.naoDamosVeredito}</Text>
+          <ColunaLeitura>
+            <Text style={styles.vocIntro}>{UI.intro}</Text>
+            <Text style={[styles.vocIntro, styles.vocIntroSeguinte]}>{UI.porQueDuas}</Text>
+            <Text style={[styles.vocIntro, styles.vocIntroSeguinte]}>{UI.naoDamosVeredito}</Text>
+          </ColunaLeitura>
           {referencia ? <Text style={styles.vocGlosa}>{referencia.textos.glosa}</Text> : null}
 
           {!voc ? (
@@ -669,12 +682,20 @@ export default function LunarCalendarScreen() {
           )}
         </View>
 
+        </FaixaCurva>
+
+        <FaixaCurva tom="noite" semente="lunar-grade-do-mes" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         <Text style={styles.sectionTitle}>{monthLabel}</Text>
         {/* A grade: cada dia com a SUA luinha, desenhada pelo motor (o emoji
             de lib/lunarCalendar.js pra aquele dia — nunca inventada aqui). O
-            dia de hoje ganha o leito arredondado; sem fase (motor ausente),
-            a célula mostra o traço honesto de sempre em vez de um glifo
-            chutado. */}
+            dia de hoje ganha o leito arredondado.
+            SEM FASE, O GLIFO SOME (12/09/2026). A célula imprimia '—' e o
+            comentário aqui chamava isso de "traço honesto" — mas é exatamente
+            o traço mudo que a lei da casa proíbe: numa grade de 35 células o
+            olho lê o traço como UM SÍMBOLO A MAIS, um estado de lua ao lado
+            dos outros, em vez de "esse dado não veio". Some. O número do dia
+            continua lá, e a etiqueta de acessibilidade dessa célula já dizia
+            só o dia, sem traço — a grade agora concorda com ela. */}
         <View style={styles.grade} testID="lunar-grade">
           <View style={styles.gradeSemana}>
             {SEMANA_KEYS.map((chave) => (
@@ -703,13 +724,14 @@ export default function LunarCalendarScreen() {
                     <Text style={[styles.gradeDia, isToday && styles.gradeDiaHoje]}>
                       {celula.day}
                     </Text>
-                    <Text style={styles.gradeFase}>{celula.phase ? celula.phase.emoji : '—'}</Text>
+                    {celula.phase ? <Text style={styles.gradeFase}>{celula.phase.emoji}</Text> : null}
                   </View>
                 );
               })}
             </View>
           ))}
         </View>
+        </FaixaCurva>
       </ScrollView>
     </View>
   );
@@ -717,7 +739,16 @@ export default function LunarCalendarScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: 20, paddingBottom: 40, gap: 16 },
+  // O padding lateral FICA: a cena full-bleed do topo o anula com margem
+  // negativa (cenaWrap), e mexer nele quebraria o hero. Quem sangra é a
+  // FAIXA, e ela cancela o mesmo valor pelo mesmo caminho (styles.faixa).
+  scrollContent: { padding: 20, paddingBottom: space.fimDaLista, gap: space.bloco },
+
+  // -20 horizontal = o padding do scrollContent. A faixa devolve o gutter
+  // por dentro (paddingHorizontal space.tela do corpo da peça), então o
+  // conteúdo não encosta na borda — só o CHÃO é que vai de ponta a ponta.
+  faixa: { marginHorizontal: -20, width: undefined },
+  faixaCorpo: { gap: space.bloco },
   // A cena full-bleed do topo — margens negativas anulam o padding:20 do
   // scrollContent (sangra até as bordas e cola no header, sem borderRadius);
   // o marginBottom -44 vira -28 líquidos depois do gap:16, pousando o cartão
@@ -728,29 +759,27 @@ const styles = StyleSheet.create({
   todayCard: {
     backgroundColor: colors.card,
     borderRadius: 20,
-    padding: 24,
+    padding: space.entre,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
-    gap: 6,
+    gap: space.junto,
   },
   todayEmoji: { fontSize: 56 },
   // O nome da fase e a iluminação viraram a linha de recibo do cartão (a
   // reflexão subiu). Menores e com o fio em cima: continuam legíveis, continuam
   // sendo a medida que o app fez — só não são mais a manchete.
-  todayName: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 12 },
-  todayIllum: { color: colors.teal, fontSize: 13, fontWeight: '700' },
+  todayName: { ...type.cartao, color: colors.text, marginTop: space.dentro },
+  todayIllum: { ...type.apoio, color: colors.teal },
   todayReflection: {
+    ...type.corpoCurto,
     color: colors.text,
-    fontSize: 15,
-    lineHeight: 23,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: space.junto,
   },
   disclaimer: {
+    ...type.apoio,
     color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
     textAlign: 'center',
   },
 
@@ -760,46 +789,47 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 10,
+    padding: space.bloco,
+    gap: space.dentro,
   },
-  vocKicker: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
-  vocTitulo: { color: colors.text, fontSize: 19, fontWeight: '800', lineHeight: 25 },
-  vocIntro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  vocGlosa: { color: colors.textMuted, fontSize: 12, lineHeight: 18, fontStyle: 'italic' },
-  vocNota: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  vocKicker: { ...type.etiqueta, color: colors.gold },
+  vocTitulo: { ...type.secao, color: colors.text },
+  vocIntro: { ...type.corpoCurto, color: colors.textSecondary },
+  // Parágrafo seguinte, não linha seguinte: `entre` é o degrau de blocos
+  // irmãos, e eram três frases coladas por um gap de container.
+  vocIntroSeguinte: { marginTop: space.entre },
+  vocGlosa: { ...type.apoio, color: colors.textMuted, fontStyle: 'italic' },
+  vocNota: { ...type.apoio, color: colors.textMuted },
 
   vocIndisponivel: {
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
-    padding: 14,
-    gap: 6,
+    padding: space.bloco,
+    gap: space.junto,
     alignItems: 'center',
   },
-  vocIndisponivelTitulo: { color: colors.text, fontSize: 14, fontWeight: '800', textAlign: 'center' },
+  vocIndisponivelTitulo: { ...type.cartao, color: colors.text, textAlign: 'center' },
 
   vocSelo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.junto,
     alignSelf: 'flex-start',
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: space.dentro,
+    paddingVertical: space.junto,
   },
   vocSeloDivergem: { borderColor: colors.gold, backgroundColor: 'rgba(255,200,92,0.10)' },
   vocSeloConcordam: { borderColor: colors.border, backgroundColor: colors.surfaceElevated },
-  vocSeloTexto: { color: colors.text, fontSize: 12, fontWeight: '800' },
+  vocSeloTexto: { ...type.apoio, color: colors.text, fontWeight: '600' },
 
   vocRotulo: {
+    ...type.etiqueta,
     color: colors.textMuted,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    marginTop: 6,
+    marginTop: space.junto,
   },
 
   vocCard: {
@@ -807,28 +837,28 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
-    gap: 8,
+    padding: space.bloco,
+    gap: space.junto,
   },
   vocCardVazio: { borderColor: colors.purple },
-  vocRegua: { color: colors.text, fontSize: 16, fontWeight: '800', lineHeight: 22 },
+  vocRegua: { ...type.cartao, color: colors.text },
 
   vocEstado: {
     alignSelf: 'flex-start',
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: space.dentro,
+    paddingVertical: space.junto,
   },
   vocEstadoVazio: { borderColor: colors.purple, backgroundColor: 'rgba(181,123,255,0.12)' },
   vocEstadoCheio: { borderColor: colors.border, backgroundColor: colors.surface },
-  vocEstadoTexto: { color: colors.textSecondary, fontSize: 11, fontWeight: '700' },
+  vocEstadoTexto: { ...type.nota, color: colors.textSecondary, fontWeight: '600' },
   vocEstadoTextoVazio: { color: colors.text },
 
-  vocPar: { gap: 2 },
-  vocParRotulo: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  vocParValor: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
-  vocCorpo: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  vocPar: { gap: space.grudado },
+  vocParRotulo: { ...type.etiqueta, color: colors.textMuted },
+  vocParValor: { ...type.apoio, color: colors.textSecondary },
+  vocCorpo: { ...type.corpoCurto, color: colors.textSecondary },
 
   vocAbrir: {
     flexDirection: 'row',
@@ -836,75 +866,77 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingTop: 10,
-    marginTop: 2,
+    paddingTop: space.dentro,
+    marginTop: space.grudado,
   },
-  vocAbrirTexto: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  vocAberto: { gap: 8 },
+  vocAbrirTexto: { ...type.apoio, color: colors.textMuted },
+  vocAberto: { gap: space.dentro },
 
   vocRecibo: {
     borderRadius: 12,
     borderWidth: 1,
     borderStyle: 'dotted',
     borderColor: colors.border,
-    padding: 12,
-    gap: 4,
+    padding: space.dentro,
+    gap: space.grudado,
   },
-  vocReciboTexto: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
-  vocLocus: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  vocReciboTexto: { ...type.apoio, color: colors.textMuted },
+  vocLocus: { ...type.nota, color: colors.textMuted },
 
-  vocHojeBloco: { gap: 6, marginTop: 4 },
-  vocHojeRegua: { color: colors.teal, fontSize: 13, fontWeight: '800' },
+  vocHojeBloco: { gap: space.junto, marginTop: space.grudado },
+  vocHojeRegua: { ...type.apoio, color: colors.teal, fontWeight: '600' },
   vocJanela: {
     borderLeftWidth: 2,
     borderLeftColor: colors.border,
-    paddingLeft: 10,
-    gap: 2,
+    paddingLeft: space.dentro,
+    gap: space.grudado,
   },
-  vocJanelaFaixa: { color: colors.text, fontSize: 13, fontWeight: '700' },
-  vocJanelaResumo: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  vocJanelaFaixa: { ...type.apoio, color: colors.text, fontWeight: '600' },
+  vocJanelaResumo: { ...type.apoio, color: colors.textMuted },
 
   vocFontesBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: space.junto,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceElevated,
-    paddingVertical: 11,
-    marginTop: 6,
+    paddingVertical: space.dentro,
+    marginTop: space.junto,
   },
-  vocFontesBtnTexto: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
-  vocFontes: { gap: 10 },
+  vocFontesBtnTexto: { ...type.botao, color: colors.textSecondary },
+  vocFontes: { gap: space.dentro },
   vocCitacao: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceElevated,
-    padding: 12,
-    gap: 4,
+    padding: space.dentro,
+    gap: space.grudado,
   },
-  vocVerbatim: { color: colors.text, fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
-  vocFonteItem: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  vocVerbatim: { ...type.apoio, color: colors.text, fontStyle: 'italic' },
+  vocFonteItem: { ...type.nota, color: colors.textMuted },
 
   vocShareBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: '#25D366',
     borderRadius: 14,
-    paddingVertical: 11,
+    paddingVertical: space.dentro,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    marginTop: space.junto,
   },
-  vocShareBtnTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  vocMarca: { color: colors.textMuted, fontSize: 10, textAlign: 'center' },
+  vocShareBtnTexto: { ...type.botao, color: '#fff' },
+  vocMarca: { ...type.nota, color: colors.textMuted, textAlign: 'center' },
 
   // COMPOSIÇÃO CENTRADA (08/08/2026): título de seção grande e centrado, com
   // muito ar em cima — o padrão do concorrente premium (22/800, simétrico).
-  sectionTitle: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center', alignSelf: 'center', marginTop: 34, marginBottom: 14, letterSpacing: 0.2 },
+  // `ar` em cima: o silencio deliberado antes do titulo de secao — o degrau
+  // que separa a Lua fora de curso da grade do mes. Era um 34 solto.
+  sectionTitle: { ...type.titulo, color: colors.text, textAlign: 'center', alignSelf: 'center', marginTop: space.ar, marginBottom: space.bloco },
   // A grade mensal — moldura e ritmo da grade do Calendário Cósmico (surface,
   // raio 18, gap 4), célula flex:1 em linha de 7 (~13% de largura cada).
   grade: {
@@ -912,19 +944,17 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 8,
-    gap: 4,
+    padding: space.junto,
+    gap: space.grudado,
   },
-  gradeSemana: { flexDirection: 'row', gap: 4 },
+  gradeSemana: { flexDirection: 'row', gap: space.grudado },
   gradeDiaSemana: {
     flex: 1,
     textAlign: 'center',
+    ...type.etiqueta,
     color: colors.textMuted,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
     textTransform: 'uppercase',
-    paddingVertical: 4,
+    paddingVertical: space.grudado,
   },
   gradeCelula: {
     flex: 1,
@@ -937,8 +967,8 @@ const styles = StyleSheet.create({
   },
   // O leito de hoje: accent com alpha 0x33, arredondado pela própria célula.
   gradeCelulaHoje: { backgroundColor: colors.accent + '33' },
-  gradeDia: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  gradeDiaHoje: { color: colors.text, fontWeight: '800' },
+  gradeDia: { ...type.apoio, color: colors.textMuted },
+  gradeDiaHoje: { color: colors.text, fontWeight: '600' },
   // O glifo da fase — pequeno (15), abaixo do número, um por dia.
   gradeFase: { fontSize: 15, lineHeight: 18 },
 });

@@ -97,6 +97,9 @@ import {
 
 import BotonPrimario from '../components/BotonPrimario';
 import CajaLimites from '../components/CajaLimites';
+import ColunaLeitura from '../../components/ColunaLeitura';
+import FaixaCurva from '../../components/FaixaCurva';
+import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Fuente, Micro, NombreCarta, Rotulo, Sobreceja, Titulo } from '../components/Texto';
 import { existe, t } from '../datos/textos';
@@ -267,14 +270,38 @@ function textoParaCompartir(lectura) {
 }
 
 /** Um dos tres blocos da sintese: cabecalho, texto e a nota da acao quando ela
- *  existe (so o bloco 'accion' traz `nota`). */
-function Bloque({ bloque }) {
+ *  existe (so o bloco 'accion' traz `nota`).
+ *
+ *  DIAGRAMACAO (12/09/2026). Estes tres blocos SAO a leitura — e a razao de a
+ *  pessoa estar nesta tela. Antes corriam no mesmo chao, separados por 32px de
+ *  margem, entre a caixa de limites em cima e a caixa de metodo embaixo: cinco
+ *  blocos de texto seguidos, todos com a mesma cara. Agora cada um tem CHAO
+ *  PROPRIO e a borda de cima e uma onda.
+ *
+ *  O TOM ALTERNA pelo INDICE e nao por nome fixo, porque a lista vem do motor
+ *  (lectura.sintesis.bloques) e a tela nao decide quantos blocos existem. Par
+ *  vai de `noite`, impar de `ameixa` — assim nunca ha dois chaos iguais
+ *  encostados, com qualquer quantidade de blocos.
+ *
+ *  A SEMENTE E A CHAVE DO BLOCO: onda diferente por bloco, e a mesma onda
+ *  sempre que a mesma leitura reabrir (a semente e deterministica).
+ *
+ *  SEM `style` na faixa: o corpo dela ja traz `secao` em cima e embaixo e
+ *  `tela` nos lados. Passar padding aqui insetaria o desenho inteiro e o chao
+ *  viraria card — medido e consertado em 12/09/2026 na PerfilScreen. */
+function Bloque({ bloque, indice }) {
   return (
-    <View style={estilos.bloque}>
-      <Rotulo accessibilityRole="header">{bloque.rotulo}</Rotulo>
-      <Cuerpo style={estilos.bloqueTexto}>{bloque.texto}</Cuerpo>
-      {bloque.nota ? <Micro style={estilos.bloqueNota}>{bloque.nota}</Micro> : null}
-    </View>
+    <FaixaCurva
+      tom={indice % 2 === 0 ? 'noite' : 'ameixa'}
+      semente={bloque.clave}
+      grude={indice > 0}
+    >
+      <ColunaLeitura>
+        <Rotulo accessibilityRole="header">{bloque.rotulo}</Rotulo>
+        <Cuerpo style={estilos.bloqueTexto}>{bloque.texto}</Cuerpo>
+        {bloque.nota ? <Micro style={estilos.bloqueNota}>{bloque.nota}</Micro> : null}
+      </ColunaLeitura>
+    </FaixaCurva>
   );
 }
 
@@ -604,9 +631,20 @@ export default function SintesisScreen({
                 inteira. O pe dela nao se repete fora daqui. */}
             <CajaLimites style={estilos.limites} />
 
-            {lectura.sintesis.bloques.map((bloque) => (
-              <Bloque key={bloque.clave} bloque={bloque} />
-            ))}
+          </View>
+
+          {/* OS BLOCOS FICAM FORA DA `columna` de proposito: a faixa precisa
+              SANGRAR de ponta a ponta pra ser chao, e a columna a capava em
+              560px com recuo dos dois lados — que e o card gigante que o guia
+              proibe. A largura de leitura nao se perdeu: cada bloco traz a
+              propria ColunaLeitura por dentro, que e onde ela deve morar (e la
+              ela e calculada em CARACTERES POR LINHA, entao acompanha a fonte,
+              coisa que o 560 fixo nao faz). */}
+          {lectura.sintesis.bloques.map((bloque, indice) => (
+            <Bloque key={bloque.clave} bloque={bloque} indice={indice} />
+          ))}
+
+          <View style={estilos.columna}>
 
             {/* O paragrafo de metodo. Fecha a leitura declarando o que ela e:
                 simbolica, e nao previsao. Fica em caixa propria para nao ser
@@ -707,8 +745,11 @@ const estilos = StyleSheet.create({
   scroll: {
     flex: 1,
   },
+  // SEM paddingHorizontal (12/09/2026): as faixas dos blocos precisam sangrar de
+  // ponta a ponta. O recuo desceu pra `columna`, que e quem embrulha tudo o que
+  // NAO e faixa (a abertura, a caixa de metodo, o cartao de compartilhar e as
+  // saidas) — e la ele ja convivia com o maxWidth.
   contenido: {
-    paddingHorizontal: espacio.xl,
     paddingTop: espacio.xl,
     paddingBottom: espacio.xxxl,
   },
@@ -716,6 +757,9 @@ const estilos = StyleSheet.create({
     width: '100%',
     maxWidth: ANCHO_LECTURA,
     alignSelf: 'center',
+    // O gutter que saiu do ScrollView. Vive aqui porque a `columna` e o que
+    // sobrou de conteudo capado — e o que precisa de recuo lateral.
+    paddingHorizontal: espacio.xl,
   },
 
   titulo: {
@@ -728,9 +772,9 @@ const estilos = StyleSheet.create({
     marginTop: espacio.xl,
   },
 
-  bloque: {
-    marginTop: espacio.xxl,
-  },
+  // `bloque` MORREU: era o `marginTop: xxl` que separava um bloco do outro. Quem
+  // separa agora e a MUDANCA DE CHAO da faixa, e margem por fora de uma faixa
+  // abre um rasgo de fundo entre dois chaos que devem encostar.
   bloqueTexto: {
     marginTop: espacio.md,
   },
@@ -738,8 +782,11 @@ const estilos = StyleSheet.create({
     marginTop: espacio.md,
   },
 
+  // `ar` (48) e nao `xxl` (32): acima dela agora termina uma FAIXA, e nao um
+  // paragrafo. Separar uma caixa do chao que acabou pede o degrau maior — na
+  // duvida entre dois degraus da escala, o maior.
   metodo: {
-    marginTop: espacio.xxl,
+    marginTop: space.ar,
     padding: espacio.lg,
     borderRadius: radio.md,
     backgroundColor: colores.penumbra,

@@ -5,7 +5,21 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, gradients, zodiacSigns } from '../theme';
+import { colors, gradients, zodiacSigns, space, type } from '../theme';
+// AS PECAS DE DIAGRAMACAO (12/09/2026) — ver design/PECAS-DE-DIAGRAMACAO.md.
+// Fotografada antes (390x844, dobra 2), esta tela mostrava a leitura inteira
+// correndo dentro de UM card so, borda a borda, sem nenhuma marca de "aqui
+// mudou de assunto" entre o placar, as cinco dimensoes e a fonte. As tres
+// faixas dao tres chaos, um por bloco do desenho que a tela ja tinha:
+//   rosa   = o QUENTE (placar + chamada), a familia do pink dos assuntos de casal
+//   ameixa = a LEITURA (as cinco dimensoes + o eco do caminho)
+//   noite  = a FONTE (o bloco 2 recolhido e as ressalvas), chao neutro
+// Nenhum texto muda de lugar e nenhum bloco troca de ordem: o que muda e o
+// CHAO embaixo de cada um. test/synastry.test.js continua valendo.
+import FaixaCurva from '../components/FaixaCurva';
+// A coluna de leitura em volta das cinco dimensoes: em 390px nao corta nada
+// (o certo), mas no tablet e na web a linha atravessava a tela toda.
+import ColunaLeitura from '../components/ColunaLeitura';
 import GradientHeader from '../components/GradientHeader';
 // O CENÁRIO CÓSMICO (08/08/2026) — primeiro filho do root, atrás de tudo; o
 // root mantém colors.background por baixo (ver o cabeçalho do componente).
@@ -185,6 +199,12 @@ export default function CompatibilityScreen() {
   const scrollRef = useRef(null);
   const caminhoY = useRef(null);
   const pedidoDeEco = useRef(false);
+  // O NO do card da Atencao. Nasceu com as faixas (12/09/2026): dentro da
+  // FaixaCurva o `layout.y` do onLayout deixa de ser a coordenada do scroll e
+  // passa a ser relativa ao corpo da faixa — o eco pousaria no lugar errado.
+  // Com o ref da-se pra medir contra o proprio ScrollView (measureLayout), que
+  // e a coordenada certa em QUALQUER aninhamento.
+  const caminhoRef = useRef(null);
   // Motor de Oferta (pico emocional): compatibilidade alta é O momento de
   // empolgação — uma única oferta contextual, UMA vez na vida (AsyncStorage),
   // nunca insistindo. Tom honesto: sem contador falso, sem urgência inventada.
@@ -305,6 +325,37 @@ export default function CompatibilityScreen() {
     caminhoY.current = null;
   };
 
+  // Mede o card da Atencao CONTRA O SCROLLVIEW. measureLayout existe na web
+  // (react-native-web) e no nativo; o callback de erro e obrigatorio no nativo
+  // quando o no de referencia ainda nao montou — nesse caso o pedido de eco
+  // fica de pe e a proxima medida cumpre.
+  const medirOCaminho = () => {
+    const no = caminhoRef.current;
+    const rolo = scrollRef.current;
+    // Sem measureLayout (ou sem os nos) fica valendo o `layout.y` que o
+    // onLayout ja gravou, e o pedido de eco e cumprido com ele: pior mira,
+    // nunca tela travada.
+    if (!no || !rolo || typeof no.measureLayout !== 'function') {
+      if (pedidoDeEco.current) {
+        pedidoDeEco.current = false;
+        rolarAteOCaminho();
+      }
+      return;
+    }
+    const alvo = typeof rolo.getScrollableNode === 'function' ? rolo.getScrollableNode() : rolo;
+    no.measureLayout(
+      alvo,
+      (_x, y) => {
+        caminhoY.current = y;
+        if (pedidoDeEco.current) {
+          pedidoDeEco.current = false;
+          rolarAteOCaminho();
+        }
+      },
+      () => {}
+    );
+  };
+
   // O toque do eco. Com o bloco 2 já aberto, rola direto; fechado, abre e deixa
   // o pedido pro onLayout do card da Atenção — que é quem sabe a altura real.
   const rolarAteOCaminho = () => {
@@ -341,7 +392,12 @@ export default function CompatibilityScreen() {
           varre o valor de compat.header.subtitle nos três idiomas junto com as
           MANCHETE. */}
       <GradientHeader title={t('compat.header.title')} subtitle={t('compat.header.subtitle')} onBack={() => navigation.goBack()} gradient={['#B5286B', '#7B3FB5']} />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      {/* SEM padding horizontal no scroll: as faixas sangram de ponta a ponta
+          e cada uma traz o proprio space.tela por dentro. O topo (seletores,
+          botao, cena do casal) fica numa View com o gutter de sempre, porque
+          ele NAO e faixa — e a primeira dobra, e ela nao muda. */}
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.topoDaTela}>
         <View style={styles.pairRow}>
           <SignSlot sign={signA} onPress={() => setPicking(picking === 'A' ? null : 'A')} active={picking === 'A'} />
           <View style={styles.plusWrap}>
@@ -371,7 +427,7 @@ export default function CompatibilityScreen() {
                 nenhum, deixando o voltar como única saída. Mesmo destino do
                 CTA da oferta de pico emocional, no mesmo HomeStack. */}
             <TouchableOpacity
-              style={[styles.offerBtn, { marginTop: 14 }]}
+              style={[styles.offerBtn, { marginTop: space.bloco }]}
               activeOpacity={0.85}
               onPress={() => navigation.navigate(ROUTES.PLANOS)}
             >
@@ -407,6 +463,7 @@ export default function CompatibilityScreen() {
             <LinearGradient colors={['transparent', colors.background]} style={styles.cenaCasalFade} pointerEvents="none" />
           </View>
         )}
+        </View>
 
         {result && (
           <>
@@ -416,6 +473,12 @@ export default function CompatibilityScreen() {
                 de lib/synastry.js e a tela itera DIMENSOES_VIDA_REAL, então
                 dimensão nova aparece sozinha e dimensão vazia quebra o teste.
                 ============================================================ */}
+            {/* FAIXA 1 — O QUENTE. O placar e a chamada ganham chao ROSA (a
+                familia do pink que esta tela ja usa no cabecalho e nos icones
+                das dimensoes). O realCard perde a moldura de card e vira o
+                conteudo da faixa: a faixa E o chao dele agora, e card dentro
+                de faixa e moldura em cima de moldura. */}
+            <FaixaCurva tom="rosa" semente="compat-placar">
             <View style={styles.realCard}>
               {/* O PLACAR CENTRAL (09/08/2026) — a composição do concorrente
                   com o NOSSO dado no lugar do número inventado: os dois
@@ -470,8 +533,18 @@ export default function CompatibilityScreen() {
                   dimensões, o corpo do modo história) em voz alta, com a voz
                   do aparelho. */}
               <BotaoOuvir texto={corpoDaLeitura} style={styles.ouvirBtn} />
-              {DIMENSOES_VIDA_REAL.map((d) => (
-                <View key={d.id} style={styles.dimBlock}>
+            </View>
+            </FaixaCurva>
+
+            {/* FAIXA 2 — A LEITURA. Chao ameixa, o degrau seguinte na mesma
+                roda de cor (320 graus contra os 339 do rosa): muda de assunto
+                sem trocar de app. Aqui mora o texto longo, e e por isso que
+                ele entra numa COLUNA DE LEITURA — o unico bloco da tela com
+                paragrafo de sete linhas. */}
+            <FaixaCurva tom="ameixa" semente="compat-dimensoes" grude>
+            <ColunaLeitura>
+              {DIMENSOES_VIDA_REAL.map((d, i) => (
+                <View key={d.id} style={i === 0 ? null : styles.dimBlock}>
                   <View style={styles.dimHead}>
                     <View style={styles.dimIcon}>
                       <Ionicons name={d.icone} size={20} color={colors.pink} />
@@ -510,13 +583,20 @@ export default function CompatibilityScreen() {
                   linha: quem chegou até aqui é exatamente quem pode querer a
                   fonte. Sutil, uma linha, sem competir com o conteúdo. */}
               <Text style={styles.realFootnote}>{t('compat.real.footnote')}</Text>
-            </View>
+            </ColunaLeitura>
+            </FaixaCurva>
 
             {/* ============================================================
                 BLOCO 2 — "DE ONDE VEM ISSO". Recolhido, e com o nome do
                 aspecto e a categoria visíveis na própria linha do botão:
                 recolher a fonte é tirá-la da abertura, não escondê-la.
+
+                FAIXA 3 — A FONTE. Chao NEUTRO (ardosia) de proposito: e a
+                faixa mais longa quando aberta, e cor cromatica numa faixa
+                longa lava a tela. O neutro tambem diz o que o bloco 2 e —
+                o recibo, nao a leitura.
                 ============================================================ */}
+            <FaixaCurva tom="noite" semente="compat-fonte" grude estiloCorpo={styles.faixaFonte}>
             <TouchableOpacity
               style={styles.sourceToggle}
               activeOpacity={0.85}
@@ -532,10 +612,19 @@ export default function CompatibilityScreen() {
               </View>
               <Ionicons name={showSource ? 'chevron-up' : 'chevron-down'} size={18} color={colors.accent} />
             </TouchableOpacity>
+            </FaixaCurva>
           </>
         )}
 
+        {/* FAIXA 4 — A FONTE ABERTA. Fragmento IRMAO do toggle, nao filho
+            dele: test/synastry.test.js exige o literal `{result && showSource
+            && (`, e com razao — e a linha que prova que o bloco 2 esta atras
+            do toque, e nao so depois dele no arquivo. Faixa propria, semente
+            propria: duas faixas com a MESMA semente desenhariam a mesma onda,
+            e onda repetida e papel de parede. Mesmo tom neutro do toggle, com
+            `grude` — as duas leem como um chao so quando a fonte abre. */}
         {result && showSource && (
+          <FaixaCurva tom="noite" semente="compat-verbatins" grude>
           <>
             <View style={styles.resultCard}>
               <LinearGradient colors={gradients.card} style={styles.resultInner}>
@@ -581,13 +670,14 @@ export default function CompatibilityScreen() {
                 erraria em quase todo caso. Filho direto do contentContainer, o
                 `y` daqui já é a coordenada que o scrollTo espera. */}
             <View
+              ref={caminhoRef}
               style={styles.traitCard}
               onLayout={(e) => {
+                // O y CRU, que era exato quando este card era filho direto do
+                // contentContainer. Dentro da faixa ele e relativo ao corpo
+                // dela — serve de piso, e medirOCaminho o corrige logo abaixo.
                 caminhoY.current = e.nativeEvent.layout.y;
-                if (pedidoDeEco.current) {
-                  pedidoDeEco.current = false;
-                  rolarAteOCaminho();
-                }
+                medirOCaminho();
               }}
             >
               <View style={[styles.traitIcon, { backgroundColor: colors.accent + '22' }]}>
@@ -677,13 +767,14 @@ export default function CompatibilityScreen() {
               <Text style={styles.noteText}>{result.notaCaracterologia}</Text>
             </View>
           </>
+          </FaixaCurva>
         )}
 
         {/* A OFERTA fica FORA do bloco recolhido: ela dispara no pico emocional
             da leitura quente, e não faria sentido depender de a pessoa abrir a
             bibliografia pra vê-la. */}
         {result && highCompatOffer && (
-          <View style={styles.offerCard}>
+          <View style={[styles.offerCard, styles.comGutter]}>
             <Text style={styles.offerTitle}>{t('compat.offer.title', { aspecto: result.aspecto })}</Text>
             <Text style={styles.offerText}>{t('compat.offer.body')}</Text>
             <TouchableOpacity
@@ -758,160 +849,183 @@ function PlacarSigno({ sign }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  lockedNote: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 10, marginTop: 4 },
-  pairRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  slot: { flex: 1, backgroundColor: colors.surface, borderRadius: 18, padding: 16, alignItems: 'center', borderWidth: 1.5, borderColor: colors.border },
-  slotGlyphWrap: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  // O scroll nao tem mais padding horizontal: quem o traz agora sao as faixas
+  // (por dentro) e o topoDaTela (a primeira dobra, que nao e faixa).
+  scrollContent: { paddingBottom: space.fimDaLista },
+  topoDaTela: { paddingHorizontal: space.tela, paddingTop: space.entre, paddingBottom: space.entre },
+  // A oferta mora fora das faixas (dispara no pico emocional da leitura e nao
+  // pertence a nenhum dos tres chaos) — entao ela pede o gutter de volta.
+  comGutter: { marginHorizontal: space.tela },
+  // A faixa da fonte comeca colada no toggle: o degrau padrao da faixa somado
+  // ao respiro que o toggle ja tinha abria um vao entre a onda e o botao.
+  faixaFonte: { paddingTop: space.bloco },
+  // (leituraColuna saiu: o degrau ate a faixa de cima e o paddingTop da
+  // PROPRIA faixa. Somar os dois dava 83px de chao liso antes da primeira
+  // palavra — medido no build, o mesmo defeito que o revisor pegou na Home.)
+  lockedNote: { ...type.apoio, color: colors.textMuted, textAlign: 'center', paddingHorizontal: space.dentro, marginTop: space.grudado },
+  pairRow: { flexDirection: 'row', alignItems: 'center', marginBottom: space.bloco },
+  slot: { flex: 1, backgroundColor: colors.surface, borderRadius: 18, padding: space.bloco, alignItems: 'center', borderWidth: 1.5, borderColor: colors.border },
+  slotGlyphWrap: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: space.junto },
   slotGlyph: { fontSize: 30 },
   // O MASCOTE do slot (08/08/2026): 60 de moldura redonda com a arte de 56
   // dentro — o fundo sign.color+'22' (inline) aparece como aro de 2px em volta
   // do JPG, mesma jogada do bigGlyphComMascote do Horóscopo.
-  slotMascoteWrap: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  slotMascoteWrap: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: space.junto },
   slotMascote: { width: 56, height: 56, borderRadius: 28 },
-  slotName: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  slotDates: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
-  changeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 3 },
-  changeText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
-  plusWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginHorizontal: 8, borderWidth: 1, borderColor: colors.border },
-  pickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  pickerItem: { width: '31%', backgroundColor: colors.surface, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1 },
+  slotName: { ...type.cartao, color: colors.text, fontWeight: '800' },
+  slotDates: { ...type.nota, color: colors.textMuted, marginTop: 2 },
+  changeRow: { flexDirection: 'row', alignItems: 'center', marginTop: space.junto, gap: 3 },
+  changeText: { ...type.apoio, color: colors.accent, fontWeight: '700' },
+  plusWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginHorizontal: space.junto, borderWidth: 1, borderColor: colors.border },
+  pickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.junto, marginBottom: space.bloco },
+  pickerItem: { width: '31%', backgroundColor: colors.surface, borderRadius: 12, padding: space.dentro, alignItems: 'center', borderWidth: 1 },
   pickerGlyph: { fontSize: 22 },
-  pickerName: { color: colors.textSecondary, fontSize: 11, marginTop: 4, fontWeight: '600' },
+  pickerName: { ...type.nota, color: colors.textSecondary, marginTop: space.grudado, fontWeight: '600' },
   btnWrap: { borderRadius: 12, overflow: 'hidden' },
   // A CENA DO CASAL — hero desenhado do estado pré-cálculo (ver o comentário
   // no JSX). Full-bleed (09/08/2026): margens negativas anulam o padding:20
   // do scroll (a arte sangra até as bordas, sem borderRadius) e o fade funde
   // o terço inferior no fundo — a cena fecha a tela como horizonte, não como
   // card emoldurado.
-  cenaCasalWrap: { marginTop: 16, marginHorizontal: -20 },
+  // O full-bleed agora anula o space.tela do topoDaTela (era o padding: 20 do
+  // scroll). Sem acertar este numero a arte deixaria uma tira do fundo de cada
+  // lado — o oposto de sangrar.
+  cenaCasalWrap: { marginTop: space.bloco, marginHorizontal: -space.tela },
   cenaCasalImg: { width: '100%', height: 210 },
   cenaCasalFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 70 },
-  btn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, gap: 8 },
-  btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  btn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: space.bloco, gap: space.junto },
+  btnText: { ...type.botao, color: '#fff', fontWeight: '800' },
   // ---------------------------------------------------------------------
   // BLOCO 1 — o que abre a tela. Hierarquia tipográfica invertida em relação
   // ao que havia: o texto quente é o corpo de leitura (15/24, cor cheia) e a
   // fonte, antes protagonista, passou para o padrão dos cards secundários.
   // ---------------------------------------------------------------------
-  realCard: {
-    marginTop: 20, padding: 18, borderRadius: 18,
-    backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.pink + '55',
-  },
+  // O REALCARD PERDE A MOLDURA (12/09/2026). Ele era um card de borda rosa em
+  // volta do bloco quente INTEIRO — placar, chamada, cinco dimensoes, eco e
+  // rodape, tudo dentro de uma caixa so, que e exatamente o "corre tudo junto"
+  // do diagnostico. Agora o chao dele e a FaixaCurva rosa, e card dentro de
+  // faixa e moldura em cima de moldura. Nenhum conteudo saiu: o bloco 1
+  // continua com as mesmas pecas, na mesma ordem.
+  realCard: { paddingHorizontal: space.grudado },
   // O PLACAR (09/08/2026) — três colunas centradas: medalhão | selo | medalhão.
   // Os medalhões repetem o DNA do slotMascoteWrap (fundo sign.color+'22' como
   // aro de 2px em volta da arte), só que em 76/72. O selo é a peça em
   // destaque: fundo cheio em colors.accent, o único bloco de cor sólida do
   // card — é ele que faz o papel do "99%" do concorrente, com dado de verdade.
-  placarRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 2 },
+  placarRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto, marginBottom: 2 },
   placarSigno: { alignItems: 'center', width: 88 },
   placarMascoteWrap: { width: 76, height: 76, borderRadius: 38, justifyContent: 'center', alignItems: 'center' },
   placarMascote: { width: 72, height: 72, borderRadius: 36 },
   placarGlyph: { fontSize: 38 },
-  placarNome: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 6, textAlign: 'center' },
+  placarNome: { ...type.apoio, color: colors.text, fontWeight: '800', marginTop: space.junto, textAlign: 'center' },
   placarSeloWrap: { flex: 1, alignItems: 'center' },
-  placarSelo: { backgroundColor: colors.accent, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', maxWidth: '100%' },
+  placarSelo: { backgroundColor: colors.accent, borderRadius: 16, paddingVertical: space.dentro, paddingHorizontal: space.dentro, alignItems: 'center', maxWidth: '100%' },
   placarSeloAspecto: { color: '#fff', fontSize: 17, fontWeight: '800', textAlign: 'center' },
   placarSeloCategoria: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginTop: 2, textAlign: 'center' },
   // Títulos de seção centrados (09/08/2026) — a diagramação espelho é
   // simétrica no eixo vertical; o conteúdo corrido continua alinhado à
   // esquerda, que é onde texto longo se lê melhor.
-  realKicker: { color: colors.pink, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center', marginTop: 14 },
+  realKicker: { ...type.etiqueta, color: colors.pink, textTransform: 'uppercase', textAlign: 'center', marginTop: space.entre },
   // O par do resultado é o display do card; o título da seção, que dividia o
   // topo com ele em 20/800, desce pra linha de apoio — um destaque só.
-  realPair: { color: colors.text, fontSize: 22, fontWeight: '800', letterSpacing: 0.3, marginTop: 6, textAlign: 'center' },
-  realTitle: { color: colors.textSecondary, fontSize: 15, fontWeight: '700', marginTop: 2, textAlign: 'center' },
+  realPair: { ...type.titulo, color: colors.text, fontWeight: '800', letterSpacing: 0.3, marginTop: space.junto, textAlign: 'center' },
+  realTitle: { ...type.corpoCurto, color: colors.textSecondary, fontWeight: '700', marginTop: 2, textAlign: 'center' },
   // A chamada virou a manchete central da composição: 17/26, centrada, logo
   // abaixo do placar — o texto é o mesmo result.chamada de sempre.
-  realHook: { color: colors.text, fontSize: 17, lineHeight: 26, fontWeight: '600', marginTop: 14, textAlign: 'center' },
+  realHook: { ...type.corpo, color: colors.text, fontWeight: '600', marginTop: space.entre, textAlign: 'center' },
   // O botão do modo história — contorno no rosa do bloco quente, sem fundo:
   // porta pra mesma leitura, não call-to-action.
   historiaBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
     borderRadius: 12, borderWidth: 1, borderColor: colors.pink + '66',
-    paddingVertical: 12, paddingHorizontal: 18, marginTop: 12,
+    paddingVertical: space.dentro, paddingHorizontal: space.bloco, marginTop: space.bloco,
   },
-  historiaBtnText: { color: colors.pink, fontSize: 13, fontWeight: '700' },
+  historiaBtnText: { ...type.apoio, color: colors.pink, fontWeight: '700' },
   // O Ouvir centrado logo abaixo do modo história (a chamada agora mora lá em
   // cima, colada no placar).
-  ouvirBtn: { alignSelf: 'center', marginTop: 12 },
-  dimBlock: { marginTop: 18 },
-  dimHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ouvirBtn: { alignSelf: 'center', marginTop: space.bloco },
+  // O respiro ENTRE as dimensoes sobe de 18 pro degrau `entre` (24): elas sao
+  // cinco blocos de texto longo em sequencia, e era justamente onde o olho
+  // nao achava onde uma acabava e a outra comecava. Na duvida entre dois
+  // degraus, o maior.
+  dimBlock: { marginTop: space.entre },
+  dimHead: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
   // Os títulos das dimensões subiram pra 17/800 com o ícone em 20 (caixa 30):
   // na diagramação espelho eles são os subtítulos da leitura, não etiquetas.
   // Conteúdo idêntico — só o corpo cresceu.
   dimIcon: { width: 30, height: 30, borderRadius: 9, backgroundColor: colors.pink + '22', justifyContent: 'center', alignItems: 'center' },
-  dimTitle: { color: colors.text, fontSize: 17, fontWeight: '800', letterSpacing: 0.2 },
-  dimText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 7 },
-  realFootnote: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 18, fontStyle: 'italic' },
+  dimTitle: { ...type.cartao, color: colors.text, fontWeight: '800', letterSpacing: 0.2 },
+  dimText: { ...type.corpoCurto, color: colors.textSecondary, marginTop: space.junto },
+  realFootnote: { ...type.nota, color: colors.textMuted, marginTop: space.entre, fontStyle: 'italic' },
   // O ECO. Card DENTRO do bloco 1, com o tom do accent (não do rosa das
   // dimensões): ele não é mais uma dimensão, é a virada de "como é" pra "o que
   // dá pra fazer". Corpo no mesmo tamanho de leitura das dimensões — o eco é
   // texto pra ler, não etiqueta —, e o chevron faz o trabalho do "toque aqui"
   // sem custar um rótulo novo em três idiomas.
   ecoCard: {
-    marginTop: 18, padding: 14, borderRadius: 16,
+    marginTop: space.entre, padding: space.bloco, borderRadius: 16,
     backgroundColor: colors.accent + '12', borderWidth: 1, borderColor: colors.accent + '44',
   },
-  ecoHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ecoHead: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
   ecoIcon: { width: 24, height: 24, borderRadius: 8, backgroundColor: colors.accent + '22', justifyContent: 'center', alignItems: 'center' },
-  ecoTitle: { color: colors.text, fontSize: 14, fontWeight: '800', flex: 1 },
-  ecoText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 8 },
+  ecoTitle: { ...type.corpoCurto, color: colors.text, fontWeight: '800', flex: 1 },
+  ecoText: { ...type.corpoCurto, color: colors.textSecondary, marginTop: space.junto },
   sourceToggle: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14,
-    backgroundColor: colors.surface, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14,
+    flexDirection: 'row', alignItems: 'center', gap: space.dentro,
+    backgroundColor: colors.surface, borderRadius: 16, paddingVertical: space.dentro, paddingHorizontal: space.bloco,
     borderWidth: 1, borderColor: colors.border,
   },
-  sourceToggleTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  sourceToggleMeta: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  resultCard: { marginTop: 14, borderRadius: 18, overflow: 'hidden' },
-  resultInner: { padding: 20, borderWidth: 1, borderColor: colors.border, borderRadius: 18, alignItems: 'center' },
-  circleWrap: { marginBottom: 16 },
-  circle: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
+  sourceToggleTitle: { ...type.corpoCurto, color: colors.text, fontWeight: '800' },
+  sourceToggleMeta: { ...type.apoio, color: colors.textMuted, marginTop: 2 },
+  resultCard: { marginTop: space.bloco, borderRadius: 18, overflow: 'hidden' },
+  resultInner: { padding: space.entre, borderWidth: 1, borderColor: colors.border, borderRadius: 18, alignItems: 'center' },
+  circleWrap: { marginBottom: space.bloco },
+  circle: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', paddingHorizontal: space.junto },
   // Era `circlePct` (fontSize 32, pra caber "92%"). O nome do aspecto é mais
   // comprido que dois dígitos — "Co-presença" é o pior caso —, daí 20 e o
   // adjustsFontSizeToFit não ser necessário nas larguras de tela reais.
   circleAspect: { color: '#fff', fontSize: 20, fontWeight: '800', textAlign: 'center' },
-  circleLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 4, textAlign: 'center' },
+  circleLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: space.grudado, textAlign: 'center' },
   categoryChip: {
     color: colors.accent, fontSize: 12, fontWeight: '800', letterSpacing: 0.5,
     backgroundColor: colors.accent + '1F', borderRadius: 10, overflow: 'hidden',
-    paddingHorizontal: 10, paddingVertical: 4, marginBottom: 10,
+    paddingHorizontal: space.dentro, paddingVertical: space.grudado, marginBottom: space.dentro,
   },
-  resultTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  resultDesc: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, textAlign: 'center', marginTop: 8 },
-  sourceCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginTop: 14, borderWidth: 1, borderColor: colors.border },
-  sourceTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
-  sourceItem: { marginBottom: 10 },
+  resultTitle: { ...type.cartao, color: colors.text, fontWeight: '800', textAlign: 'center' },
+  resultDesc: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center', marginTop: space.junto },
+  sourceCard: { backgroundColor: colors.surface, borderRadius: 18, padding: space.bloco, marginTop: space.bloco, borderWidth: 1, borderColor: colors.border },
+  sourceTitle: { ...type.corpoCurto, color: colors.text, fontWeight: '800', marginBottom: space.junto, textAlign: 'center' },
+  sourceItem: { marginBottom: space.dentro },
   // A paráfrase lê ANTES e MAIOR que o inglês (14 vs 13, cor de texto cheia):
   // ela é a leitura; o verbatim é o recibo. O rótulo em cima é o que a impede
   // de passar por citação — sem ele, isto seria tradução, que a regra 1 de
   // lib/synastry.js proíbe.
   sourceParaphraseLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 2 },
-  sourceParaphrase: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginBottom: 6 },
-  sourceQuote: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, fontStyle: 'italic' },
-  sourceLocus: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
-  sourceDegree: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 2 },
-  sourceDegreeNote: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 6, fontStyle: 'italic' },
-  noteCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginTop: 14, borderWidth: 1, borderColor: colors.border },
-  noteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
-  noteText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 8 },
-  traitCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18, padding: 14, marginTop: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
-  traitIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  traitLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  traitText: { color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 3 },
+  sourceParaphrase: { ...type.corpoCurto, color: colors.textSecondary, marginBottom: space.junto },
+  sourceQuote: { ...type.apoio, color: colors.textSecondary, fontStyle: 'italic' },
+  sourceLocus: { ...type.nota, color: colors.textMuted, marginTop: space.grudado },
+  sourceDegree: { ...type.apoio, color: colors.textMuted, marginTop: 2 },
+  sourceDegreeNote: { ...type.nota, color: colors.textMuted, marginTop: space.junto, fontStyle: 'italic' },
+  noteCard: { backgroundColor: colors.surface, borderRadius: 18, padding: space.bloco, marginTop: space.bloco, borderWidth: 1, borderColor: colors.border },
+  noteTitle: { ...type.corpoCurto, color: colors.text, fontWeight: '800', marginBottom: space.junto, textAlign: 'center' },
+  noteText: { ...type.apoio, color: colors.textMuted, marginBottom: space.junto },
+  traitCard: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18, padding: space.bloco, marginTop: space.bloco, borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start' },
+  traitIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center', marginRight: space.dentro },
+  traitLabel: { ...type.corpoCurto, color: colors.text, fontWeight: '800' },
+  traitText: { ...type.corpoCurto, color: colors.textSecondary, marginTop: space.grudado },
   // O caminho lê como CONTINUAÇÃO da Atenção, não como card novo: mesmo corpo
   // de texto, um respiro acima e uma barra à esquerda pra separar o "o que
   // fazer" do "o que dói" sem quebrar a hierarquia do bloco 2.
   traitPath: {
-    color: colors.textSecondary, fontSize: 15, lineHeight: 24, marginTop: 10,
-    paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: colors.accent + '55',
+    ...type.corpoCurto, color: colors.textSecondary, marginTop: space.dentro,
+    paddingLeft: space.dentro, borderLeftWidth: 2, borderLeftColor: colors.accent + '55',
   },
   offerCard: {
-    marginTop: 16, padding: 18, borderRadius: 18,
+    marginTop: space.bloco, padding: space.bloco, borderRadius: 18,
     backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.pink + '77',
   },
-  offerTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  offerText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 6 },
-  offerBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 14 },
-  offerBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  offerTitle: { ...type.cartao, color: colors.text, fontWeight: '800' },
+  offerText: { ...type.apoio, color: colors.textSecondary, marginTop: space.junto },
+  offerBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: space.dentro, alignItems: 'center', marginTop: space.bloco },
+  offerBtnText: { ...type.corpoCurto, color: '#fff', fontWeight: '800' },
 });

@@ -15,9 +15,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+// AS PEÇAS DE DIAGRAMAÇÃO (design/PECAS-DE-DIAGRAMACAO.md, lote das práticas
+// 12/09/2026). Esta tela é PASSO A PASSO — vire a xícara, fotografe, leia — e
+// corria inteira sobre o mesmo chão com `gap: 16` pra tudo: o histórico da
+// tasseografia, o botão da câmera e a leitura da IA na MESMA distância uns dos
+// outros. As faixas dão o corte por ETAPA; a coluna tira o parágrafo da borda.
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import {
   fetchAiCoffeeReading,
   fetchAiCoffeeWeeklySummary,
@@ -352,12 +359,19 @@ export default function CoffeeScreen() {
       <GradientHeader title="Ritual do Café" subtitle="Borra mística" gradient={COFFEE_GRADIENT} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+        {/* FAIXA 1 — O QUE ISTO É. O parágrafo da tasseografia é o texto mais
+            longo da tela e ia de borda a borda; agora ele tem chão próprio e
+            coluna de leitura. */}
+        <FaixaCurva tom="noite" semente="oquee" style={styles.faixa} estiloCorpo={[styles.faixaCorpo, styles.faixaCorpoPrimeira]}>
+          <ColunaLeitura centralizado>
+            <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+          </ColunaLeitura>
+        </FaixaCurva>
 
-        {permissionError ? <Text style={styles.errorText}>{permissionError}</Text> : null}
+        {permissionError ? <Text style={[styles.errorText, styles.avulso]}>{permissionError}</Text> : null}
 
         {readyForWeeklySummary && !weeklySummary && (
-          <View style={styles.weeklyCard}>
+          <View style={[styles.weeklyCard, styles.avulso]}>
             <Ionicons name="calendar" size={22} color={colors.gold} />
             <Text style={styles.weeklyTitle}>{t('coffee.weekly.ready')}</Text>
             <Text style={styles.weeklyText}>
@@ -374,10 +388,12 @@ export default function CoffeeScreen() {
         )}
 
         {weeklySummary && (
-          <View style={styles.weeklyCard}>
+          <View style={[styles.weeklyCard, styles.avulso]}>
             <Ionicons name="calendar" size={22} color={colors.gold} />
             <Text style={styles.weeklyTitle}>{weeklySummary.title}</Text>
-            <Text style={styles.weeklyText}>{weeklySummary.body}</Text>
+            <ColunaLeitura>
+              <Text style={styles.weeklyText}>{weeklySummary.body}</Text>
+            </ColunaLeitura>
             <ReportarIA kind="coffee_weekly" />
             <TouchableOpacity onPress={() => setWeeklySummary(null)}>
               <Text style={styles.linkText}>{t('coffee.close')}</Text>
@@ -386,11 +402,21 @@ export default function CoffeeScreen() {
         )}
 
         {step === STEP.INTRO && (
-          <View style={styles.section}>
-            <Text style={styles.instructions}>
-              Vire a xícara depois de tomar o café e tire uma foto da borra que ficou no fundo e
-              nas paredes, com boa luz, ou escolha uma foto já existente na galeria.
-            </Text>
+          // FAIXA 2 — O GESTO. A instrução e as duas portas pra foto, num chão
+          // que é só delas: é a única coisa que a pessoa tem pra fazer aqui.
+          <FaixaCurva
+            tom="ameixa"
+            semente="gesto"
+            grude
+            style={styles.faixa}
+            estiloCorpo={[styles.faixaCorpo, styles.section]}
+          >
+            <ColunaLeitura centralizado>
+              <Text style={styles.instructions}>
+                Vire a xícara depois de tomar o café e tire uma foto da borra que ficou no fundo e
+                nas paredes, com boa luz, ou escolha uma foto já existente na galeria.
+              </Text>
+            </ColunaLeitura>
 
             <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleTakePhoto}>
               <Ionicons name="camera" size={20} color="#fff" />
@@ -401,7 +427,7 @@ export default function CoffeeScreen() {
               <Ionicons name="images" size={20} color={colors.accent} />
               <Text style={styles.secondaryBtnText}>{t('coffee.pickPhoto')}</Text>
             </TouchableOpacity>
-          </View>
+          </FaixaCurva>
         )}
 
         {step === STEP.PREVIEW && imageUri && (
@@ -459,7 +485,12 @@ export default function CoffeeScreen() {
 
             <View style={styles.resultCard}>
               <Text style={styles.resultTitle}>{reading.title}</Text>
-              <Text style={styles.resultBody}>{reading.body}</Text>
+              {/* A LEITURA. É o texto mais longo da tela e o motivo dela
+                  existir: coluna de leitura + type.corpo (17/27), que é o
+                  degrau do parágrafo do print. Era 14/21 de borda a borda. */}
+              <ColunaLeitura>
+                <Text style={styles.resultBody}>{reading.body}</Text>
+              </ColunaLeitura>
             </View>
 
             {/* Denúncia da saída de IA — rodapé do resultado, exigido pela
@@ -497,7 +528,9 @@ export default function CoffeeScreen() {
               </View>
             )}
 
-            <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+            <ColunaLeitura centralizado>
+              <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
+            </ColunaLeitura>
 
             <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={resetToIntro}>
               <Ionicons name="refresh" size={18} color="#fff" />
@@ -519,48 +552,61 @@ export default function CoffeeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: 20, paddingBottom: 40, gap: 16 },
-  disclaimer: {
-    color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
-    textAlign: 'center',
-  },
-  errorText: {
-    color: colors.red,
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  section: { gap: 14, alignItems: 'stretch' },
-  instructions: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
+  // `padding: 20` fica: é ele que a faixa anula com marginHorizontal:-20.
+  //
+  // O `gap` DO CONTAINER SAIU, e o motivo foi medido na foto (390x844,
+  // 12/09/2026): com gap no contentContainer aparecia uma TIRA PRETA de 24px
+  // entre a faixa 1 e a faixa 2, porque o gap do pai é aplicado DEPOIS do
+  // marginTop:-1 do `grude` e vence. Faixa que não encosta na seguinte perde
+  // exatamente o efeito de paisagem que ela existe pra dar — a onda passa a
+  // flutuar no vazio em vez de cortar o chão anterior.
+  // Quem dá respiro agora é a própria faixa (paddingTop/Bottom `secao` da
+  // peça); só os elementos SOLTOS entre faixas levam margem própria.
+  scrollContent: { padding: 20, paddingBottom: space.fimDaLista },
+  // Os avulsos que podem cair entre duas faixas (erro de permissão, o cartão
+  // do resumo semanal): eles é que pedem a distância, não o container.
+  avulso: { marginVertical: space.entre },
+  // A pilha das dobras SEM faixa: o respiro que o container deixou de dar.
+  pilha: { gap: space.entre },
+  faixa: { marginHorizontal: -20 },
+  faixaCorpo: { paddingHorizontal: 20 },
+  // A PRIMEIRA FAIXA DA TELA NAO LEVA O paddingTop DA PECA. Medido na foto
+  // (390x844, 12/09/2026): a caixa da onda ja tem ONDA_ALTURA (56px) e, logo
+  // abaixo do cabecalho — que ja traz folga propria —, somar o space.secao (32)
+  // padrao abria ~88px de chao liso antes da primeira palavra. Isso e o defeito
+  // ALTO que o revisor achou na Home: a faixa lendo como bloco de cor vazio em
+  // vez de secao. E o mesmo remedio que a Home usou (ver o prop estiloCorpo em
+  // components/FaixaCurva.js); as faixas seguintes, que nao encostam no
+  // cabecalho, seguem com o degrau cheio.
+  faixaCorpoPrimeira: { paddingTop: 0 },
+  disclaimer: { ...type.nota, color: colors.textMuted, textAlign: 'center' },
+  errorText: { ...type.apoio, color: colors.red, textAlign: 'center' },
+  // `entre` entre a instrução e o botão, e entre um botão e o outro: eram 14
+  // pra tudo, e a instrução colava na câmera.
+  section: { gap: space.entre, alignItems: 'stretch' },
+  instructions: { ...type.corpo, color: colors.textSecondary, textAlign: 'center' },
   primaryBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: colors.accent,
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: space.bloco,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  primaryBtnText: { ...type.botao, color: '#fff', fontWeight: '700' },
   secondaryBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: space.bloco,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  secondaryBtnText: { color: colors.accent, fontSize: 15, fontWeight: '700' },
+  secondaryBtnText: { ...type.botao, color: colors.accent, fontWeight: '700' },
   imageBox: {
     width: '100%',
     aspectRatio: 1,
@@ -581,58 +627,77 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   image: { width: '100%', height: '100%' },
-  loadingRow: { flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
-  loadingText: { color: colors.textSecondary, fontSize: 14 },
+  loadingRow: {
+    flexDirection: 'row',
+    gap: space.dentro,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: space.dentro,
+  },
+  loadingText: { ...type.corpoCurto, color: colors.textSecondary },
   // O bloco de espera ilustrado ([BLOCO-ESPERA]) — arte 96px redonda pulsando
   // + frase de convite; o indicador pequeno de sempre fecha como rodapé.
-  esperaWrap: { alignItems: 'center', gap: 12, paddingVertical: 14 },
+  // `ar` em volta: a espera é a dobra de uma ideia só enquanto ela dura.
+  esperaWrap: { alignItems: 'center', gap: space.bloco, paddingVertical: space.ar },
   esperaArte: { width: 96, height: 96, borderRadius: 48 },
-  esperaFrase: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
-  linkText: { color: colors.accent, fontSize: 14, textAlign: 'center', fontWeight: '600' },
+  esperaFrase: { ...type.cartao, color: colors.text, textAlign: 'center' },
+  linkText: { ...type.botao, color: colors.accent, textAlign: 'center' },
   resultCard: {
     backgroundColor: colors.card,
     borderRadius: 20,
-    padding: 18,
+    padding: space.entre,
     borderWidth: 1,
     borderColor: colors.border,
-    gap: 10,
+    gap: space.bloco,
   },
-  resultTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  resultBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  resultTitle: { ...type.secao, color: colors.text },
+  // O degrau do parágrafo longo — 17/27, o "Casamentos de Áries" do print.
+  resultBody: { ...type.corpo, color: colors.textSecondary },
   // O botão do modo história — contorno no accent da tela, sem fundo: porta
   // pra mesma leitura, não call-to-action (mesmo desenho de DreamScreen.js).
   historiaBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
     borderRadius: 12, borderWidth: 1, borderColor: colors.accent + '66',
-    paddingVertical: 12, paddingHorizontal: 18,
+    paddingVertical: space.dentro, paddingHorizontal: space.bloco + space.grudado,
   },
-  historiaBtnText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+  historiaBtnText: { ...type.apoio, color: colors.accent, fontWeight: '600' },
   // O Ouvir centrado entre o modo história e o card da leitura (a section já
   // dá o respiro com o gap: 14).
   ouvirBtn: { alignSelf: 'center' },
   upsellCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
-    padding: 14,
+    padding: space.bloco,
     borderWidth: 1,
     borderColor: colors.border,
-    gap: 10,
+    gap: space.bloco,
     alignItems: 'center',
   },
-  upsellText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  upsellBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 20 },
-  upsellBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  upsellText: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
+  upsellBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.entre,
+  },
+  upsellBtnText: { ...type.apoio, color: '#fff', fontWeight: '600' },
   weeklyCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
-    padding: 16,
+    padding: space.bloco,
     borderWidth: 1,
     borderColor: colors.gold,
-    gap: 8,
+    gap: space.dentro,
     alignItems: 'center',
   },
-  weeklyTitle: { color: colors.text, fontSize: 15, fontWeight: '800', textAlign: 'center' },
-  weeklyText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  weeklyBtn: { backgroundColor: colors.gold, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 20, marginTop: 4 },
-  weeklyBtnText: { color: '#1A1A1A', fontSize: 13, fontWeight: '700' },
+  weeklyTitle: { ...type.cartao, color: colors.text, textAlign: 'center' },
+  weeklyText: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
+  weeklyBtn: {
+    backgroundColor: colors.gold,
+    borderRadius: 12,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.entre,
+    marginTop: space.junto,
+  },
+  weeklyBtnText: { ...type.apoio, color: '#1A1A1A', fontWeight: '600' },
 });

@@ -14,7 +14,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import OneTimeLock from '../components/OneTimeLock';
 import OrbiGuide from '../components/OrbiGuide';
@@ -488,19 +488,25 @@ const styles = StyleSheet.create({
     left: -20,
     backgroundColor: colors.gold + '0B',
   },
-  heroCopy: { flex: 1, paddingLeft: 4, paddingRight: 6 },
-  kicker: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 1.25, textTransform: 'uppercase' },
-  intro: { color: colors.text, fontSize: 15, lineHeight: 22, fontWeight: '600', marginTop: 7 },
-  introCompact: { fontSize: 12.5, lineHeight: 17, marginTop: 4 },
-  disclosure: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12, paddingHorizontal: 4 },
-  disclosureText: { flex: 1, color: colors.textMuted, fontSize: 11, lineHeight: 16 },
-  legacyNotice: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: colors.surface },
-  legacyText: { flex: 1, color: colors.textMuted, fontSize: 11, lineHeight: 15 },
-  suggestions: { marginTop: 24, marginBottom: 6 },
-  suggestionsCompact: { marginTop: 12 },
-  suggestionsTitle: { color: colors.textSecondary, fontSize: 12, fontWeight: '800', letterSpacing: 0.3, marginBottom: 10 },
-  suggestion: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 15, paddingVertical: 12, marginBottom: 9, borderRadius: 16, borderCurve: 'continuous', backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
-  suggestionText: { flex: 1, color: colors.text, fontSize: 13, lineHeight: 19, fontWeight: '600' },
+  heroCopy: { flex: 1, paddingLeft: space.grudado, paddingRight: space.junto },
+  kicker: { ...type.etiqueta, color: colors.gold, textTransform: 'uppercase' },
+  // Órbi se apresenta em texto corrido, não em rótulo: 17/27 e peso normal.
+  // O peso 600 saiu — é fala, e fala em semibold lê como aviso de sistema.
+  intro: { ...type.corpo, color: colors.text, marginTop: space.junto },
+  // O compacto (teclado aberto, tela baixa) desce UM degrau inteiro da escala
+  // em vez do 12.5px que existia — meio pixel não é hierarquia, é desalinho.
+  introCompact: { ...type.corpoCurto, marginTop: space.grudado },
+  disclosure: { flexDirection: 'row', alignItems: 'flex-start', gap: space.junto, marginTop: space.dentro, paddingHorizontal: space.grudado },
+  disclosureText: { ...type.nota, flex: 1, color: colors.textMuted },
+  legacyNotice: { flexDirection: 'row', alignItems: 'center', gap: space.junto, marginTop: space.dentro, paddingHorizontal: space.dentro, paddingVertical: space.dentro, borderRadius: 12, backgroundColor: colors.surface },
+  legacyText: { ...type.nota, flex: 1, color: colors.textMuted },
+  suggestions: { marginTop: space.secao, marginBottom: space.junto },
+  suggestionsCompact: { marginTop: space.dentro },
+  suggestionsTitle: { ...type.etiqueta, color: colors.textSecondary, marginBottom: space.dentro },
+  suggestion: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: space.dentro, paddingHorizontal: space.bloco, paddingVertical: space.dentro, marginBottom: space.dentro, borderRadius: 16, borderCurve: 'continuous', backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
+  // A sugestão é uma PERGUNTA pra ler, não um rótulo: 15/24 no lugar de 13/19,
+  // e sem o peso 600 (a caixa já destaca).
+  suggestionText: { ...type.corpoCurto, flex: 1, color: colors.text },
   pressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
   keyboardFocus: Platform.select({
     web: {
@@ -511,25 +517,30 @@ const styles = StyleSheet.create({
     },
     default: {},
   }),
-  loadingContext: { alignItems: 'center', paddingVertical: 18 },
-  loadingContextText: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
-  messageCell: { marginTop: 12 },
-  responseLabel: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 0.7, marginLeft: 5, marginBottom: 5 },
+  loadingContext: { alignItems: 'center', paddingVertical: space.entre },
+  loadingContextText: { ...type.apoio, color: colors.textMuted },
+  messageCell: { marginTop: space.dentro },
+  responseLabel: { ...type.etiqueta, color: colors.gold, marginLeft: space.grudado, marginBottom: space.grudado },
   bubbleRow: { flexDirection: 'row' },
   bubbleRowOrbi: { justifyContent: 'flex-start' },
   bubbleRowUser: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '84%', borderRadius: 19, borderCurve: 'continuous', paddingHorizontal: 15, paddingVertical: 11 },
+  bubble: { maxWidth: '84%', borderRadius: 19, borderCurve: 'continuous', paddingHorizontal: space.bloco, paddingVertical: space.dentro },
   bubbleOrbi: { backgroundColor: colors.surfaceElevated, borderBottomLeftRadius: 5, borderWidth: 1, borderColor: colors.border },
   bubbleUser: { backgroundColor: colors.accent2, borderBottomRightRadius: 5 },
-  bubbleText: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  // O BALÃO É A LEITURA. É onde mora a maior parte das palavras desta tela e
+  // estava no degrau mais apertado — 15/24 (corpoCurto, o degrau de texto em
+  // espaço estreito, que é exatamente o caso de um balão de 84% da largura).
+  bubbleText: { ...type.corpoCurto, color: colors.text },
   reportRow: { alignSelf: 'flex-start', marginTop: 1 },
-  typingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12 },
-  typingBubble: { paddingVertical: 10 },
-  typingText: { color: colors.textSecondary, fontSize: 13, fontStyle: 'italic' },
-  completion: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, paddingHorizontal: 13, paddingVertical: 10, borderRadius: 16, backgroundColor: colors.gold + '0D', borderWidth: 1, borderColor: colors.gold + '2A' },
-  completionText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 17 },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 9, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 10 : 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface },
-  input: { flex: 1, minHeight: 46, maxHeight: 110, borderRadius: 18, borderCurve: 'continuous', paddingHorizontal: 15, paddingVertical: 11, color: colors.text, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, fontSize: 14 },
+  typingRow: { flexDirection: 'row', alignItems: 'center', gap: space.grudado, marginTop: space.dentro },
+  typingBubble: { paddingVertical: space.dentro },
+  typingText: { ...type.apoio, color: colors.textSecondary, fontStyle: 'italic' },
+  completion: { flexDirection: 'row', alignItems: 'center', gap: space.junto, marginTop: space.bloco, paddingHorizontal: space.bloco, paddingVertical: space.dentro, borderRadius: 16, backgroundColor: colors.gold + '0D', borderWidth: 1, borderColor: colors.gold + '2A' },
+  completionText: { ...type.apoio, flex: 1, color: colors.textSecondary },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.junto, paddingHorizontal: space.dentro, paddingTop: space.dentro, paddingBottom: space.dentro, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface },
+  // O campo casa com o balão: mesmo degrau, senão o que a pessoa digita muda
+  // de tamanho ao virar mensagem.
+  input: { flex: 1, minHeight: 46, maxHeight: 110, borderRadius: 18, borderCurve: 'continuous', paddingHorizontal: space.bloco, paddingVertical: space.dentro, color: colors.text, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, fontSize: type.corpoCurto.fontSize },
   sendButton: { width: 46, height: 46, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
   sendButtonDisabled: { backgroundColor: colors.border },
   sendButtonPressed: { opacity: 0.84, transform: [{ scale: 0.97 }] },

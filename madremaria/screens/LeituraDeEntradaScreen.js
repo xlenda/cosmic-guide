@@ -163,6 +163,7 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, View } from 'react-nat
 import BotaoOuvir from '../components/BotaoOuvir';
 import BotonPrimario from '../components/BotonPrimario';
 import CartaHilo, { VersoDeCarta } from '../components/CartaHilo';
+import ColunaLeitura from '../../components/ColunaLeitura';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, NombreCarta, Rotulo, Sobreceja, Titulo } from '../components/Texto';
 import { CARTAS_NA_MESA, tiragemDeEntrada } from '../datos/lenormand';
@@ -560,6 +561,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
 
         <SafeAreaView style={estilos.seguro}>
           <ScrollView ref={scrollRef} contentContainerStyle={estilos.conteudo}>
+            <ColunaLeitura>
             <Sobreceja>{t('entrada.sobreceja')}</Sobreceja>
             <Titulo style={estilos.titulo}>{t('entrada.titulo')}</Titulo>
 
@@ -586,6 +588,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
               onPress={avancar}
               style={estilos.botao}
             />
+            </ColunaLeitura>
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -609,6 +612,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
 
         <SafeAreaView style={estilos.seguro}>
           <ScrollView ref={scrollRef} contentContainerStyle={estilos.conteudo}>
+            <ColunaLeitura>
             <Sobreceja>{t('entrada.sobreceja')}</Sobreceja>
             <Titulo style={estilos.titulo}>{t('entrada.escolha.titulo')}</Titulo>
 
@@ -640,6 +644,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
                 style={estilos.botao}
               />
             )}
+            </ColunaLeitura>
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -656,6 +661,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
 
         <SafeAreaView style={estilos.seguro}>
           <ScrollView ref={scrollRef} contentContainerStyle={estilos.conteudo}>
+            <ColunaLeitura>
             <Sobreceja>{t('entrada.sobreceja')}</Sobreceja>
             <Titulo style={estilos.titulo}>{t('entrada.presenca.titulo')}</Titulo>
 
@@ -676,6 +682,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
               onPress={entrarNoApp}
               style={estilos.botao}
             />
+            </ColunaLeitura>
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -715,6 +722,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
 
       <SafeAreaView style={estilos.seguro}>
         <ScrollView ref={scrollRef} contentContainerStyle={estilos.conteudo}>
+          <ColunaLeitura>
           <Sobreceja>{t('entrada.sobreceja')}</Sobreceja>
           <Micro tabular style={estilos.progresso}>
             {t('entrada.progresso', { n: atual.posicao, total })}
@@ -804,6 +812,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
               />
             </View>
           )}
+          </ColunaLeitura>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -822,8 +831,15 @@ const estilos = StyleSheet.create({
     justifyContent: 'center',
     padding: espacio.xl,
   },
+  // O RECUO LATERAL saiu daqui (12/09/2026) e virou ColunaLeitura, que traz o
+  // mesmo gutter MAIS o limite de largura que esta tela nunca teve: sem ele, em
+  // tablet e na web a linha atravessa a tela inteira e ninguem acha o comeco da
+  // seguinte. A largura de la sai de CARACTERES POR LINHA contra o tamanho do
+  // corpo, entao acompanha a fonte — um numero de pixels nao acompanharia.
+  // Em 390px a coluna nao muda nada, e e o certo: no celular o texto ja usa a
+  // tela toda.
   conteudo: {
-    padding: espacio.xl,
+    paddingTop: espacio.xl,
     paddingBottom: espacio.xxxl,
   },
 

@@ -69,6 +69,9 @@ import {
 } from 'react-native';
 
 import BotonPrimario from '../components/BotonPrimario';
+import ColunaLeitura from '../../components/ColunaLeitura';
+import FaixaCurva from '../../components/FaixaCurva';
+import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, Sobreceja, Titulo } from '../components/Texto';
 /* `pregunta()` e nao `getPregunta()`: o espelho do Perfil devolve a resposta dela
@@ -264,9 +267,40 @@ const ACCESOS = Object.freeze([
    PECAS DA TELA
    =================================================================================== */
 
-/** O cartao padrao: penumbra, canto md, borda suave. So isso. */
-function Tarjeta({ children, style }) {
-  return <View style={[estilos.tarjeta, style]}>{children}</View>;
+/** O cartao padrao: penumbra, canto md, borda suave — agora sobre CHAO PROPRIO.
+ *
+ *  DIAGRAMACAO (12/09/2026). Fotografado antes: quatro cartoes iguais, mesmo
+ *  fundo, 24px de margem entre eles, somando 1889px de rolagem. Quatro assuntos
+ *  sem relacao nenhuma (o que ela respondeu / os tres numeros do fio / a
+ *  assinatura / a lista de acessos) lidos como quatro linhas de uma lista so.
+ *
+ *  A faixa marca "mudou de assunto"; o cartao marca "isto anda junto". Sao
+ *  coisas diferentes e aqui as duas valem — ver o mesmo raciocinio, escrito por
+ *  extenso, no Tarjeta da AjustesScreen.
+ *
+ *  O `tom` vem de fora porque a ALTERNANCIA e decisao da tela: duas faixas
+ *  seguidas do mesmo tom voltam a ser um fundo so. */
+function Tarjeta({ children, tom, semente, style }) {
+  return (
+    <FaixaCurva tom={tom} semente={semente} grude>
+      {/* SEM `style` NENHUM na faixa, e isto foi MEDIDO na foto depois de eu
+          errar (12/09/2026). A primeira versao repetia aqui o padding que a
+          peca ja poe sozinha, e a faixa passou a PARAR ~16px antes de cada
+          borda: o fundo do app aparecia dos dois lados e o chao virava card
+          gigante — o efeito que o guia proibe com todas as letras.
+
+          A CAUSA esta em components/FaixaCurva.js: o `style` da peca vai pra
+          View de FORA, que embrulha o SVG da onda MAIS o corpo. Padding
+          horizontal ali inseta o desenho inteiro (a onda encolhe junto) em vez
+          de recuar so o texto. E o corpo dela JA traz `secao` em cima e embaixo
+          e `tela` nos lados — repetir tambem dobrava o respiro vertical.
+
+          As telas de documento (Privacidad/Ayuda/Terminos) passam SO
+          paddingTop/paddingBottom e por isso nunca mostraram o defeito:
+          vertical no wrapper apenas SOMA respiro, nao inseta lado nenhum. */}
+      <View style={[estilos.tarjeta, style]}>{children}</View>
+    </FaixaCurva>
+  );
 }
 
 /**
@@ -525,7 +559,7 @@ export default function PerfilScreen({ navigation }) {
           {/* --- CABECERA: o avatar honesto --------------------------------------
               O circulo mostra a inicial DELA. Sem nome ainda, mostra o nudo do
               fio — um ponto, nao uma silhueta generica de pessoa. */}
-          <View style={estilos.cabecera}>
+          <View style={[estilos.abertura, estilos.cabecera]}>
             <View style={estilos.avatar}>
               {inicial ? (
                 <Titulo style={estilos.inicial} accessible={false}>
@@ -544,8 +578,11 @@ export default function PerfilScreen({ navigation }) {
             </View>
           </View>
 
-          {/* --- ESPELHO: a resposta dela, com as palavras dela ------------------ */}
-          <Tarjeta style={estilos.bloque}>
+          {/* --- ESPELHO: a resposta dela, com as palavras dela ------------------
+              OS TONS ALTERNAM: noite -> ameixa -> noite -> ameixa. Nenhum
+              `violeta` nem `rosa`: esta e a tela de conta, nao a do ritual, e o
+              conteudo aqui e dado dela — o chao nao pode competir com ele. */}
+          <Tarjeta tom="noite" semente="espelho">
             <Sobreceja>{t('perfil.espejo.sobreceja')}</Sobreceja>
             {espejo ? (
               <>
@@ -580,7 +617,7 @@ export default function PerfilScreen({ navigation }) {
               so sobem, e no telefone novo os tres zeros sao verdade sobre um
               comeco, nao sobre uma queda (e 'hilo.vacio', logo abaixo, ja diz
               isso em palavras). */}
-          <Tarjeta style={estilos.bloque}>
+          <Tarjeta tom="ameixa" semente="meu-fio">
             <Sobreceja>{t('perfil.hilo.sobreceja')}</Sobreceja>
 
             <View style={estilos.estadisticas}>
@@ -617,7 +654,7 @@ export default function PerfilScreen({ navigation }) {
           {/* O CIRCULO (cartao da comunidade) saiu — decisao do dono, 11/09/2026. */}
 
           {/* --- SUSCRIPCION ---------------------------------------------------- */}
-          <Tarjeta style={estilos.bloque}>
+          <Tarjeta tom="noite" semente="assinatura">
             <Sobreceja>{t('perfil.suscripcion.sobreceja')}</Sobreceja>
             <Cuerpo style={estilos.estadoSuscripcion}>
               {/* Com o acesso livre ligado, "assinatura ativa" seria mentira —
@@ -681,7 +718,7 @@ export default function PerfilScreen({ navigation }) {
           </Tarjeta>
 
           {/* --- ACCESOS -------------------------------------------------------- */}
-          <Tarjeta style={[estilos.bloque, estilos.tarjetaLista]}>
+          <Tarjeta tom="ameixa" semente="acessos" style={estilos.tarjetaLista}>
             <Sobreceja style={estilos.sobrecejaLista}>{t('perfil.accesos.sobreceja')}</Sobreceja>
             {ACCESOS.map((acceso, indice) => (
               <FilaAcceso
@@ -696,18 +733,23 @@ export default function PerfilScreen({ navigation }) {
 
           {/* --- REHACER --------------------------------------------------------
               Fantasma, no fim e com a nota embaixo: nao e a acao principal da
-              tela, e nao pode parecer perigosa — porque nao e. */}
-          <BotonPrimario
-            titulo={t('perfil.rehacer')}
-            variante="fantasma"
-            onPress={alRehacer}
-            style={estilos.bloque}
-          />
-          <Micro style={estilos.notaRehacer}>{t('perfil.rehacer.nota')}</Micro>
+              tela, e nao pode parecer perigosa — porque nao e.
 
-          {/* A mesma promessa da tela zero do onboarding, repetida onde ela pesa:
-              na tela que junta tudo o que o app sabe sobre ela. */}
-          <Micro style={estilos.pie}>{t('onboarding.privacidad')}</Micro>
+              O FECHO fica FORA de faixa, como a cabecera: as faixas sao as
+              SECOES da tela, e isto nao e uma secao — e o que vem depois delas.
+              Na ColunaLeitura porque o gutter saiu do ScrollView. */}
+          <ColunaLeitura style={estilos.fecho}>
+            <BotonPrimario
+              titulo={t('perfil.rehacer')}
+              variante="fantasma"
+              onPress={alRehacer}
+            />
+            <Micro style={estilos.notaRehacer}>{t('perfil.rehacer.nota')}</Micro>
+
+            {/* A mesma promessa da tela zero do onboarding, repetida onde ela
+                pesa: na tela que junta tudo o que o app sabe sobre ela. */}
+            <Micro style={estilos.pie}>{t('onboarding.privacidad')}</Micro>
+          </ColunaLeitura>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -743,20 +785,33 @@ const estilos = StyleSheet.create({
     marginTop: espacio.sm,
   },
 
+  // SEM paddingHorizontal, SEM paddingTop e SEM maxWidth (12/09/2026): as faixas
+  // precisam SANGRAR de ponta a ponta pra serem chao e nao card gigante. O
+  // limite de largura nao sumiu — mudou de lugar: a propria FaixaCurva ja poe
+  // `space.tela` de gutter no corpo dela, e o texto longo que precisava dos 560
+  // vive dentro de cartoes que a faixa ja estreita. O respiro de cima virou
+  // `abertura`.
   contenido: {
-    paddingHorizontal: espacio.xl,
-    paddingTop: espacio.xl,
     // Folga generosa no fim: a barra de 3 zonas do Heat Game fica por cima
     // desta tela, e o ultimo texto nao pode nascer debaixo dela.
     paddingBottom: espacio.xxxl * 2,
-    // Em tablet e na web a coluna para de crescer: linha de 16px com mais de
-    // ~600px de largura fica dificil de ler.
-    maxWidth: 560,
     width: '100%',
     alignSelf: 'center',
   },
 
   /* --- cabecera --- */
+  // `ar` (48): o silencio entre a ultima faixa e o fim da tela. E o mesmo degrau
+  // da abertura, e de proposito — a tela abre e fecha com a mesma respiracao.
+  fecho: {
+    paddingTop: space.ar,
+  },
+  // A CABECERA fica fora de faixa: e a primeira dobra, e respira contra o fundo
+  // do app com o fio atras. `ar` (48) no topo e o silencio antes do nome; o
+  // gutter vem junto porque o ScrollView nao tem mais nenhum.
+  abertura: {
+    paddingTop: space.ar,
+    paddingHorizontal: space.tela,
+  },
   cabecera: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -799,9 +854,10 @@ const estilos = StyleSheet.create({
     borderColor: colores.bordeSuave,
     padding: espacio.lg,
   },
-  bloque: {
-    marginTop: espacio.xl,
-  },
+  // `bloque` MORREU (12/09/2026). Era so `marginTop: xl`, o respiro entre
+  // cartoes — e quem da esse respiro agora e o padding da faixa. Estilo que so
+  // zeraria nao fica virando `{}`: some, e os quatro call sites param de
+  // passa-lo.
   botonTarjeta: {
     marginTop: espacio.lg,
   },

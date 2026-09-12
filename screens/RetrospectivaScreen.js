@@ -15,9 +15,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Share } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { useCouple } from '../context/CoupleContext';
 import { getStreak } from '../lib/coupleData';
 import { yearlyRecap, collectData } from '../lib/activity';
@@ -92,10 +94,12 @@ export default function RetrospectivaScreen() {
         <View style={styles.emptyProfile}>
           <Ionicons name="heart-outline" size={40} color={colors.accent} />
           <Text style={styles.emptyProfileTitle}>{t('retro.needQuiz')}</Text>
-          <Text style={styles.emptyProfileDesc}>
-            Precisamos saber os nomes de vocês para montar a retrospectiva do casal.
-          </Text>
-          <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
+          <ColunaLeitura centralizado>
+            <Text style={styles.emptyProfileDesc}>
+              Precisamos saber os nomes de vocês para montar a retrospectiva do casal.
+            </Text>
+          </ColunaLeitura>
+          <TouchableOpacity style={[styles.btn, styles.btnDoGate]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
             <Text style={styles.btnText}>{t('retro.doQuiz')}</Text>
           </TouchableOpacity>
         </View>
@@ -135,12 +139,13 @@ export default function RetrospectivaScreen() {
               <Text style={styles.emptyStateIcon}>🌱</Text>
               <Text style={styles.emptyStateTitle}>{t('retro.empty.title')}</Text>
               <Text style={styles.emptyStateDesc}>{t('retro.empty.desc')}</Text>
-              <TouchableOpacity style={[styles.btn, { marginTop: 16 }]} onPress={() => navigation.navigate(ROUTES.TIMELINE)}>
+              <TouchableOpacity style={[styles.btn, styles.btnDoVazio]} onPress={() => navigation.navigate(ROUTES.TIMELINE)}>
                 <Text style={styles.btnText}>{t('retro.empty.cta')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
+              <FaixaCurva tom="ameixa" semente="retro-total" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
               <View style={[styles.card, { alignItems: 'center' }]}>
                 <Text style={styles.overline}>{t('retro.yearTotal')}</Text>
                 <Text style={styles.bigNumber}><CountUp value={recap.memoriesCount} /></Text>
@@ -149,6 +154,9 @@ export default function RetrospectivaScreen() {
                 </Text>
               </View>
 
+              </FaixaCurva>
+
+              <FaixaCurva tom="noite" semente="retro-resumo" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
               <View style={styles.sectionHead}>
                 <Text style={styles.sectionHeadTitle}>{t('retro.yearSummary')}</Text>
               </View>
@@ -200,23 +208,31 @@ export default function RetrospectivaScreen() {
                 )}
               </View>
 
+              </FaixaCurva>
+
+              <FaixaCurva tom="dourado" semente="retro-compartilhar" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
               <View style={styles.sectionHead}>
                 <Text style={styles.sectionHeadTitle}>{t('retro.keepYear')}</Text>
               </View>
               <View style={[styles.card, { alignItems: 'center' }]}>
-                <Text style={[styles.mutedText, { marginBottom: 12 }]}>
-                  Compartilhem a retrospectiva de vocês com quem torce pela história de vocês.
-                </Text>
+                <ColunaLeitura centralizado>
+                  <Text style={[styles.mutedText, styles.convite]}>
+                    Compartilhem a retrospectiva de vocês com quem torce pela história de vocês.
+                  </Text>
+                </ColunaLeitura>
                 <TouchableOpacity style={styles.btn} onPress={handleShare}>
                   <Text style={styles.btnText}>{t('retro.share')}</Text>
                 </TouchableOpacity>
               </View>
+              </FaixaCurva>
             </>
           )}
 
-          <Text style={styles.disclaimer}>
-            Todos os números acima vêm das memórias e cápsulas que vocês mesmos guardaram — nada aqui foi inventado.
-          </Text>
+          <ColunaLeitura centralizado>
+            <Text style={styles.disclaimer}>
+              Todos os números acima vêm das memórias e cápsulas que vocês mesmos guardaram — nada aqui foi inventado.
+            </Text>
+          </ColunaLeitura>
         </ScrollView>
       )}
     </View>
@@ -225,33 +241,45 @@ export default function RetrospectivaScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  // Sem padding lateral: quem carrega o gutter agora e a FAIXA, que sangra de
+  // ponta a ponta e devolve o respiro por dentro.
+  scrollContent: { paddingBottom: space.fimDaLista },
 
-  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 16 },
+  faixa: { width: '100%' },
+  faixaCorpo: { gap: space.bloco },
 
-  overline: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  bigNumber: { color: colors.text, fontSize: 52, fontWeight: '800', marginVertical: 4 },
-  mutedText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: space.bloco },
 
-  sectionHead: { marginTop: 20, marginBottom: 10 },
-  sectionHeadTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  overline: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
+  // O numero do ano e a manchete da tela: fica no degrau de display da escala
+  // (32) em vez do 52 solto, que era maior que qualquer outro numero do app e
+  // por isso lia como outro produto. A entrelinha vem junto, que e metade do
+  // efeito.
+  bigNumber: { ...type.display, color: colors.text, marginVertical: space.grudado },
+  mutedText: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
+  convite: { marginBottom: space.dentro },
 
-  featureItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
-  featureIcon: { fontSize: 22, marginRight: 12, width: 26, textAlign: 'center' },
-  featureBold: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  featureText: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
+  sectionHead: { marginTop: space.junto },
+  sectionHeadTitle: { ...type.secao, color: colors.text },
 
-  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center' },
-  btnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  featureItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: space.bloco },
+  featureIcon: { fontSize: 22, marginRight: space.dentro, width: 26, textAlign: 'center' },
+  featureBold: { ...type.cartao, color: colors.text },
+  featureText: { ...type.apoio, color: colors.textSecondary, marginTop: space.grudado },
 
-  emptyState: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 16 },
-  emptyStateIcon: { fontSize: 40, marginBottom: 10 },
-  emptyStateTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  emptyStateDesc: { color: colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 6 },
+  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: space.bloco, paddingHorizontal: space.entre, alignItems: 'center' },
+  btnText: { ...type.botao, color: '#fff' },
+  btnDoGate: { marginTop: space.entre },
+  btnDoVazio: { marginTop: space.bloco },
 
-  disclaimer: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 20, lineHeight: 16, paddingHorizontal: 8 },
+  emptyState: { alignItems: 'center', paddingVertical: space.ar, paddingHorizontal: space.tela },
+  emptyStateIcon: { fontSize: 40, marginBottom: space.dentro },
+  emptyStateTitle: { ...type.cartao, color: colors.text, textAlign: 'center' },
+  emptyStateDesc: { ...type.corpoCurto, color: colors.textMuted, textAlign: 'center', marginTop: space.junto },
 
-  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyProfileTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginTop: 14 },
-  emptyProfileDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  disclaimer: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.entre },
+
+  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.secao },
+  emptyProfileTitle: { ...type.cartao, color: colors.text, textAlign: 'center', marginTop: space.bloco },
+  emptyProfileDesc: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center', marginTop: space.junto },
 });

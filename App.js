@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState, Suspense, lazy } from 
 import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { getFocusedRouteNameFromRoute, NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { DefaultTheme, getFocusedRouteNameFromRoute, NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -296,8 +296,19 @@ const DOCUMENT_TITLE = Object.freeze({ formatter: () => 'Cosmic Guide' });
 //
 // O cardStyle fixa o fundo do app na carta que desliza: sem ele, o vão atrás
 // da tela durante o slide seria o cinza-claro do DefaultTheme do
-// react-navigation (CardContainer.js usa colors.background do theme, e o
-// NavigationContainer daqui não recebe theme nenhum).
+// react-navigation (CardContainer.js usa colors.background do theme).
+//
+// A CAUSA-RAIZ, CONSERTADA EM 12/09/2026: o NavigationContainer não recebia
+// theme nenhum, então o react-navigation pintava rgb(242,242,242) por baixo de
+// TODA cena. Em qualquer tela cujo conteúdo fique mais curto que a janela,
+// aquele cinza aparecia como um rasgo claro acima da barra de abas — num app
+// de fundo #0B0712. Estava sendo tapado tela a tela (cardStyle aqui,
+// sceneContainerStyle ali, backgroundColor acolá); agora o container inteiro
+// nasce escuro e os remendos passam a ser reforço, não a única defesa.
+const TEMA_NAVEGACAO = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, background: colors.background },
+};
 // TELAS ONDE A PILL DE ASSINAR NÃO APARECE (09/08/2026, achado de review).
 // A pill é absoluta no canto inferior direito; nestas três o rodapé JÁ é área
 // de ação e ela cobriria o toque:
@@ -771,7 +782,7 @@ function Gate() {
 
   if (!coupleData && !soloSign) {
     return (
-      <NavigationContainer documentTitle={DOCUMENT_TITLE}>
+      <NavigationContainer theme={TEMA_NAVEGACAO} documentTitle={DOCUMENT_TITLE}>
         <Suspense fallback={<LoadingFallback />}>
           <Stack.Navigator screenOptions={{ headerShown: false, ...GESTO_STACK, ...TRANSICAO_STACK }}>
             <Stack.Screen name={ROUTES.ONBOARDING_CHOICE} component={OnboardingChoiceScreen} />
@@ -785,6 +796,7 @@ function Gate() {
   return (
     <NavigationContainer
       ref={navRef}
+      theme={TEMA_NAVEGACAO}
       linking={linking}
       documentTitle={DOCUMENT_TITLE}
       onReady={() => {
@@ -812,19 +824,34 @@ function Gate() {
             (margens + raio): o que aparece AO REDOR dela é este View — sem a
             cor, na web o vão sairia branco.
 
-            O paddingBottom É O CONSERTO DO DOCK QUE COBRIA TEXTO (12/09/2026).
-            O dock é irmão do Tab.Navigator dentro deste View; encurtando o
-            View, o navegador inteiro — e portanto as 49 telas com rolagem —
-            encurta junto, e a faixa que sobra é exatamente onde o dock pousa.
-            Uma linha aqui em vez de paddingBottom repetido em 49 telas, e sem
-            o risco de esquecer a tela nº 50.
-
-            Só quando o dock EXISTE de verdade: sem Web Audio (todo o nativo,
-            navegador antigo) ele não é renderizado, e reservar espaço pra um
-            controle ausente seria uma faixa morta no pé de todas as telas.
-            A Madre esconde o dock e por isso também não reserva. */}
-        <View style={{ flex: 1, backgroundColor: colors.background, paddingBottom: mostraDock ? ESPACO_DO_DOCK : 0 }}>
+            Este View NÃO leva o espaço do dock: ele é o pai comum do navegador
+            E do dock, então encurtá-lo descia os dois juntos e o dock seguia
+            por cima do texto (medido). Quem reserva é o `sceneContainerStyle`
+            do Tab.Navigator logo abaixo — ver o comentário lá. */}
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tab.Navigator
+        // O ESPAÇO DO DOCK SAI DAQUI, NÃO DO PAI (12/09/2026).
+        //
+        // Tentativa anterior, e por que falhou: paddingBottom no <View> que
+        // embrulha navegador E dock. O conteúdo encurtava, sim — mas o dock é
+        // FILHO desse mesmo View, então ele descia junto e continuava pousado
+        // na última linha (medido: dock em 712–766 com a frase "Saturno. E a
+        // tabela dos domicílios" ainda por baixo). Encurtar o pai de alguém
+        // que é posicionado pelo pai não abre espaço nenhum.
+        //
+        // `sceneContainerStyle` é o container das TELAS, irmão mais interno:
+        // encurta só o conteúdo, e o dock — que continua ancorado no View de
+        // fora — fica na faixa livre que sobrou. Uma linha, e vale para as 49
+        // telas com rolagem de uma vez.
+        // backgroundColor JUNTO do padding, sempre: o container das cenas é
+        // branco por padrão no react-navigation, então a faixa reservada
+        // aparecia como uma TIRA BRANCA entre o fim do texto e a barra de
+        // abas (visto na foto). Com a cor do app ela some no fundo.
+        sceneContainerStyle={
+          mostraDock
+            ? { paddingBottom: ESPACO_DO_DOCK, backgroundColor: colors.background }
+            : undefined
+        }
         screenOptions={({ route }) => ({
           headerShown: false,
           // A PÍLULA FLUTUANTE (08/08/2026) — o dock do concorrente: barra

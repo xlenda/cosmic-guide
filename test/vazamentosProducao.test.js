@@ -86,10 +86,19 @@ test('o dock do som não é montado dentro da Madre Maria', () => {
 test('quem mostra o dock é quem reserva o espaço dele — nunca um sem o outro', () => {
   // O bug era exatamente a falta desse par: o dock aparecia sem nada reservado
   // e pousava sobre os últimos 46px do conteúdo (medido no Horóscopo).
+  // sceneContainerStyle e NÃO padding no <View> de fora: o dock é FILHO desse
+  // View, então encurtá-lo descia o dock junto e ele seguia por cima da última
+  // linha (medido: dock em 712–766 com a frase ainda por baixo). O container
+  // das cenas é irmão mais interno — encurta só o conteúdo.
   assert.match(
     appJs,
-    /paddingBottom: mostraDock \? ESPACO_DO_DOCK : 0/,
-    'o container do Tab.Navigator tem de encurtar quando o dock existe, senão ele volta a cobrir texto'
+    /sceneContainerStyle=\{\s*mostraDock/,
+    'o espaço do dock tem de sair do container das CENAS; no View de fora o dock desce junto e volta a cobrir texto'
+  );
+  assert.match(
+    appJs,
+    /paddingBottom: ESPACO_DO_DOCK, backgroundColor: colors\.background/,
+    'a faixa reservada precisa da cor do app, senão aparece como tira branca acima da barra de abas'
   );
   assert.match(appJs, /import CosmicSoundPlayer, \{ ESPACO_DO_DOCK \}/);
 });

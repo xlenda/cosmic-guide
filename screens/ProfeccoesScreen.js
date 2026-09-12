@@ -73,8 +73,11 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
+import TabelaDados from '../components/TabelaDados';
 import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
 import { getAnyBirthData } from '../lib/birthData';
@@ -236,8 +239,16 @@ export default function ProfeccoesScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.intro}>{UI.intro}</Text>
-        <Text style={styles.intro}>{UI.introDois}</Text>
+        {/* AS TRÊS FAIXAS DESTA TELA. Antes, os quatro assuntos (a abertura, o
+            ano, o mês e as camadas de trás) corriam no MESMO chão preto, um
+            card atrás do outro — que é o diagnóstico do briefing: parece
+            lista, não seção. Três faixas, sementes diferentes, e o olho lê
+            "mudou de assunto" antes de ler o título. Quatro seria textura. */}
+        <FaixaCurva tom="ameixa" semente="profeccoes-abertura" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+          <ColunaLeitura>
+            <Text style={styles.intro}>{UI.intro}</Text>
+            <Text style={[styles.intro, styles.introSegunda]}>{UI.introDois}</Text>
+          </ColunaLeitura>
 
         {/* ------------------------------------------------------------------
             CARREGANDO — o disco ainda está sendo lido
@@ -298,50 +309,31 @@ export default function ProfeccoesScreen() {
               {anual.titulo}
             </Text>
 
-            <View style={styles.paresRow}>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.casaDoAno}</Text>
-                <Text style={styles.parValor} testID="profeccoes-casa-ano">
-                  {anual.casaProfectada}
-                </Text>
-              </View>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.signoDoAno}</Text>
-                <Text style={styles.parValor}>{anual.signoDoAno}</Text>
-              </View>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.senhorDoAno}</Text>
-                <Text style={[styles.parValor, styles.parDestaque]} testID="profeccoes-senhor-ano">
-                  {anual.senhorDoAno}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.par}>
-              <Text style={styles.parRotulo}>{rotulos.nomeAntigo}</Text>
-              <Text style={styles.parValor}>{anual.nomeAntigoDaCasa}</Text>
-            </View>
+            {/* A FICHA DO ANO — era cinco pares soltos em duas fileiras que
+                quebravam de tamanho conforme o texto (flexBasis 120), o que
+                fazia "Senhor do Ano" pousar em coluna diferente de "Casa do
+                Ano" a cada idioma. Vira a tabela: rótulo à esquerda, valor à
+                direita, fio fino entre as linhas — a ficha do print, que se
+                confere de cima a baixo.
+                O filtro de não fabricar vem junto: casa, signo ou senhor que o
+                motor não devolver some da tabela em vez de virar linha vazia. */}
+            <TabelaDados
+              testID="profeccoes"
+              itens={[
+                { chave: 'casa-ano', rotulo: rotulos.casaDoAno, valor: anual.casaProfectada },
+                { chave: 'signo-ano', rotulo: rotulos.signoDoAno, valor: anual.signoDoAno },
+                { chave: 'senhor-ano', rotulo: rotulos.senhorDoAno, valor: anual.senhorDoAno, pilula: true },
+                { chave: 'nome-antigo', rotulo: rotulos.nomeAntigo, valor: anual.nomeAntigoDaCasa },
+                { chave: 'virada', rotulo: rotulos.viradaDoAno, valor: instanteLegivel(anual.viradaDoAno, UI.locale) },
+                { chave: 'proxima-virada', rotulo: rotulos.proximaVirada, valor: instanteLegivel(anual.proximaVirada, UI.locale) },
+              ]}
+            />
 
             <View style={styles.chipRow}>
               <View style={styles.chip}>
                 <Ionicons name="locate" size={12} color={colors.textSecondary} />
                 <Text style={styles.chipTexto} testID="profeccoes-origem">
                   {anual.origemRotulo}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.paresRow}>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.viradaDoAno}</Text>
-                <Text style={styles.parValor} testID="profeccoes-virada">
-                  {instanteLegivel(anual.viradaDoAno, UI.locale)}
-                </Text>
-              </View>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.proximaVirada}</Text>
-                <Text style={styles.parValor}>
-                  {instanteLegivel(anual.proximaVirada, UI.locale)}
                 </Text>
               </View>
             </View>
@@ -367,9 +359,18 @@ export default function ProfeccoesScreen() {
           </View>
         ) : null}
 
+        </FaixaCurva>
+
         {/* ------------------------------------------------------------------
             O MÊS — 28 dias por signo, contados do retorno solar
         ------------------------------------------------------------------ */}
+        {/* ESTADO VAZIO DA FAIXA 2 (a lição do lote da Home, 12/09/2026): sem
+            mês disponível E sem recado, esta faixa não teria NADA dentro —
+            desenharia uma onda e um bloco de cor de 64px de altura, que é
+            exatamente o defeito ALTO que o revisor fotografou lá. Faixa sem
+            conteúdo não existe: o `&&` some com ela inteira, onda inclusive. */}
+        {(disponivel && mensal && mensal.disponivel) || recado ? (
+        <FaixaCurva tom="noite" semente="profeccoes-mes" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {disponivel && mensal && mensal.disponivel ? (
           <View style={styles.card} testID="profeccoes-mes">
             <Text style={styles.olho}>{rotulos.tituloMensal}</Text>
@@ -377,42 +378,26 @@ export default function ProfeccoesScreen() {
               {mensal.titulo}
             </Text>
 
-            <View style={styles.paresRow}>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.casaDoMes}</Text>
-                <Text style={styles.parValor}>{mensal.casaDoMes}</Text>
-              </View>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.signoDoMes}</Text>
-                <Text style={styles.parValor}>{mensal.signoDoMes}</Text>
-              </View>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.senhorDoMes}</Text>
-                <Text style={[styles.parValor, styles.parDestaque]} testID="profeccoes-senhor-mes">
-                  {mensal.senhorDoMes}
-                </Text>
-              </View>
-            </View>
+            {/* QUENTE PRIMEIRO: o texto do mês abre, a ficha desce — a mesma
+                ordem que o card do ano já seguia e este não. Nada foi cortado,
+                só trocou de lugar. */}
+            <ColunaLeitura>
+              <Text style={styles.texto} testID="profeccoes-texto-mes">
+                {mensal.texto}
+              </Text>
+            </ColunaLeitura>
 
-            <Text style={styles.texto} testID="profeccoes-texto-mes">
-              {mensal.texto}
-            </Text>
-
-            <View style={styles.par}>
-              <Text style={styles.parRotulo}>{rotulos.nomeAntigo}</Text>
-              <Text style={styles.parValor}>{mensal.nomeAntigoDaCasaDoMes}</Text>
-            </View>
-
-            <View style={styles.paresRow}>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.inicioDoMes}</Text>
-                <Text style={styles.parValor}>{instanteLegivel(mensal.inicio, UI.locale)}</Text>
-              </View>
-              <View style={styles.par}>
-                <Text style={styles.parRotulo}>{rotulos.fimDoMes}</Text>
-                <Text style={styles.parValor}>{instanteLegivel(mensal.fim, UI.locale)}</Text>
-              </View>
-            </View>
+            <TabelaDados
+              testID="profeccoes"
+              itens={[
+                { chave: 'casa-mes', rotulo: rotulos.casaDoMes, valor: mensal.casaDoMes },
+                { chave: 'signo-mes', rotulo: rotulos.signoDoMes, valor: mensal.signoDoMes },
+                { chave: 'senhor-mes', rotulo: rotulos.senhorDoMes, valor: mensal.senhorDoMes, pilula: true },
+                { chave: 'nome-antigo-mes', rotulo: rotulos.nomeAntigo, valor: mensal.nomeAntigoDaCasaDoMes },
+                { chave: 'inicio-mes', rotulo: rotulos.inicioDoMes, valor: instanteLegivel(mensal.inicio, UI.locale) },
+                { chave: 'fim-mes', rotulo: rotulos.fimDoMes, valor: instanteLegivel(mensal.fim, UI.locale) },
+              ]}
+            />
 
             <View style={styles.recibo}>
               <Text style={styles.reciboRotulo}>{rotulos.fontes}</Text>
@@ -436,13 +421,18 @@ export default function ProfeccoesScreen() {
         ) : null}
 
         {recado ? <Text style={styles.nota}>{recado}</Text> : null}
+        </FaixaCurva>
+        ) : null}
 
         {/* ------------------------------------------------------------------
             AS CAMADAS DE TRÁS — a conta, a fonte, o verbatim e o que a
             pesquisa não achou. Tudo do motor (ou do pack, quando o motor não
             devolve por estar indisponível), nada redigido aqui.
         ------------------------------------------------------------------ */}
+        {/* Mesma regra na faixa 3: enquanto carrega, só sobraria a marca do
+            rodapé dentro dela — onda e chão pra uma linha de 10px. */}
         {!carregando ? (
+        <FaixaCurva tom="dourado" semente="profeccoes-camadas" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
           <>
             <Bloco
               id="comoFunciona"
@@ -658,9 +648,10 @@ export default function ProfeccoesScreen() {
               ))}
             </Bloco>
           </>
-        ) : null}
 
         <Text style={styles.marca}>{UI.marca}</Text>
+        </FaixaCurva>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -668,105 +659,104 @@ export default function ProfeccoesScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingBottom: 48, gap: 10 },
+  // O padding horizontal saiu daqui e foi pras faixas: é a FAIXA que sangra de
+  // ponta a ponta e carrega o gutter, não o ScrollView. O `gap` também saiu —
+  // cada faixa tem o próprio respiro interno, e somar os dois abria buraco
+  // entre a onda e a primeira palavra.
+  scroll: { paddingBottom: space.fimDaLista },
 
-  intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  // A faixa ocupa a largura toda; o corpo dela guarda o respiro de seção.
+  faixa: { width: '100%' },
+  faixaCorpo: { gap: space.bloco },
 
-  carregando: { alignItems: 'center', gap: 10, paddingVertical: 28 },
-  carregandoTexto: { color: colors.textMuted, fontSize: 13 },
+  intro: { ...type.corpo, color: colors.textSecondary },
+  // `entre` e não `junto`: são dois parágrafos, não duas linhas do mesmo.
+  introSegunda: { marginTop: space.entre },
+
+  carregando: { alignItems: 'center', gap: space.dentro, paddingVertical: space.secao },
+  carregandoTexto: { ...type.apoio, color: colors.textMuted },
 
   aviso: {
     backgroundColor: colors.card,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 10,
-    marginTop: 6,
+    padding: space.bloco,
+    gap: space.dentro,
   },
-  avisoTitulo: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  avisoTexto: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  avisoTitulo: { ...type.cartao, color: colors.text },
+  avisoTexto: { ...type.corpoCurto, color: colors.textSecondary },
 
   cardDestaque: {
     backgroundColor: colors.surfaceElevated,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.purple,
-    padding: 16,
-    gap: 12,
-    marginTop: 6,
+    padding: space.bloco,
+    gap: space.bloco,
   },
   card: {
     backgroundColor: colors.card,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 12,
+    padding: space.bloco,
+    gap: space.bloco,
   },
 
-  olho: {
-    color: colors.gold,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  tituloGrande: { color: colors.text, fontSize: 22, fontWeight: '800', lineHeight: 28 },
+  olho: { ...type.etiqueta, color: colors.gold, textTransform: 'uppercase' },
+  tituloGrande: { ...type.titulo, color: colors.text },
   // A ficha do ano DEPOIS da leitura (lei "quente primeiro"): o mesmo dado que
   // era o título de 22px, agora em tamanho de etiqueta. Ele não sumiu — deixou
   // de ser a primeira coisa que a pessoa lê.
-  tituloFicha: {
-    color: colors.textSecondary, fontSize: 12, fontWeight: '800',
-    textTransform: 'uppercase', letterSpacing: 0.8,
-  },
-  tituloMedio: { color: colors.text, fontSize: 17, fontWeight: '800', lineHeight: 23 },
+  tituloFicha: { ...type.etiqueta, color: colors.textSecondary, textTransform: 'uppercase' },
+  tituloMedio: { ...type.cartao, color: colors.text },
 
-  paresRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  par: { flexGrow: 1, flexBasis: 120, gap: 3 },
-  parRotulo: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  parValor: { color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
-  parDestaque: { color: colors.gold, fontWeight: '800' },
+  // O par rótulo→texto que sobrou FORA da tabela: dentro dos blocos de trás,
+  // onde o "valor" é um parágrafo inteiro (a precisão da virada, o que melhora
+  // com a hora), e parágrafo não cabe na coluna direita de uma tabela.
+  par: { gap: space.grudado },
+  parRotulo: { ...type.etiqueta, color: colors.textMuted },
 
-  texto: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  texto: { ...type.corpoCurto, color: colors.textSecondary },
   // A abertura do card do ano: mesma prosa, corpo maior e cor de texto cheio.
   // É o primeiro bloco que a pessoa lê, então ele lidera a hierarquia.
-  textoAbertura: { color: colors.text, fontSize: 15, lineHeight: 23 },
-  glosa: { color: colors.textMuted, fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
+  textoAbertura: { ...type.corpo, color: colors.text },
+  glosa: { ...type.apoio, color: colors.textMuted, fontStyle: 'italic' },
 
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.junto },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: space.junto,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: space.dentro,
+    paddingVertical: space.junto,
   },
-  chipTexto: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  chipTexto: { ...type.apoio, color: colors.textSecondary },
 
   recibo: {
     borderRadius: 12,
     borderWidth: 1,
     borderStyle: 'dotted',
     borderColor: colors.border,
-    padding: 12,
-    gap: 4,
+    padding: space.dentro,
+    gap: space.grudado,
   },
-  reciboRotulo: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  reciboTexto: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
-  verbatim: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
+  reciboRotulo: { ...type.etiqueta, color: colors.textMuted },
+  reciboTexto: { ...type.apoio, color: colors.textMuted },
+  verbatim: { ...type.apoio, color: colors.textSecondary, fontStyle: 'italic' },
 
   melhora: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    padding: 12,
-    gap: 8,
+    padding: space.dentro,
+    gap: space.junto,
   },
 
   bloco: {
@@ -774,38 +764,38 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: space.bloco,
+    paddingVertical: space.dentro,
   },
-  blocoTopo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  blocoTitulo: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  blocoCorpo: { gap: 10, marginTop: 10 },
+  blocoTopo: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
+  blocoTitulo: { flex: 1, ...type.cartao, color: colors.text },
+  blocoCorpo: { gap: space.dentro, marginTop: space.dentro },
 
-  fonteItem: { gap: 2 },
-  fonteObra: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  fonteItem: { gap: space.grudado },
+  fonteObra: { ...type.apoio, color: colors.textSecondary, fontWeight: '600' },
 
   botao: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: colors.accent,
     borderRadius: 14,
-    paddingVertical: 11,
+    paddingVertical: space.dentro,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  botaoTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  botaoTexto: { ...type.botao, color: '#fff' },
 
   shareBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: '#25D366',
     borderRadius: 14,
-    paddingVertical: 11,
+    paddingVertical: space.dentro,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shareBtnTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  shareBtnTexto: { ...type.botao, color: '#fff' },
 
-  nota: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center' },
-  marca: { color: colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 6 },
+  nota: { ...type.apoio, color: colors.textSecondary, textAlign: 'center' },
+  marca: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.junto },
 });

@@ -121,6 +121,8 @@ import {
 
 import BotonPrimario from '../components/BotonPrimario';
 import FaixaNudos from '../components/FaixaNudos';
+import FaixaCurva from '../../components/FaixaCurva';
+import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, NombreCarta, Rotulo, Sobreceja, Titulo } from '../components/Texto';
 import { DURACION, getDia, pacto } from '../datos/ritual';
@@ -321,11 +323,24 @@ export default function RitualScreen({ navigation }) {
                 {faixa}
                 <Cuerpo style={estilos.parrafo}>{t('ritual.fin.cuerpo')}</Cuerpo>
 
+                {/* UMA faixa em volta dos SETE, e nao sete faixas: eles sao
+                    itens irmaos de uma lista, e cada um ja se separa do vizinho
+                    pela propria borda. O que faltava era separar A LISTA do
+                    paragrafo de encerramento que vem acima dela — mesma decisao
+                    (e mesma justificativa) do acordeao da AyudaScreen.
+                    `noite` e o tom mais neutro: os cartoes tem contraste
+                    proprio e um chao forte aqui competiria com a leitura do que
+                    ela escreveu, que e a unica coisa que importa nesta tela.
+                    Sem `style`: o corpo da faixa ja traz `secao` e `tela`. */}
+                <FaixaCurva tom="noite" semente="sete-espelhos" style={estilos.faixaEspelhos}>
                 {Array.from({ length: DURACION }, (_, i) => i + 1).map((n) => {
                   const registro = registroDe(resumen, n);
                   const fecha = fechaLegible(registro.fecha);
                   return (
-                    <View key={`cerrado-${n}`} style={estilos.tarjeta}>
+                    <View
+                      key={`cerrado-${n}`}
+                      style={[estilos.tarjeta, n === 1 && estilos.primeiroEspelho]}
+                    >
                       <Rotulo>{t('ritual.espejo.rotulo', { n })}</Rotulo>
                       {registro.nota ? (
                         <>
@@ -344,6 +359,7 @@ export default function RitualScreen({ navigation }) {
                     </View>
                   );
                 })}
+                </FaixaCurva>
 
                 <Micro style={estilos.nota}>{t('ritual.fin.guardado')}</Micro>
                 <BotonPrimario
@@ -534,6 +550,12 @@ const estilos = StyleSheet.create({
   seguro: {
     flex: 1,
   },
+  // O maxWidth e o recuo FICAM (12/09/2026), ao contrario das outras telas do
+  // lote — e a decisao e consciente. Aqui a unica faixa e a dos sete espelhos, e
+  // ela e uma faixa DE LISTA, nao de secao: ela separa a lista do paragrafo
+  // acima dentro da coluna de leitura, e nao precisa sangrar de ponta a ponta da
+  // JANELA pra fazer isso. Tirar o limite daqui faria o texto dos quatro
+  // estados atravessar a tela inteira na web — trocaria um defeito por outro.
   contenido: {
     paddingHorizontal: espacio.xl,
     paddingTop: espacio.xl,
@@ -542,6 +564,21 @@ const estilos = StyleSheet.create({
     maxWidth: 560,
     width: '100%',
     alignSelf: 'center',
+  },
+
+  // A faixa dos sete espelhos. `ar` (48) em cima porque acima dela esta o
+  // paragrafo que FECHA o ritual — separar o fecho da lista de registros pede o
+  // degrau grande. Vertical apenas: padding horizontal aqui insetaria o desenho
+  // inteiro da faixa (o `style` dela vai pra View de fora, que embrulha a onda),
+  // e o corpo dela ja traz o recuo lateral sozinho.
+  faixaEspelhos: {
+    marginTop: space.ar,
+  },
+  // O primeiro cartao da lista nao leva margem: acima dele ja esta o padding da
+  // faixa (`secao`, 32). Somar os dois daria 56px antes do primeiro e 24 entre
+  // os outros seis — a lista abriria torta.
+  primeiroEspelho: {
+    marginTop: 0,
   },
 
   titulo: {
@@ -579,7 +616,7 @@ const estilos = StyleSheet.create({
 
   /* --- cartoes --- */
   tarjeta: {
-    marginTop: espacio.xl,
+    marginTop: space.entre,
     backgroundColor: colores.penumbra,
     borderRadius: radio.md,
     borderWidth: GROSOR_BORDE,

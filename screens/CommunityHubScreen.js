@@ -16,7 +16,8 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Alert } from '../lib/webAlert';
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
+import ColunaLeitura from '../components/ColunaLeitura';
 import GradientHeader from '../components/GradientHeader';
 import CommunityDiscovery from '../components/community/CommunityDiscovery';
 import { useAuth } from '../context/AuthContext';
@@ -195,7 +196,13 @@ function LoggedOutState({ t, onLogin }) {
         </View>
         <Text style={styles.eyebrow}>{t('community.discovery.eyebrow')}</Text>
         <Text style={styles.guestTitle}>{t('community.discovery.title')}</Text>
-        <Text style={styles.guestBody}>{t('community.discovery.body')}</Text>
+        {/* O convite é o parágrafo mais longo da tela e é a única coisa que
+            explica pra que serve a Comunidade. Em 390px a coluna não faz nada
+            (e é o certo); na web ela impede a linha de atravessar o card
+            inteiro. */}
+        <ColunaLeitura style={styles.guestColuna}>
+          <Text style={styles.guestBody}>{t('community.discovery.body')}</Text>
+        </ColunaLeitura>
         <View style={styles.truthNote}>
           <Ionicons name="compass-outline" size={18} color={colors.gold} />
           <Text style={styles.truthNoteText}>{t('community.discovery.conversationsHint')}</Text>
@@ -1924,18 +1931,28 @@ const styles = StyleSheet.create({
     gap: 13,
     padding: 24,
   },
-  centerStateBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
-  guestContent: { flexGrow: 1, justifyContent: 'center', padding: 20, paddingBottom: 44 },
+  centerStateBody: { ...type.corpoCurto, color: colors.textSecondary },
+  guestContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: space.tela,
+    paddingBottom: space.ar,
+  },
   guestCard: {
     overflow: 'hidden',
-    padding: 24,
+    padding: space.entre,
     borderRadius: 28,
     borderCurve: 'continuous',
     backgroundColor: '#19121E',
     borderWidth: 1,
     borderColor: '#553C49',
   },
-  guestOrbit: { height: 92, flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  guestOrbit: { height: 92, flexDirection: 'row', alignItems: 'center', marginBottom: space.entre },
+  // GLIFO = ICONE. Os fontSize dos glifos (este, signControlGlyph, avatarEmoji,
+   // signOptionGlyph, targetChipGlyph, threadCommentAvatarText) sao DIMENSAO DE
+   // DESENHO, nao degrau de leitura: um simbolo de signo de 11px nao e
+   // "hierarquia menor", e um icone ilegivel. Por isso ficam em px e estao
+   // declarados como excecao em test/diagramacaoLoteTelas.test.js.
   guestGlyph: {
     width: 66,
     height: 66,
@@ -1951,51 +1968,53 @@ const styles = StyleSheet.create({
   },
   guestGlyphGold: { color: colors.background, backgroundColor: colors.gold, borderColor: '#A27543' },
   guestThread: { width: 54, height: 1, backgroundColor: '#9D744D', transform: [{ rotate: '-12deg' }] },
-  eyebrow: {
-    color: colors.gold,
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '800',
-    letterSpacing: 1.4,
-  },
+  eyebrow: { ...type.etiqueta, color: colors.gold },
+  // fontSize/lineHeight do degrau `display` (32/40) com a família DISPLAY_FONT
+  // preservada — a serifa é identidade desta tela e não é o que a escala
+  // governa. O fontWeight vem do degrau: não reponha nada depois do spread.
   guestTitle: {
+    ...type.display,
     maxWidth: 330,
-    marginTop: 9,
+    marginTop: space.dentro,
     color: colors.text,
     fontFamily: DISPLAY_FONT,
-    fontSize: 30,
-    lineHeight: 35,
     letterSpacing: -0.5,
   },
-  guestBody: { marginTop: 12, color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
+  guestColuna: { marginTop: space.bloco, paddingHorizontal: 0, alignSelf: 'flex-start' },
+  // 17/27 no lugar de 14/22: é o parágrafo que vende a feature e estava no
+  // degrau de legenda.
+  guestBody: { ...type.corpo, color: colors.textSecondary },
   truthNote: {
     minHeight: 58,
-    marginTop: 19,
+    marginTop: space.entre,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
-    padding: 13,
+    gap: space.dentro,
+    padding: space.bloco,
     borderLeftWidth: 2,
     borderLeftColor: colors.gold,
     backgroundColor: '#211820',
   },
-  truthNoteText: { flex: 1, color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  truthNoteText: { ...type.apoio, flex: 1, color: colors.textMuted },
   primaryButton: {
     minHeight: 50,
-    marginTop: 18,
+    marginTop: space.entre,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 18,
+    gap: space.junto,
+    paddingHorizontal: space.entre,
     borderRadius: 15,
     borderCurve: 'continuous',
     backgroundColor: colors.gold,
   },
-  primaryButtonText: { color: colors.background, fontSize: 14, fontWeight: '900' },
+  // peso 900 -> o do degrau `botao` (600). 900 num rótulo de botão é
+  // exatamente o "negrito em tudo = negrito em nada" do diagnóstico; o que
+  // destaca este botão é o chão dourado, não o peso da fonte.
+  primaryButtonText: { ...type.botao, color: colors.background },
   profileRequiredCard: {
     alignItems: 'center',
-    padding: 25,
+    padding: space.entre,
     borderRadius: 24,
     borderCurve: 'continuous',
     backgroundColor: colors.surface,
@@ -2012,19 +2031,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2029',
   },
   profileRequiredTitle: {
-    marginTop: 17,
+    ...type.titulo,
+    marginTop: space.bloco,
     color: colors.text,
     fontFamily: DISPLAY_FONT,
-    fontSize: 23,
-    lineHeight: 28,
     textAlign: 'center',
   },
   profileRequiredBody: {
+    ...type.corpoCurto,
     maxWidth: 310,
-    marginTop: 8,
+    marginTop: space.dentro,
     color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 20,
     textAlign: 'center',
   },
   feedContent: { paddingBottom: 48 },
@@ -2053,8 +2070,8 @@ const styles = StyleSheet.create({
   },
   signControlGlyph: { color: colors.gold, fontSize: 23 },
   signControlCopy: { flex: 1, gap: 2 },
-  signControlTitle: { color: colors.text, fontSize: 13, lineHeight: 18, fontWeight: '800' },
-  signControlBody: { color: colors.textMuted, fontSize: 11, lineHeight: 16 },
+  signControlTitle: { ...type.cartao, color: colors.text },
+  signControlBody: { ...type.apoio, color: colors.textMuted },
   notice: {
     minHeight: 50,
     marginTop: 12,
@@ -2070,7 +2087,7 @@ const styles = StyleSheet.create({
   },
   noticeSuccess: { backgroundColor: '#12201A', borderColor: '#315343' },
   noticeError: { backgroundColor: '#241416', borderColor: '#63383D' },
-  noticeText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+  noticeText: { ...type.apoio, flex: 1, color: colors.textSecondary },
   feedHeading: {
     marginTop: 4,
     marginHorizontal: 16,
@@ -2081,8 +2098,8 @@ const styles = StyleSheet.create({
   },
   feedHeadingRule: { width: 2, minHeight: 54, backgroundColor: colors.gold },
   feedHeadingCopy: { flex: 1, justifyContent: 'center', gap: 3 },
-  feedTitle: { color: colors.text, fontFamily: DISPLAY_FONT, fontSize: 21, lineHeight: 26 },
-  feedDescription: { color: colors.textMuted, fontSize: 11, lineHeight: 16 },
+  feedTitle: { ...type.secao, color: colors.text, fontFamily: DISPLAY_FONT },
+  feedDescription: { ...type.apoio, color: colors.textMuted, marginTop: space.grudado },
   feedLoading: { minHeight: 124, alignItems: 'center', justifyContent: 'center' },
   errorCard: {
     width: '100%',
@@ -2100,8 +2117,8 @@ const styles = StyleSheet.create({
   },
   errorCardCompact: { width: 'auto', marginHorizontal: 16, marginBottom: 16 },
   errorCopy: { flex: 1, gap: 3 },
-  errorTitle: { color: colors.text, fontSize: 13, lineHeight: 17, fontWeight: '800' },
-  errorBody: { color: colors.textMuted, fontSize: 11, lineHeight: 16 },
+  errorTitle: { ...type.cartao, color: colors.text },
+  errorBody: { ...type.apoio, color: colors.textMuted },
   retryButton: {
     minWidth: 44,
     minHeight: 44,
@@ -2113,7 +2130,7 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     backgroundColor: '#2A2029',
   },
-  retryText: { color: colors.gold, fontSize: 10, lineHeight: 13, fontWeight: '800' },
+  retryText: { ...type.etiqueta, color: colors.gold },
   postCard: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -2137,8 +2154,8 @@ const styles = StyleSheet.create({
   },
   avatarEmoji: { fontSize: 21 },
   postAuthorCopy: { flex: 1 },
-  postAuthor: { color: colors.text, fontSize: 13, lineHeight: 18, fontWeight: '800' },
-  postMeta: { marginTop: 2, color: colors.textMuted, fontSize: 10, lineHeight: 14 },
+  postAuthor: { ...type.cartao, color: colors.text },
+  postMeta: { ...type.nota, marginTop: space.grudado, color: colors.textMuted },
   relationChip: {
     alignSelf: 'flex-start',
     minHeight: 34,
@@ -2155,10 +2172,13 @@ const styles = StyleSheet.create({
   },
   relationGlyph: { color: colors.gold, fontSize: 15 },
   relationRule: { width: 12, height: 1, backgroundColor: '#8E6747' },
-  relationText: { maxWidth: 190, color: colors.textMuted, fontSize: 10, lineHeight: 13 },
-  postTitle: { marginTop: 14, color: colors.text, fontSize: 15, lineHeight: 20, fontWeight: '800' },
-  postBody: { marginTop: 6, color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
-  postCountText: { color: colors.textMuted, fontSize: 11 },
+  relationText: { ...type.nota, maxWidth: 190, color: colors.textMuted },
+  // O TITULO e o CORPO do post sao a razao de existir do feed e estavam nos
+  // dois degraus mais apertados da tela. Titulo -> `secao` (20/26), corpo ->
+  // `corpoCurto` (15/24). O peso 800 sai: quem destaca o titulo e o tamanho.
+  postTitle: { ...type.secao, marginTop: space.bloco, color: colors.text },
+  postBody: { ...type.corpoCurto, marginTop: space.junto, color: colors.textSecondary },
+  postCountText: { ...type.apoio, color: colors.textMuted },
   postCountLiked: { color: colors.pink, fontWeight: '800' },
   postActions: {
     minHeight: 52,
@@ -2209,22 +2229,15 @@ const styles = StyleSheet.create({
     borderColor: '#503A48',
   },
   modalScroll: { padding: 22, paddingBottom: 28 },
-  modalEyebrow: {
-    color: colors.gold,
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-  },
+  modalEyebrow: { ...type.etiqueta, color: colors.gold },
   modalTitle: {
-    marginTop: 6,
+    ...type.titulo,
+    marginTop: space.junto,
     color: colors.text,
     fontFamily: DISPLAY_FONT,
-    fontSize: 25,
-    lineHeight: 30,
     letterSpacing: -0.3,
   },
-  modalBody: { marginTop: 8, color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  modalBody: { ...type.corpoCurto, marginTop: space.dentro, color: colors.textSecondary },
   privacyNote: {
     minHeight: 68,
     marginTop: 16,
@@ -2238,7 +2251,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#31534E',
   },
-  privacyNoteText: { flex: 1, color: colors.textSecondary, fontSize: 11, lineHeight: 17 },
+  privacyNoteText: { ...type.apoio, flex: 1, color: colors.textSecondary },
   signGrid: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   signOption: {
     width: '31%',
@@ -2255,7 +2268,7 @@ const styles = StyleSheet.create({
   },
   signOptionSelected: { backgroundColor: '#30231F', borderColor: colors.gold },
   signOptionGlyph: { color: colors.gold, fontSize: 22 },
-  signOptionName: { marginTop: 3, color: colors.textSecondary, fontSize: 10, lineHeight: 13 },
+  signOptionName: { ...type.nota, marginTop: space.grudado, color: colors.textSecondary },
   quietButton: {
     minHeight: 46,
     marginTop: 8,
@@ -2265,7 +2278,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderCurve: 'continuous',
   },
-  quietButtonText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+  quietButtonText: { ...type.botao, color: colors.textSecondary },
   destructiveQuietButton: {
     minHeight: 46,
     marginTop: 9,
@@ -2279,7 +2292,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  destructiveQuietText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  destructiveQuietText: { ...type.botao, color: colors.textSecondary },
   keyboardFill: { flex: 1 },
   targetChip: {
     alignSelf: 'flex-start',
@@ -2296,28 +2309,30 @@ const styles = StyleSheet.create({
     borderColor: '#604743',
   },
   targetChipGlyph: { color: colors.gold, fontSize: 19 },
-  targetChipText: { color: colors.text, fontSize: 12, fontWeight: '800' },
+  targetChipText: { ...type.apoio, color: colors.text, fontWeight: '600' },
   composerTitleInput: {
     minHeight: 50,
     marginTop: 17,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: space.dentro,
     color: colors.text,
-    fontSize: 14,
+    fontSize: type.corpoCurto.fontSize,
     borderRadius: 14,
     borderCurve: 'continuous',
     backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.border,
   },
+  // O campo casa com o post publicado: o que a pessoa digita nao pode mudar de
+  // tamanho ao virar publicacao.
   composerBodyInput: {
     minHeight: 142,
-    marginTop: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    marginTop: space.dentro,
+    paddingHorizontal: space.bloco,
+    paddingVertical: space.bloco,
     color: colors.text,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: type.corpoCurto.fontSize,
+    lineHeight: type.corpoCurto.lineHeight,
     borderRadius: 14,
     borderCurve: 'continuous',
     backgroundColor: colors.surfaceElevated,
@@ -2335,11 +2350,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   threadHeaderTitle: {
-    marginTop: 2,
+    ...type.secao,
+    marginTop: space.grudado,
     color: colors.text,
     fontFamily: DISPLAY_FONT,
-    fontSize: 20,
-    lineHeight: 25,
   },
   threadCloseButton: {
     width: 44,
@@ -2363,13 +2377,13 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
   },
   threadPostTitle: {
-    marginTop: 17,
+    ...type.titulo,
+    marginTop: space.bloco,
     color: colors.text,
     fontFamily: DISPLAY_FONT,
-    fontSize: 22,
-    lineHeight: 28,
   },
-  threadPostBody: { marginTop: 9, color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
+  // O post ABERTO e leitura longa: degrau de texto corrido (17/27).
+  threadPostBody: { ...type.corpo, marginTop: space.dentro, color: colors.textSecondary },
   threadLikeButton: {
     alignSelf: 'flex-start',
     minWidth: 58,
@@ -2385,14 +2399,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
   },
   threadDivider: { height: 1, marginTop: 12, backgroundColor: colors.border },
+  // peso 900 -> o do degrau. 900 e mais pesado que o titulo da propria tela.
   commentsHeading: {
-    marginTop: 17,
-    marginBottom: 7,
+    ...type.etiqueta,
+    marginTop: space.bloco,
+    marginBottom: space.junto,
     color: colors.text,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '900',
-    letterSpacing: 0.3,
   },
   threadLoading: { minHeight: 84, alignItems: 'center', justifyContent: 'center' },
   threadRetry: {
@@ -2406,7 +2418,7 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     backgroundColor: colors.surfaceElevated,
   },
-  threadRetryText: { color: colors.gold, fontSize: 12, fontWeight: '800' },
+  threadRetryText: { ...type.botao, color: colors.gold },
   threadComment: {
     minHeight: 72,
     marginHorizontal: 20,
@@ -2430,15 +2442,14 @@ const styles = StyleSheet.create({
   threadCommentCopy: { flex: 1, minWidth: 0 },
   threadCommentHeading: { minHeight: 44, flexDirection: 'row', alignItems: 'center' },
   threadCommentAuthorCopy: { flex: 1, minWidth: 0 },
-  commentAuthor: { color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '800' },
-  commentMeta: { marginTop: 1, color: colors.textMuted, fontSize: 9, lineHeight: 13 },
-  commentBody: { marginTop: 3, color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  commentAuthor: { ...type.apoio, color: colors.text, fontWeight: '600' },
+  commentMeta: { ...type.nota, marginTop: 1, color: colors.textMuted },
+  commentBody: { ...type.corpoCurto, marginTop: space.grudado, color: colors.textSecondary },
   emptyComments: {
-    marginHorizontal: 20,
-    paddingVertical: 28,
+    ...type.apoio,
+    marginHorizontal: space.entre,
+    paddingVertical: space.secao,
     color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
     textAlign: 'center',
   },
   commentComposer: {
@@ -2457,10 +2468,10 @@ const styles = StyleSheet.create({
     minHeight: 48,
     maxHeight: 112,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: space.dentro,
     color: colors.text,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: type.corpoCurto.fontSize,
+    lineHeight: type.corpoCurto.lineHeight,
     borderRadius: 16,
     borderCurve: 'continuous',
     backgroundColor: colors.surfaceElevated,
@@ -2498,7 +2509,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#5A4145',
   },
-  guidelinesLinkText: { color: colors.gold, fontSize: 13, fontWeight: '800' },
+  guidelinesLinkText: { ...type.botao, color: colors.gold },
   checkboxRow: {
     minHeight: 60,
     marginTop: 12,
@@ -2521,7 +2532,7 @@ const styles = StyleSheet.create({
     borderColor: colors.textMuted,
   },
   checkboxChecked: { backgroundColor: colors.gold, borderColor: colors.gold },
-  checkboxText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+  checkboxText: { ...type.apoio, flex: 1, color: colors.textSecondary },
   pressed: { opacity: 0.72 },
   disabled: { opacity: 0.45 },
 });

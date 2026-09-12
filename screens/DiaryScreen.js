@@ -9,7 +9,8 @@ import { Alert } from '../lib/webAlert';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
+import ColunaLeitura from '../components/ColunaLeitura';
 import GradientHeader from '../components/GradientHeader';
 import UniversoGirando from '../components/UniversoGirando';
 import ReportarIA from '../components/ReportarIA';
@@ -453,9 +454,14 @@ export default function DiaryScreen() {
 
       {weeklyInsight && (
         <View style={styles.weeklyCard}>
-          <Text style={styles.weeklyCardLabel}>INSIGHT DA SEMANA</Text>
+          <Text style={styles.weeklyCardLabel}>{t('diary.weekly.label')}</Text>
           <Text style={styles.weeklyCardTitle}>{weeklyInsight.title}</Text>
-          <Text style={styles.weeklyCardBody}>{weeklyInsight.body}</Text>
+          {/* O Insight é o único parágrafo longo do Diário — o testador
+              relatou "tenta subir a tela achando que tem mais coisas
+              escritas", e linha comprida demais é parte desse efeito. */}
+          <ColunaLeitura style={styles.weeklyColuna}>
+            <Text style={styles.weeklyCardBody}>{weeklyInsight.body}</Text>
+          </ColunaLeitura>
           {/* Marcador de fim — o insight é um texto longo e a pessoa não sabia
               se tinha acabado ou se a tela cortou ("tenta subir a tela achando
               que tem mais coisas escritas" — relato real do testador,
@@ -510,10 +516,9 @@ export default function DiaryScreen() {
               quem liga a opção vê o mesmo desenho, parado. */}
           <UniversoGirando size={300} testID="diary-universo" />
           <Text style={styles.emptyTitle}>{t('diary.empty.waiting')}</Text>
-          <Text style={styles.emptyDesc}>
-            Toda leitura de tarô, palma, rosto, pé, pintas, café ou sonho que você fizer aparece aqui, guardadinha
-            para você reviver quando quiser.
-          </Text>
+          <ColunaLeitura centralizado>
+            <Text style={styles.emptyDesc}>{t('diary.empty.desc')}</Text>
+          </ColunaLeitura>
           {/* O texto lista SETE tipos de leitura e não oferecia nenhuma — com
               o diário vazio a barra de filtros nem renderiza, então a tela
               ficava sem uma única ação possível. HomeMain é a grade de
@@ -572,105 +577,117 @@ export default function DiaryScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
 
-  weeklyBtnWrap: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, overflow: 'hidden' },
-  weeklyBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 13, gap: 8 },
-  weeklyBtnText: { color: '#2A1D00', fontWeight: '800', fontSize: 14 },
-  weeklyLoading: { alignItems: 'center', paddingVertical: 20, gap: 8 },
-  weeklyLoadingText: { color: colors.textMuted, fontSize: 13 },
+  weeklyBtnWrap: { marginHorizontal: space.tela, marginTop: space.bloco, borderRadius: 14, overflow: 'hidden' },
+  weeklyBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: space.bloco, gap: space.junto },
+  weeklyBtnText: { ...type.botao, color: '#2A1D00' },
+  weeklyLoading: { alignItems: 'center', paddingVertical: space.entre, gap: space.junto },
+  weeklyLoadingText: { ...type.apoio, color: colors.textMuted },
   weeklyCard: {
-    marginHorizontal: 16, marginTop: 16, padding: 16, borderRadius: 16,
+    marginHorizontal: space.tela, marginTop: space.bloco, padding: space.entre, borderRadius: 16,
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.gold + '55',
   },
-  weeklyCardLabel: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, marginBottom: 6 },
-  weeklyCardTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  weeklyCardBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginTop: 8 },
-  weeklyCardClose: { color: colors.accent, fontSize: 13, fontWeight: '700' },
-  weeklyCardEnd: { color: colors.gold, fontSize: 12, textAlign: 'center', marginTop: 14, letterSpacing: 6, opacity: 0.7 },
+  weeklyCardLabel: { ...type.etiqueta, color: colors.gold, marginBottom: space.junto },
+  // 20/26 no lugar de 16/800: o título do Insight é o título de seção desta
+  // tela, e o degrau existe. Peso vem do degrau — nada reposto depois do spread.
+  weeklyCardTitle: { ...type.secao, color: colors.text },
+  weeklyColuna: { marginTop: space.dentro, paddingHorizontal: 0 },
+  weeklyCardBody: { ...type.corpo, color: colors.textSecondary },
+  weeklyCardClose: { ...type.botao, color: colors.accent },
+  weeklyCardEnd: { ...type.apoio, color: colors.gold, textAlign: 'center', marginTop: space.bloco, letterSpacing: 6, opacity: 0.7 },
 
-  filterRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  filterRow: { paddingHorizontal: space.tela, paddingVertical: space.dentro, gap: space.junto },
   chip: {
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8,
+    borderRadius: 20, paddingHorizontal: space.bloco, paddingVertical: space.junto, marginRight: space.junto,
   },
   chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  chipText: { ...type.apoio, color: colors.textSecondary, fontWeight: '600' },
   chipTextActive: { color: '#fff' },
 
-  listContent: { padding: 16, paddingBottom: 40 },
+  listContent: { padding: space.tela, paddingBottom: space.fimDaLista },
 
   card: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 16, padding: 16, marginBottom: 12,
+    borderRadius: 16, padding: space.entre, marginBottom: space.dentro,
   },
   cardPinned: { borderColor: colors.gold + '88', borderWidth: 1.5 },
-  pinnedBanner: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 },
-  pinnedBannerText: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
+  pinnedBanner: { flexDirection: 'row', alignItems: 'center', gap: space.junto, marginBottom: space.dentro },
+  pinnedBannerText: { ...type.etiqueta, color: colors.gold },
   pinBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    marginTop: 16, paddingVertical: 10, borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
+    marginTop: space.bloco, paddingVertical: space.dentro, borderRadius: 12,
     borderWidth: 1, borderColor: colors.gold + '55',
   },
-  pinText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
+  pinText: { ...type.botao, color: colors.gold },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start' },
   iconWrap: {
     width: 36, height: 36, borderRadius: 11, backgroundColor: colors.accent + '22',
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+    justifyContent: 'center', alignItems: 'center', marginRight: space.dentro,
   },
-  typeLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  title: { color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 2 },
-  headerRight: { alignItems: 'flex-end', marginLeft: 8 },
-  headerRightTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  date: { color: colors.textMuted, fontSize: 12 },
+  typeLabel: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
+  // 17/22 no lugar de 15/800: é o nome do item de lista, que é exatamente o
+  // degrau `cartao`. O peso desce de 800 pra 600 (o do degrau) — 800 em todo
+  // título de card é o "negrito em tudo" do diagnóstico.
+  title: { ...type.cartao, color: colors.text, marginTop: space.grudado },
+  headerRight: { alignItems: 'flex-end', marginLeft: space.junto },
+  headerRightTop: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
+  date: { ...type.apoio, color: colors.textMuted },
 
-  excerpt: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 10 },
+  excerpt: { ...type.corpoCurto, color: colors.textSecondary, marginTop: space.dentro },
 
   badge: {
     alignSelf: 'flex-start', backgroundColor: colors.accent + '22', borderRadius: 10,
-    paddingHorizontal: 10, paddingVertical: 4, marginTop: 10,
+    paddingHorizontal: space.dentro, paddingVertical: space.grudado, marginTop: space.dentro,
   },
-  badgeText: { color: colors.purple, fontSize: 11, fontWeight: '700' },
+  badgeText: { ...type.nota, color: colors.purple, fontWeight: '600' },
 
-  expandedArea: { marginTop: 12, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 },
-  fullBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  expandedArea: { marginTop: space.bloco, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.bloco },
+  // O corpo da leitura guardada: degrau de texto corrido (17/27). É A leitura,
+  // não uma legenda dela.
+  fullBody: { ...type.corpo, color: colors.textSecondary },
 
-  insightBlock: { marginTop: 14 },
-  insightLabel: { color: colors.gold, fontSize: 12, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase' },
-  voiceText: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
-  aiText: { color: colors.text, fontSize: 14, lineHeight: 20 },
+  insightBlock: { marginTop: space.entre },
+  insightLabel: { ...type.etiqueta, color: colors.gold, marginBottom: space.junto, textTransform: 'uppercase' },
+  voiceText: { ...type.corpoCurto, color: colors.textSecondary, fontStyle: 'italic' },
+  aiText: { ...type.corpoCurto, color: colors.text },
   privateBlock: {
-    marginBottom: 14,
-    padding: 12,
+    marginBottom: space.bloco,
+    padding: space.bloco,
     borderRadius: 12,
     backgroundColor: colors.gold + '0D',
     borderWidth: 1,
     borderColor: colors.gold + '26',
   },
-  privateLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  privateText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  privateLabelRow: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
+  privateText: { ...type.corpoCurto, color: colors.textSecondary },
 
   shareBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    marginTop: 16, paddingVertical: 10, borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
+    marginTop: space.bloco, paddingVertical: space.dentro, borderRadius: 12,
     borderWidth: 1, borderColor: colors.teal + '55',
   },
-  shareText: { color: colors.teal, fontSize: 13, fontWeight: '700' },
+  shareText: { ...type.botao, color: colors.teal },
 
   deleteBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    marginTop: 16, paddingVertical: 10, borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
+    marginTop: space.bloco, paddingVertical: space.dentro, borderRadius: 12,
     borderWidth: 1, borderColor: colors.red + '55',
   },
-  deleteText: { color: colors.red, fontSize: 13, fontWeight: '700' },
+  deleteText: { ...type.botao, color: colors.red },
 
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36 },
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.entre },
   // A arte do vazio ([BLOCO-ESPERA]) — 112px redonda, dentro da faixa 96-120
   // pedida; convite visual, sem animação (vazio não é espera).
-  emptyTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginTop: 16 },
-  emptyDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
-  emptyBtn: { marginTop: 22, borderRadius: 14, overflow: 'hidden', alignSelf: 'stretch' },
-  emptyBtnInner: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, gap: 8 },
-  emptyBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  // ESTADO VAZIO CONFERIDO (12/09/2026): não há faixa aqui, e de propósito —
+  // o vazio do Diário é o UniversoGirando centralizado em tela cheia, não uma
+  // seção. Pôr uma faixa em volta de um convite de 3 linhas seria exatamente o
+  // "bloco de cor vazio" que o revisor achou na Home.
+  emptyTitle: { ...type.secao, color: colors.text, textAlign: 'center', marginTop: space.bloco },
+  emptyDesc: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center', marginTop: space.dentro },
+  emptyBtn: { marginTop: space.secao, borderRadius: 14, overflow: 'hidden', alignSelf: 'stretch' },
+  emptyBtnInner: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: space.bloco, gap: space.junto },
+  emptyBtnText: { ...type.botao, color: '#fff' },
 
-  emptyFilterWrap: { alignItems: 'center', paddingVertical: 40 },
-  emptyFilterText: { color: colors.textMuted, fontSize: 13 },
+  emptyFilterWrap: { alignItems: 'center', paddingVertical: space.ar },
+  emptyFilterText: { ...type.apoio, color: colors.textMuted },
 });

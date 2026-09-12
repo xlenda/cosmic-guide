@@ -116,6 +116,7 @@ import {
   View,
 } from 'react-native';
 
+import ColunaLeitura from '../../components/ColunaLeitura';
 import BotonPrimario from '../components/BotonPrimario';
 import { Cuerpo, Micro, Rotulo, Sobreceja, Titulo, NombreCarta } from '../components/Texto';
 import { t } from '../datos/textos';
@@ -344,6 +345,7 @@ export default function PaywallScreen({ navigation, route }) {
           contentContainerStyle={estilos.contenido}
           keyboardShouldPersistTaps="handled"
         >
+          <ColunaLeitura>
           <Titulo style={estilos.titulo}>{t('paywall.titulo')}</Titulo>
 
           {/* --- A LUA, ANTES DA LISTA ------------------------------------------
@@ -508,6 +510,7 @@ export default function PaywallScreen({ navigation, route }) {
               <Rotulo style={estilos.enlaceTexto}>{t('comunes.volver')}</Rotulo>
             </Pressable>
           </View>
+          </ColunaLeitura>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -566,8 +569,13 @@ const estilos = StyleSheet.create({
     backgroundColor: colores.hilo,
   },
 
+  // O RECUO LATERAL virou ColunaLeitura (12/09/2026): mesmo gutter, mais o
+  // limite de largura que esta tela nunca teve — numa janela de web larga a
+  // lista de beneficios e o bloco da lua atravessavam tudo. A coluna e a UNICA
+  // peca de diagramacao que entra aqui: ela so limita largura e nao toca em cor
+  // nenhuma, e cor e justamente o que esta tela nao pode receber (ver o bloco
+  // "A QUEBRA DE TEMA E O PRODUTO" no topo do arquivo).
   contenido: {
-    paddingHorizontal: espacio.xl,
     paddingTop: espacio.xl,
     paddingBottom: espacio.xxxl,
   },

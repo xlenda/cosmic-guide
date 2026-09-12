@@ -145,6 +145,7 @@ import {
 import BotaoOuvir from '../components/BotaoOuvir';
 import BotonPrimario from '../components/BotonPrimario';
 import { ScratchRevealCard } from '../components/ScratchRevealCard';
+import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Fuente, Micro, Rotulo, Sobreceja, Titulo } from '../components/Texto';
 import { signoDe } from '../datos/preguntas';
@@ -1396,7 +1397,11 @@ export default function PlanoScreen({ navigation, route, hoy }) {
                 TIPO de hoje. Nenhuma palavra do app comenta o conteudo.
                 --------------------------------------------------------------- */}
             {naEtapa('fio') && deixa ? (
-              <View style={estilos.bloque}>
+              /* O PRIMEIRO cartao depois da acao dominante: `separaDoRitual`.
+                 E aqui que a tela vira de assunto — acaba o que ela FAZ hoje e
+                 comeca o que a acompanha. Ver o comentario de `bloque`, nos
+                 estilos, pra causa. */
+              <View style={[estilos.bloque, estilos.separaDoRitual]}>
                 <Rotulo>{t('plano.fio.rotulo')}</Rotulo>
                 <Cuerpo style={estilos.pregunta}>{t('plano.fio.abre')}</Cuerpo>
                 <Cuerpo style={estilos.deixaTexto}>
@@ -2130,9 +2135,16 @@ const estilos = StyleSheet.create({
     marginTop: espacio.sm,
   },
 
-  /* --- os cartoes de baixo, todos de borda suave --- */
+  /* --- os cartoes de baixo, todos de borda suave ---
+     O DEGRAU, CONSERTADO (12/09/2026): `entre` (24) entre um cartao de apoio e
+     o seguinte continua certo — eles sao irmaos. O que estava errado era nao
+     haver degrau MAIOR nenhum na tela: a acao dominante (o cartao do ritual, o
+     unico de borda viva) era seguida pelo primeiro cartao de apoio com os
+     mesmos 24px que separam dois apoios entre si. Hierarquia declarada na
+     borda e negada no espaco. Quem abre a distancia agora e `separaDoRitual`,
+     logo abaixo. */
   bloque: {
-    marginTop: espacio.xl,
+    marginTop: space.entre,
     backgroundColor: colores.penumbra,
     borderRadius: radio.md,
     borderWidth: GROSOR_BORDE,
@@ -2142,12 +2154,21 @@ const estilos = StyleSheet.create({
   // O encontro liberado ganha a borda viva porque ele TEM acao. O travado fica em
   // `bloque`: visivel, legivel e sem o convite visual de quem pode agir.
   bloqueVivo: {
-    marginTop: espacio.xl,
+    marginTop: space.entre,
     backgroundColor: colores.penumbra,
     borderRadius: radio.md,
     borderWidth: GROSOR_BORDE,
     borderColor: colores.bordeHilo,
     padding: espacio.lg,
+  },
+  // `ar` (48) e nao `entre` (24): o degrau que faltava entre a ACAO DOMINANTE e
+  // o primeiro cartao de apoio. A hierarquia desta tela esta declarada no
+  // codigo ("o unico cartao com borda viva... tudo que vem depois e cartao de
+  // borda suave, DE PROPOSITO") e estava sendo negada pelo espaco: o ritual era
+  // seguido pelo primeiro apoio com a MESMA distancia que separa dois apoios
+  // entre si. Na duvida entre dois degraus da escala, o maior.
+  separaDoRitual: {
+    marginTop: space.ar,
   },
   selo: {
     marginTop: espacio.sm,

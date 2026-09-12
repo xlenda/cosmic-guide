@@ -45,8 +45,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Platform } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { useLanguage } from '../context/LanguageContext';
 import {
   chromeDaTela,
@@ -145,51 +147,86 @@ export default function MitosScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* ------------------------------------------------------------------
-            O CARD — tudo que precisa estar num print cabe aqui dentro
+            TRÊS FAIXAS, TRÊS ASSUNTOS (12/09/2026 — o lote de diagramação).
+            O card único de antes punha o mito, a correção, a história e o
+            recibo no MESMO chão: quatro coisas diferentes lidas como uma só
+            parede de texto (foto em design/lote-diagramacao/antes/mitos*).
+            Agora cada beat tem chão próprio e a borda de cima é onda, então o
+            olho lê "mudou de assunto" sem precisar de linha divisória — e o
+            divisor ✦ que fazia esse trabalho à mão sai de cena.
+            NADA DE TEXTO MUDOU: são os mesmos seis campos, na mesma ordem.
         ------------------------------------------------------------------ */}
-        <View style={styles.card} testID={`mitos-card-${mito.id}`}>
-          <View style={styles.cardTopo}>
-            <Text style={styles.contador}>{preencher(UI.contador, { n: indice + 1, total })}</Text>
-            {ehDoDia ? (
-              <View style={styles.pillDia} testID="mitos-pill-dia">
-                <Ionicons name="sunny" size={11} color={colors.gold} />
-                <Text style={styles.pillDiaTexto}>{UI.mitoDoDia}</Text>
-              </View>
-            ) : null}
-          </View>
+        <View testID={`mitos-card-${mito.id}`}>
+          {/* FAIXA 1 — o que te contaram. Ameixa: é a faixa principal, a
+              frase que a pessoa reconhece da própria timeline.
+              `rasa` MEDIDO: o corpo desta faixa tem 205px de conteúdo, e a
+              caixa da onda cheia tem 56px — na borda da tela, onde a curva
+              desce, essa caixa fica quase toda preenchida, então a faixa abria
+              com um naco de cor lisa maior que o rótulo que vem depois. É o
+              mesmo defeito ALTO que o revisor achou na Home. `rasa` corta a
+              caixa pela metade (28px) sem redesenhar a onda. A faixa 2 (598px
+              de corpo) NÃO leva `rasa`: lá a onda cheia é a entrada que a
+              seção merece. */}
+          <FaixaCurva
+            tom="ameixa"
+            semente="mito-contaram"
+            rasa
+            // paddingTop 0 pelo mesmo motivo da faixa que abre o Quiz: esta
+            // vem logo abaixo do GradientHeader, que ja tem folga embaixo, e
+            // os dois respiros somavam. MEDIDO: 60px de chao morto acima de
+            // "22 de 25" (28 da onda rasa + 32 do padding). Sem o padding
+            // sobra so a onda, que e desenho.
+            estiloCorpo={styles.faixaAbertura}
+          >
+            <View style={styles.cardTopo}>
+              <Text style={styles.contador}>{preencher(UI.contador, { n: indice + 1, total })}</Text>
+              {ehDoDia ? (
+                <View style={styles.pillDia} testID="mitos-pill-dia">
+                  <Ionicons name="sunny" size={11} color={colors.gold} />
+                  <Text style={styles.pillDiaTexto}>{UI.mitoDoDia}</Text>
+                </View>
+              ) : null}
+            </View>
 
-          {/* O mito, do jeito que circula — riscado e apagado de propósito:
-              a tipografia já conta a história antes de qualquer leitura. */}
-          <Text style={styles.rotuloMito}>{UI.teContaram}</Text>
-          <Text style={styles.textoMito} testID="mitos-te-contaram">
-            {mito.oQueTeContaram}
-          </Text>
-
-          <View style={styles.divisor}>
-            <View style={styles.divisorLinha} />
-            <Text style={styles.divisorEstrela}>✦</Text>
-            <View style={styles.divisorLinha} />
-          </View>
-
-          {/* A correção, grande e acesa — é a foto que a pessoa tira. */}
-          <Text style={styles.rotuloFonte}>{UI.fonteDiz}</Text>
-          <Text style={styles.textoFonte} testID="mitos-fonte-diz">
-            {mito.oQueAFonteDiz}
-          </Text>
-
-          {/* A história em português de conversa — prende primeiro. */}
-          <Text style={styles.detalhe}>{mito.detalhe}</Text>
-
-          {/* O recibo: caixa pontilhada, cinza, no fim — sutil de propósito. */}
-          <View style={styles.recibo}>
-            <Text style={styles.reciboRotulo}>{UI.recibo}</Text>
-            <Text style={styles.reciboTexto} testID="mitos-recibo">
-              {mito.fonte}
+            {/* O mito, do jeito que circula — riscado e apagado de propósito:
+                a tipografia já conta a história antes de qualquer leitura. */}
+            <Text style={styles.rotuloMito}>{UI.teContaram}</Text>
+            <Text style={styles.textoMito} testID="mitos-te-contaram">
+              {mito.oQueTeContaram}
             </Text>
-          </View>
+          </FaixaCurva>
 
-          {/* A marca d'água do print — uma linha cinza, nada além. */}
-          <Text style={styles.marca}>{UI.marca}</Text>
+          {/* FAIXA 2 — a correção e a história. Violeta: é a seção que PRECISA
+              se destacar das vizinhas, porque é a foto que a pessoa tira.
+              A história longa entra em ColunaLeitura: são 6 a 8 linhas, e de
+              borda a borda o olho perde o começo da linha seguinte. */}
+          <FaixaCurva tom="violeta" semente="mito-fonte" grude>
+            <Text style={styles.rotuloFonte}>{UI.fonteDiz}</Text>
+            <Text style={styles.textoFonte} testID="mitos-fonte-diz">
+              {mito.oQueAFonteDiz}
+            </Text>
+
+            <ColunaLeitura style={styles.colunaDetalhe}>
+              <Text style={styles.detalhe}>{mito.detalhe}</Text>
+            </ColunaLeitura>
+          </FaixaCurva>
+
+          {/* FAIXA 3 — o recibo e a marca. Dourado: o chão quente do epílogo.
+              Continua sendo recibo (cinza, pontilhado, pequeno) — o que mudou
+              é que ele agora tem chão próprio em vez de flutuar no fim do
+              mesmo card da correção. `rasa` pelo mesmo motivo da faixa 1:
+              187px de corpo medidos. */}
+          <FaixaCurva tom="dourado" semente="mito-recibo" grude rasa>
+            <View style={styles.recibo}>
+              <Text style={styles.reciboRotulo}>{UI.recibo}</Text>
+              <Text style={styles.reciboTexto} testID="mitos-recibo">
+                {mito.fonte}
+              </Text>
+            </View>
+
+            {/* A marca d'água do print — uma linha cinza, nada além. */}
+            <Text style={styles.marca}>{UI.marca}</Text>
+          </FaixaCurva>
         </View>
 
         {/* ------------------------------------------------------------------
@@ -258,111 +295,102 @@ export default function MitosScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingBottom: 48, gap: 12 },
+  // As faixas sangram de ponta a ponta — elas trazem o próprio
+  // paddingHorizontal (space.tela). O padding lateral do scroll saiu por isso;
+  // o que sobrou aqui é só o respiro de baixo e o gap entre os blocos QUE
+  // NÃO SÃO faixa (navegação, compartilhar, progresso).
+  scroll: { paddingBottom: space.ar, gap: space.dentro },
 
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 20,
-    gap: 10,
-  },
+  faixaAbertura: { paddingTop: 0 },
   cardTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  contador: { color: colors.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 1 },
+  contador: { ...type.etiqueta, color: colors.textMuted },
   pillDia: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: space.grudado,
     backgroundColor: 'rgba(255,200,92,0.15)',
     borderRadius: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: space.junto,
     paddingVertical: 3,
   },
-  pillDiaTexto: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  pillDiaTexto: { ...type.nota, color: colors.gold, fontWeight: '600', letterSpacing: 0.5 },
 
-  rotuloMito: {
-    color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginTop: 4,
-  },
+  rotuloMito: { ...type.etiqueta, color: colors.textMuted, marginTop: space.bloco },
   // Riscado E apagado: o mito aparece do jeito que circula, mas a tipografia
-  // já avisa que ele não fica de pé.
+  // já avisa que ele não fica de pé. Sobe de 20 pro degrau `secao` da escala
+  // (20/26) e ganha o respiro `junto` acima — antes o rótulo e a frase vinham
+  // grudados como uma coisa só.
   textoMito: {
+    ...type.secao,
     color: colors.textMuted,
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: '700',
+    marginTop: space.junto,
     textDecorationLine: 'line-through',
     textDecorationColor: colors.pink,
   },
 
-  divisor: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 2 },
-  divisorLinha: { flex: 1, height: 1, backgroundColor: colors.border },
-  divisorEstrela: { color: colors.purple, fontSize: 12 },
+  rotuloFonte: { ...type.etiqueta, color: colors.gold },
+  // A correção é a foto que a pessoa tira. MEDIDO e corrigido: `titulo`
+  // (24/30) empurrava a explicação inteira pra fora da primeira dobra — a
+  // correção ficava sozinha na tela e a história, que é o que prende, só
+  // aparecia rolando. `secao` (20/26) é o mesmo degrau do mito riscado, e aí
+  // quem cria a hierarquia é a COR (text aceso contra textMuted riscado) e o
+  // chão que mudou, não mais tamanho — que é a regra da casa: o peso e o
+  // tamanho são exceção, o espaço e a cor fazem o trabalho.
+  textoFonte: { ...type.secao, color: colors.text, marginTop: space.junto },
 
-  rotuloFonte: {
-    color: colors.gold,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  textoFonte: { color: colors.text, fontSize: 18, lineHeight: 26, fontWeight: '700' },
-
-  detalhe: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginTop: 2 },
+  // A história: degrau de texto corrido (17/27), não mais 14/21. Peso normal
+  // — o destaque aqui é espaço e cor, nunca negrito.
+  colunaDetalhe: { marginTop: space.entre, paddingHorizontal: 0 },
+  detalhe: { ...type.corpo, color: colors.textSecondary },
 
   recibo: {
     borderRadius: 12,
     borderWidth: 1,
     borderStyle: 'dotted',
     borderColor: colors.border,
-    padding: 12,
-    gap: 3,
-    marginTop: 4,
+    padding: space.bloco,
+    gap: space.grudado,
   },
-  reciboRotulo: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  reciboTexto: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  reciboRotulo: { ...type.etiqueta, color: colors.textMuted },
+  reciboTexto: { ...type.apoio, color: colors.textMuted },
 
-  marca: { color: colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 2 },
+  marca: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.dentro },
 
-  navRow: { flexDirection: 'row', gap: 10 },
+  navRow: { flexDirection: 'row', gap: space.dentro, marginHorizontal: space.tela, marginTop: space.entre },
   navBtn: {
     flex: 1,
     flexDirection: 'row',
-    gap: 6,
+    gap: space.junto,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    paddingVertical: 12,
+    paddingVertical: space.bloco,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navBtnTexto: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+  navBtnTexto: { ...type.botao, color: colors.textSecondary },
 
   // Sutil de propósito — linha de texto, sem caixa (feedback_design_sutil).
-  voltarDia: { alignItems: 'center', paddingVertical: 4 },
+  voltarDia: { alignItems: 'center', paddingVertical: space.grudado },
   voltarDiaTexto: {
+    ...type.apoio,
     color: colors.textMuted,
-    fontSize: 12,
     textDecorationLine: 'underline',
   },
 
   shareBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: '#25D366',
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: space.bloco,
+    marginHorizontal: space.tela,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shareBtnTexto: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  shareBtnTexto: { ...type.botao, color: '#fff' },
 
-  nota: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center' },
-  progresso: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  nota: { ...type.apoio, color: colors.textSecondary, textAlign: 'center', marginHorizontal: space.tela },
+  progresso: { ...type.apoio, color: colors.textMuted, textAlign: 'center', marginHorizontal: space.tela },
 });

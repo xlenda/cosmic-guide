@@ -55,9 +55,17 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, AppState, Share, 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
+// AS PEÇAS DE DIAGRAMAÇÃO (design/PECAS-DE-DIAGRAMACAO.md, lote das práticas
+// 12/09/2026). É a tela mais longa do lote (mil linhas) e a que mais sofria com
+// o chão único: aviso, Lua de hoje, figura do corpo, doze verbetes, a
+// comparação das duas listas e a bibliografia corriam todos no mesmo fundo com
+// `gap: 12`. As TRÊS faixas dão os três assuntos que a tela realmente tem:
+// HOJE · O CORPO · AS DUAS LISTAS.
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import ZodiacBody from '../components/ZodiacBody';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -123,7 +131,15 @@ function Section({ title, children, defaultOpen = false }) {
         <Text style={styles.sectionTitle}>{title}</Text>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
       </TouchableOpacity>
-      {open ? <View style={styles.sectionBody}>{children}</View> : null}
+      {/* A COLUNA DE LEITURA MORA AQUI, na sanfona, e não em cada <Text> lá
+          embaixo: as seções de história, Culpeper e regência planetária são os
+          parágrafos mais longos do app, e são DEZENAS deles. Uma coluna no
+          corpo da seção cobre todos de uma vez — em celular ela não faz nada
+          (o texto já usa a tela), e no tablet/web a linha para de atravessar
+          1200px. Ver components/ColunaLeitura.js. */}
+      {open ? (
+        <ColunaLeitura style={styles.sectionBody}>{children}</ColunaLeitura>
+      ) : null}
     </View>
   );
 }
@@ -146,7 +162,10 @@ function SecaoDupla({ titulo, rotuloAbrir, rotuloFechar, aberta = false, testID,
         <Text style={styles.sectionTitle}>{titulo}</Text>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
       </TouchableOpacity>
-      {open ? <View style={styles.sectionBody}>{children}</View> : null}
+      {/* Mesma coluna de leitura da Section acima, pelo mesmo motivo. */}
+      {open ? (
+        <ColunaLeitura style={styles.sectionBody}>{children}</ColunaLeitura>
+      ) : null}
     </View>
   );
 }
@@ -354,12 +373,17 @@ export default function ZodiacBodyScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* O aviso vem ANTES de qualquer conteúdo histórico, não no rodapé —
             quem lê metade da tela e sai tem que ter visto este parágrafo. */}
+        {/* FAIXA 1 — HOJE. O aviso e a Lua de hoje: o que muda de manhã pra
+            noite. Chão neutro, porque é a dobra de abertura. */}
+        <FaixaCurva tom="noite" semente="hoje" style={styles.faixa} estiloCorpo={[styles.faixaCorpo, styles.faixaCorpoPrimeira]}>
         <View style={styles.notice} testID="zodiacbody-notice">
           <View style={styles.noticeRow}>
             <Ionicons name="information-circle" size={18} color={colors.gold} />
             <Text style={styles.noticeTitle}>{t('zodiacBody.notice.title')}</Text>
           </View>
-          <Text style={styles.noticeBody}>{t('zodiacBody.notice.body')}</Text>
+          <ColunaLeitura>
+            <Text style={styles.noticeBody}>{t('zodiacBody.notice.body')}</Text>
+          </ColunaLeitura>
         </View>
 
         {/* ---- A Lua caminhando pelo corpo ---- */}
@@ -431,7 +455,12 @@ export default function ZodiacBodyScreen() {
             <Text style={styles.moonPart}>{t('zodiacBody.moon.unavailable')}</Text>
           )}
         </View>
+        </FaixaCurva>
 
+        {/* FAIXA 2 — O CORPO. A figura, o verbete do signo tocado e o signo
+            solar de quem lê: é o bloco INTERATIVO da tela, e ele ganha chão
+            próprio pra não ler como continuação da Lua de hoje. */}
+        <FaixaCurva tom="ameixa" semente="corpo" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* ---- A figura ---- */}
         <Text style={styles.figureHint}>{t('zodiacBody.figure.hint')}</Text>
         <ZodiacBody
@@ -459,7 +488,9 @@ export default function ZodiacBodyScreen() {
               {active.emoji} {signName(active.id)} · {t(signKey(active.id, 'part'))}
             </Text>
             <Text style={styles.latin}>«{active.latin}»</Text>
-            <Text style={styles.gloss}>{t(signKey(active.id, 'gloss'))}</Text>
+            <ColunaLeitura>
+              <Text style={styles.gloss}>{t(signKey(active.id, 'gloss'))}</Text>
+            </ColunaLeitura>
             <Text style={styles.source}>
               {t('zodiacBody.author.manilius')}, {active.locus} · {t('zodiacBody.manilius.when')}
             </Text>
@@ -505,7 +536,12 @@ export default function ZodiacBodyScreen() {
               lia o corpo pelo signo de nascimento. */}
           <Text style={styles.note}>{t('zodiacBody.sun.caveat')}</Text>
         </View>
+        </FaixaCurva>
 
+        {/* FAIXA 3 — AS DUAS LISTAS. O assunto muda de vez: sai o corpo de
+            quem lê e entra a comparação entre duas obras. O violeta é o chão
+            do lastro nas outras telas deste lote. */}
+        <FaixaCurva tom="violeta" semente="duas-listas" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* ================================================================
             AS DUAS LISTAS — Manílio × Sefer Yetzirah
             Tudo daqui para baixo sai de lib/melotesiaDupla.js e do bloco
@@ -523,9 +559,11 @@ export default function ZodiacBodyScreen() {
         ) : (
           <>
             {/* A chamada: vida real primeiro, fonte depois. */}
-            <Text style={styles.dChamada} testID="melotesia-chamada">
-              {dupla.chamada}
-            </Text>
+            <ColunaLeitura>
+              <Text style={styles.dChamada} testID="melotesia-chamada">
+                {dupla.chamada}
+              </Text>
+            </ColunaLeitura>
 
             {/* O placar. O zero de coincidências é o conteúdo desta feature —
                 por isso ele é o número grande, e não uma linha de rodapé. */}
@@ -643,9 +681,13 @@ export default function ZodiacBodyScreen() {
                   {estaAberto ? (
                     <View style={styles.dCorpo}>
                       {/* Prende primeiro: a cena de vida real. */}
-                      <Text style={styles.dAbertura}>{par.abertura}</Text>
+                      <ColunaLeitura>
+                        <Text style={styles.dAbertura}>{par.abertura}</Text>
+                      </ColunaLeitura>
                       {/* Fonte depois: a leitura com as duas obras nomeadas. */}
-                      <Text style={styles.gloss}>{par.leitura}</Text>
+                      <ColunaLeitura>
+                        <Text style={styles.gloss}>{par.leitura}</Text>
+                      </ColunaLeitura>
 
                       {par.manilio.camadaTardia ? (
                         <View style={styles.flag}>
@@ -843,7 +885,10 @@ export default function ZodiacBodyScreen() {
           ))}
         </Section>
 
-        <Text style={styles.footerNotice}>{t('zodiacBody.notice.footer')}</Text>
+        <ColunaLeitura centralizado>
+          <Text style={styles.footerNotice}>{t('zodiacBody.notice.footer')}</Text>
+        </ColunaLeitura>
+        </FaixaCurva>
       </ScrollView>
     </View>
   );
@@ -851,25 +896,51 @@ export default function ZodiacBodyScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingBottom: 48, gap: 14 },
+  // `padding: 20` fica: é ele que a faixa anula com marginHorizontal:-20 (o
+  // mesmo contrato de PlanosScreen.js). O gap era 14 pra TUDO — aviso, figura
+  // do corpo e bibliografia na mesma distância. Agora o irmão dentro da faixa
+  // fica em `bloco` e quem separa assunto é a faixa.
+  scroll: { padding: 20, paddingBottom: space.fimDaLista },
+  //
+  // O `gap` DO CONTAINER SAIU, e o motivo foi medido na foto (390x844,
+  // 12/09/2026): com gap no contentContainer aparecia uma TIRA PRETA entre uma
+  // faixa e a seguinte, porque o gap do pai e aplicado DEPOIS do marginTop:-1
+  // do `grude` e vence. Faixa que nao encosta na proxima perde exatamente o
+  // efeito de paisagem que ela existe pra dar: a onda passa a flutuar no vazio
+  // em vez de cortar o chao anterior. Quem da respiro agora e a propria faixa
+  // (paddingTop/Bottom `secao` da peca); os blocos SOLTOS levam margem propria.
+  // Os avulsos entre faixas (erro, cartao solto) pedem a distancia eles mesmos.
+  avulso: { marginVertical: space.entre },
+  // A pilha das dobras SEM faixa: o respiro que o container deixou de dar.
+  pilha: { gap: space.entre },
+  faixa: { marginHorizontal: -20 },
+  faixaCorpo: { paddingHorizontal: 20, gap: space.bloco },
+  // A PRIMEIRA FAIXA DA TELA NAO LEVA O paddingTop DA PECA. Medido na foto
+  // (390x844, 12/09/2026): a caixa da onda ja tem ONDA_ALTURA (56px) e, logo
+  // abaixo do cabecalho — que ja traz folga propria —, somar o space.secao (32)
+  // padrao abria ~88px de chao liso antes da primeira palavra. Isso e o defeito
+  // ALTO que o revisor achou na Home: a faixa lendo como bloco de cor vazio em
+  // vez de secao. E o mesmo remedio que a Home usou (ver o prop estiloCorpo em
+  // components/FaixaCurva.js); as faixas seguintes, que nao encostam no
+  // cabecalho, seguem com o degrau cheio.
+  faixaCorpoPrimeira: { paddingTop: 0 },
 
   notice: {
     backgroundColor: 'rgba(255,200,92,0.10)',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,200,92,0.45)',
-    padding: 14,
-    gap: 6,
+    padding: space.bloco,
+    gap: space.junto,
   },
-  noticeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  noticeTitle: { color: colors.gold, fontSize: 14, fontWeight: '800', flex: 1 },
-  noticeBody: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  noticeRow: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
+  noticeTitle: { ...type.cartao, color: colors.gold, flex: 1 },
+  noticeBody: { ...type.corpoCurto, color: colors.textSecondary },
   footerNotice: {
+    ...type.nota,
     color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: space.dentro,
   },
 
   card: {
@@ -877,70 +948,66 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 8,
+    padding: space.bloco,
+    gap: space.dentro,
   },
-  cardLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
+  cardLabel: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
 
-  // O chip do signo desceu para a ficha (a leitura abre): 16 em vez de 22, com
-  // respiro em cima para separar do parágrafo. Continua em dourado — é a mesma
-  // informação de sempre, só não é mais a manchete.
-  moonSign: { color: colors.gold, fontSize: 16, fontWeight: '800', marginTop: 10 },
-  moonPart: { color: colors.text, fontSize: 15, lineHeight: 22 },
-  moonNext: { color: colors.teal, fontSize: 13, fontWeight: '700', lineHeight: 19 },
-  moonRate: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+  // O chip do signo desceu para a ficha (a leitura abre): degrau `cartao` em
+  // vez do `titulo` de antes, com respiro em cima para separar do parágrafo.
+  // Continua em dourado — é a mesma informação de sempre, só não é mais a
+  // manchete.
+  moonSign: { ...type.cartao, color: colors.gold, marginTop: space.dentro },
+  // A linha que ABRE o cartão — o quente antes da ficha. Degrau de corpo, que
+  // é o que o print usa pro parágrafo que prende.
+  moonPart: { ...type.corpo, color: colors.text },
+  moonNext: { ...type.apoio, color: colors.teal, fontWeight: '600' },
+  moonRate: { ...type.apoio, color: colors.textSecondary },
   // (moonPractice saiu junto com o parágrafo que ela estilizava — ver o
   //  comentário "CORTE DE RISCO SANITÁRIO" no cartão da Lua.)
 
-  figureHint: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
-  legend: { flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 4 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  figureHint: { ...type.apoio, color: colors.textMuted, textAlign: 'center' },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: space.entre,
+    marginTop: space.dentro,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: space.junto },
   legendDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2 },
-  legendText: { color: colors.textMuted, fontSize: 11 },
+  legendText: { ...type.nota, color: colors.textMuted },
 
-  entryTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
-  latin: { color: colors.purple, fontSize: 13, fontStyle: 'italic', lineHeight: 20 },
-  gloss: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  source: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  entryTitle: { ...type.cartao, color: colors.text },
+  latin: { ...type.apoio, color: colors.purple, fontStyle: 'italic' },
+  gloss: { ...type.corpoCurto, color: colors.textSecondary },
+  source: { ...type.nota, color: colors.textMuted },
   noteLabel: {
+    ...type.etiqueta,
     color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
     textTransform: 'uppercase',
-    marginTop: 4,
+    marginTop: space.junto,
   },
-  note: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
-  noteStrong: {
-    color: colors.gold,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '700',
-    marginTop: 4,
-  },
+  note: { ...type.apoio, color: colors.textSecondary },
+  // O único dourado-negrito da tela: é a linha que freia uma decisão sobre o
+  // corpo. Se ela parecer parágrafo, ninguém lê.
+  noteStrong: { ...type.apoio, color: colors.gold, fontWeight: '700', marginTop: space.junto },
   flag: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,184,77,0.15)',
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: space.junto,
+    paddingVertical: space.grudado,
   },
-  flagText: { color: colors.amber, fontSize: 11, fontWeight: '700' },
+  flagText: { ...type.nota, color: colors.amber, fontWeight: '600' },
 
   cta: {
     alignSelf: 'flex-start',
     backgroundColor: colors.accent,
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: space.bloco,
+    paddingVertical: space.dentro,
   },
-  ctaText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  ctaText: { ...type.botao, color: '#fff' },
 
   section: {
     backgroundColor: colors.surface,
@@ -953,44 +1020,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    gap: 10,
+    padding: space.bloco,
+    gap: space.dentro,
   },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
-  sectionBody: { paddingHorizontal: 16, paddingBottom: 16, gap: 10 },
+  sectionTitle: { ...type.cartao, color: colors.text, flex: 1 },
+  sectionBody: { paddingHorizontal: space.bloco, paddingBottom: space.bloco, gap: space.dentro },
 
-  paragraph: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
-  quote: { color: colors.purple, fontSize: 12, fontStyle: 'italic', lineHeight: 19 },
-  block: { gap: 6, paddingBottom: 6 },
-  blockTitle: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 4 },
+  paragraph: { ...type.corpoCurto, color: colors.textSecondary },
+  quote: { ...type.apoio, color: colors.purple, fontStyle: 'italic' },
+  block: { gap: space.junto, paddingBottom: space.junto },
+  blockTitle: { ...type.cartao, color: colors.text, marginTop: space.junto },
 
-  planetRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  planetSymbol: { color: colors.gold, fontSize: 20, width: 24, textAlign: 'center' },
-  planetTexts: { flex: 1, gap: 3 },
-  planetName: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  planetParts: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  planetRow: { flexDirection: 'row', gap: space.dentro, alignItems: 'flex-start' },
+  planetSymbol: { ...type.secao, color: colors.gold, width: 24, textAlign: 'center' },
+  planetTexts: { flex: 1, gap: space.grudado },
+  planetName: { ...type.corpoCurto, color: colors.text, fontWeight: '600' },
+  planetParts: { ...type.corpoCurto, color: colors.textSecondary },
 
-  herbRow: { gap: 3 },
-  herbName: { color: colors.text, fontSize: 12, fontWeight: '800' },
+  herbRow: { gap: space.grudado },
+  herbName: { ...type.corpoCurto, color: colors.text, fontWeight: '600' },
 
   // ---- As duas listas (lib/melotesiaDupla.js) ----
   dSelo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.junto,
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,200,92,0.10)',
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(255,200,92,0.45)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginTop: 6,
+    paddingHorizontal: space.dentro,
+    paddingVertical: space.junto,
+    marginTop: space.junto,
   },
-  dSeloTexto: { color: colors.gold, fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
-  dChamada: { color: colors.text, fontSize: 15, lineHeight: 23 },
+  dSeloTexto: { ...type.etiqueta, color: colors.gold },
+  dChamada: { ...type.corpo, color: colors.text },
 
-  dPlacarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  dPlacarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.dentro },
   dPlacar: {
     flexGrow: 1,
     flexBasis: 96,
@@ -998,21 +1065,22 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 12,
-    gap: 4,
+    padding: space.bloco,
+    gap: space.grudado,
     alignItems: 'center',
   },
-  dPlacarNumero: { color: colors.gold, fontSize: 28, fontWeight: '800', lineHeight: 32 },
-  dPlacarRotulo: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center' },
-  dEtiquetaApp: { color: colors.textMuted, fontSize: 11, lineHeight: 17, fontStyle: 'italic' },
+  // O placar é a FileiraDeTres em espírito, mas com quatro relações e números
+  // REAIS contados em lib/melotesiaDupla.js (o zero de coincidências é o
+  // conteúdo da feature). O degrau `numero` da escala é o que ele pede.
+  dPlacarNumero: { ...type.numero, color: colors.gold },
+  dPlacarRotulo: { ...type.nota, color: colors.textMuted, textAlign: 'center' },
+  dEtiquetaApp: { ...type.nota, color: colors.textMuted, fontStyle: 'italic' },
 
   dTituloTabela: {
+    ...type.etiqueta,
     color: colors.gold,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginTop: 6,
+    marginTop: space.junto,
   },
 
   dLinha: {
@@ -1020,58 +1088,55 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
-    gap: 8,
+    padding: space.bloco,
+    gap: space.dentro,
   },
-  dLinhaTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  dSigno: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
-
-  dColunas: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  dColuna: { flex: 1, gap: 2 },
-  dTradicao: {
-    color: colors.purple,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+  dLinhaTopo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.dentro,
   },
-  dParte: { color: colors.text, fontSize: 14, lineHeight: 20, fontWeight: '700' },
-  dTipo: { color: colors.textSecondary, fontSize: 11, lineHeight: 16 },
-  dConfianca: { color: colors.textMuted, fontSize: 10, lineHeight: 15 },
-  dVersus: { color: colors.textMuted, fontSize: 14, fontWeight: '800', paddingTop: 14 },
-  dRelacao: { color: colors.teal, fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  dSigno: { ...type.cartao, color: colors.text, flex: 1 },
 
-  dCorpo: { gap: 10, marginTop: 2 },
-  dAbertura: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  // AS DUAS COLUNAS — é a TabelaDados em espírito: rótulo à esquerda, valor à
+  // direita, e a lei de não fabricar já vive no motor (lib/melotesiaDupla.js
+  // só devolve par com as duas partes). Não vira <TabelaDados> porque aqui as
+  // duas colunas são IRMÃS (duas obras comparadas), não rótulo-e-valor.
+  dColunas: { flexDirection: 'row', alignItems: 'flex-start', gap: space.dentro },
+  dColuna: { flex: 1, gap: space.grudado },
+  dTradicao: { ...type.etiqueta, color: colors.purple, textTransform: 'uppercase' },
+  dParte: { ...type.corpoCurto, color: colors.text, fontWeight: '600' },
+  dTipo: { ...type.nota, color: colors.textSecondary },
+  dConfianca: { ...type.nota, color: colors.textMuted },
+  dVersus: { ...type.corpoCurto, color: colors.textMuted, fontWeight: '700', paddingTop: space.bloco },
+  dRelacao: { ...type.apoio, color: colors.teal, fontWeight: '600' },
+
+  dCorpo: { gap: space.bloco, marginTop: space.grudado },
+  dAbertura: { ...type.corpo, color: colors.text },
   dRecibo: {
     borderRadius: 12,
     borderWidth: 1,
     borderStyle: 'dotted',
     borderColor: colors.border,
-    padding: 12,
-    gap: 3,
+    padding: space.dentro,
+    gap: space.grudado,
   },
-  dReciboRotulo: {
-    color: colors.textMuted,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  dReciboTexto: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
+  dReciboRotulo: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
+  dReciboTexto: { ...type.nota, color: colors.textMuted },
   dShareBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: colors.accent,
     borderRadius: 14,
-    paddingVertical: 10,
+    paddingVertical: space.dentro,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dShareTexto: { color: '#fff', fontSize: 13, fontWeight: '800' },
-  dRecado: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  dShareTexto: { ...type.botao, color: '#fff' },
+  dRecado: { ...type.apoio, color: colors.textSecondary, textAlign: 'center' },
 
-  bulletRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  bulletMark: { color: colors.red, fontSize: 12, fontWeight: '800', width: 14, lineHeight: 19 },
-  bulletText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, flex: 1 },
+  bulletRow: { flexDirection: 'row', gap: space.junto, alignItems: 'flex-start' },
+  bulletMark: { ...type.apoio, color: colors.red, fontWeight: '700', width: 14 },
+  bulletText: { ...type.corpoCurto, color: colors.textSecondary, flex: 1 },
 });

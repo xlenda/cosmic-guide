@@ -46,8 +46,10 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../theme';
+import { colors, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { useLanguage } from '../context/LanguageContext';
 import { localDayStr } from '../lib/localDay';
 import {
@@ -173,21 +175,41 @@ export default function QuizCosmicoScreen() {
           <Placar feita={feita} totais={estado.totais} TXT={TXT} lang={lang} />
         ) : pergunta ? (
           <View>
-            <View style={styles.topoRodada}>
-              <Text style={styles.contador}>{TXT.contador(posicao + 1, TAMANHO_RODADA)}</Text>
-              <View style={styles.temaBadge}>
-                <Text style={styles.temaTexto}>{temaRotulos(lang)[pergunta.tema] || ''}</Text>
+            {/* FAIXA 1 — a pergunta e as quatro portas (12/09/2026, o lote de
+                diagramação). Antes tudo corria sobre o mesmo fundo chapado e a
+                tela lia como formulário: contador, pontinhos, pergunta e
+                opções sem nenhuma mudança de chão entre eles
+                (design/lote-diagramacao/antes/quiz-cosmico*). Ameixa é a faixa
+                principal: é onde a pessoa decide. */}
+            <FaixaCurva
+              tom="ameixa"
+              semente="quiz-pergunta"
+              // paddingTop 0: MEDIDO em 390px, esta faixa abria com 88px de
+              // chao morto acima de "Pergunta 1 de 7" — 56 da caixa da onda
+              // mais os 32 do paddingTop padrao. Ela vem logo abaixo do
+              // GradientHeader, que JA tem folga embaixo, entao os dois
+              // respiros somavam e a faixa lia como bloco de cor antes de
+              // qualquer palavra. E o mesmo caso que o cabecalho de
+              // components/FaixaCurva.js descreve (a faixa que abre a Home).
+              // Com 0 o chao morto cai pra 56, que e a onda — e a onda e o
+              // desenho, nao vazio.
+              estiloCorpo={styles.faixaPergunta}
+            >
+              <View style={styles.topoRodada}>
+                <Text style={styles.contador}>{TXT.contador(posicao + 1, TAMANHO_RODADA)}</Text>
+                <View style={styles.temaBadge}>
+                  <Text style={styles.temaTexto}>{temaRotulos(lang)[pergunta.tema] || ''}</Text>
+                </View>
               </View>
-            </View>
-            <Pontos
-              feitos={escolhida !== null ? posicao + 1 : posicao}
-              total={TAMANHO_RODADA}
-              atual={posicao + 1}
-            />
+              <Pontos
+                feitos={escolhida !== null ? posicao + 1 : posicao}
+                total={TAMANHO_RODADA}
+                atual={posicao + 1}
+              />
 
-            <Text style={styles.pergunta}>{pergunta.pergunta}</Text>
+              <Text style={styles.pergunta}>{pergunta.pergunta}</Text>
 
-            {pergunta.opcoes.map((opcao, idx) => {
+              {pergunta.opcoes.map((opcao, idx) => {
               const respondeu = escolhida !== null;
               const ehCerta = idx === pergunta.certaIdx;
               const ehEscolhida = idx === escolhida;
@@ -224,16 +246,26 @@ export default function QuizCosmicoScreen() {
               );
             })}
 
+            </FaixaCurva>
+
+            {/* FAIXA 2 — o fecho: acertou ou não, a explicação, o recibo e o
+                botão. Violeta porque ela precisa se destacar da faixa de cima
+                — é o momento em que a tela responde. A explicação entra em
+                ColunaLeitura: é o único parágrafo longo da tela.
+                A faixa só existe DEPOIS da resposta — nunca desenha moldura
+                vazia esperando toque. */}
             {escolhida !== null ? (
-              <View style={styles.feedback}>
+              <FaixaCurva tom="violeta" semente="quiz-fecho" grude>
                 <Text style={styles.feedbackTitulo}>
                   {escolhida === pergunta.certaIdx ? TXT.certo : TXT.errado}
                 </Text>
-                <Text style={styles.explicacao}>{pergunta.explicacao}</Text>
-                <Text style={styles.fonte}>
-                  {TXT.fontePrefixo}
-                  {pergunta.fonte}
-                </Text>
+                <ColunaLeitura style={styles.colunaExplicacao}>
+                  <Text style={styles.explicacao}>{pergunta.explicacao}</Text>
+                  <Text style={styles.fonte}>
+                    {TXT.fontePrefixo}
+                    {pergunta.fonte}
+                  </Text>
+                </ColunaLeitura>
                 <TouchableOpacity
                   style={styles.botao}
                   onPress={avancar}
@@ -245,7 +277,7 @@ export default function QuizCosmicoScreen() {
                   </Text>
                   <Ionicons name="arrow-forward" size={16} color={colors.text} />
                 </TouchableOpacity>
-              </View>
+              </FaixaCurva>
             ) : null}
           </View>
         ) : (
@@ -262,14 +294,25 @@ export default function QuizCosmicoScreen() {
 // vida e o convite de amanhã. Nenhuma medalha — ver cabeçalho.
 function Placar({ feita, totais, TXT, lang }) {
   return (
-    <View style={styles.placar}>
-      <Text style={styles.placarAviso}>{TXT.rodadaFeitaAviso}</Text>
-      <Text style={styles.placarTitulo}>{TXT.placarTitulo}</Text>
-      <Text style={styles.placarNota}>{TXT.placarDe(feita.acertos, feita.total)}</Text>
-      <Text style={styles.placarFrase}>{fraseDoPlacar(feita.acertos, feita.total, lang)}</Text>
-      <View style={styles.separador} />
-      <Text style={styles.acumulado}>{TXT.acumulado(totais.respondidas, totais.acertos)}</Text>
-      <Text style={styles.amanha}>{TXT.amanha}</Text>
+    <View>
+      {/* A NOTA tem chão próprio (12/09/2026): antes o placar inteiro — nota,
+          frase, acumulado e o convite de amanhã — vivia numa coluna única
+          separada por um fio de 1px, e o fio não diz "outro assunto", só diz
+          "linha". Ameixa embaixo da nota, dourado no epílogo (o acumulado da
+          vida e o amanhã, que é o convite de voltar). */}
+      <FaixaCurva tom="ameixa" semente="quiz-placar" estiloCorpo={styles.placarCorpo}>
+        <Text style={styles.placarAviso}>{TXT.rodadaFeitaAviso}</Text>
+        <Text style={styles.placarTitulo}>{TXT.placarTitulo}</Text>
+        <Text style={styles.placarNota}>{TXT.placarDe(feita.acertos, feita.total)}</Text>
+        <ColunaLeitura centralizado>
+          <Text style={styles.placarFrase}>{fraseDoPlacar(feita.acertos, feita.total, lang)}</Text>
+        </ColunaLeitura>
+      </FaixaCurva>
+
+      <FaixaCurva tom="dourado" semente="quiz-amanha" grude estiloCorpo={styles.placarCorpo}>
+        <Text style={styles.acumulado}>{TXT.acumulado(totais.respondidas, totais.acertos)}</Text>
+        <Text style={styles.amanha}>{TXT.amanha}</Text>
+      </FaixaCurva>
     </View>
   );
 }
@@ -277,27 +320,30 @@ function Placar({ feita, totais, TXT, lang }) {
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: colors.background },
   corpo: { flex: 1 },
-  corpoConteudo: { padding: 16, paddingBottom: 40 },
-  carregando: { marginTop: 48 },
+  // Sem padding lateral: as faixas sangram de ponta a ponta e trazem o
+  // próprio space.tela por dentro.
+  corpoConteudo: { paddingBottom: space.ar },
+  carregando: { marginTop: space.ar },
 
   topoRodada: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: space.dentro,
   },
-  contador: { color: colors.textMuted, fontSize: 13 },
+  contador: { ...type.apoio, color: colors.textMuted },
   temaBadge: {
     backgroundColor: colors.surfaceElevated,
     borderRadius: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: space.dentro,
     paddingVertical: 3,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  temaTexto: { color: colors.purple, fontSize: 12, fontWeight: '600' },
+  temaTexto: { ...type.nota, color: colors.purple, fontWeight: '600' },
 
-  dots: { flexDirection: 'row', gap: 6, marginBottom: 16 },
+  faixaPergunta: { paddingTop: 0 },
+  dots: { flexDirection: 'row', gap: space.junto, marginBottom: space.entre },
   dot: {
     width: 8,
     height: 8,
@@ -307,13 +353,10 @@ const styles = StyleSheet.create({
   dotFeito: { backgroundColor: colors.purple },
   dotAtual: { borderWidth: 1, borderColor: colors.gold },
 
-  pergunta: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 26,
-    marginBottom: 16,
-  },
+  // Degrau `secao` da escala (20/26) no lugar de 18/26 solto, e o respiro
+  // abaixo sobe de 16 pra `entre`: a pergunta é a manchete da faixa e precisa
+  // de ar antes das portas.
+  pergunta: { ...type.secao, color: colors.text, marginBottom: space.entre },
 
   opcao: {
     flexDirection: 'row',
@@ -323,60 +366,51 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 8,
-    gap: 8,
+    paddingHorizontal: space.bloco,
+    paddingVertical: space.bloco,
+    // marginTop, nao marginBottom (12/09/2026): com marginBottom a ULTIMA
+    // opcao somava a propria margem ao paddingBottom da faixa e o pe da secao
+    // ficava 12px mais fundo que o topo — medido 61 contra 32. Com marginTop a
+    // margem cai entre as opcoes, que e onde ela serve, e a primeira nao leva
+    // nenhuma (ela ja tem o respiro da pergunta acima).
+    marginTop: space.dentro,
+    gap: space.junto,
   },
   opcaoCerta: { borderColor: colors.green, backgroundColor: colors.surface },
   opcaoErrada: { borderColor: colors.red },
-  opcaoTexto: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, flex: 1 },
+  // Degrau de texto em espaço apertado (15/24): a opção é leitura, não
+  // rótulo, e 14/20 fazia quatro alternativas lerem como lista de sistema.
+  opcaoTexto: { ...type.corpoCurto, color: colors.textSecondary, flex: 1 },
   opcaoTextoCerta: { color: colors.text, fontWeight: '600' },
   opcaoTextoErrada: { color: colors.textMuted },
 
-  feedback: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 14,
-    marginTop: 8,
-  },
-  feedbackTitulo: { color: colors.gold, fontSize: 14, fontWeight: '700', marginBottom: 8 },
-  explicacao: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  feedbackTitulo: { ...type.cartao, color: colors.gold, marginBottom: space.dentro },
+  // A explicação é o único parágrafo da tela: degrau de texto corrido.
+  explicacao: { ...type.corpoCurto, color: colors.textSecondary },
   // O recibo vem DEPOIS da explicação, menor e mais apagado — é recibo, não
   // manchete. Prende primeiro, fonte depois: a ordem visual repete a regra.
-  fonte: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 8 },
+  fonte: { ...type.apoio, color: colors.textMuted, marginTop: space.dentro },
+  colunaExplicacao: { paddingHorizontal: 0 },
 
   botao: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: space.junto,
     backgroundColor: colors.accent,
     borderRadius: 12,
-    paddingVertical: 12,
-    marginTop: 14,
+    paddingVertical: space.bloco,
+    marginTop: space.entre,
   },
-  botaoTexto: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  botaoTexto: { ...type.botao, color: colors.text },
 
-  placar: { alignItems: 'center', paddingTop: 24 },
-  placarAviso: { color: colors.textMuted, fontSize: 12, marginBottom: 16 },
-  placarTitulo: { color: colors.textSecondary, fontSize: 14, marginBottom: 4 },
-  placarNota: { color: colors.text, fontSize: 40, fontWeight: '800', marginBottom: 12 },
-  placarFrase: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 21,
-    textAlign: 'center',
-    paddingHorizontal: 8,
-  },
-  separador: {
-    alignSelf: 'stretch',
-    height: 1,
-    backgroundColor: colors.border,
-    marginVertical: 20,
-  },
-  acumulado: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 8 },
-  amanha: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  placarCorpo: { alignItems: 'center' },
+  placarAviso: { ...type.apoio, color: colors.textMuted, marginBottom: space.entre },
+  placarTitulo: { ...type.apoio, color: colors.textSecondary, marginBottom: space.grudado },
+  // A nota é O número da tela — fica no degrau `display` (32/40) em vez de
+  // um 40 solto que não existe em lugar nenhum da escala.
+  placarNota: { ...type.display, color: colors.text, marginBottom: space.dentro },
+  placarFrase: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center' },
+  acumulado: { ...type.apoio, color: colors.textSecondary, textAlign: 'center', marginBottom: space.junto },
+  amanha: { ...type.apoio, color: colors.textMuted, textAlign: 'center' },
 });

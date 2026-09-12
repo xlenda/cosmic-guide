@@ -112,6 +112,9 @@ import Svg, { Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
 import BotonPrimario from '../components/BotonPrimario';
+import ColunaLeitura from '../../components/ColunaLeitura';
+import FaixaCurva from '../../components/FaixaCurva';
+import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, Rotulo, Sobreceja, Titulo } from '../components/Texto';
 // (sairDoCirculo saiu: o Circulo nao veio para o Cosmic Guide — dono, 11/09/2026.)
@@ -430,14 +433,48 @@ function IconoNudo({ size = 20 }) {
  * PECAS DE INTERFACE
  * ================================================================================= */
 
-/** Cartao de secao. Titulo em <Rotulo> (caixa alta vem do estilo) e uma sub em <Micro>. */
-function Tarjeta({ titulo, sub, children, style }) {
+/** Cartao de secao, agora com CHAO PROPRIO. Titulo em <Rotulo> (caixa alta vem
+ *  do estilo) e uma sub em <Micro>.
+ *
+ *  DIAGRAMACAO (12/09/2026). Fotografado antes: tres cartoes iguais empilhados
+ *  no mesmo fundo, separados so por 24px de margem. O cartao do meio tem quase
+ *  600px de altura (a previa do aviso, o seletor de hora, o segmento e dois
+ *  botoes), entao ao rolar a pessoa perde a nocao de onde um assunto acabou e o
+ *  outro comecou — e isso num lugar onde ela esta mexendo em ajuste de verdade.
+ *
+ *  POR QUE FAIXA E CARTAO JUNTOS, se o guia diz que cartao ja se separa sozinho.
+ *  O guia diz isso pra LISTA de itens irmaos (o acordeao da Ayuda, onde a faixa
+ *  entrou em volta do bloco inteiro e nao de cada cartao). Aqui nao sao itens
+ *  irmaos de uma lista: sao TRES SECOES diferentes da tela, cada uma com
+ *  controles proprios. A faixa marca "mudou de assunto" e o cartao marca "estes
+ *  controles andam juntos" — duas coisas distintas, e as duas sao verdade.
+ *
+ *  O `tom` vem de fora pra que a tela decida a ALTERNANCIA: duas faixas
+ *  seguidas do mesmo tom voltam a ser um fundo so. */
+function Tarjeta({ titulo, sub, tom, semente, children, style }) {
   return (
-    <View style={[estilos.tarjeta, style]}>
-      <Rotulo accessibilityRole="header">{titulo}</Rotulo>
-      {sub ? <Micro style={estilos.tarjetaSub}>{sub}</Micro> : null}
-      {children}
-    </View>
+    <FaixaCurva tom={tom} semente={semente || titulo} grude>
+      {/* SEM `style` NENHUM na faixa, e isto foi MEDIDO na foto depois de eu
+          errar (12/09/2026). A primeira versao repetia aqui o padding que a
+          peca ja poe sozinha, e a faixa passou a PARAR ~16px antes de cada
+          borda: o fundo do app aparecia dos dois lados e o chao virava card
+          gigante — o efeito que o guia proibe com todas as letras.
+
+          A CAUSA esta em components/FaixaCurva.js: o `style` da peca vai pra
+          View de FORA, que embrulha o SVG da onda MAIS o corpo. Padding
+          horizontal ali inseta o desenho inteiro (a onda encolhe junto) em vez
+          de recuar so o texto. E o corpo dela JA traz `secao` em cima e embaixo
+          e `tela` nos lados — repetir tambem dobrava o respiro vertical.
+
+          As telas de documento (Privacidad/Ayuda/Terminos) passam SO
+          paddingTop/paddingBottom e por isso nunca mostraram o defeito:
+          vertical no wrapper apenas SOMA respiro, nao inseta lado nenhum. */}
+      <View style={[estilos.tarjeta, style]}>
+        <Rotulo accessibilityRole="header">{titulo}</Rotulo>
+        {sub ? <Micro style={estilos.tarjetaSub}>{sub}</Micro> : null}
+        {children}
+      </View>
+    </FaixaCurva>
   );
 }
 
@@ -847,23 +884,34 @@ export default function AjustesScreen({
           keyboardShouldPersistTaps="handled"
         >
           {puedeVolver ? (
-            <Pressable
-              onPress={volver}
-              accessibilityRole="button"
-              style={({ pressed }) => [estilos.volver, pressed ? estilos.volverPresionado : null]}
-            >
-              <Rotulo>{t('comunes.volver')}</Rotulo>
-            </Pressable>
+            <ColunaLeitura>
+              <Pressable
+                onPress={volver}
+                accessibilityRole="button"
+                style={({ pressed }) => [estilos.volver, pressed ? estilos.volverPresionado : null]}
+              >
+                <Rotulo>{t('comunes.volver')}</Rotulo>
+              </Pressable>
+            </ColunaLeitura>
           ) : null}
 
-          <Sobreceja style={estilos.sobreceja}>{t('ajustes.sobreceja')}</Sobreceja>
-          <Titulo accessibilityRole="header">{t('ajustes.titulo')}</Titulo>
-          <Micro style={estilos.sub}>{t('ajustes.sub')}</Micro>
+          {/* A ABERTURA fora de faixa, como nas telas de documento: primeira
+              dobra, respira contra o fundo do app com o fio atras. */}
+          <ColunaLeitura style={estilos.abertura}>
+            <Sobreceja style={estilos.sobreceja}>{t('ajustes.sobreceja')}</Sobreceja>
+            <Titulo accessibilityRole="header">{t('ajustes.titulo')}</Titulo>
+            <Micro style={estilos.sub}>{t('ajustes.sub')}</Micro>
 
-          {noGuardado ? <Micro style={estilos.alerta}>{t('ajustes.noGuardado')}</Micro> : null}
+            {noGuardado ? <Micro style={estilos.alerta}>{t('ajustes.noGuardado')}</Micro> : null}
+          </ColunaLeitura>
 
           {/* ---------- RECORDATORIO ---------- */}
+          {/* OS TONS ALTERNAM: noite -> ameixa -> noite. Sem `violeta` nem
+              `rosa` aqui — esta e a tela de controle, a mais sobria do modulo,
+              e um tom forte atras de um seletor de hora compete com o proprio
+              controle. */}
           <Tarjeta
+            tom="noite"
             titulo={t('ajustes.recordatorio.titulo')}
             sub={t('ajustes.recordatorio.sub')}
           >
@@ -955,7 +1003,7 @@ export default function AjustesScreen({
           </Tarjeta>
 
           {/* ---------- MOVIMIENTO ---------- */}
-          <Tarjeta titulo={t('ajustes.movimiento.titulo')} sub={t('ajustes.movimiento.sub')}>
+          <Tarjeta tom="ameixa" titulo={t('ajustes.movimiento.titulo')} sub={t('ajustes.movimiento.sub')}>
             <Segmento
               valor={ajustes.movimiento}
               onCambio={cambiarMovimiento}
@@ -1002,7 +1050,7 @@ export default function AjustesScreen({
           ) : null}
 
           {/* ---------- DATOS ---------- */}
-          <Tarjeta titulo={t('ajustes.datos.titulo')} sub={t('ajustes.datos.sub')}>
+          <Tarjeta tom="noite" titulo={t('ajustes.datos.titulo')} sub={t('ajustes.datos.sub')}>
             <BotonPrimario
               titulo={t('ajustes.datos.respuestas')}
               variante="fantasma"
@@ -1030,7 +1078,10 @@ export default function AjustesScreen({
             ) : null}
           </Tarjeta>
 
-          {/* ---------- PIE ---------- */}
+          {/* ---------- PIE ----------
+              Na ColunaLeitura pelo mesmo motivo do resto: o gutter saiu do
+              ScrollView e agora e responsabilidade de cada bloco. */}
+          <ColunaLeitura>
           <View style={estilos.pie}>
             <Micro tabular>{t('ajustes.version', { version: VERSION })}</Micro>
             <Pressable
@@ -1041,6 +1092,7 @@ export default function AjustesScreen({
               <Micro style={estilos.enlaceTexto}>{t('ajustes.privacidad')}</Micro>
             </Pressable>
           </View>
+          </ColunaLeitura>
         </ScrollView>
       </SafeAreaView>
 
@@ -1111,13 +1163,21 @@ const estilos = StyleSheet.create({
   seguro: {
     flex: 1,
   },
+  // SEM padding lateral e SEM maxWidth (12/09/2026): as faixas precisam SANGRAR
+  // de ponta a ponta. O 560 e o recuo foram pra ColunaLeitura, bloco a bloco —
+  // e la a largura e calculada em CARACTERES POR LINHA contra o tamanho do
+  // corpo, entao acompanha a fonte, coisa que um 560 fixo nao faz.
   contenido: {
-    padding: espacio.xl,
     // Folga para a barra inferior de tres zonas do molde nao cobrir o pe.
     paddingBottom: espacio.xxxl * 2,
-    maxWidth: 560,
     width: '100%',
-    alignSelf: 'center',
+  },
+
+  // `ar` (48) no topo: o silencio antes da primeira palavra. Embaixo nada — a
+  // primeira faixa ja traz `secao` de padding proprio mais a altura da onda, e
+  // somar margem a uma faixa e sempre somar duas vezes.
+  abertura: {
+    paddingTop: space.ar,
   },
 
   volver: {
@@ -1137,8 +1197,10 @@ const estilos = StyleSheet.create({
     marginTop: espacio.sm,
   },
 
+  // SEM marginTop (12/09/2026): o respiro de cima agora e o padding da faixa.
+  // O cartao continua com borda e fundo proprios — ele diz "estes controles
+  // andam juntos", que e outra coisa do que a faixa diz.
   tarjeta: {
-    marginTop: espacio.xl,
     padding: espacio.lg,
     borderRadius: radio.md,
     backgroundColor: colores.penumbra,

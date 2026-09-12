@@ -23,6 +23,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Image, Pressable, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
+import ColunaLeitura from '../../components/ColunaLeitura';
 import BotonPrimario from '../components/BotonPrimario';
 import HiloFondo from '../components/HiloFondo';
 import TextoNoRitmo from '../components/TextoNoRitmo';
@@ -113,6 +114,7 @@ export default function ApresentacaoScreen({ navigation }) {
           onLayout={aoMedirJanela}
           scrollEventThrottle={32}
         >
+          <ColunaLeitura>
           <Sobreceja>{t('apresentacao.sobreceja')}</Sobreceja>
           <Titulo style={estilos.titulo}>{t('apresentacao.titulo')}</Titulo>
 
@@ -150,6 +152,7 @@ export default function ApresentacaoScreen({ navigation }) {
           />
 
           <BotonPrimario titulo={t('apresentacao.botao')} onPress={comecar} style={estilos.botao} />
+          </ColunaLeitura>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -162,8 +165,12 @@ const estilos = StyleSheet.create({
     backgroundColor: colores.noche,
   },
   seguro: { flex: 1 },
+  // Mesmo conserto da LeituraDeEntrada: o recuo virou ColunaLeitura, que traz
+  // junto o limite de largura que faltava. Aqui ele pesa mais do que la, porque
+  // esta tela e a PORTA do funil e a transcricao do video e texto longo — na
+  // web, sem coluna, ela atravessava a janela inteira.
   conteudo: {
-    padding: espacio.xl,
+    paddingTop: espacio.xl,
     paddingBottom: espacio.xxxl,
   },
   titulo: { marginTop: espacio.sm },

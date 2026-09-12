@@ -103,8 +103,19 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Platform } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+// AS PEÇAS DE DIAGRAMAÇÃO (design/PECAS-DE-DIAGRAMACAO.md, lote das práticas
+// 12/09/2026). Esta tela tem DOIS arranjos, e os dois pediam coisas
+// diferentes:
+//   · A VITRINE (hoje → categorias → lista) são três assuntos que corriam no
+//     mesmo chão — faixa curva em cada um, e o olho lê o corte sem título.
+//   · O DETALHE é o passo a passo do concorrente: os cinco campos são a tela.
+//     Aqui NÃO entra faixa (cinco faixas viram textura, e a ordem dos campos
+//     não é negociável) — entra a escala de espaço e a coluna de leitura, que
+//     é o que faltava: o parágrafo da INTENÇÃO ia de borda a borda.
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
 import OneTimeLock from '../components/OneTimeLock';
 import { useLanguage } from '../context/LanguageContext';
 import { useCouple } from '../context/CoupleContext';
@@ -368,12 +379,21 @@ export default function RituaisScreen() {
             {!categoria ? (
               // -------------------------------------------------------------
               // 1. RITUAIS DE HOJE — o motivo de voltar amanhã
+              //    FAIXA 1: o gancho e o que casa com a data de verdade.
               // -------------------------------------------------------------
-              <View testID="rituais-hoje">
+              <FaixaCurva
+                tom="ameixa"
+                semente="hoje"
+                style={styles.faixa}
+                estiloCorpo={[styles.faixaCorpo, styles.faixaCorpoPrimeira]}
+                testID="rituais-hoje"
+              >
                 {/* A PRIMEIRA COISA QUE A PESSOA LÊ. Era o disclaimer; agora é
                     o gancho, no mesmo padrão de 'jornada.intro' e
                     'calendario.intro'. Prende primeiro, fonte depois. */}
-                <Text style={styles.intro}>{t('rituais.intro')}</Text>
+                <ColunaLeitura>
+                  <Text style={styles.intro}>{t('rituais.intro')}</Text>
+                </ColunaLeitura>
                 <Text style={styles.groupLabel}>{t('rituais.today.title')}</Text>
                 {/* fase, dia e planeta saem pelos helpers de lib/rituais.js: os
                     três entram DENTRO de uma frase traduzida, e ler `.nome` cru
@@ -428,13 +448,29 @@ export default function RituaisScreen() {
                     ))}
                   </>
                 ) : null}
-              </View>
+              </FaixaCurva>
             ) : null}
 
             {/* ---------------------------------------------------------------
                 2. AS 7 CATEGORIAS — ficam visíveis também dentro de uma
                 categoria, pra trocar de objetivo sem voltar duas telas.
+
+                FAIXA 2. `grude` só quando a faixa de hoje existe acima (dentro
+                de uma categoria ela não é desenhada, e aí esta faixa é a
+                primeira da tela — grudar numa faixa que não existe abriria o
+                -1px contra o cabeçalho).
             --------------------------------------------------------------- */}
+            <FaixaCurva
+              tom="noite"
+              semente="categorias"
+              grude={!categoria}
+              style={styles.faixa}
+              // Dentro de uma categoria a faixa de hoje não é desenhada e ESTA
+              // vira a primeira da tela — então é ela que tem que largar o
+              // paddingTop, pela mesma medição. A condição é a mesma do
+              // `grude`: uma decide a emenda, a outra decide o respiro.
+              estiloCorpo={categoria ? [styles.faixaCorpo, styles.faixaCorpoPrimeira] : styles.faixaCorpo}
+            >
             <Text style={styles.groupLabel}>{t('rituais.categories.title')}</Text>
             <View style={styles.chips} testID="rituais-categorias">
               {CATEGORIAS.map((c) => {
@@ -463,7 +499,9 @@ export default function RituaisScreen() {
             --------------------------------------------------------------- */}
             {categoria ? (
               <View testID="rituais-lista">
-                <Text style={styles.body}>{descricaoDaCategoria(categoria, t)}</Text>
+                <ColunaLeitura>
+                  <Text style={styles.body}>{descricaoDaCategoria(categoria, t)}</Text>
+                </ColunaLeitura>
                 <Text style={styles.subLabel}>
                   {t('rituais.category.count', { n: daCategoria.length })}
                 </Text>
@@ -489,16 +527,22 @@ export default function RituaisScreen() {
                   : t('rituais.paywall.firstFree')}
               </Text>
             ) : null}
+            </FaixaCurva>
 
             {/* ---------------------------------------------------------------
                 O LASTRO DO "MOMENTO IDEAL" — mostrado UMA VEZ, no fim da lista,
                 nunca repetido ritual a ritual. Prende primeiro (o app inteiro
                 já mostrou o que fazer hoje), fonte depois.
+
+                FAIXA 3 — a última. É o recibo: outro assunto, outro chão.
             --------------------------------------------------------------- */}
+            <FaixaCurva tom="violeta" semente="lastro" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
             <Text style={styles.groupLabel}>{t('rituais.lastro.title')}</Text>
             {Object.entries(lastroMomentoIdeal(lang)).map(([chave, bloco]) => (
               <Section key={chave} title={bloco.titulo}>
-                <Text style={styles.body}>{bloco.texto}</Text>
+                <ColunaLeitura>
+                  <Text style={styles.body}>{bloco.texto}</Text>
+                </ColunaLeitura>
                 {(bloco.ressalvas || []).map((r, i) => (
                   <View key={i} style={styles.bulletRow}>
                     <Text style={styles.bulletMark}>!</Text>
@@ -510,6 +554,7 @@ export default function RituaisScreen() {
                 ) : null}
               </Section>
             ))}
+            </FaixaCurva>
           </>
         )}
       </ScrollView>
@@ -542,7 +587,10 @@ function DetalheRitual({ ritual, recado, onShare, onVoltar }) {
   const corpoCuidados = (pedacos.length > 1 ? pedacos[0] : cuidados).trim();
 
   return (
-    <View testID="rituais-detalhe">
+    /* O DETALHE não leva faixa (cinco faixas viram textura), então a pilha dos
+       cinco campos carrega o próprio respiro — antes ela pegava carona no gap
+       do contentContainer, que saiu pra as faixas poderem encostar. */
+    <View style={styles.pilha} testID="rituais-detalhe">
       <View style={styles.detalheTopo}>
         <Text style={styles.detalheCategoria}>
           {categoria ? nomeDaCategoria(categoria, t) : ritual.categoria}
@@ -554,7 +602,9 @@ function DetalheRitual({ ritual, recado, onShare, onVoltar }) {
       {/* 1 */}
       <View style={styles.campo}>
         <Text style={styles.campoLabel}>{t('rituais.field.intencao')}</Text>
-        <Text style={styles.body}>{ritual.intencao}</Text>
+        <ColunaLeitura>
+          <Text style={styles.body}>{ritual.intencao}</Text>
+        </ColunaLeitura>
       </View>
 
       {/* 2 */}
@@ -571,25 +621,37 @@ function DetalheRitual({ ritual, recado, onShare, onVoltar }) {
       {/* 3 */}
       <View style={styles.campo}>
         <Text style={styles.campoLabel}>{t('rituais.field.passos')}</Text>
-        {(ritual.passos || []).map((p, i) => (
-          <View key={i} style={styles.bulletRow}>
-            <Text style={styles.passoNumero}>{i + 1}</Text>
-            <Text style={styles.bulletText}>{p}</Text>
-          </View>
-        ))}
+        {/* Os passos numa lista própria, com `entre` entre um e outro: dentro
+            do `campo` o gap é `dentro` (12), que serve pra rótulo e parágrafo
+            mas cola uma AÇÃO na seguinte. É o "uma ideia por vez" do print,
+            aplicado dentro do cartão. */}
+        <View style={styles.passos}>
+          {(ritual.passos || []).map((p, i) => (
+            <View key={i} style={styles.bulletRow}>
+              <Text style={styles.passoNumero}>{i + 1}</Text>
+              <Text style={styles.bulletText}>{p}</Text>
+            </View>
+          ))}
+        </View>
       </View>
 
       {/* 4 */}
       <View style={styles.campo}>
         <Text style={styles.campoLabel}>{t('rituais.field.momento')}</Text>
         {momento ? <Text style={styles.momentoResumo}>{momento}</Text> : null}
-        <Text style={styles.body}>{ritual.momento ? ritual.momento.texto : ''}</Text>
+        <ColunaLeitura>
+          <Text style={styles.body}>{ritual.momento ? ritual.momento.texto : ''}</Text>
+        </ColunaLeitura>
       </View>
 
       {/* 5 — e o aviso, literal, dentro dele */}
       <View style={styles.campo}>
         <Text style={styles.campoLabel}>{t('rituais.field.cuidados')}</Text>
-        {corpoCuidados ? <Text style={styles.body}>{corpoCuidados}</Text> : null}
+        {corpoCuidados ? (
+          <ColunaLeitura>
+            <Text style={styles.body}>{corpoCuidados}</Text>
+          </ColunaLeitura>
+        ) : null}
         <View style={styles.avisoCaixa}>
           <Text style={styles.avisoTexto}>{ritual.aviso || AVISO_ETICO}</Text>
         </View>
@@ -645,126 +707,140 @@ function DetalheRitual({ ritual, recado, onShare, onVoltar }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingBottom: 48, gap: 12 },
+  // `padding: 20` fica: é ele que a faixa anula com marginHorizontal:-20.
+  scroll: { padding: 20, paddingBottom: space.fimDaLista },
+  //
+  // O `gap` DO CONTAINER SAIU, e o motivo foi medido na foto (390x844,
+  // 12/09/2026): com gap no contentContainer aparecia uma TIRA PRETA entre uma
+  // faixa e a seguinte, porque o gap do pai e aplicado DEPOIS do marginTop:-1
+  // do `grude` e vence. Faixa que nao encosta na proxima perde exatamente o
+  // efeito de paisagem que ela existe pra dar: a onda passa a flutuar no vazio
+  // em vez de cortar o chao anterior. Quem da respiro agora e a propria faixa
+  // (paddingTop/Bottom `secao` da peca); os blocos SOLTOS levam margem propria.
+  // Os avulsos entre faixas (erro, cartao solto) pedem a distancia eles mesmos.
+  avulso: { marginVertical: space.entre },
+  // A pilha das dobras SEM faixa: o respiro que o container deixou de dar.
+  pilha: { gap: space.entre },
+  faixa: { marginHorizontal: -20 },
+  faixaCorpo: { paddingHorizontal: 20, gap: space.dentro },
+  // A PRIMEIRA FAIXA DA TELA NAO LEVA O paddingTop DA PECA. Medido na foto
+  // (390x844, 12/09/2026): a caixa da onda ja tem ONDA_ALTURA (56px) e, logo
+  // abaixo do cabecalho — que ja traz folga propria —, somar o space.secao (32)
+  // padrao abria ~88px de chao liso antes da primeira palavra. Isso e o defeito
+  // ALTO que o revisor achou na Home: a faixa lendo como bloco de cor vazio em
+  // vez de secao. E o mesmo remedio que a Home usou (ver o prop estiloCorpo em
+  // components/FaixaCurva.js); as faixas seguintes, que nao encostam no
+  // cabecalho, seguem com o degrau cheio.
+  faixaCorpoPrimeira: { paddingTop: 0 },
 
   // A linha de gancho que abre a tela — mesma altitude de 'jornada.intro' e
   // 'calendario.intro'. (Os estilos avisoFixo/avisoFixoTexto/avisoLabel saíram
   // junto com a barra pinned: estilo órfão é como um arquivo de tela chega a
   // quinze formatos de card diferentes.)
-  intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginBottom: 2 },
-  avisoTexto: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+  intro: { ...type.corpoCurto, color: colors.textSecondary },
+  avisoTexto: { ...type.apoio, color: colors.textSecondary },
   avisoCaixa: {
     backgroundColor: 'rgba(255,200,92,0.10)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,200,92,0.45)',
-    padding: 12,
-    marginTop: 4,
+    padding: space.dentro,
+    marginTop: space.junto,
   },
 
   groupLabel: {
+    ...type.etiqueta,
     color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
     textTransform: 'uppercase',
-    marginTop: 6,
+    marginTop: space.junto,
   },
+  // "Combinam exatamente" / "Combinam em parte" — sub-rótulo dentro da seção.
+  // Era negrito 800 num corpo de 12: agora é a etiqueta da escala, e o que
+  // separa do bloco de cima é ESPAÇO, não peso.
   subLabel: {
+    ...type.etiqueta,
     color: colors.purple,
-    fontSize: 12,
-    fontWeight: '800',
-    marginTop: 10,
-    marginBottom: 4,
+    marginTop: space.bloco,
+    marginBottom: space.grudado,
   },
 
-  hojeLinha: { color: colors.gold, fontSize: 16, fontWeight: '800', marginTop: 2 },
+  hojeLinha: { ...type.secao, color: colors.gold, marginTop: space.grudado },
 
   card: {
     backgroundColor: colors.card,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
-    gap: 5,
-    marginTop: 8,
+    padding: space.bloco,
+    gap: space.junto,
+    marginTop: space.dentro,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '800', flex: 1 },
-  cardMomento: { color: colors.teal, fontSize: 12, lineHeight: 18 },
-  cardMatch: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
+  cardTitle: { ...type.cartao, color: colors.text, flex: 1 },
+  cardMomento: { ...type.apoio, color: colors.teal },
+  cardMatch: { ...type.apoio, color: colors.textMuted },
   lockPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: space.grudado,
     backgroundColor: 'rgba(255,200,92,0.15)',
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: space.junto,
+    paddingVertical: space.grudado,
   },
-  lockPillText: { color: colors.gold, fontSize: 10, fontWeight: '800' },
+  lockPillText: { ...type.nota, color: colors.gold, fontWeight: '600' },
 
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.junto, marginTop: space.grudado },
   chip: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: space.bloco,
+    paddingVertical: space.dentro,
   },
   chipAtivo: { borderColor: colors.purple, backgroundColor: 'rgba(181,123,255,0.12)' },
-  chipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+  chipText: { ...type.apoio, color: colors.textSecondary, fontWeight: '600' },
   chipTextAtivo: { color: colors.purple },
 
-  detalheTopo: { gap: 4, marginBottom: 4 },
-  detalheCategoria: {
-    color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  detalheTitulo: { color: colors.text, fontSize: 22, fontWeight: '800' },
+  // O TOPO DO DETALHE — o print do concorrente abre a tela de uma ideia só com
+  // ar de sobra antes do primeiro campo. `entre` embaixo é esse ar; era 4.
+  detalheTopo: { gap: space.junto, marginBottom: space.entre },
+  detalheCategoria: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
+  detalheTitulo: { ...type.titulo, color: colors.text },
 
   campo: {
     backgroundColor: colors.card,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 8,
+    padding: space.bloco,
+    gap: space.dentro,
   },
-  campoLabel: {
-    color: colors.gold,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  momentoResumo: { color: colors.teal, fontSize: 14, fontWeight: '700' },
+  campoLabel: { ...type.etiqueta, color: colors.gold, textTransform: 'uppercase' },
+  momentoResumo: { ...type.corpoCurto, color: colors.teal, fontWeight: '600' },
 
-  body: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  note: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
-  noteStrong: { color: colors.gold, fontSize: 12, lineHeight: 18, fontWeight: '700' },
-  source: { color: colors.textMuted, fontSize: 11, lineHeight: 17 },
-  paywallHint: {
-    color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 6,
-  },
+  body: { ...type.corpoCurto, color: colors.textSecondary },
+  note: { ...type.apoio, color: colors.textSecondary },
+  noteStrong: { ...type.apoio, color: colors.gold, fontWeight: '700' },
+  source: { ...type.nota, color: colors.textMuted },
+  paywallHint: { ...type.apoio, color: colors.textMuted, marginTop: space.junto },
 
-  bulletRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  bulletMark: { color: colors.purple, fontSize: 13, fontWeight: '800', width: 14, lineHeight: 21 },
+  // O PASSO A PASSO. `entre` entre um passo e o seguinte: cada passo é uma
+  // AÇÃO, e ação colada na próxima vira parágrafo picado. Era o gap 8 do campo
+  // pra tudo — material e passo na mesma distância.
+  passos: { gap: space.entre },
+  bulletRow: { flexDirection: 'row', gap: space.dentro, alignItems: 'flex-start' },
+  bulletMark: { ...type.corpoCurto, color: colors.purple, fontWeight: '700', width: 16 },
+  // O número do passo ganha peso e largura fixa: é ele que faz a coluna dos
+  // números alinhar, e é a única hierarquia de verdade dentro do campo.
   passoNumero: {
+    ...type.corpoCurto,
     color: colors.purple,
-    fontSize: 13,
-    fontWeight: '800',
-    width: 14,
-    lineHeight: 21,
+    fontWeight: '700',
+    width: 16,
   },
-  bulletText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, flex: 1 },
+  bulletText: { ...type.corpoCurto, color: colors.textSecondary, flex: 1 },
 
   section: {
     backgroundColor: colors.surface,
@@ -777,35 +853,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    gap: 10,
+    padding: space.bloco,
+    gap: space.dentro,
   },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
-  sectionBody: { paddingHorizontal: 16, paddingBottom: 16, gap: 10 },
+  sectionTitle: { ...type.cartao, color: colors.text, flex: 1 },
+  sectionBody: { paddingHorizontal: space.bloco, paddingBottom: space.bloco, gap: space.dentro },
 
   shareBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: '#25D366',
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: space.bloco,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    // O compartilhar vem DEPOIS dos cinco campos: `entre` diz que acabou o
+    // ritual e começou outra coisa.
+    marginTop: space.entre,
   },
-  shareBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  shareBtnText: { ...type.botao, color: '#fff', fontWeight: '700' },
   secondaryBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    paddingVertical: space.dentro,
+    paddingHorizontal: space.bloco + space.grudado,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: space.bloco,
   },
-  secondaryBtnText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+  secondaryBtnText: { ...type.botao, color: colors.textSecondary },
 });

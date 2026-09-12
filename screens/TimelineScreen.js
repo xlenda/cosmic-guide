@@ -30,10 +30,13 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, zodiacSigns } from '../theme';
+import { colors, space, type, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import GradientHeader from '../components/GradientHeader';
 import DatePickerModal from '../components/DatePickerModal';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
+import FileiraDeTres from '../components/FileiraDeTres';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getTimeline, addMemory, deleteMemory, addCapsule, deleteCapsule, daysUntil } from '../lib/coupleData';
@@ -128,10 +131,12 @@ export default function TimelineScreen() {
         <View style={styles.emptyProfile}>
           <Ionicons name="heart-outline" size={40} color={colors.accent} />
           <Text style={styles.emptyProfileTitle}>{t('timeline.gate.title')}</Text>
-          <Text style={styles.emptyProfileDesc}>
-            {t('timeline.gate.desc')}
-          </Text>
-          <TouchableOpacity style={[styles.btn, { marginTop: 20 }]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
+          <ColunaLeitura centralizado>
+            <Text style={styles.emptyProfileDesc}>
+              {t('timeline.gate.desc')}
+            </Text>
+          </ColunaLeitura>
+          <TouchableOpacity style={[styles.btn, styles.btnDoGate]} onPress={() => navigation.navigate(ROUTES.QUIZ)}>
             <Text style={styles.btnText}>{t('timeline.gate.cta')}</Text>
           </TouchableOpacity>
         </View>
@@ -153,19 +158,37 @@ export default function TimelineScreen() {
           <Text style={styles.linkText}>{t('timeline.link.text', { voce, amor })}</Text>
         </TouchableOpacity>
 
+        {/* TRES FAIXAS. A tela empilhava SEIS cards iguais no mesmo chao —
+            linha do tempo, formulario, capsulas, formulario de capsula — e o
+            olho nao tinha onde separar "o que ja aconteceu" de "o que eu
+            escrevo agora". Os cortes reais sao tres: A HISTORIA (memorias +
+            o formulario que alimenta a lista), AS CAPSULAS (as seladas + o
+            formulario que sela) e nada mais. O cartao de link do topo fica de
+            fora: e o convite de entrada, nao uma secao. */}
+        <FaixaCurva tom="ameixa" semente="timeline-memorias" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* Linha do tempo — memórias */}
         <Text style={styles.sectionTitle}>{t('timeline.section.timeline')}</Text>
         <View style={styles.card}>
-          <View style={styles.statRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{allMemories.length}</Text>
-              <Text style={styles.statLabel}>{t('timeline.stat.memories')}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{capsules.length}</Text>
-              <Text style={styles.statLabel}>{t('timeline.stat.capsules')}</Text>
-            </View>
+          {/* A FILEIRA no lugar dos dois numeros com um fio vertical no meio:
+              mesmas duas contagens, agora alinhadas pelo topo e com o peso
+              igual que faz as duas lerem como UMA peca.
+              DUAS COLUNAS, E NAO TRES, DE PROPOSITO. Cheguei a montar uma
+              terceira (capsulas ja abertas, contada de daysUntil <= 0 — dado
+              real) e desisti: o unico rotulo que o dicionario tem pra isso e
+              "Capsula aberta!", que e o titulo comemorativo do card, nao um
+              rotulo de coluna — e inventar copy nova nao e o que este lote
+              faz. A peca aceita duas colunas; ela so se recusa a desenhar
+              UMA, que ai nao e comparacao.
+              Zero e valor real e aparece: casal sem nenhuma memoria le "0",
+              que e a verdade, em vez da coluna sumir. */}
+          <View style={styles.fileiraWrap}>
+            <FileiraDeTres
+              testID="timeline-fileira"
+              itens={[
+                { chave: 'memorias', valor: allMemories.length, rotulo: t('timeline.stat.memories') },
+                { chave: 'capsulas', valor: capsules.length, rotulo: t('timeline.stat.capsules') },
+              ]}
+            />
           </View>
 
           {allMemories.length === 0 ? (
@@ -238,6 +261,9 @@ export default function TimelineScreen() {
         </View>
         </View>
 
+        </FaixaCurva>
+
+        <FaixaCurva tom="noite" semente="timeline-capsulas" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* Cápsulas do tempo */}
         <Text style={styles.sectionTitle}>{t('timeline.capsules.section')}</Text>
         {capsules.length === 0 ? (
@@ -303,7 +329,11 @@ export default function TimelineScreen() {
           <Text style={styles.hint}>{t('timeline.createCapsule.hint')}</Text>
         </View>
 
-        <Text style={styles.disclaimer}>{t('timeline.disclaimer')}</Text>
+        </FaixaCurva>
+
+        <ColunaLeitura centralizado>
+          <Text style={styles.disclaimer}>{t('timeline.disclaimer')}</Text>
+        </ColunaLeitura>
       </ScrollView>
 
       <DatePickerModal
@@ -322,73 +352,81 @@ export default function TimelineScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  // Sem padding lateral aqui: quem sangra de ponta a ponta e a FAIXA, e e ela
+  // que devolve o gutter por dentro. O que fica fora de faixa (o cartao de
+  // link e o disclaimer) traz o seu proprio.
+  scrollContent: { paddingBottom: space.fimDaLista },
+
+  faixa: { width: '100%' },
+  faixaCorpo: { gap: space.bloco },
 
   linkCard: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 16, padding: 16, alignItems: 'center', marginBottom: 20,
+    borderRadius: 16, padding: space.bloco, alignItems: 'center',
+    marginHorizontal: space.tela, marginBottom: space.entre,
   },
   linkBadge: {
-    color: colors.accent, fontSize: 12, fontWeight: '700',
-    backgroundColor: colors.accent + '22', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
+    ...type.etiqueta, color: colors.accent,
+    backgroundColor: colors.accent + '22', borderRadius: 10,
+    paddingHorizontal: space.dentro, paddingVertical: space.grudado,
   },
-  linkText: { color: colors.textSecondary, fontSize: 13, marginTop: 8, textAlign: 'center' },
+  linkText: { ...type.apoio, color: colors.textSecondary, marginTop: space.junto, textAlign: 'center' },
 
-  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 20, marginBottom: 10 },
-  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 16 },
+  // `secao` em cima: e o degrau entre SECOES da tela, que e exatamente o que
+  // este titulo marca. Era um 20 solto.
+  sectionTitle: { ...type.secao, color: colors.text, marginTop: space.junto },
+  card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: space.bloco },
 
-  statRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  stat: { flex: 1, alignItems: 'center' },
-  statValue: { color: colors.text, fontSize: 24, fontWeight: '800' },
-  statLabel: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  statDivider: { width: 1, height: 32, backgroundColor: colors.border, marginHorizontal: 12 },
+  fileiraWrap: { marginBottom: space.bloco },
 
-  emptyState: { alignItems: 'center', paddingVertical: 12 },
-  emptyStateIcon: { fontSize: 32, marginBottom: 8 },
-  emptyStateTitle: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
-  emptyStateDesc: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 4 },
-  emptyStateBtn: { marginTop: 14, paddingHorizontal: 20, alignSelf: 'center' },
+  emptyState: { alignItems: 'center', paddingVertical: space.dentro },
+  emptyStateIcon: { fontSize: 32, marginBottom: space.junto },
+  emptyStateTitle: { ...type.cartao, color: colors.text, textAlign: 'center' },
+  emptyStateDesc: { ...type.apoio, color: colors.textMuted, textAlign: 'center', marginTop: space.grudado },
+  emptyStateBtn: { marginTop: space.bloco, paddingHorizontal: space.entre, alignSelf: 'center' },
 
-  timeline: { marginTop: 4 },
-  tlItem: { borderLeftWidth: 2, borderLeftColor: colors.accent, paddingLeft: 12, paddingBottom: 16 },
-  tlItemNew: { backgroundColor: colors.accent + '18', borderRadius: 10, paddingTop: 8, paddingRight: 8, marginLeft: -8, paddingLeft: 20 },
-  tlDate: { color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  tlTitle: { color: colors.text, fontSize: 15, fontWeight: '700', marginTop: 2 },
-  tlText: { color: colors.textSecondary, fontSize: 13, marginTop: 4, lineHeight: 19 },
+  timeline: { marginTop: space.grudado },
+  tlItem: { borderLeftWidth: 2, borderLeftColor: colors.accent, paddingLeft: space.dentro, paddingBottom: space.bloco },
+  tlItemNew: { backgroundColor: colors.accent + '18', borderRadius: 10, paddingTop: space.junto, paddingRight: space.junto, marginLeft: -8, paddingLeft: space.entre },
+  tlDate: { ...type.etiqueta, color: colors.textMuted, textTransform: 'uppercase' },
+  tlTitle: { ...type.cartao, color: colors.text, marginTop: space.grudado },
+  tlText: { ...type.apoio, color: colors.textSecondary, marginTop: space.grudado },
 
-  delBtn: { marginTop: 8, alignSelf: 'flex-start' },
-  delText: { color: colors.red, fontSize: 12, fontWeight: '700' },
+  delBtn: { marginTop: space.junto, alignSelf: 'flex-start' },
+  delText: { ...type.apoio, color: colors.red, fontWeight: '600' },
 
-  field: { marginBottom: 14 },
-  label: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  field: { marginBottom: space.bloco },
+  label: { ...type.apoio, color: colors.textSecondary, fontWeight: '600', marginBottom: space.junto },
   input: {
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: colors.text, fontSize: 15,
+    borderRadius: 12, paddingHorizontal: space.bloco, paddingVertical: space.dentro,
+    color: colors.text, ...type.corpoCurto,
   },
   dateBtn: {
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: 12, paddingHorizontal: space.bloco, paddingVertical: space.dentro,
   },
-  dateBtnText: { color: colors.text, fontSize: 15 },
+  dateBtnText: { ...type.corpoCurto, color: colors.text },
   dateBtnPlaceholder: { color: colors.textMuted },
 
-  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  btn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: space.bloco, alignItems: 'center', marginTop: space.grudado },
   btnDisabled: { opacity: 0.5 },
-  btnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  btnText: { ...type.botao, color: '#fff' },
+  btnDoGate: { marginTop: space.entre },
 
-  hint: { color: colors.textMuted, fontSize: 12, marginTop: 12, lineHeight: 17 },
+  hint: { ...type.apoio, color: colors.textMuted, marginTop: space.dentro },
 
-  capsuleCard: { alignItems: 'center', marginBottom: 14 },
+  capsuleCard: { alignItems: 'center', marginBottom: space.bloco },
   capsuleOpened: { borderColor: colors.gold },
   capsuleLock: { fontSize: 26 },
-  capsuleTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 6 },
-  capsuleMsg: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
-  capsuleCount: { color: colors.gold, fontSize: 22, fontWeight: '800', marginTop: 8 },
-  capsuleSmall: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  capsuleTitle: { ...type.cartao, color: colors.text, marginTop: space.junto },
+  capsuleMsg: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center', marginTop: space.junto },
+  capsuleCount: { ...type.numero, color: colors.gold, marginTop: space.junto },
+  capsuleSmall: { ...type.apoio, color: colors.textMuted, marginTop: space.grudado },
 
-  disclaimer: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 20, lineHeight: 16, paddingHorizontal: 8 },
+  disclaimer: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.entre },
 
-  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyProfileTitle: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginTop: 14 },
-  emptyProfileDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  emptyProfile: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.secao },
+  emptyProfileTitle: { ...type.cartao, color: colors.text, textAlign: 'center', marginTop: space.bloco },
+  emptyProfileDesc: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center', marginTop: space.junto },
 });

@@ -113,6 +113,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 
 import BotaoOuvir, { pararAudioAtual } from '../components/BotaoOuvir';
+import ColunaLeitura from '../../components/ColunaLeitura';
 import BotonPrimario from '../components/BotonPrimario';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, NombreCarta, Sobreceja, Titulo } from '../components/Texto';
@@ -191,6 +192,7 @@ function Card({ bloco, indice, largura, ativo, onOuvir, lua }) {
         onLayout={aoMedirJanela}
         scrollEventThrottle={32}
       >
+        <ColunaLeitura>
         {/* O rotulo de posicao e discreto de proposito: ele orienta, nao cobra.
             Digitos tabulares para o "1 de 5" nao tremer ao virar "2 de 5". */}
         <Micro tabular style={estilos.posicao}>
@@ -254,6 +256,7 @@ function Card({ bloco, indice, largura, ativo, onOuvir, lua }) {
             <Cuerpo style={estilos.luaNota}>{lua.nota}</Cuerpo>
           </View>
         ) : null}
+        </ColunaLeitura>
       </ScrollView>
     </View>
   );
@@ -583,8 +586,12 @@ const estilos = StyleSheet.create({
 
   card: { flex: 1 },
   cardScroll: { flex: 1 },
+  // O RECUO LATERAL saiu daqui (12/09/2026) e virou ColunaLeitura, por dentro do
+  // ScrollView de cada pagina: ela traz o mesmo gutter MAIS o limite de largura
+  // que esta tela nunca teve. O texto daqui e o mais longo do modulo (o bloco 9
+  // tem cinco paragrafos) e numa janela de web larga a linha atravessava tudo.
+  // Em 390px nada muda, e e o certo.
   cardConteudo: {
-    paddingHorizontal: espacio.xl,
     paddingTop: espacio.lg,
     paddingBottom: espacio.xxl,
   },

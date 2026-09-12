@@ -320,7 +320,15 @@ test('a ficha continua na tela — descer não é apagar', () => {
         'formatOffset(chart.zone.offset)',
       ],
     ],
-    ['ProfeccoesScreen', prof, ['{anual.titulo}', '{anual.casaProfectada}', '{anual.senhorDoAno}', '{anual.origemRotulo}']],
+    // [12/09/2026 · lote das telas de tempo] A ficha do ano deixou de ser cinco
+    // pares soltos e virou <TabelaDados>, então os três campos que moravam em
+    // {chaveta} agora entram como `valor:` de um item. MESMO PRECEDENTE do
+    // LunarCalendar logo abaixo ('today.illumination' sem chavetas desde
+    // 09/08/2026): quando a FORMA de renderizar muda, a âncora acompanha a
+    // forma; o que ela guarda continua sendo o mesmo — que o CAMPO chega na
+    // tela. Apagar a linha da tabela continua derrubando este teste (conferido
+    // por mutação: removi o item 'casa-ano' e ele reprovou).
+    ['ProfeccoesScreen', prof, ['{anual.titulo}', 'anual.casaProfectada', 'anual.senhorDoAno', '{anual.origemRotulo}']],
     // A HOME SAIU DESTA LISTA em 10/09/2026. As quatro âncoras que ela tinha
     // pertenciam a três blocos que agora são MISSÕES: o evento cósmico (card
     // removido), o céu de hoje e a compatibilidade. A ficha continua na tela —
@@ -338,7 +346,8 @@ test('a ficha continua na tela — descer não é apagar', () => {
       fonteDaTela('CalendarioCosmicoScreen.js'),
       ['{evento.titulo}', "'calendario.season.title'", "'calendario.season.startedAt'", "'calendario.season.endsAt'"],
     ],
-    ['IdadeRealScreen', fonteDaTela('IdadeRealScreen.js'), ['{item.quemInventou}', '{item.quando}']],
+    // Mesma mudança de forma, mesma data: o par quem/quando virou <TabelaDados>.
+    ['IdadeRealScreen', fonteDaTela('IdadeRealScreen.js'), ['item.quemInventou', 'item.quando']],
   ]) {
     for (const campo of campos) {
       assert.ok(src.includes(campo), `${origem}: ${campo} sumiu da tela — a ficha desce, não se apaga`);

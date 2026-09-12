@@ -625,12 +625,13 @@ export default function DreamScreen() {
           `gradients.teal`, a vitrine e os ícones seguem ele). Apagar o verde
           seria uniformizar identidade, que a regra proíbe. Então o ACENTO fica
           e o RESTO entra na família: a parada da esquerda continua verde
-          (#2B4A44, h180) e a da direita pousa em #40416A (h294), dentro da
-          roda. As duas descem pra L29 — a luz do hero. Lido em sequência com
+          (#2B4A44, h180) e a da direita pousa em #463D6E (h301) — o MESMO
+          matiz do cabeçalho do Mapa, que é o que faz as duas telas lerem como
+          irmãs. As duas descem pra L29 — a luz do hero. Lido em sequência com
           Horóscopo e Mapa, agora é a mesma casa com a porta verde; antes era
           outra casa. `gradients.teal` continua intacto no theme.js e segue
           valendo pro cadeado e pro resto da feature. */}
-      <GradientHeader title="Sonhos" subtitle="Interpretação simbólica" gradient={['#2B4A44', '#40416A']} />
+      <GradientHeader title="Sonhos" subtitle="Interpretação simbólica" gradient={['#2B4A44', '#463D6E']} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}

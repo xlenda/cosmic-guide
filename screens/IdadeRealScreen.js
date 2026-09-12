@@ -49,8 +49,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Platform } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
+import FaixaCurva from '../components/FaixaCurva';
+import ColunaLeitura from '../components/ColunaLeitura';
+import TabelaDados from '../components/TabelaDados';
 import { useLanguage } from '../context/LanguageContext';
 import {
   agruparPorTema,
@@ -164,13 +167,20 @@ export default function IdadeRealScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.intro}>{UI.intro}</Text>
+        {/* DUAS FAIXAS, e só duas. A tela tem trinta cards iguais: cada um já
+            é um bloco, e dar faixa a cada seção viraria a textura que o guia
+            proíbe. O corte que existe de verdade é um só — a ABERTURA (o que
+            é isto, e como ordenar) contra A LISTA. */}
+        <FaixaCurva tom="ameixa" semente="idade-abertura" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+          <ColunaLeitura>
+            <Text style={styles.intro}>{UI.intro}</Text>
+          </ColunaLeitura>
 
-        {/* ------------------------------------------------------------------
-            ORDENAR — três chips, sutis (feedback_design_sutil)
-        ------------------------------------------------------------------ */}
-        <Text style={styles.rotuloOrdenar}>{UI.ordenarPor}</Text>
-        <View style={styles.chipRow}>
+          {/* ----------------------------------------------------------------
+              ORDENAR — três chips, sutis (feedback_design_sutil)
+          ---------------------------------------------------------------- */}
+          <Text style={styles.rotuloOrdenar}>{UI.ordenarPor}</Text>
+          <View style={styles.chipRow}>
           {ORDENS.map((id) => {
             const rotulo =
               id === 'maisNovo' ? UI.ordemMaisNovo : id === 'maisAntigo' ? UI.ordemMaisAntigo : UI.ordemTema;
@@ -190,11 +200,13 @@ export default function IdadeRealScreen() {
               </TouchableOpacity>
             );
           })}
-        </View>
+          </View>
+        </FaixaCurva>
 
         {/* ------------------------------------------------------------------
             A TABELA
         ------------------------------------------------------------------ */}
+        <FaixaCurva tom="noite" semente="idade-lista" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {grupos.map((grupo) => (
           <View key={grupo.tema || 'todos'} style={styles.grupo}>
             {grupo.nome ? (
@@ -220,11 +232,20 @@ export default function IdadeRealScreen() {
                   >
                     {/* A IDADE, grande — é o que a pessoa fotografa. */}
                     <View style={styles.idadeCaixa}>
+                      {/* NUNCA TRAÇO MUDO (12/09/2026). A tela imprimia '—'
+                          quando anosAtras era null — o exato traço que a lei da
+                          casa proíbe, e ainda por cima jogando fora o texto que
+                          o motor JÁ devolve pra esse caso: rotuloDeIdade()
+                          (lib/idadeReal.js:464) retorna `tela.semData`, que é
+                          "sem data" / "sin fecha" / "no date" nos três packs.
+                          Ausência DECLARADA em palavra, não um risco que a
+                          pessoa tem que adivinhar. O texto longo que explica
+                          por quê continua aparecendo no card aberto. */}
                       <Text
                         style={[styles.idadeNumero, item.anosAtras === null && styles.idadeSemData]}
                         testID={`idade-numero-${item.id}`}
                       >
-                        {item.anosAtras === null ? '—' : item.idadeReal}
+                        {item.idadeReal}
                       </Text>
                       <Text style={styles.grauSigla}>{item.grau}</Text>
                     </View>
@@ -263,20 +284,26 @@ export default function IdadeRealScreen() {
                           neste app. Nenhum texto do pack mudou (o golden de
                           idadeReal segue intacto).
                           test/quentePrimeiroNasTelas.test.js trava esta ordem. */}
-                      <Text style={styles.detalhe}>{item.detalhe}</Text>
+                      <ColunaLeitura>
+                        <Text style={styles.detalhe}>{item.detalhe}</Text>
+                      </ColunaLeitura>
 
-                      <View style={styles.paresRow}>
-                        <View style={styles.par}>
-                          <Text style={styles.parRotulo}>{UI.rotuloQuem}</Text>
-                          <Text style={styles.parValor} testID={`idade-quem-${item.id}`}>
-                            {item.quemInventou}
-                          </Text>
-                        </View>
-                        <View style={styles.par}>
-                          <Text style={styles.parRotulo}>{UI.rotuloQuando}</Text>
-                          <Text style={styles.parValor}>{item.quando}</Text>
-                        </View>
-                      </View>
+                      {/* QUEM E QUANDO viraram a tabela. Eram dois pares em
+                          flexBasis 140 que, em 390px, ora caíam lado a lado
+                          ora empilhavam conforme o tamanho do nome — o mesmo
+                          dado mudando de forma de item pra item. Rótulo à
+                          esquerda, valor à direita, fio entre eles: confere-se
+                          um item contra o outro sem reaprender o desenho.
+                          E o filtro entra de graça: item cuja pesquisa não
+                          achou o inventor não ganha linha vazia — ela some,
+                          e o "não achamos" continua dito por extenso abaixo. */}
+                      <TabelaDados
+                        testID={`idade-ficha-${item.id}`}
+                        itens={[
+                          { chave: 'quem', rotulo: UI.rotuloQuem, valor: item.quemInventou },
+                          { chave: 'quando', rotulo: UI.rotuloQuando, valor: item.quando },
+                        ]}
+                      />
 
                       {/* Sem data não é zero: é ausência declarada. */}
                       {item.anosAtras === null ? (
@@ -328,6 +355,7 @@ export default function IdadeRealScreen() {
 
         {/* De onde vem o número. Uma linha, cinza, no fim. */}
         <Text style={styles.comoContamos}>{preencher(UI.comoContamos, { ano })}</Text>
+        </FaixaCurva>
       </ScrollView>
     </View>
   );
@@ -335,38 +363,35 @@ export default function IdadeRealScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingBottom: 48, gap: 10 },
+  // O gutter e o respiro saíram daqui: quem sangra de ponta a ponta é a FAIXA,
+  // e é ela que carrega o padding horizontal agora.
+  scroll: { paddingBottom: space.fimDaLista },
 
-  intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
+  faixa: { width: '100%' },
+  faixaCorpo: { gap: space.bloco },
 
-  rotuloOrdenar: {
-    color: colors.textMuted,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    marginTop: 6,
-  },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  intro: { ...type.corpo, color: colors.textSecondary },
+
+  rotuloOrdenar: { ...type.etiqueta, color: colors.textMuted, marginTop: space.junto },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.junto },
   chip: {
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: space.dentro,
+    paddingVertical: space.junto,
   },
   chipAtivo: { borderColor: colors.purple, backgroundColor: colors.surfaceElevated },
-  chipTexto: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  chipTexto: { ...type.apoio, color: colors.textSecondary },
   chipTextoAtivo: { color: colors.text },
 
-  grupo: { gap: 10, marginTop: 6 },
+  grupo: { gap: space.dentro, marginTop: space.junto },
   grupoTitulo: {
+    ...type.etiqueta,
     color: colors.gold,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginTop: 8,
+    marginTop: space.dentro,
   },
 
   card: {
@@ -374,70 +399,62 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
+    padding: space.bloco,
   },
-  linhaTopo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  linhaTopo: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
 
-  idadeCaixa: { width: 92, alignItems: 'center', gap: 2 },
-  idadeNumero: { color: colors.gold, fontSize: 15, fontWeight: '800', textAlign: 'center', lineHeight: 19 },
-  idadeSemData: { color: colors.textMuted },
-  grauSigla: { color: colors.textMuted, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  idadeCaixa: { width: 92, alignItems: 'center', gap: space.grudado },
+  // A idade é o número que a pessoa fotografa: sobe do 15 solto pro degrau de
+  // card da escala, que é onde o olho pousa primeiro na linha.
+  idadeNumero: { ...type.cartao, color: colors.gold, textAlign: 'center' },
+  // "sem data" não é número: perde o dourado e vira texto apagado, pra ninguém
+  // confundir ausência declarada com medida.
+  idadeSemData: { ...type.apoio, color: colors.textMuted },
+  grauSigla: { ...type.etiqueta, color: colors.textMuted },
 
-  linhaTexto: { flex: 1, gap: 3 },
-  coisa: { color: colors.text, fontSize: 15, lineHeight: 21, fontWeight: '700' },
+  linhaTexto: { flex: 1, gap: space.grudado },
+  coisa: { ...type.cartao, color: colors.text },
   pensam: {
+    ...type.apoio,
     color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
     textDecorationLine: 'line-through',
     textDecorationColor: colors.pink,
   },
 
-  corpo: { gap: 10, marginTop: 10 },
-  divisor: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  corpo: { gap: space.bloco, marginTop: space.bloco },
+  divisor: { flexDirection: 'row', alignItems: 'center', gap: space.dentro },
   divisorLinha: { flex: 1, height: 1, backgroundColor: colors.border },
   divisorEstrela: { color: colors.purple, fontSize: 12 },
 
-  paresRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  par: { flexGrow: 1, flexBasis: 140, gap: 2 },
-  parRotulo: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  parValor: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
-
-  detalhe: { color: colors.textSecondary, fontSize: 14, lineHeight: 21 },
-  semData: { color: colors.textMuted, fontSize: 12, lineHeight: 18, fontStyle: 'italic' },
+  detalhe: { ...type.corpoCurto, color: colors.textSecondary },
+  semData: { ...type.apoio, color: colors.textMuted, fontStyle: 'italic' },
 
   recibo: {
     borderRadius: 12,
     borderWidth: 1,
     borderStyle: 'dotted',
     borderColor: colors.border,
-    padding: 12,
-    gap: 3,
+    padding: space.dentro,
+    gap: space.grudado,
   },
-  reciboRotulo: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  reciboTexto: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
-  grauTexto: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 2 },
+  reciboRotulo: { ...type.etiqueta, color: colors.textMuted },
+  reciboTexto: { ...type.apoio, color: colors.textMuted },
+  grauTexto: { ...type.nota, color: colors.textMuted, marginTop: space.grudado },
 
   shareBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.junto,
     backgroundColor: '#25D366',
     borderRadius: 14,
-    paddingVertical: 11,
+    paddingVertical: space.dentro,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shareBtnTexto: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  shareBtnTexto: { ...type.botao, color: '#fff' },
 
-  marca: { color: colors.textMuted, fontSize: 10, textAlign: 'center' },
+  marca: { ...type.nota, color: colors.textMuted, textAlign: 'center' },
 
-  nota: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center' },
-  progresso: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 6 },
-  comoContamos: {
-    color: colors.textMuted,
-    fontSize: 11,
-    lineHeight: 17,
-    textAlign: 'center',
-    marginTop: 4,
-  },
+  nota: { ...type.apoio, color: colors.textSecondary, textAlign: 'center' },
+  progresso: { ...type.apoio, color: colors.textMuted, textAlign: 'center', marginTop: space.junto },
+  comoContamos: { ...type.nota, color: colors.textMuted, textAlign: 'center', marginTop: space.grudado },
 });

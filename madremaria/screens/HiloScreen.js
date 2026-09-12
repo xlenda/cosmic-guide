@@ -157,6 +157,9 @@ import { Image, Pressable, SafeAreaView, ScrollView, StyleSheet, View } from 're
 
 import BotonPrimario from '../components/BotonPrimario';
 import FaixaNudos, { trazoNudos } from '../components/FaixaNudos';
+import ColunaLeitura from '../../components/ColunaLeitura';
+import FaixaCurva from '../../components/FaixaCurva';
+import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, Sobreceja, Titulo } from '../components/Texto';
 import { t } from '../datos/textos';
@@ -606,11 +609,16 @@ export default function HiloScreen({ navigation }) {
 
       <SafeAreaView style={estilos.seguro}>
         <ScrollView contentContainerStyle={estilos.contenido} showsVerticalScrollIndicator={false}>
-          <Sobreceja>{t('app.nombre')}</Sobreceja>
-          <Titulo accessibilityRole="header" style={estilos.titulo}>
-            {t('hilo.titulo')}
-          </Titulo>
-          <Micro style={estilos.sub}>{t('hilo.sub')}</Micro>
+          {/* A ABERTURA fora de faixa: primeira dobra, contra o fundo do app
+              com o fio atras. A ColunaLeitura traz o recuo lateral que saiu do
+              ScrollView. */}
+          <ColunaLeitura style={estilos.abertura}>
+            <Sobreceja>{t('app.nombre')}</Sobreceja>
+            <Titulo accessibilityRole="header" style={estilos.titulo}>
+              {t('hilo.titulo')}
+            </Titulo>
+            <Micro style={estilos.sub}>{t('hilo.sub')}</Micro>
+          </ColunaLeitura>
 
           {/* --- 1 e 2. O CARTAO DO FIO --------------------------------------
               O unico bloco com fundo da tela: ele e o assunto, o resto e
@@ -619,6 +627,7 @@ export default function HiloScreen({ navigation }) {
               mostra contagem: um "0 nudos" que ainda nao foi medido e exatamente
               o tipo de numero que este produto nao mostra. O fio aparece antes do
               dado porque ele e desenho, nao afirmacao. */}
+          <ColunaLeitura>
           <View style={estilos.tarjeta}>
             {resumen ? (
               <>
@@ -668,6 +677,7 @@ export default function HiloScreen({ navigation }) {
               <FaixaSemana nudos={[]} indiceHoy={-1} />
             )}
           </View>
+          </ColunaLeitura>
 
           {/* --- A ACAO DOMINANTE ---------------------------------------------
               Uma so, e ela e a leitura de hoje. Quando o no de hoje ja esta
@@ -684,6 +694,7 @@ export default function HiloScreen({ navigation }) {
               O rotulo com o fio parado e 'hilo.retomar' ("Retomar donde quedo"):
               retomar de onde ficou, e nao recuperar o que se perdeu. */}
           {resumen && resumen.hoyAtado && !accionRitual ? null : (
+            <ColunaLeitura>
             <BotonPrimario
               titulo={
                 accionRitual
@@ -696,6 +707,7 @@ export default function HiloScreen({ navigation }) {
               onPress={accionRitual ? irAlRitual : irAlPlano}
               style={estilos.boton}
             />
+            </ColunaLeitura>
           )}
 
           {/* --- 3. AS TRES DE HOJE -------------------------------------------
@@ -708,8 +720,19 @@ export default function HiloScreen({ navigation }) {
               "{n} de {total}", o mesmo formato honesto do album. E nao ha premio
               — 'missoes.todasFeitas' e constatacao, nao recompensa, porque
               recompensa que nao existe nao entra no catalogo. */}
+          {/* O FILETE RETO MORREU (12/09/2026). `estilos.seccion` era
+              `borderTopWidth` + `marginTop`: a linha reta de 1px que separava um
+              bloco secundario do seguinte. Quem separa agora e a MUDANCA DE
+              CHAO — o guia e explicito, "nos prints NENHUMA linha reta corta a
+              tela". O comentario antigo defendia o filete dizendo que "cartao
+              dentro de cartao" achata a tela, e ele continua certo: a faixa NAO
+              e um cartao, e chao, e por isso resolve os dois problemas de uma
+              vez — separa sem empilhar moldura.
+              SEM `style` na faixa: o corpo dela ja traz `secao` em cima e
+              embaixo e `tela` nos lados. */}
           {missoes && missoes.total > 0 ? (
-            <View style={estilos.seccion}>
+            <FaixaCurva tom="noite" semente="missoes">
+              <ColunaLeitura>
               <TituloSeccion
                 etiqueta={t('missoes.titulo')}
                 nota={t('missoes.progresso', { n: missoes.feitas, total: missoes.total })}
@@ -733,7 +756,8 @@ export default function HiloScreen({ navigation }) {
               {missoes.todasFeitas ? (
                 <Micro style={estilos.notaSeccion}>{t('missoes.todasFeitas')}</Micro>
               ) : null}
-            </View>
+              </ColunaLeitura>
+            </FaixaCurva>
           ) : null}
 
           {/* --- 4. O ALBUM — DESLIGADO EM 31/08 -------------------------------
@@ -756,7 +780,8 @@ export default function HiloScreen({ navigation }) {
               ela NAO compra: a leitura de hoje continua de graca. A ficha nunca e
               o portao da leitura diaria. */}
           {mostrarFichas ? (
-            <View style={estilos.seccion}>
+            <FaixaCurva tom="ameixa" semente="fichas" grude>
+              <ColunaLeitura>
               <TituloSeccion etiqueta={t('hilo.panel.fichasTitulo')} />
               <Cuerpo tabular style={estilos.saldo}>
                 {t('hilo.panel.fichasSaldo', {
@@ -768,7 +793,8 @@ export default function HiloScreen({ navigation }) {
               <Micro style={estilos.pista}>
                 {t('hilo.panel.fichasPara', { preco: PRECO_LEITURA_EXTRA })}
               </Micro>
-            </View>
+              </ColunaLeitura>
+            </FaixaCurva>
           ) : null}
 
           {/* --- 6. O RITUAL EM ANDAMENTO -------------------------------------
@@ -781,16 +807,22 @@ export default function HiloScreen({ navigation }) {
               amanha."), que informa sem cobrar: nao existe aqui contagem
               regressiva nem aviso de que o ritual "expira". */}
           {ritualEnCurso && !accionRitual ? (
+            /* A faixa por FORA e o Pressable por DENTRO, nesta ordem: a
+               FaixaCurva e `pointerEvents="box-none"` (ela e chao e nunca rouba
+               toque), entao o retangulo tocavel continua sendo o do Pressable e
+               nao encolhe nem cresce. O contrario — Pressable por fora — faria a
+               onda inteira virar alvo de toque. */
+            <FaixaCurva tom="noite" semente="ritual-em-curso" grude>
             <Pressable
               onPress={irAlRitual}
               accessibilityRole="button"
               accessibilityLabel={t('hilo.panel.ritualAbrir')}
               style={({ pressed }) => [
-                estilos.seccion,
                 estilos.seccionTocable,
                 pressed ? estilos.filaPresionada : null,
               ]}
             >
+              <ColunaLeitura>
               <View style={estilos.filaSeccion}>
                 <View style={estilos.filaTexto}>
                   <Sobreceja>{t('hilo.panel.ritualTitulo')}</Sobreceja>
@@ -812,7 +844,9 @@ export default function HiloScreen({ navigation }) {
                 </View>
                 <Flecha />
               </View>
+              </ColunaLeitura>
             </Pressable>
+            </FaixaCurva>
           ) : null}
         </ScrollView>
       </SafeAreaView>
@@ -826,10 +860,12 @@ export default function HiloScreen({ navigation }) {
    `espacio` e `radio`; as constantes do topo sao geometria de desenho.
 
    A HIERARQUIA MORA AQUI, e nao na boa intencao de quem escreve a proxima tela:
-   `tarjeta` e o unico estilo com fundo; `seccion` nao tem fundo nenhum e se
-   separa por um filete. Enquanto for assim, nenhum bloco secundario consegue
-   competir com o cartao do fio nem com o botao — que sao, juntos, a unica coisa
-   que esta tela pede.
+   `tarjeta` e o unico estilo com FUNDO PROPRIO; os blocos secundarios nao tem
+   fundo nenhum e se separam pela mudanca de chao da faixa. Enquanto for assim,
+   nenhum bloco secundario consegue competir com o cartao do fio nem com o botao
+   — que sao, juntos, a unica coisa que esta tela pede. E a faixa nao quebra
+   isso: o chao dela e translucido e fica ATRAS de tudo, enquanto o cartao tem
+   `penumbra` solido e borda fechada — o cartao continua sendo o unico objeto.
    =================================================================================== */
 const estilos = StyleSheet.create({
   pantalla: {
@@ -839,16 +875,21 @@ const estilos = StyleSheet.create({
   seguro: {
     flex: 1,
   },
+  // SEM paddingHorizontal e SEM maxWidth (12/09/2026): as faixas dos blocos
+  // secundarios precisam SANGRAR de ponta a ponta pra serem chao e nao card. O
+  // recuo e a largura de leitura passaram pra ColunaLeitura, bloco a bloco — e
+  // la a largura sai de CARACTERES POR LINHA contra o tamanho do corpo, entao
+  // acompanha a fonte, coisa que um 560 fixo nao faz. O respiro de cima virou
+  // `abertura`.
   contenido: {
-    paddingHorizontal: espacio.xl,
-    paddingTop: espacio.xl,
     // Folga no fim: a barra de tres zonas fica por cima desta tela e o ultimo
     // elemento nao pode nascer debaixo dela.
     paddingBottom: espacio.xxxl * 2,
-    // Em tablet e na web a coluna para de crescer.
-    maxWidth: 560,
     width: '100%',
-    alignSelf: 'center',
+  },
+  // `ar` (48) no topo: o silencio antes da primeira palavra.
+  abertura: {
+    paddingTop: space.ar,
   },
 
   titulo: {
@@ -895,15 +936,13 @@ const estilos = StyleSheet.create({
   },
 
   /* --- blocos secundarios ---
-     Sem fundo e sem borda fechada. O filete de cima e tudo o que os separa, e e
-     de proposito: cartao dentro de cartao e como a tela vira a vitrine plana que
-     o dossie do Cosmic Guide diagnostica. */
-  seccion: {
-    marginTop: espacio.xxl,
-    paddingTop: espacio.lg,
-    borderTopWidth: GROSOR_BORDE,
-    borderTopColor: colores.bordeSuave,
-  },
+     Sem fundo e sem borda fechada, e a intencao de sempre continua valendo:
+     cartao dentro de cartao e como a tela vira a vitrine plana que o dossie do
+     Cosmic Guide diagnostica.
+     O QUE MUDOU (12/09/2026): `seccion` MORREU. O que separava estes blocos era
+     um filete reto de 1px no topo de cada um; quem separa agora e a MUDANCA DE
+     CHAO da FaixaCurva. A faixa NAO e cartao — e chao —, entao ela separa sem
+     empilhar moldura, que era exatamente a preocupacao do comentario antigo. */
   // O bloco inteiro e o alvo de toque: o retangulo do Pressable precisa de folga
   // embaixo para o dedo nao terminar em cima do filete do bloco seguinte.
   seccionTocable: {

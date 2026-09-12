@@ -115,6 +115,7 @@ import {
 // ainda existe — por isso eles nao ficaram aqui comentados. O bloco do
 // cabecalho diz o que voltar a importar no dia de religar.
 import BotonPrimario from '../components/BotonPrimario';
+import ColunaLeitura from '../../components/ColunaLeitura';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, Sobreceja, Titulo } from '../components/Texto';
 /* `pantallaCero()` e `preguntas()`, nao as constantes: as constantes de
@@ -641,6 +642,7 @@ export default function OnboardingScreen({ navigation }) {
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
           >
+            <ColunaLeitura style={estilos.coluna}>
             {/* ---------------- PASSO 0 — a promessa ---------------- */}
             {paso === PASO_CERO ? (
               <Aparecer sinMovimiento={sinMovimiento}>
@@ -735,6 +737,7 @@ export default function OnboardingScreen({ navigation }) {
                 COMO RELIGAR: ver o bloco no cabecalho deste arquivo. As chaves
                 de texto continuam em datos/textos.js e os componentes no lugar.
             ------------------------------------------------------------------ */}
+            </ColunaLeitura>
           </ScrollView>
 
           {pie ? <View style={estilos.rodape}>{pie}</View> : null}
@@ -815,11 +818,20 @@ const estilos = StyleSheet.create({
   },
 
   /* --- lienzo --- */
+  // O RECUO LATERAL virou ColunaLeitura (12/09/2026), que traz o mesmo gutter
+  // MAIS o limite de largura que faltava: em tablet e na web um <Titulo> de
+  // 34px atravessava a janela inteira. `flexGrow: 1` FICA aqui e a coluna o
+  // repete: e ele que faz o passo curto ocupar a altura toda, e o vazio de
+  // baixo e desejado — e o ritmo do print de referencia.
   lienzo: {
     flexGrow: 1,
-    paddingHorizontal: espacio.xl,
     paddingTop: espacio.lg,
     paddingBottom: espacio.xxl,
+  },
+  // A coluna precisa crescer junto, senao ela vira uma caixa da altura do
+  // conteudo dentro de um lienzo esticado e o rodape sobe pro meio da tela.
+  coluna: {
+    flexGrow: 1,
   },
 
   /* --- passo 0 --- */

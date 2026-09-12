@@ -8,6 +8,16 @@
 // civil, esta fecha o CICLO LUNAR, e por isso ela não abre quando a pessoa quer
 // — abre quando a Lua está cheia.
 //
+// POR QUE ESTA TELA NAO GANHA FAIXA CURVA (12/09/2026, lote das telas de
+// tempo). A FaixaCurva e um CHAO de secao: ela funciona empilhada dentro de um
+// rolo que corre sobre o mesmo fundo. Aqui cada slide JA e um chao inteiro —
+// um LinearGradient de tela cheia, um por assunto — e a mudanca de assunto ja
+// se le pela troca de gradiente, que e o mesmo efeito que a faixa existe pra
+// produzir. Por uma onda por cima disso seria o "dois fundos brigando" que o
+// guia do HeroiDoTopo proibe, e ainda por cima redundante. O que esta tela
+// tinha a ganhar do lote e a ESCALA (espaco e tipografia) e a COLUNA DE
+// LEITURA, e e so isso que entrou.
+//
 // QUATRO ESTADOS, e três deles são "não". A tela é honesta antes de ser bonita:
 //   1. sem efeméride  → indisponível declarado (nunca um ciclo estimado);
 //   2. fora da Cheia  → diz que abre na Lua Cheia e QUANDO é a próxima;
@@ -22,11 +32,12 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, gradients } from '../theme';
+import { colors, gradients, space, type } from '../theme';
 import { retrospectivaDaLunacao, proximaLuaCheia } from '../lib/retroLunacao';
 import { lerCheckins, HUMORES } from '../lib/checkin';
 import { getJournalEntries } from '../lib/journal';
 import { useLanguage } from '../context/LanguageContext';
+import ColunaLeitura from '../components/ColunaLeitura';
 import { ROUTES } from '../routes';
 
 // Mesma animação de contagem da RetrospectivaScreen e da MonthlyWrappedScreen
@@ -118,7 +129,9 @@ export default function RetroLuaCheiaScreen() {
       <View style={styles.emptyState}>
         <Text style={styles.emptyIcon}>{icone}</Text>
         <Text style={styles.emptyTitle}>{titulo}</Text>
-        <Text style={styles.emptyDesc}>{descricao}</Text>
+        <ColunaLeitura centralizado>
+          <Text style={styles.emptyDesc}>{descricao}</Text>
+        </ColunaLeitura>
         {cta}
         <TouchableOpacity style={styles.btnGhost} onPress={() => navigation.goBack()}>
           <Text style={styles.btnGhostText}>{t('retroLua.back')}</Text>
@@ -300,75 +313,75 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
 
-  slide: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, paddingVertical: 64 },
+  slide: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: space.secao, paddingVertical: space.respiro },
 
   overline: {
+    ...type.etiqueta,
     color: 'rgba(255,255,255,0.75)',
-    fontSize: 12,
-    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 2,
-    marginBottom: 12,
+    marginBottom: space.dentro,
     textAlign: 'center',
   },
+  // O numero de tela cheia e a UNICA coisa desta tela — ele fica no 96, que e
+  // deliberado e esta acima da escala: a escala termina no display (32), que e
+  // titulo de primeira dobra, nao cartaz. Mantido de proposito, com a
+  // entrelinha junto; o resto da tela desceu pra escala em volta dele.
   bigNumber: { color: '#fff', fontSize: 96, fontWeight: '800', lineHeight: 104 },
-  caption: { color: 'rgba(255,255,255,0.85)', fontSize: 16, textAlign: 'center', marginTop: 4 },
+  caption: { ...type.corpoCurto, color: 'rgba(255,255,255,0.85)', textAlign: 'center', marginTop: space.grudado },
 
-  slideEmoji: { fontSize: 72, marginVertical: 8 },
-  mediumTitle: { color: '#fff', fontSize: 30, fontWeight: '800', textAlign: 'center' },
+  slideEmoji: { fontSize: 72, marginVertical: space.junto },
+  mediumTitle: { ...type.display, color: '#fff', textAlign: 'center' },
   energyPhrase: {
+    ...type.corpoCurto,
     color: 'rgba(255,255,255,0.92)',
-    fontSize: 16,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 20,
-    lineHeight: 24,
+    marginTop: space.entre,
   },
 
   placarCard: {
     backgroundColor: 'rgba(0,0,0,0.25)',
     borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingVertical: space.entre,
+    paddingHorizontal: space.entre,
     alignSelf: 'stretch',
-    marginBottom: 16,
+    marginBottom: space.bloco,
   },
-  placarRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 8 },
+  placarRow: { flexDirection: 'row', alignItems: 'center', marginVertical: space.junto },
   placarEmoji: { fontSize: 20, width: 30 },
-  placarLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '700', width: 80 },
+  placarLabel: { ...type.apoio, color: 'rgba(255,255,255,0.9)', fontWeight: '600', width: 80 },
   placarTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.18)', overflow: 'hidden' },
   placarFill: { height: 10, borderRadius: 5 },
-  placarValor: { color: '#fff', width: 34, textAlign: 'right', fontSize: 15, fontWeight: '800' },
+  placarValor: { ...type.botao, color: '#fff', width: 34, textAlign: 'right' },
 
   summaryCard: {
     backgroundColor: 'rgba(0,0,0,0.25)',
     borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
+    paddingVertical: space.entre,
+    paddingHorizontal: space.entre,
     alignSelf: 'stretch',
-    marginBottom: 24,
+    marginBottom: space.entre,
   },
-  summaryRow: { color: '#fff', fontSize: 17, fontWeight: '700', marginVertical: 4 },
+  summaryRow: { ...type.cartao, color: '#fff', marginVertical: space.grudado },
 
-  btn: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 28, alignItems: 'center' },
-  btnText: { color: colors.background, fontSize: 15, fontWeight: '800' },
-  btnGhost: { borderRadius: 14, paddingVertical: 12, paddingHorizontal: 28, alignItems: 'center', marginTop: 10 },
-  btnGhostText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+  btn: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 14, paddingVertical: space.bloco, paddingHorizontal: space.secao, alignItems: 'center' },
+  btnText: { ...type.botao, color: colors.background },
+  btnGhost: { borderRadius: 14, paddingVertical: space.dentro, paddingHorizontal: space.secao, alignItems: 'center', marginTop: space.dentro },
+  btnGhostText: { ...type.botao, color: colors.textSecondary },
 
-  hint: { position: 'absolute', bottom: 20, alignItems: 'center' },
-  hintText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 },
+  hint: { position: 'absolute', bottom: space.entre, alignItems: 'center' },
+  hintText: { ...type.etiqueta, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' },
 
   disclaimer: {
+    ...type.nota,
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
     textAlign: 'center',
-    marginTop: 20,
-    lineHeight: 16,
-    paddingHorizontal: 8,
+    marginTop: space.entre,
+    paddingHorizontal: space.junto,
   },
 
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyIcon: { fontSize: 44, marginBottom: 12 },
-  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '800', textAlign: 'center' },
-  emptyDesc: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20, marginBottom: 20 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.secao },
+  emptyIcon: { fontSize: 44, marginBottom: space.dentro },
+  emptyTitle: { ...type.secao, color: colors.text, textAlign: 'center' },
+  emptyDesc: { ...type.corpoCurto, color: colors.textSecondary, textAlign: 'center', marginTop: space.junto, marginBottom: space.entre },
 });
