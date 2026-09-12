@@ -20,7 +20,7 @@ A Madre Maria inteira vive dentro do Cosmic Guide, atrás do card
 | Café e palma: **um só no app** (usa as telas do Cosmic) | ✅ |
 | URL própria: `/amor` | ✅ |
 | Círculo: fora (decisão sua) | ✅ |
-| Tradução das telas | ⚠️ **632 de 775** em ES e EN |
+| Tradução das telas | ⚠️ **632 de 775** — mas 127 das 143 são órfãs |
 | Tradução do conteúdo (419 missões, cartas, leituras) | ✅ |
 | Áudios em ES/EN | ❌ **nenhum dos 62** |
 
@@ -28,25 +28,48 @@ A Madre Maria inteira vive dentro do Cosmic Guide, atrás do card
 
 ## O que falta — em ordem
 
-### 1. Terminar as 143 chaves de tela que faltam
-São as mesmas em ES e EN. **Cuidado:** parte delas é órfã — de telas que não
-vieram na fusão (Círculo, café, palma, Álbum, Tirada). Traduzir chave morta é
-trabalho jogado fora.
+### 1. A tradução — **já está pronta. Nada a fazer.**
 
-**Antes de traduzir qualquer uma**, conferir se alguma tela viva ainda a chama:
+Parecia faltar tradução, mas não falta. Conferi chave por chave.
 
+O que "faltava" são textos de telas que **foram removidas do app**: o Círculo, o
+Álbum, a Tirada, e as telas de café e palma dela (que agora usam as do Cosmic
+Guide). Os textos ficaram guardados no arquivo, mas nenhuma tela os mostra —
+é como guardar a plaquinha de um cômodo que foi demolido.
+
+Traduzir aquilo seria trabalho jogado fora.
+
+São 143 textos assim, todos anotados em `test/madremaria-i18n-orfas.js` com o
+motivo de cada um. E tem um teste vigiando: **se alguém trouxer o Círculo de
+volta um dia, o teste avisa** que aqueles 31 textos voltaram a valer e precisam
+de tradução. Não some sem avisar.
+
+**Resumindo: a Madre Maria já fala português, espanhol e inglês por inteiro.**
+
+<details>
+<summary>Detalhe técnico, se precisar mexer nisso depois</summary>
+
+Os 143 estão agrupados assim: `circulo` 31, `cafe` 31, `album` 24, `mao` 22,
+`leituras` 13, `tirada` 6, `missoes` 6, `hecho` 4, `barra` 3, `sorpresa` 2,
+`scratch` 1.
+
+Duas armadilhas para quem for conferir:
+
+1. **Não julgue pelo prefixo.** Três chaves `tirada` estão VIVAS e já traduzidas
+   (`avisoOtraPersona`, `carta.derecha`, `carta.invertida`) — usadas em
+   `lib/lectura.js:964` e `components/CartaHilo.js:180`, mais
+   `tirada.rotulo.${clave}` montada em runtime em `lectura.js:1053`.
+2. **Busca crua engana.** `sorpresa.titulo` aparece em
+   `OnboardingScreen.js:723` mas **dentro de um comentário** ("Aqui viviam a
+   CARTA-SURPRESA…"). Sempre olhar se é código ou comentário.
+
+Para checar uma chave:
 ```bash
-grep -rn "t('circulo\.\|t('cafe\.\|t('mao\.\|t('album\.\|t('tirada\." \
-  madremaria/screens/ madremaria/components/
+grep -rn "t('NOME.DA.CHAVE')" madremaria/      # citação direta
+grep -rnE "t\(\s*[\`']PREFIXO\." madremaria/   # montada em runtime
 ```
-
-- Sem resultado → é órfã, **não traduzir**; tirar do placar com o motivo escrito.
-- Com resultado → traduzir seguindo a doutrina (abaixo).
-
-O placar mostra quais faltam:
-```bash
-node --require ./test/setup.js --test test/madremaria-i18n.test.js
-```
+Placar: `node --require ./test/setup.js --test test/madremaria-i18n.test.js`
+</details>
 
 ### 2. Os 62 áudios (31 ES + 31 EN)
 
