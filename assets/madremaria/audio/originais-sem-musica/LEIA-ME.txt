@@ -1,0 +1,14 @@
+AS VOZES ANTES DA MÚSICA DE FUNDO
+
+Cópia intacta das vozes como saíram do ElevenLabs, SEM a música.
+
+As gravações originais do dono (carta-4/5/6) sempre tiveram uma música sutil
+por baixo, ~30 dB abaixo da voz, tom fundamental em 393 Hz. Voz clonada nasce
+sem ela, e o dono ouve a diferença — ouviu duas vezes, em 10/09 e 12/09/2026.
+
+A música é extraída de carta-4.m4a (26,70-27,90s, trecho sem voz), vira volta
+contínua por acrossfade e é somada a 27 dB abaixo da voz.
+
+Para desfazer: copiar estes arquivos de volta para assets/madremaria/audio/.
+Para refazer com outro volume: desfazer primeiro, depois rodar
+scripts/somar-musica-de-fundo.sh com ABAIXO_DB ajustado.
