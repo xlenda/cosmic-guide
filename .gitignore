@@ -61,3 +61,5 @@ design/**/*.png
 _shot-tmp.js
 shot-lote.js
 _*-tmp.js
+dist-verifica/
+dist-pecas/
