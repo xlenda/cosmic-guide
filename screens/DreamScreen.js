@@ -805,7 +805,7 @@ export default function DreamScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: 20, paddingBottom: 40, gap: 16 },
+  scrollContent: { padding: 20, paddingBottom: space.fimDaLista, gap: 16 },
   // O texto de abertura (e o mesmo rodapé do resultado) pela escala da
   // fundação: 13/20, o degrau de APOIO — a linha que explica, não a que grita.
   disclaimer: {

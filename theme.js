@@ -177,6 +177,25 @@ export const zodiacSigns = [
 //                 valor que 123 lugares já escolheram sozinhos).
 //   fimDaLista  — padding inferior de ScrollView, pra última linha nunca morar
 //                 embaixo da barra de navegação.
+//
+//                 O VALOR NÃO É ESTÉTICO, É MEDIDO (13/09/2026). A barra de
+//                 abas virou pílula FLUTUANTE (ESTILO_PILULA em App.js):
+//                 height 68 + marginBottom 10 = 78 de rodapé, dos quais 73
+//                 medidos ocupados no navegador (mesmos 73 em 1280x720 e em
+//                 390x844 — a pílula não escala com o viewport). Enquanto isto
+//                 valeu 48, a última linha de TODA tela rolava por baixo da
+//                 pílula: o toque caía no ícone da aba, não na linha. Foi
+//                 assim que "Gerenciar assinatura" do Perfil passou a navegar
+//                 pra /comunidade e travou o portão de regressão (cenário 4).
+//
+//                 Por isso a escala GANHOU UM DEGRAU, `rodape` (76), em vez de
+//                 este atalho virar número solto: a lei da fundação
+//                 (test/fundacaoEscalas.test.js) manda todo atalho apontar
+//                 para um degrau real, e 73 não cabia em nenhum dos que
+//                 existiam — `ar` (48) e `respiro` (64) ficam os dois abaixo
+//                 da pílula. `rodape` é o degrau do PÉ DA TELA: o único lugar
+//                 onde ele deve aparecer é um paddingBottom de lista.
+//                 Se a pílula mudar de altura, `rodape` muda JUNTO.
 export const space = {
   grudado: 4,
   junto: 8,
@@ -186,9 +205,16 @@ export const space = {
   secao: 32,
   ar: 48,
   respiro: 64,
+  // O PÉ DA TELA (13/09/2026). Nasceu medido, não escolhido: é o primeiro
+  // degrau que passa dos 73px que a pílula flutuante da barra de abas ocupa
+  // (ESTILO_PILULA em App.js — height 68 + marginBottom 10). Existe como
+  // degrau, e não como número solto dentro de `fimDaLista`, porque a lei da
+  // fundação manda todo atalho apontar pra escala — e porque qualquer coisa
+  // que precise limpar a barra de abas precisa deste mesmo valor.
+  rodape: 76,
 
   tela: 16,
-  fimDaLista: 48,
+  fimDaLista: 76,
 };
 
 // -------------------------------------------------------------------------------------

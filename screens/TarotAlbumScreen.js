@@ -1228,7 +1228,7 @@ export default function TarotAlbumScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16, paddingBottom: space.fimDaLista },
   controlPressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
   modeTabs: {
     flexDirection: 'row',

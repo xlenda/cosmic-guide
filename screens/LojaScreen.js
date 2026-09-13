@@ -385,7 +385,7 @@ export default function LojaScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingBottom: 40 },
+  content: { padding: 20, paddingBottom: space.fimDaLista },
   // A cena full-bleed do topo — margens negativas anulam o padding:20 do
   // content (sangra até as bordas e cola no header, sem borderRadius); o
   // saldo sobe -28 (marginTop do balanceWrap) e pousa na zona do fade.

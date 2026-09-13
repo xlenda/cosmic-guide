@@ -363,6 +363,38 @@ function caminhoFocado(state, saida = new Set()) {
   return caminhoFocado(rota.state, saida);
 }
 
+// GUARDA DE IGUALDADE POR CONTEÚDO (13/09/2026 — o que travava o portão).
+//
+// `caminhoFocado` devolve um Set NOVO a cada chamada, e ele é gravado em
+// estado a cada `onStateChange`. Set novo = identidade nova SEMPRE, então o
+// React nunca fazia bail-out: toda navegação re-renderizava a árvore inteira,
+// o que re-dispara `onStateChange`, que grava outro Set novo. Antes deste
+// campo ser um Set a mesma informação era uma STRING (setRotaAtual), e string
+// igual dava bail-out sozinha — foi ao virar objeto que o freio sumiu.
+//
+// O sintoma NÃO era CPU alta (o renderer fica ocioso): era o pipeline de
+// input do navegador travado no meio do gesto — `mouse.down` voltava e
+// `mouse.up` nunca era confirmado, então o clique morria sem nunca chegar no
+// onPress. Medido no cenário 4: clicar "Gerenciar assinatura" pendurava o
+// renderer com o botão no meio da tela, pilha de hit-test limpa.
+//
+// Comparar por CONTEÚDO devolve o freio sem mudar o que a informação
+// significa: mesmo caminho focado = mesmo objeto = React para ali.
+function mesmoConjunto(a, b) {
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+}
+
+// Grava o caminho focado SÓ quando ele mudou de verdade. Os dois chamadores
+// (onReady e onStateChange) passam por aqui: é a única porta de escrita.
+function gravarCaminhoFocado(setRotasFocadas, state) {
+  setRotasFocadas((anterior) => {
+    const proximo = caminhoFocado(state);
+    return mesmoConjunto(anterior, proximo) ? anterior : proximo;
+  });
+}
+
 // A PILULA FLUTUANTE, agora uma CONSTANTE. Ela morava inline dentro de
 // screenOptions; saiu para ca porque a aba Home passou a precisar cita-la pelo
 // nome (ver o ternario na <Tab.Screen> da Home). Object.freeze e escopo de
@@ -813,7 +845,7 @@ function Gate() {
       documentTitle={DOCUMENT_TITLE}
       onReady={() => {
         setNavPronta(true);
-        setRotasFocadas(caminhoFocado(navRef.getRootState()));
+        gravarCaminhoFocado(setRotasFocadas, navRef.getRootState());
         relerPrimeiroValor();
       }}
       // Toda navegação (troca de aba, push de tela) relê a novidade do Tarô —
@@ -822,7 +854,7 @@ function Gate() {
       onStateChange={() => {
         relerTarotNovidade();
         relerPrimeiroValor();
-        setRotasFocadas(caminhoFocado(navRef.getRootState()));
+        gravarCaminhoFocado(setRotasFocadas, navRef.getRootState());
       }}
     >
       {/* O provider do Som do céu envolve o Tab.Navigator inteiro e o dock é

@@ -262,7 +262,7 @@ export default function HoroscopeScreen() {
         onSelect={(id) => { Haptics.selectionAsync(); setTab(id); }}
         style={styles.abasTopo}
       />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: space.fimDaLista }} showsVerticalScrollIndicator={false}>
         {showPicker && (
           <View style={styles.pickerCard}>
             <Text style={styles.pickerTitle}>{t('horoscope.pickerTitle')}</Text>

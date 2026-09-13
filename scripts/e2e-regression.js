@@ -108,15 +108,34 @@ async function openExplore(page) {
 async function openExploreExperience(page, testId) {
   await openExplore(page);
   const card = page.getByTestId(testId);
-  if ((await card.count()) === 0) {
-    // O catálogo usa SectionList: itens das últimas seções só entram na árvore
-    // quando a lista se aproxima deles. Rolar o contêiner identificado testa a
-    // mesma navegação real sem depender do tamanho da janela de virtualização.
-    await page.getByTestId('explore-list').evaluate((list) => {
+  // O catálogo usa SectionList: itens das últimas seções só entram na árvore
+  // quando a lista se aproxima deles. Rolar o contêiner identificado testa a
+  // mesma navegação real sem depender do tamanho da janela de virtualização.
+  //
+  // ROLAR UMA VEZ SÓ NÃO BASTA (13/09/2026 — era o que travava este cenário).
+  // Cada rolada monta mais itens, e montar mais itens AUMENTA o scrollHeight:
+  // medido, a lista vai de 2949 para 4836 de altura durante a descida, então
+  // um único `scrollTop = scrollHeight` para em 2307 — ainda acima da seção de
+  // casal, onde moram 'nosHoje' e 'nossaHistoria'. O alvo nunca entrava na
+  // árvore e o scrollIntoViewIfNeeded seguinte expirava em 30s.
+  //
+  // O laço rola até o alvo aparecer ou até o fundo parar de crescer. Continua
+  // guardando exatamente o mesmo que antes — que a porta do catálogo abre de
+  // verdade —, só que agora espera a lista terminar de se montar em vez de
+  // apostar num único quadro.
+  for (let tentativa = 0; tentativa < 12; tentativa += 1) {
+    if ((await card.count()) > 0) break;
+    const alturaAntes = await page.getByTestId('explore-list').evaluate((list) => {
       list.scrollTop = list.scrollHeight;
       list.dispatchEvent(new Event('scroll', { bubbles: true }));
+      return list.scrollHeight;
     });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(400);
+    const alturaDepois = await page.getByTestId('explore-list').evaluate((l) => l.scrollHeight);
+    // Fundo parou de crescer E o alvo não apareceu: a lista acabou de montar,
+    // insistir só gastaria o timeout. Sai e deixa o passo seguinte falhar com
+    // a mensagem real ("não achei o cartão"), não com um timeout mudo.
+    if (alturaAntes === alturaDepois && (await card.count()) === 0) break;
   }
   await card.scrollIntoViewIfNeeded();
   await card.click();

@@ -2062,7 +2062,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  feedContent: { paddingBottom: 48 },
+  feedContent: { paddingBottom: space.fimDaLista },
   signControl: {
     minHeight: 74,
     marginTop: 16,

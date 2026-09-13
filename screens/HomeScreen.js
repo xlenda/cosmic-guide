@@ -1199,7 +1199,7 @@ export default function HomeScreen() {
           até a altura da janela quando é menor que ela, e não muda nada quando
           é maior, que é o caso de toda a outra Home. O paddingBottom continua
           intacto. */}
-      <ScrollView contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: space.fimDaLista, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         {/* A pill de sequência do hero usa o MESMO streakInfo do card de
             sequência logo abaixo (lib/streak.js) — antes vinha de
             coupleData.streak, uma contagem que NENHUM arquivo do app gravava:

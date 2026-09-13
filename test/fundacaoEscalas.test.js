@@ -19,14 +19,18 @@ const { colors, gradients, zodiacSigns, GOLD_THEME_KEY, space, type, vinheta } =
 const crescente = (arr) => arr.every((v, i) => i === 0 || v > arr[i - 1]);
 
 test('a escala de espaço é uma progressão crescente, sem degrau repetido', () => {
-  const degraus = [space.grudado, space.junto, space.dentro, space.bloco, space.entre, space.secao, space.ar, space.respiro];
+  const degraus = [space.grudado, space.junto, space.dentro, space.bloco, space.entre, space.secao, space.ar, space.respiro, space.rodape];
   assert.ok(degraus.every((d) => Number.isFinite(d) && d > 0), 'todo degrau é um número positivo');
   assert.ok(crescente(degraus), `os degraus têm que subir sempre: ${degraus.join(' ')}`);
   assert.strictEqual(new Set(degraus).size, degraus.length, 'dois degraus com o mesmo valor = um deles não serve pra nada');
 });
 
 test('os atalhos de tela apontam para degraus reais da escala', () => {
-  const degraus = new Set([space.grudado, space.junto, space.dentro, space.bloco, space.entre, space.secao, space.ar, space.respiro]);
+  // `rodape` (76) entrou na escala em 13/09/2026: é o degrau do pé da tela, o
+  // primeiro que passa dos 73px ocupados pela pílula flutuante da barra de
+  // abas. Sem ele, `fimDaLista` teria que ser número solto — e era exatamente
+  // isso que esta lei existe pra impedir.
+  const degraus = new Set([space.grudado, space.junto, space.dentro, space.bloco, space.entre, space.secao, space.ar, space.respiro, space.rodape]);
   assert.ok(degraus.has(space.tela), 'space.tela tem que ser um degrau da escala, não um número solto');
   assert.ok(degraus.has(space.fimDaLista), 'space.fimDaLista tem que ser um degrau da escala');
 });
