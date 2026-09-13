@@ -235,7 +235,17 @@ const styles = StyleSheet.create({
   // separar, o silêncio é o que diz "outro assunto".
   tituloSeguinte: { marginTop: space.ar },
   // O espaço entre as linhas É a divisória — o fio de 1px saiu com o card.
-  row: { flexDirection: 'row', alignItems: 'center', marginTop: space.bloco },
+  // `flex-start`, não `center` (13/09/2026 — medido nesta tela em 390x844):
+  // com `center` o ícone se alinha pelo MEIO do parágrafo inteiro, e estas
+  // linhas não têm todas uma altura só. Medido: texto de 48px deixava o ícone
+  // 8px abaixo da primeira linha, o de 72px 20px, e o parágrafo da Memória
+  // Cósmica (168px, sete linhas) 68px — o ícone boiando no meio do texto, sem
+  // nada ao lado da linha que ele deveria marcar. Alinhado pelo topo ele volta
+  // a apontar a primeira linha, que é o que a lista sempre quis dizer, e as
+  // linhas de uma linha só não mudam de lugar (ícone de 32 contra texto de 24:
+  // 4px de diferença, dentro do arredondamento). É o mesmo flex-start que
+  // AgirScreen, ChatScreen e BirthChartScreen já usam nas linhas ícone+texto.
+  row: { flexDirection: 'row', alignItems: 'flex-start', marginTop: space.bloco },
   rowIcon: {
     width: 32, height: 32, borderRadius: 10, backgroundColor: colors.accent + '22',
     justifyContent: 'center', alignItems: 'center', marginRight: space.dentro,

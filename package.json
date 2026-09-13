@@ -12,6 +12,7 @@
     "web": "expo start --web",
     "test": "node --max-old-space-size=4096 --require ./test/setup.js --test --test-concurrency=2 \"test/*.test.js\"",
     "test:e2e": "playwright test",
+    "build:assets": "node scripts/verificar-assets-build.js",
     "aso:validate": "node --require ./test/setup.js --test test/storeMetadata.test.js",
     "aso:export": "node play-store/metadata/export-listings.js",
     "aso:assets": "node play-store/assets/loja-shots.js --all",

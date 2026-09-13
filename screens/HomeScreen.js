@@ -1758,6 +1758,118 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </LinearGradient>
             </View>
+
+            {/* ═══ COMPATIBILIDADE DO CASAL — DE VOLTA À TELA ═══ (13/09/2026)
+
+                MESMO DEFEITO DA FRASE DO AMOR, UM ANDAR ABAIXO. Saiu no commit
+                62c1db4 ("Tira os blocos que viraram missão") e, ao contrário de
+                `personalSkyBlocos` e `proximosCeu` — que viraram mesmo missão e
+                por isso ficaram fora —, o dono pediu esta de volta. O motor
+                nunca parou: `compat` continuou sendo CALCULADO em todo render da
+                Home (L~726) e não era escrito em lugar nenhum. Medido no código
+                vivo, sem comentários: UMA ocorrência de `compat` no arquivo — a
+                própria definição. Zero uso. Sinastria completa rodando a cada
+                render pra jogar fora.
+
+                POR QUE AQUI, COLADO NA FRASE DO AMOR. É o MESMO assunto: casal.
+                A frase já fecha a grade do Casal, e a compatibilidade é a outra
+                metade da mesma conversa — os dois nomes que a pessoa digitou. Um
+                atrás do outro, o trecho lê como um bloco só sobre o par, em vez
+                de dois cartões do mesmo tema separados por uma lista de missões.
+
+                DENTRO DA FAIXA 3, e dentro do mesmo `gutterWrap` da frase. A
+                faixa 4 (epílogo) declara grude="ameixa" e conta com chão ameixa
+                logo acima pra tapar a fresta da onda; bloco solto entre faixas
+                cairia no fundo cru da página — foi o motivo registrado em 13/09
+                pra trazer as missões pra dentro, e vale igual aqui.
+
+                NÃO FABRICA. O estado cheio só existe com os DOIS signos salvos;
+                sem par, `compat` é null e cai no convite. Nunca uma porcentagem:
+                `compatPercent()` não foi renomeada, foi REMOVIDA do app (ver o
+                cabeçalho de lib/signs.js e "A DECISÃO DA PORCENTAGEM" em
+                lib/synastry.js). O que aparece é aspecto e categoria, que é o
+                que a tradição diz sobre os dois signos — não o futuro do casal.
+
+                QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026). O resumo em língua de
+                gente vem antes; "{aspecto} · {categoria}" desce e vira recibo do
+                que acabou de ser lido. Os dois signos continuam no topo porque
+                são a identificação do cartão — quem olha é quem digitou aqueles
+                nomes. Mesmo movimento de screens/CompatibilityScreen.js. */}
+            {compat ? (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.horoCard}
+                onPress={() => navigation.navigate(ROUTES.COMPATIBILITY)}
+                accessibilityRole="button"
+              >
+                <LinearGradient colors={gradients.card} style={styles.horoInner}>
+                  <View style={styles.horoHead}>
+                    {/* Os DOIS mascotes do par no chip (09/08/2026) — com arte, o
+                        casal vira personagens sobrepostos; sem, os emojis de
+                        sempre. Mesmo contrato de fallback do resto do pack. */}
+                    {mascoteDoSigno(coupleData.sa) && mascoteDoSigno(coupleData.sb) ? (
+                      <View style={styles.parMascotes}>
+                        <Image source={mascoteDoSigno(coupleData.sa)} style={styles.parMascote} resizeMode="cover" accessible={false} />
+                        <Image source={mascoteDoSigno(coupleData.sb)} style={[styles.parMascote, styles.parMascoteB]} resizeMode="cover" accessible={false} />
+                      </View>
+                    ) : (
+                      <View style={[styles.signChip, { backgroundColor: sign.color + '33' }]}>
+                        <Text style={[styles.signChipGlyph, { color: sign.color }]}>{compat.emojiA}{compat.emojiB}</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      {/* O TÍTULO TAMBÉM TRADUZ. O bloco original escrevia
+                          `coupleData.sa + coupleData.sb` cru, e esses campos são
+                          SEMPRE português (é o que o quiz grava). Em en/es o
+                          cartão ficava com "Gêmeos + Libra" coroando um corpo
+                          que dizia "Gemini and Libra" — medido no build de
+                          13/09/2026 nos três idiomas. É o mesmo defeito que
+                          lib/signs.js já tinha consertado no `titulo` em
+                          01/08/2026; aqui ele tinha sobrevivido. nomeDoSigno()
+                          já estava importado e é o que a saudação usa. */}
+                      <Text style={styles.horoSign}>{nomeDoSigno(coupleData.sa, lang)} + {nomeDoSigno(coupleData.sb, lang)}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                  </View>
+                  {/* `resumo`, não `texto`: a leitura inteira tem quatro frases
+                      (elemento, qualidades, modalidade, o que a fonte diz) e não
+                      cabe num cartão de Home. O resumo é uma linha e diz a mesma
+                      coisa sem prometer nada a mais. */}
+                  <Text style={styles.horoText}>{compat.resumo}</Text>
+                  <Text style={[styles.horoDates, styles.horoDatesRecibo]}>
+                    {t('home.compatAspect', {
+                      aspecto: t(CHAVES_DE_TRADUCAO.aspecto[compat.familia]),
+                      categoria: t(CHAVES_DE_TRADUCAO.categoria[compat.categoriaId]),
+                    })}
+                  </Text>
+                  <Text style={styles.horoLink}>{t('home.compatSeeMore')}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : (
+              /* SEM PAR NÃO É BURACO. Quem está solo vê o convite, não um cartão
+                 faltando nem um número chutado pra preencher espaço. */
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.horoCard}
+                onPress={() => navigation.navigate(ROUTES.QUIZ)}
+                accessibilityRole="button"
+              >
+                <LinearGradient colors={gradients.card} style={styles.horoInner}>
+                  <View style={styles.horoHead}>
+                    <View style={[styles.signChip, { backgroundColor: colors.accent + '33' }]}>
+                      <Ionicons name="heart-outline" size={22} color={colors.accent} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.horoSign}>{t('home.compatTitleEmpty')}</Text>
+                      <Text style={styles.horoDates}>{t('home.compatSubtitleEmpty')}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                  </View>
+                  <Text style={styles.horoText}>{t('home.compatTextEmpty')}</Text>
+                  <Text style={styles.horoLink}>{t('home.compatLinkEmpty')}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
           </View>
 
         {/* ═══ MISSÕES DE HOJE, DEPOIS DO CATÁLOGO ═══ (13/09/2026, pedido do

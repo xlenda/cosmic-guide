@@ -478,6 +478,22 @@ function langDoPedido(req) {
   return lang === "es" || lang === "en" ? lang : "pt";
 }
 
+// POR QUE ISTO EXISTE (achado ao vivo, 13/09/2026): as 10 rotas de IA caíam
+// todas em `console.error("[api/x] erro:", err.message)`. Quando a Anthropic
+// recusa, o SDK lança um erro TIPADO cujo `status` HTTP é a única coisa que
+// distingue "chave inválida/revogada" (401), "sem crédito" (400/403),
+// "sobrecarga" (529) e "limite estourado" (429) — e `err.message` sozinho
+// joga esse status fora. Resultado real: /api/chat e /api/dream devolviam 500
+// em produção e o log não dizia POR QUÊ, então não dava pra saber se era a
+// chave, o saldo ou a Anthropic fora do ar.
+// Não muda NADA do que o usuário recebe (a resposta continua sendo o mesmo
+// 500 genérico, sem vazar detalhe de infra — item 17 do checklist): só o log
+// do servidor passa a carregar o status.
+function logErroIA(rota, err) {
+  const status = err && (err.status || err.statusCode);
+  console.error(`[${rota}] erro:`, err && err.message, status ? `(HTTP ${status} da Anthropic)` : "");
+}
+
 const CHAT_MESSAGE_MAX_LENGTH = 1600;
 
 app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req, res) => {
@@ -532,7 +548,7 @@ app.post("/api/chat", aiLimiter, optionalAuth, aiQuota.gate("chat"), async (req,
         code: err.code,
       });
     }
-    console.error("[api/chat] erro:", err.message);
+    logErroIA("api/chat", err);
     res.status(500).json({ error: "falha ao gerar resposta" });
   }
 });
@@ -548,7 +564,7 @@ app.post("/api/palm", aiLimiter, optionalAuth, aiQuota.gate("palm"), async (req,
     countAiUsage("palm");
     res.json(reading);
   } catch (err) {
-    console.error("[api/palm] erro:", err.message);
+    logErroIA("api/palm", err);
     res.status(500).json({ error: "falha ao analisar a imagem" });
   }
 });
@@ -564,7 +580,7 @@ app.post("/api/coffee", aiLimiter, optionalAuth, aiQuota.gate("coffee"), async (
     countAiUsage("coffee");
     res.json(reading);
   } catch (err) {
-    console.error("[api/coffee] erro:", err.message);
+    logErroIA("api/coffee", err);
     res.status(500).json({ error: "falha ao analisar a imagem" });
   }
 });
@@ -580,7 +596,7 @@ app.post("/api/moles", aiLimiter, optionalAuth, aiQuota.gate("moles"), async (re
     countAiUsage("moles");
     res.json(reading);
   } catch (err) {
-    console.error("[api/moles] erro:", err.message);
+    logErroIA("api/moles", err);
     res.status(500).json({ error: "falha ao analisar a imagem" });
   }
 });
@@ -596,7 +612,7 @@ app.post("/api/foot", aiLimiter, optionalAuth, aiQuota.gate("foot"), async (req,
     countAiUsage("foot");
     res.json(reading);
   } catch (err) {
-    console.error("[api/foot] erro:", err.message);
+    logErroIA("api/foot", err);
     res.status(500).json({ error: "falha ao analisar a imagem" });
   }
 });
@@ -612,7 +628,7 @@ app.post("/api/face", aiLimiter, optionalAuth, aiQuota.gate("face"), async (req,
     countAiUsage("face");
     res.json(reading);
   } catch (err) {
-    console.error("[api/face] erro:", err.message);
+    logErroIA("api/face", err);
     res.status(500).json({ error: "falha ao analisar a imagem" });
   }
 });
@@ -634,7 +650,7 @@ app.post("/api/dream", aiLimiter, optionalAuth, aiQuota.gate("dream"), async (re
     countAiUsage("dream");
     res.json(reading);
   } catch (err) {
-    console.error("[api/dream] erro:", err.message);
+    logErroIA("api/dream", err);
     res.status(500).json({ error: "falha ao interpretar o sonho" });
   }
 });
@@ -654,7 +670,7 @@ app.post("/api/enhance-insight", aiLimiter, optionalAuth, aiQuota.gate("enhance-
     countAiUsage("enhance-insight");
     res.json(result);
   } catch (err) {
-    console.error("[api/enhance-insight] erro:", err.message);
+    logErroIA("api/enhance-insight", err);
     res.status(500).json({ error: "falha ao organizar o insight" });
   }
 });
@@ -982,7 +998,7 @@ app.post("/api/coffee-weekly-summary", aiLimiter, optionalAuth, aiQuota.gate("co
     countAiUsage("coffee-weekly-summary");
     res.json(summary);
   } catch (err) {
-    console.error("[api/coffee-weekly-summary] erro:", err.message);
+    logErroIA("api/coffee-weekly-summary", err);
     res.status(500).json({ error: "falha ao gerar a conclusão da semana" });
   }
 });
@@ -1019,7 +1035,7 @@ app.post("/api/weekly-insight", aiLimiter, optionalAuth, aiQuota.gate("weekly-in
     countAiUsage("weekly-insight");
     res.json(summary);
   } catch (err) {
-    console.error("[api/weekly-insight] erro:", err.message);
+    logErroIA("api/weekly-insight", err);
     res.status(500).json({ error: "falha ao gerar o insight da semana" });
   }
 });

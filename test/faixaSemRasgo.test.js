@@ -218,3 +218,122 @@ test('grude booleano continua valendo — as faixas antigas não podem mudar de 
     'sem checar TONS[grude] um `grude` string qualquer viraria cor inválida'
   );
 });
+
+// ---------------------------------------------------------------------------
+// A TERCEIRA FONTE, e a que sobrou viva: o CHAMADOR que esqueceu o nome do tom.
+// (13/09/2026 — fotografado na tela de Assinatura, em 390x844.)
+//
+// Os testes acima guardam a PEÇA: ela sabe pintar a cor da vizinha atrás da
+// onda quando `grude` nomeia um tom. Só que nada obrigava a TELA a passar esse
+// nome — e `grude` seco continua sendo `true`, que é truthy, encosta as duas
+// faixas e não pinta nada. O resultado é o defeito original de volta, com a
+// peça inteiramente correta.
+//
+// MEDIDO NO AR, e não deduzido: em screens/PlanosScreen.js a segunda faixa
+// (violeta, "o que entra") vinha com `grude` seco abaixo de uma faixa `ameixa`.
+// Entre a nota de moeda (termina em y=638) e o primeiro benefício (y=764)
+// havia 126px em que a onda (y 669-725) desenhava uma CUNHA PRETA de até 35px
+// de rgb(11,7,18) atravessando a largura inteira — que o dono viu como
+// "faixa roxa vazia no rodapé". screens/RituaisScreen.js tinha o mesmo engano
+// na forma condicional (`grude={!categoria}`).
+//
+// POR QUE UM TESTE: as OUTRAS ~45 chamadas do app já passavam o nome do tom
+// certo. Não era desconhecimento do padrão — eram duas que ficaram para trás
+// quando o parâmetro ganhou a forma nova, e ninguém tinha como ver isso lendo
+// o diff: `grude` sozinho é JSX perfeitamente válido e parece deliberado.
+//
+// PROVA POR MUTAÇÃO: troque `grude={TOM_OFERTA}` por `grude` em
+// PlanosScreen.js (ou `grude={!categoria && 'ameixa'}` por `grude={!categoria}`
+// em RituaisScreen.js) e este teste quebra nomeando o arquivo.
+
+/** Como cada <FaixaCurva> do arquivo declara o `grude`. */
+function grudesDeclarados(fonte) {
+  const achados = [];
+  const re = /<FaixaCurva\b[\s\S]*?>/g;
+  let m;
+  while ((m = re.exec(fonte)) !== null) {
+    const tag = m[0];
+    // `grude` só conta quando é a prop inteira: `grude=` com valor, ou `grude`
+    // seco seguido de espaço/fim-de-tag. O \b evita casar `grudeX`.
+    // O atributo JSX com aspas (grude="ameixa") é a forma mais comum e vem
+    // PRIMEIRO: casar `={...}` antes devolveria o miolo sem as aspas e um
+    // literal perfeitamente válido passaria a parecer identificador solto.
+    const aspas = tag.match(/\bgrude="([^"]*)"/);
+    const chaves = tag.match(/\bgrude=\{([\s\S]*?)\}/);
+    if (aspas) achados.push({ tag, valor: `'${aspas[1]}'`, seco: false });
+    else if (chaves) achados.push({ tag, valor: chaves[1].trim(), seco: false });
+    else if (/\bgrude\b(?!\s*=)/.test(tag)) achados.push({ tag, valor: 'true', seco: true });
+  }
+  return achados;
+}
+
+// AS TELAS DA MADRE FICAM DE FORA DESTE PORTÃO, e é dívida declarada, não
+// esquecimento (medido em 13/09/2026): madremaria tem 7 chamadas com `grude`
+// seco — AjustesScreen, AyudaScreen, MetodoScreen, PerfilScreen,
+// PrivacidadScreen e duas em TerminosScreen. Seis delas estão dentro de um
+// componente `Seccion({ tom })` reusado, cujas seções ALTERNAM noite/ameixa:
+// consertar exige passar o tom da seção ANTERIOR em cada chamador, um por um,
+// e isso é obra na Madre — outro app dentro do mesmo repo — não acabamento do
+// Cosmic. (AyudaScreen:567 já mostra a forma certa, `grude="noite"`: alguém
+// consertou uma e não voltou pras outras.)
+// ponytail: portão só no Cosmic; ampliar pra madremaria quando as Seccion
+// passarem a receber o tom da faixa de cima.
+const SO_COSMIC = (arq) => !arq.includes(`${path.sep}madremaria${path.sep}`);
+
+test('nenhuma tela passa `grude` seco: sem o NOME do tom de cima a onda recorta contra o preto', () => {
+  const culpados = [];
+  for (const arq of arquivosDeTela().filter(SO_COSMIC)) {
+    const fonte = fs.readFileSync(arq, 'utf8');
+    if (!fonte.includes('<FaixaCurva')) continue;
+    for (const { valor, seco } of grudesDeclarados(fonte)) {
+      // O que vale: uma string ('ameixa'), ou uma expressão que PRODUZ string
+      // no caminho em que gruda (`!categoria && 'ameixa'`), ou uma constante
+      // de tom do próprio arquivo (TOM_OFERTA = 'ameixa').
+      const nomeiaTom = /'[a-zç]+'|"[a-zç]+"|\b[A-Z][A-Z_0-9]*\b/.test(valor);
+      if (seco || !nomeiaTom) {
+        culpados.push(`${path.relative(raiz, arq)} -> grude={${valor}}`);
+      }
+    }
+  }
+  assert.deepEqual(
+    culpados,
+    [],
+    '`grude` sem o nome do tom da faixa de CIMA só encosta as duas caixas: a área ' +
+      'transparente acima da crista continua mostrando o fundo #0B0712 da tela, e sai a ' +
+      'cunha preta fotografada em 13/09/2026 na tela de Assinatura (35px atravessando a ' +
+      'largura inteira). Passe o tom da faixa anterior — grude="ameixa", grude={TOM_OFERTA} ' +
+      'ou grude={condicao && \'ameixa\'}:\n  ' + culpados.join('\n  ')
+  );
+});
+
+test('e o tom nomeado no `grude` existe de verdade em FAIXA_TONS', () => {
+  // O par do teste acima: `grude="ameixaa"` passaria lá (nomeia algo) e cairia
+  // no fallback null da peça, trazendo o preto de volta em silêncio.
+  // Os tons saem do TEXTO de FaixaCurva.js, não de um require: a peça importa
+  // react-native-svg, que não carrega sob o `node --test` deste projeto — e os
+  // testes acima já leem este mesmo arquivo como fonte.
+  const fonteFaixa = fs.readFileSync(path.join(raiz, 'components', 'FaixaCurva.js'), 'utf8');
+  const blocoTons = fonteFaixa.slice(fonteFaixa.indexOf('const TONS'), fonteFaixa.indexOf('export const FAIXA_TONS'));
+  const FAIXA_TONS = [...blocoTons.matchAll(/^\s{2}(\w+):\s*'rgba?\(/gm)].map((m) => m[1]);
+  assert.ok(FAIXA_TONS.length >= 4, `não li os tons de FaixaCurva.js (achei ${FAIXA_TONS.length})`);
+  const culpados = [];
+  for (const arq of arquivosDeTela()) {
+    const fonte = fs.readFileSync(arq, 'utf8');
+    if (!fonte.includes('<FaixaCurva')) continue;
+    for (const { valor } of grudesDeclarados(fonte)) {
+      // Só dá pra conferir literal; constante/condicional fica pro teste acima.
+      const lit = valor.match(/^'([a-zç]+)'$|^"([a-zç]+)"$/);
+      const nome = lit && (lit[1] || lit[2]);
+      if (nome && !FAIXA_TONS.includes(nome)) {
+        culpados.push(`${path.relative(raiz, arq)} -> grude="${nome}"`);
+      }
+    }
+  }
+  assert.deepEqual(
+    culpados,
+    [],
+    'tom inexistente no `grude`: TONS[grude] devolve undefined, corDeCima vira null e o ' +
+      'preto volta sem ninguém perceber. Tons válidos: ' + FAIXA_TONS.join(', ') + '\n  ' +
+      culpados.join('\n  ')
+  );
+});

@@ -11,9 +11,13 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 const { chromium } = require('playwright-core');
+const { verificarAssets } = require('./verificar-assets-build');
 
 const ROOT = path.resolve(process.argv[2] || 'deploy-vercel');
-const PORT = 9099;
+// Porta fixa colidia (EADDRINUSE) quando duas suítes rodavam ao mesmo tempo na
+// mesma máquina — falha barulhenta que não é regressão nenhuma. E2E_PORT deixa
+// uma segunda execução escolher outra porta sem tocar no script.
+const PORT = Number(process.env.E2E_PORT) || 9099;
 const BASE = `http://localhost:${PORT}/cosmic-guide/`;
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.ttf': 'font/ttf', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' };
@@ -146,6 +150,21 @@ async function openExploreExperience(page, testId) {
     console.error(`Build não encontrada em ${ROOT}/cosmic-guide/index.html`);
     process.exit(1);
   }
+  // [0] Assets no disco ANTES de subir o navegador: um .ttf ausente devolve o
+  // index.html com status 200 pelo fallback SPA (no vercel.json e no servidor
+  // acima), então nenhum cenário de navegador consegue enxergar esse defeito.
+  // A conferência tem que olhar o arquivo. Bug real: todo ícone virou quadrado
+  // vazio em produção (17/07/2026 e de novo em 13/09/2026).
+  console.log('\n[0] Assets da build: ícones não podem sumir em produção');
+  {
+    const problemas = verificarAssets(ROOT);
+    check(
+      'nenhuma referência a assets/node_modules/ e toda fonte existe no disco',
+      problemas.length === 0,
+      problemas.join(' | ')
+    );
+  }
+
   const server = await serve();
   const browser = await chromium.launch();
 

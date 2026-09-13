@@ -375,7 +375,12 @@ function PlanPicker({ selected, onSelect, precos }) {
 function HeroCena({ isCouple, title }) {
   return (
     <View style={styles.cenaWrap}>
-      <Image source={isCouple ? CENAS.onboarding : CENAS.amor} style={styles.cenaImg} resizeMode="cover" accessible={false} />
+      <Image
+        source={isCouple ? CENAS.onboarding : CENAS.amor}
+        style={[styles.cenaImg, !isCouple && styles.cenaImgSolo]}
+        resizeMode="cover"
+        accessible={false}
+      />
       {/* O fade fica como estava: é ele que mantém o título legível sobre o
           trecho claro do céu da arte. TENTEI tirá-lo e TENTEI terminá-lo no
           tom da faixa (12/09/2026) pra faixa poder subir por cima da arte —
@@ -651,8 +656,17 @@ function PlanosScreenWeb() {
             </ColunaLeitura>
           </FaixaCurva>
         )}
+        {/* grude={TOM_OFERTA}, não `grude` seco (13/09/2026 — medido em
+            390x844): acima da crista a caixa da onda é TRANSPARENTE, e o que
+            aparecia por trás dela era o #0B0712 do fundo da tela, não o chão da
+            faixa de cima. Deu uma cunha PRETA de até 35px atravessando a
+            largura inteira entre o preço e o que entra — a "faixa roxa vazia"
+            do rodapé. `grude` com o NOME do tom de cima pinta esse trecho com a
+            cor da vizinha (ver components/FaixaCurva.js), e a curva volta a
+            recortar contra a faixa anterior em vez de contra o vazio. Sai da
+            constante pra não descolar do `tom` da faixa de cima. */}
         {!aberto && (
-          <FaixaCurva tom="violeta" semente="entra" grude style={styles.faixa}>
+          <FaixaCurva tom="violeta" semente="entra" grude={TOM_OFERTA} style={styles.faixa}>
             {/* SEM TÍTULO de propósito: a troca de chão É o corte. Um
                 "O que entra" aqui seria copy nova em três idiomas pra dizer o
                 que a faixa já diz sozinha — e o portão de paridade EN/PT/ES
@@ -1083,6 +1097,25 @@ const styles = StyleSheet.create({
   // segunda linha do título.
   cenaWrap: { marginTop: -20, marginHorizontal: -20, marginBottom: -28 },
   cenaImg: { width: '100%', height: 180 },
+  // A MOLDURA ASSADA DA cena-amor.jpg (13/09/2026 — medido no pixel, não no
+  // olho). A arte do herói solo não é full-bleed como as outras: o gerador
+  // deixou uma borda LISA de 63px de lavanda claro (rgb(201,204,245)) e cantos
+  // arredondados em volta do quadro escuro, dentro do próprio JPEG 640x640.
+  // Com `cover` num box de 390x180 o corte é vertical e a largura inteira
+  // entra — então essa borda aparecia como DUAS BARRAS CLARAS nas laterais do
+  // herói, o "cinza sobre cinza" em volta do título. A cena de casal
+  // (cena-onboarding.jpg) não tem moldura nenhuma e por isso já estava certa;
+  // por isso o estilo é só do solo.
+  //
+  // 63/640 = 9,8% de cada lado, então 125% de largura centrada joga a moldura
+  // pra fora dos dois lados com folga (sobra ~2,6% de arte real cortada, que é
+  // céu vazio). Em vez de reexportar o JPEG: o MESMO arquivo é a camada de
+  // baixo da frase do dia na Home, onde a moldura nunca apareceu (fica coberta
+  // pelo fundo do dia), e recortar o asset mexeria numa tela que outro agente
+  // está editando agora.
+  // ponytail: escala fixa medida neste asset; se a arte for reexportada
+  // sem moldura, apagar este estilo em vez de reajustar o número.
+  cenaImgSolo: { width: '125%', marginLeft: '-12.5%' },
   cenaFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 64 },
   heroTitle: {
     position: 'absolute', left: 24, right: 24, bottom: 8,

@@ -463,7 +463,14 @@ export default function RituaisScreen() {
             <FaixaCurva
               tom="noite"
               semente="categorias"
-              grude={!categoria}
+              // O NOME DO TOM, não `true` (13/09/2026): booleano só encosta as
+              // duas faixas — o trecho transparente acima da crista continua
+              // mostrando o fundo PRETO da tela, e sai a mesma cunha escura
+              // medida na tela de Assinatura. A faixa de cima é `ameixa`, então
+              // é ela que tem que ser pintada atrás da onda. A condição não
+              // muda: sem categoria, gruda na de hoje; dentro de uma, esta é a
+              // primeira da tela e não gruda em nada.
+              grude={!categoria && 'ameixa'}
               style={styles.faixa}
               // Dentro de uma categoria a faixa de hoje não é desenhada e ESTA
               // vira a primeira da tela — então é ela que tem que largar o

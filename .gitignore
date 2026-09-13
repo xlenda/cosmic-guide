@@ -68,3 +68,6 @@ _*-tmp.js
 # so saiu daqui. Fonte e `dist/` (ja ignorado na linha 2) e o deploy usa
 # deploy-vercel/ — nenhum `dist-<qualquer coisa>/` e fonte, nunca foi.
 dist-*/
+# Mesmo motivo, outro prefixo: deploy-icones/ apareceu em 13/09 — o padrao
+# so cobria dist-*, e a pasta de montagem de deploy de agente escapou.
+deploy-*/

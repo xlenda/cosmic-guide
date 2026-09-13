@@ -430,3 +430,78 @@ test('a faixa não cobra DUAS VEZES pela entrada: a caixa da onda já é o paddi
     'paddingTop `secao` + a caixa da onda é a cobrança dupla medida em 12/09/2026'
   );
 });
+
+// =====================================================================
+// O CARD DO CARROSSEL NÃO PODE SER MAIS LARGO QUE A CAIXA QUE O MOSTRA
+// =====================================================================
+
+test('o carrossel do horóscopo MEDE a largura do trilho — não a calcula da janela', () => {
+  // O DEFEITO QUE ISTO IMPEDE (13/09/2026, medido fotografando a build em
+  // 390x844). A largura do card saía de `Dimensions.get('window').width - 40`:
+  // um palpite sobre o pai, escrito em 11/09 quando o carrossel morava direto
+  // no chão da Home. Em 12/09 a reforma de diagramação o enfiou DENTRO da
+  // FaixaCurva 'você hoje', que tem `paddingHorizontal: space.tela` (16), e a
+  // conta virou mentira. Medido na build com o defeito:
+  //
+  //   trilho do carrossel  x=36  VIEWPORT 318
+  //   card                 x=36  largura  350   -> 32px fora
+  //
+  // O ScrollView corta o que passa: 32px de todo card sumiam, o texto era
+  // fatiado no MEIO DA PALAVRA ("a tabela dos domicílio", "não é a...") e a
+  // borda direita do card nem aparecia. O dono viu e apontou.
+  //
+  // POR QUE O PORTÃO É ESTE, e não "subtraia mais 32". Descontar a faixa na
+  // conta conserta hoje e quebra de novo no dia em que o carrossel mudar de
+  // pai ou a faixa mudar de padding — foi exatamente assim que este bug
+  // nasceu. A única forma que não pode mentir é PERGUNTAR ao layout.
+  const fonte = leia('components/CarrosselHoroscopo.js');
+  // Só o CÓDIGO, sem os comentários: a explicação acima cita
+  // `Dimensions.get('window')` de propósito, pra dizer o que NÃO fazer, e um
+  // portão que lesse a prosa acusaria a própria documentação.
+  const codigo = fonte
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .filter((l) => !l.trim().startsWith('//'))
+    .join('\n');
+
+  assert.doesNotMatch(
+    codigo,
+    /Dimensions/,
+    'a largura do card voltou a ser calculada da JANELA — é o palpite sobre o pai que cortou o texto em 12/09'
+  );
+  assert.match(
+    fonte,
+    /onLayout=\{\(e\) => setLargura\(/,
+    'o trilho parou de medir a própria largura; sem a medida o card volta a ser um chute'
+  );
+  assert.match(
+    fonte,
+    /width: largura \|\| '100%'/,
+    'o card parou de usar a largura MEDIDA — qualquer padding no pai volta a cortá-lo'
+  );
+  // Sem isto, `x / largura` com largura 0 vira NaN e a bolinha ativa some.
+  assert.match(
+    fonte,
+    /if \(!largura\) return;/,
+    'o divisor de página deixou de se proteger do zero do primeiro quadro'
+  );
+});
+
+test('o carrossel do horóscopo só trunca em linha inteira, nunca no meio da palavra', () => {
+  // `numberOfLines` corta com reticência no FIM da última linha — truncamento
+  // honesto. O corte no meio da palavra que o dono viu NÃO vinha daqui: vinha
+  // do card estourar a caixa (teste acima). Este portão garante que o único
+  // truncamento que resta continua sendo o honesto.
+  const fonte = leia('components/CarrosselHoroscopo.js');
+  assert.match(fonte, /styles\.titulo\} numberOfLines=\{1\}/, 'o título do card perdeu o limite de linhas');
+  assert.match(fonte, /styles\.texto\} numberOfLines=\{3\}/, 'o corpo do card perdeu o limite de linhas');
+});
+
+test('o carrossel do horóscopo não escreve número cru de espaçamento', () => {
+  // A lei da fundação: todo espaçamento aponta pra um degrau de theme.js.
+  // Este arquivo nasceu em 11/09 com 20/18/12/16/10/6/4 escritos à mão.
+  const fonte = leia('components/CarrosselHoroscopo.js');
+  const estilos = fonte.slice(fonte.indexOf('StyleSheet.create('));
+  const crus = estilos.match(/(?:margin|padding|gap)[A-Za-z]*: \d+/g) || [];
+  assert.deepEqual(crus, [], 'voltou número cru de espaçamento: ' + crus.join(', '));
+});

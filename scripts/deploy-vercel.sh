@@ -53,13 +53,13 @@ echo "== expo export --platform web =="
 rm -rf dist deploy-vercel
 npx expo export --platform web
 
-if [ -d "dist/assets/node_modules" ]; then
-  echo "== corrigindo pastas 'node_modules' dentro de assets/ (ignoradas pela Vercel) =="
-  mv dist/assets/node_modules dist/assets/_modules
-  grep -rl 'assets/node_modules/' dist/_expo/static/js/web/*.js | while read -r f; do
-    sed -i 's#assets/node_modules/#assets/_modules/#g' "$f"
-  done
-fi
+# Uma fonte de verdade pro passo (a mesma funcao que o portao [0] do e2e
+# confere e que `npm run build:assets` aplica numa build montada a mao). Antes
+# isso era um mv+sed solto aqui — quem montasse a build fora deste script
+# reescrevia o passo de memoria e ja publicou o app com todo icone virando
+# quadrado vazio (17/07/2026 e de novo em 13/09/2026).
+echo "== corrigindo pastas 'node_modules' dentro de assets/ (ignoradas pela Vercel) =="
+node scripts/verificar-assets-build.js dist --corrigir
 
 echo "== montando estrutura aninhada (cosmic-guide/ + redirect na raiz) =="
 mkdir -p deploy-vercel/cosmic-guide
