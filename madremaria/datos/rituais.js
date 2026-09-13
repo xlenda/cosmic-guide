@@ -143,13 +143,13 @@
 //     padrao de falar PELA outra pessoa, e num app sobre um vinculo que nao
 //     fechou a leitura errada e a primeira que ocorre. Foi reescrita.
 //
-//     Hoje ha as duas coisas, e as duas sao necessarias: test/plano.test.js
+//     Hoje ha as duas coisas, e as duas sao necessarias: test/madremaria-plano.test.js
 //     varre este arquivo inteiro com sugiereContacto(), e ritualSeguroDoDia()
 //     (lib/plano.js) passa os campos visiveis pela rede em runtime quando o
 //     contato e duro ou ha bloqueio — porque o teste protege o texto de hoje e a
 //     rede protege a linha que alguem acrescentar aqui daqui a tres meses.
 //
-// E valem as gerais que test/copy.test.js cobra: sem prova social inventada,
+// E valem as gerais que test/copy-promessa-app-inteiro.test.js cobra: sem prova social inventada,
 // sem alegacao de saude (nenhum destes gestos "acalma", "trata" ou "alivia"
 // coisa nenhuma — o texto descreve o gesto e para), sem assumir genero de quem
 // esta do outro lado, sem punir falta, sem cor literal fora do theme.js.
@@ -335,7 +335,7 @@ const RITUAIS_BASE = [
    * ATENCAO AO TEXTO DESTE AQUI, que e onde e mais facil escorregar: ele NAO
    * acalma, NAO alivia, NAO trata e NAO organiza pensamento nenhum. Descrever
    * efeito no corpo ou na mente e alegacao de saude — reprova em
-   * test/copy.test.js e reprova na ficha da loja. O texto diz o que ela FAZ com
+   * test/copy-promessa-app-inteiro.test.js e reprova na ficha da loja. O texto diz o que ela FAZ com
    * as maos e com o telefone, e para por ai.
    *
    * A "contencao" do nome tambem nao e moral: a regra e sobre o aparelho ficar

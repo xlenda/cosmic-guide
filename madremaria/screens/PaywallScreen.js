@@ -123,7 +123,6 @@ import { t } from '../datos/textos';
 import { proximaLuaNova } from '../lib/proximaLua';
 import { ACCESO_LIBRE, MOTIVO_SIN_BACKEND, comprar, restaurar } from '../lib/suscripcion';
 import { NOMBRE_ABAS } from '../navegacion';
-import { RUTAS } from '../routes';
 import { colores, espacio, familias, radio, sombra } from '../theme';
 
 /* =================================================================================

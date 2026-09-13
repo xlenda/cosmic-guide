@@ -44,7 +44,7 @@
 // ESTE ARQUIVO NAO IMPORTA react-native — DE PROPOSITO
 // ===========================================================================
 // So `react`. Assim `indiceEm` e `deveVibrar` rodam sob `node --test` sem
-// nenhum mock de RN, e test/profunda.test.js consegue provar a matematica da
+// nenhum mock de RN, e test/madremaria-profunda.test.js consegue provar a matematica da
 // sincronia com numeros de verdade. O haptico, que precisa de Platform e de
 // expo-haptics, mora em components/TextoNoRitmo.js — aqui fica so a REGRA dele,
 // que e a parte que pode dar errado em silencio.

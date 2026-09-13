@@ -15,6 +15,13 @@ import { colors, space, type, zodiacSigns } from '../theme';
 import ColunaLeitura from '../components/ColunaLeitura';
 import FaixaCurva from '../components/FaixaCurva';
 
+// Lado do medalhão da constelação (a arte de cada porta). Vive aqui, e não
+// cravado dentro do StyleSheet, porque TRÊS medidas dependem dele: o recuo
+// que o centra no trilho, o raio da arte por dentro da borda, e — por
+// tabela — a margem do próprio trilho (`sectionRail`), que tem de ser
+// `space.tela + MEDALHAO / 2` pra arte não sair da calha da tela.
+const MEDALHAO = 64;
+
 const READING_KEYS = new Set([
   'horoscope',
   'birthchart',
@@ -420,10 +427,26 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: { ...type.apoio, color: colors.textMuted, marginTop: space.junto },
   // A trilha das linhas recupera a margem lateral que saiu do container.
+  //
+  // `space.tela + MEDALHAO / 2` (= 48) DESDE 13/09/2026 — antes era
+  // `space.ar - space.bloco + space.junto` (40), e os 8px de diferença
+  // jogavam a arte pra FORA da margem da tela. MEDIDO em 390pt: com o
+  // trilho em 40, o medalhão (64 de largura, centrado nele) começava em
+  // x=8 — metade da calha de 16 que TODO o resto da tela respeita (o
+  // título da seção mede x=16). A arte ficava cortada pela borda esquerda
+  // do aparelho.
+  //
+  // A conta é uma só: o medalhão é centrado na borda do trilho, então a
+  // borda tem que ficar a meio medalhão da calha. Escrita como conta, e não
+  // como degrau, porque é EXATAMENTE isso que se quebrou aqui: nasceu de
+  // somar três degraus quando o medalhão media 42 (10/09/2026, ver
+  // `constellationPoint`) e, quando ele foi pra 64, o centro foi mantido e a
+  // BORDA saiu da calha. Manter o centro era o invariante errado; o
+  // invariante é a calha. Agora mudar MEDALHAO move o trilho junto.
   sectionRail: {
     borderLeftWidth: 1,
     borderLeftColor: colors.gold + '45',
-    marginLeft: space.ar - space.bloco + space.junto,
+    marginLeft: space.tela + MEDALHAO / 2,
     marginRight: space.tela,
     paddingLeft: space.bloco,
   },
@@ -441,11 +464,19 @@ const styles = StyleSheet.create({
   },
   // 64px, não 42: com a arte pintada de 10/09/2026 dentro, o medalhão antigo
   // reduzia a ilustração a uma mancha escura — o desenho só se lê a partir
-  // desse tamanho. marginLeft acompanha pra manter o centro na mesma trilha.
+  // desse tamanho.
+  //
+  // O marginLeft é DERIVADO, não escolhido (13/09/2026). O conteúdo da linha
+  // começa em `sectionRail.paddingLeft` (16) depois da borda do trilho; para
+  // o medalhão ficar centrado NA borda, ele tem que recuar esse padding mais
+  // metade da própria largura: -(16 + 64/2) = -48. Era -49 cravado na mão —
+  // 1px fora do centro, e sem nada que ligasse o número ao tamanho do
+  // medalhão. Agora quem mudar MEDALHAO leva o recuo junto, e o trilho
+  // (`space.ar`) já garante que a borda esquerda pouse na calha de 16.
   constellationPoint: {
-    width: 64,
-    height: 64,
-    marginLeft: -49,
+    width: MEDALHAO,
+    height: MEDALHAO,
+    marginLeft: -(space.bloco + MEDALHAO / 2),
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',

@@ -148,7 +148,7 @@ const SIN_PARAMETROS = Object.freeze({});
  * AS TRES MISSOES QUE ESTA TELA COMPROVA
  *
  * Os ids sao os de lib/missoes.js, e o campo `prova` de cada entrada de la aponta
- * este arquivo em texto. O portao de test/gamificacao.test.js abre o arquivo
+ * este arquivo em texto. O portao de test/madremaria-gamificacao.test.js abre o arquivo
  * nomeado no `prova` e exige encontrar o id junto de `completarMissao` — porque
  * missao ativa sem tela que a prove e o bug que o missions.js do Cosmic Guide
  * registrou, e ele nao aparece como erro: aparece como uma lista de tarefas que
@@ -498,7 +498,7 @@ export default function SintesisScreen({
   }, [navigation, onGuardar]);
 
   /* Sem parametro de retorno de proposito. A PaywallScreen aceita um, mas o nome
-   * dessa chave cai no padrao de promessa de desfecho do test/copy.test.js e
+   * dessa chave cai no padrao de promessa de desfecho do test/copy-promessa-app-inteiro.test.js e
    * escreve-la aqui abortaria o build. Nao faz falta: o paywall e EMPILHADO por
    * cima desta tela, entao a saida dele volta para a leitura por goBack() sem
    * ninguem precisar dizer para onde. */

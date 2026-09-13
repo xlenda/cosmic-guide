@@ -407,7 +407,7 @@ export function notaDoAcesso(clave, profunda) {
  * A missao que ESTA tela comprova, e a unica escrita de gamificacao do arquivo.
  *
  * O id e o de lib/missoes.js, onde o `prova` daquela entrada aponta este arquivo
- * em texto — e o portao de test/gamificacao.test.js abre o arquivo nomeado ali e
+ * em texto — e o portao de test/madremaria-gamificacao.test.js abre o arquivo nomeado ali e
  * exige achar este id junto de `completarMissao`. Sem essa chamada a missao
  * aparece na lista das tres de hoje e nunca fecha, que e o bug que o missions.js
  * do Cosmic Guide registrou.

@@ -539,7 +539,7 @@ export function ganharFichas(motivo, dia) {
  * ser feita a ninguem. A regra herdada do Cosmic Guide e essa: recompensa que
  * nao existe nao entra no catalogo, e uma que nao tem EFEITO e o mesmo caso.
  *
- * O portao nao e este comentario: test/gamificacao.test.js amarra
+ * O portao nao e este comentario: test/madremaria-gamificacao.test.js amarra
  * FICHAS_ACTIVAS a existencia do efeito. Ligar a flag sem implementar a reabertura
  * do dia deixa o teste vermelho — que e a unica defesa que sobrevive ao dia em
  * que alguem quiser "so ver como fica".

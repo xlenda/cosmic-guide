@@ -99,7 +99,7 @@
 //    mao falava pela outra pessoa ("ate onde ela vai") e ninguem media.
 //    Por isso o import e `ritualSeguroDoDia` (lib/plano.js) e nunca `ritualDoDia`
 //    (lib/rituaisRotativos.js): trocar um pelo outro aqui reabre o buraco sem
-//    mudar uma linha de layout, e test/plano.test.js confere este import.
+//    mudar uma linha de layout, e test/madremaria-plano.test.js confere este import.
 //
 // ===========================================================================
 // A CHAVE DE DISCO — e por que ela e a UNICA coisa que esta tela grava

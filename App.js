@@ -488,7 +488,17 @@ const linking = {
       // URL estável da quarta aba na web. A raiz é o hub de salas; o feed
       // anterior continua acessível em /seguindo e as regras em /diretrizes.
       [ROUTES.COMMUNITY_TAB]: {
-        path: 'comunidade',
+        // A BASE DO DEPLOY TAMBÉM VALE AQUI (13/09/2026). Na web o useLinking
+        // recebe o PATHNAME INTEIRO e não aplica `prefixes` — é exatamente por
+        // isso que o HOME_TAB acima carrega 'cosmic-guide' no path. Esta aba
+        // tinha só 'comunidade', então o casamento era contra
+        // '/cosmic-guide/comunidade' e falhava: as TRÊS URLs da Comunidade
+        // (/comunidade, /seguindo, /diretrizes) caíam na Home em produção.
+        // Medido no navegador: '/comunidade' abria o hub e
+        // '/cosmic-guide/comunidade' — a URL de verdade — mostrava a Home.
+        // O portão que existia (test/communityNavigation.test.js) só conferia
+        // o TEXTO 'comunidade' no fonte, então passava com o link morto.
+        path: Platform.OS === 'web' ? 'cosmic-guide/comunidade' : 'comunidade',
         screens: {
           [ROUTES.COMMUNITY_MAIN]: '',
           [ROUTES.SOCIAL]: 'seguindo',

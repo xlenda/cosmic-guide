@@ -8,7 +8,7 @@
 //
 //   · O GENERO DE QUEM ESTA DO OUTRO LADO — a pessoa por quem ela sente alguma
 //     coisa. NUNCA e assumido, NUNCA e perguntado e nunca vai ser coletado. Em
-//     todo o produto aquilo e "essa pessoa", e test/copy.test.js reprova o
+//     todo o produto aquilo e "essa pessoa", e test/copy-promessa-app-inteiro.test.js reprova o
 //     deploy que escrever "ele te ama" ou "a namorada dele". Nada neste arquivo
 //     afrouxa aquilo: as duas regras convivem inteiras.
 //

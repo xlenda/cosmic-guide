@@ -163,7 +163,7 @@ export { AJUSTES_POR_DEFECTO, CLAVE_AJUSTES, leerAjustes };
  * amorosa — a linha do dia 1 que o dia 7 devolve. Se esta chave ficar de fora
  * da lista, "Borrar todo" deixa esse texto no aparelho e a politica de
  * privacidade da ficha de loja vira declaracao falsa. Coberto por
- * test/ritual.test.js.
+ * test/madremaria-ritual.test.js.
  *
  * 'missoes' (lib/missoes.js) guarda so { dia, feitas: [id] } das tres missoes
  * sorteadas pela data de hoje — no maximo tres ids e uma data, nunca mais que
@@ -226,11 +226,11 @@ export { AJUSTES_POR_DEFECTO, CLAVE_AJUSTES, leerAjustes };
  * do que pulou, e a tela de privacidade passaria a mentir.
  *
  * ESCRITA COMO LITERAL, e nao importada de la, pelo mesmo motivo de todas as
- * outras: o portao de test/gamificacao.test.js le esta lista PARSEANDO A FONTE
+ * outras: o portao de test/madremaria-gamificacao.test.js le esta lista PARSEANDO A FONTE
  * deste arquivo, e so resolve string literal ou `const CLAVE_X = '...'`
  * declarada aqui. Um identificador importado sai da lista como chave que o
  * portao nao consegue vigiar — e ele derruba o build dizendo isso. Quem amarra o
- * literal ao dono da chave e test/entrada.test.js, que confere esta lista contra
+ * literal ao dono da chave e test/madremaria-entrada.test.js, que confere esta lista contra
  * o CLAVE_ENTRADA de lib/entrada.js: renomear em um lado sem o outro falha.
  *
  * 'sinastria' (lib/sinastria.js) e o signo da pessoa amada — UM entre doze,

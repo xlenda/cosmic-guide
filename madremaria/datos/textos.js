@@ -53,7 +53,7 @@
 // ===========================================================================
 // CONTRATO DE COPY (o mesmo de theme.js — aqui ele e o proprio conteudo)
 // 1. Nunca prometer desfecho: nenhum texto diz o que a outra pessoa fara.
-//    A lista literal de verbos proibidos esta em test/copy.test.js, que e quem
+//    A lista literal de verbos proibidos esta em test/copy-promessa-app-inteiro.test.js, que e quem
 //    aborta o deploy. Todo texto descreve o que a carta mostra e termina em uma
 //    acao da USUARIA.
 // 2. Zero prova social inventada: sem porcentagem de usuarias, sem contador de
@@ -68,6 +68,8 @@
 // 7. Portugues do Brasil, tratamento por VOCE. Nunca "tu", nunca "senhora", nunca apelido.
 // 8. Nenhum hex aqui: cor sai de theme.js. Este arquivo so tem palavra.
 // ===========================================================================
+
+import { SUPPORT_EMAIL } from '../../lib/supportContact.js';
 
 const congelar = (obj) => {
   Object.keys(obj).forEach((k) => {
@@ -168,7 +170,7 @@ export const PT = congelar({
    *      inteiro, e a mais facil de descobrir: duas pessoas lado a lado.
    *   2. NAO REPETIR A PREVISAO DO AUDIO. O audio do Cavaleiro termina em "algo
    *      ira vir em sua direcao". E previsao, o app nao faz previsao e
-   *      test/copy.test.js aborta o build por isso. Nenhuma chave deste bloco
+   *      test/copy-promessa-app-inteiro.test.js aborta o build por isso. Nenhuma chave deste bloco
    *      repete aquela frase, e nenhuma promete desfecho para compensar.
    *   3. DIZER QUE O TEXTO BASTA. Quem esta sem fone le tudo e nao perde nada:
    *      'entrada.audioNota' e a linha que impede o audio de virar conteudo
@@ -383,7 +385,7 @@ export const PT = congelar({
    * Este bloco e o substituto do "92% de los usuarios" do molde. No lugar de prova
    * social inventada entra um fato historico verificavel — obra, autor e ano —
    * renderizado com o estilo tipo.fuente de theme.js.
-   * Os fatos em si moram em datos/hechos.js, no formato que test/contenido.test.js
+   * Os fatos em si moram em datos/hechos.js, no formato que test/madremaria-contenido.test.js
    * ja cobra: HECHOS['major-00'] = { anios, titular, cuerpo, fuente }, com a fonte
    * carregando obra, autor e ano de 4 digitos. Aqui fica so o enquadre. */
   'hecho.sobreceja': 'DADO VERIFICÁVEL',
@@ -607,7 +609,7 @@ export const PT = congelar({
     'Sorteada agora, entre os 22 arcanos maiores. Ninguém escolheu por você, nem nós. A cada dia sai outra.',
 
   'ritual.pregunta.rotulo': 'A PERGUNTA DE HOJE',
-  /* Era 'Escreva aqui, do seu jeito', e o portao do ritual (test/ritual.test.js,
+  /* Era 'Escreva aqui, do seu jeito', e o portao do ritual (test/madremaria-ritual.test.js,
    * agora varrendo TAMBEM este bloco) reprovou com razao: `sugiereContacto()` le
    * o imperativo "escreva" como verbo de saida — o mesmo verbo de "escreva pra
    * ela". Aqui ele significava o contrario, mas um portao que aprende excecoes
@@ -809,10 +811,17 @@ export const PT = congelar({
   'perfil.suscripcion.gestionar': 'Gerenciar',
   'perfil.suscripcion.gestionarNota':
     'Abre a sua conta da loja: é lá que se troca o plano ou se cancela, sem falar com ninguém e sem explicar por quê.',
+  /* SEM NOMEAR LOJA (13/09/2026). Estas duas linhas diziam "App Store ou
+   * Google Play". Dentro do Cosmic Guide quem cobra e a Hotmart na web e o
+   * Play Billing no app nativo — "App Store" nao existe no dicionario do
+   * Cosmic. Nomear a plataforma errada numa tela de assinatura manda a pessoa
+   * procurar o cancelamento no lugar em que ele nao esta. A redacao nova
+   * aponta pra onde a assinatura vive sem cravar um nome que muda por
+   * plataforma. */
   'perfil.suscripcion.gestionarError':
-    'Não deu para abrir a loja daqui. Ela está nos ajustes da sua conta da App Store ou da Google Play.',
+    'Não deu para abrir daqui. A sua assinatura fica na conta da plataforma onde você comprou.',
   'perfil.suscripcion.gestionarWeb':
-    'A assinatura é administrada na loja onde você comprou: App Store ou Google Play.',
+    'A assinatura é administrada onde você comprou, na conta da plataforma de pagamento.',
   'perfil.restaurar.ok': 'Pronto. A sua compra ficou ativa neste telefone.',
   'perfil.restaurar.sinTienda':
     'Ainda não há loja conectada, então não há compra nenhuma para restaurar. Nada do que é seu mudou.',
@@ -928,25 +937,38 @@ export const PT = congelar({
   'paywall.boton': 'Abrir as treze luas',
   'paywall.restaurar': 'Restaurar compra',
   'paywall.salida': 'O que você já abriu continua seu.',
+  /* Mesma correcao de 'perfil.suscripcion.gestionar*' (13/09/2026). */
   'paywall.comoCancelar':
-    'Cancela quando você quiser, pela sua conta da App Store ou da Google Play, sem falar com ninguém e sem explicar por quê. O que você já pagou fica ativo até o fim do período.',
+    'Cancela quando você quiser, pela sua conta na plataforma onde comprou, sem falar com ninguém e sem explicar por quê. O que você já pagou fica ativo até o fim do período.',
 
   /* --- LEGAL (comum as duas telas de documento) ----------------------------------
    * Duas chaves partilhadas por PrivacidadScreen e TerminosScreen. Ficam fora dos
    * dois blocos de proposito: a caixa de contato e a versao sao a MESMA coisa nas
    * duas telas, e duplica-las e o jeito classico de uma ficar desatualizada. */
 
-  // PENDENTE ANTES DE PUBLICAR: esta caixa ainda NAO EXISTE. A revisao da App
-  // Store e da Google Play escreve para este endereco, e um retorno de erro
-  // (bounce) e recusa direta. Mudar aqui — e o unico lugar onde ele vive.
-  // O endereco agora acompanha o nome novo do app: um app chamado Fio Vermelho
-  // que pede para escrever para @hilorojo.app entrega a traducao na tela de
-  // Termos. Mas TROCAR O TEXTO NAO CRIA A CAIXA: antes de submeter e obrigatorio
-  // registrar fiovermelho.app, apontar o MX e enviar um e-mail de teste que
-  // chegue e possa ser respondido. Enquanto isso nao estiver feito, o app tem um
-  // canal de suporte que so parece existir — e a ficha nao pode prometer suporte
-  // por e-mail (ver play-store/ASO-ESTRATEGIA.md, secao 7).
-  'legal.correo': 'contato@fiovermelho.app',
+  // O CANAL DE SUPORTE E O DO APP HOSPEDEIRO (13/09/2026).
+  //
+  // Ate hoje esta chave dizia 'contato@fiovermelho.app' — sobra do tempo em
+  // que a Madre Maria era um app avulso chamado Fio Vermelho, com dominio
+  // proprio. Depois da fusao ela nao e mais um app: e um modulo dentro do
+  // Cosmic Guide, instalado sob a ficha do Cosmic Guide, e quem escreve para
+  // o suporte esta escrevendo para o Cosmic Guide.
+  //
+  // Pior que desatualizado, estava MORTO: fiovermelho.app devolve NXDOMAIN
+  // (conferido em 13/09/2026 contra 8.8.8.8) — o dominio nao existe, nao e so
+  // falta de MX. O endereco aparecia na AyudaScreen como mailto tocavel e
+  // dentro dos Termos; toda mensagem voltava com erro permanente, inclusive a
+  // do revisor da loja, que e recusa direta da ficha.
+  //
+  // Agora vem de lib/supportContact.js, o unico lugar do repo onde o canal de
+  // contato mora. Trocar o endereco passa a ser uma linha, nao uma cacada em
+  // dois apps.
+  //
+  // ⚠️ PENDENTE DO DONO, E NAO E CODIGO: cosmicguide.cloud existe mas ainda
+  // NAO TEM registro MX (conferido no mesmo dia, no nameserver autoritativo).
+  // A caixa nao recebe. O passo a passo esta no cabecalho de
+  // lib/supportContact.js — sao registros DNS, nada aqui destrava isso.
+  'legal.correo': SUPPORT_EMAIL,
   'legal.version': 'Madre Maria · versão 2 · setembro de 2026',
 
   /* --- PRIVACIDAD ----------------------------------------------------------------
@@ -970,9 +992,21 @@ export const PT = congelar({
    * signo" saiu de `no.lineas`. Uma politica de privacidade que ficou para tras
    * nao e um texto velho: e uma declaracao falsa numa ficha de loja. */
   'privacidad.sobreceja': 'PRIVACIDADE',
-  'privacidad.titulo': 'Tudo fica neste telefone',
+  /* O TITULO E A ENTRADA, DEPOIS DA SOLDA (13/09/2026).
+   * Diziam "Tudo fica neste telefone" e "nao tem conta nem senha (…) nada sai
+   * dele". Eram verdade no app avulso. Dentro do Cosmic Guide deixaram de ser:
+   * o app que a pessoa instalou TEM conta (lib/supabaseClient.js), TEM servidor
+   * (IA, Comunidade, Memoria Cosmica, busca de cidade) e a tela de Privacidade
+   * DELE declara isso corretamente — duas telas do mesmo app se contradiziam, e
+   * a revisao da loja le as duas.
+   * A correcao segue a doutrina que o bloco 'privacidad.red.*' logo abaixo ja
+   * usa: a frase continua verdadeira sobre a MADRE e nomeia a fronteira, em vez
+   * de virar promessa categorica sobre o app inteiro. O que ela guarda continua
+   * sendo tudo o que esta na lista de 'privacidad.guarda.lineas' — isso nao
+   * mudou e nao esta sendo suavizado. */
+  'privacidad.titulo': 'O que é da Madre fica neste telefone',
   'privacidad.entrada':
-    'A Madre Maria não tem conta nem senha. O que você escreve fica no seu aparelho, e nada sai dele.',
+    'A Madre Maria não pede conta nem senha, e não manda nada para fora: o que você escreve nas perguntas dela fica no seu aparelho. Ela mora dentro do Cosmic Guide, que é um app maior e tem conta e servidor próprios — o que for dele está descrito na tela de Privacidade do Cosmic.',
 
   'privacidad.guarda.titulo': 'O QUE FICA GUARDADO NO SEU TELEFONE',
   'privacidad.guarda.lineas': [
@@ -1048,8 +1082,15 @@ export const PT = congelar({
     'Em Ajustes há um botão, "Apagar tudo". Deixa o telefone como no primeiro dia: sem nome, sem respostas, sem a sua data de nascimento e sem fio. É imediato e não dá para desfazer. E se você desinstalar o app, o sistema leva o que tinha sobrado. Não temos cópia de nada, porque nunca tivemos.',
 
   'privacidad.pago.titulo': 'QUANDO A ASSINATURA EXISTIR',
+  /* A LOJA NOMEADA ESTAVA ERRADA (13/09/2026). Dizia "App Store ou Google
+   * Play". Quem cobra no Cosmic Guide e a HOTMART ('terms.payments.body' e
+   * 'planos.legal.billingNote' do lib/i18n.js) — e a string "App Store" nao
+   * existe em lugar nenhum do dicionario do Cosmic. Nomear um processador de
+   * pagamento que o app nao usa e afirmacao factual falsa numa tela legal.
+   * O "hoje nao ha cobranca" continua correto: lib/paywallGlobal.js tem
+   * TUDO_LIBERADO = true. */
   'privacidad.pago.cuerpo':
-    'Hoje não há cobrança dentro do app. Quando houver, quem processa o pagamento é a loja — App Store ou Google Play — com os dados que você já tem lá. A Madre Maria não vê o seu cartão, não recebe e não guarda: deste lado fica uma única marca no telefone dizendo que a assinatura está ativa.',
+    'Hoje não há cobrança dentro do app. Quando houver, quem processa o pagamento é a plataforma que cobra pelo Cosmic Guide, com os dados que você informar lá. A Madre Maria não vê o seu cartão, não recebe e não guarda: deste lado fica uma única marca no telefone dizendo que a assinatura está ativa.',
 
   'privacidad.cierre':
     'Esta tela descreve a versão que você tem instalada hoje. Se um dia o app precisar mandar alguma coisa para fora, isto é reescrito antes e a mudança fica à vista.',
@@ -1075,20 +1116,35 @@ export const PT = congelar({
    * de verdade e para de fingir uma verificação que não existe: a data fica no
    * telefone, ninguém do outro lado confere, e a responsabilidade continua sendo
    * de quem instala. Prometer verificação seria a mentira maior. */
+  /* MUDOU DE NOVO EM 13/09/2026. A frase dizia que a data de nascimento "nao e
+   * enviada a ninguem". Isso valia no app avulso. No Cosmic Guide, o instante de
+   * nascimento SAI do aparelho na busca de cidade (lib/cities.js manda `at=` pro
+   * servidor) — e a tela de Privacidade do proprio Cosmic ja declara essa
+   * excecao ('privacy.use.exceptionCity'). A Madre nao faz esse envio, mas a
+   * pessoa nao instalou "a Madre": instalou o Cosmic. O texto agora diz o que a
+   * MADRE faz com a data, e para de falar pelo app inteiro. */
   'terminos.edad.cuerpo':
-    'O app é para pessoas maiores de 18 anos. A gente pergunta a sua data de nascimento — é dela que saem o seu signo e a sua idade —, mas não verifica nada: ela fica neste telefone e não é enviada a ninguém. Então isto continua do seu lado: se você tem menos de 18, este app ainda não é para você.',
+    'O app é para pessoas maiores de 18 anos. A gente pergunta a sua data de nascimento — é dela que saem o seu signo e a sua idade —, mas não verifica nada: aqui na Madre ela fica neste telefone. Então isto continua do seu lado: se você tem menos de 18, este app ainda não é para você.',
 
   'terminos.promesa.titulo': 'O QUE O APP NÃO PROMETE',
   'terminos.promesa.cuerpo':
     'Nenhuma leitura promete um resultado sobre o seu vínculo, e nenhuma carta lê a outra pessoa: essa ponta do fio não está neste app. O que você decidir fazer depois de ler é seu, e a responsabilidade dessa decisão também. Se alguém — aqui ou em qualquer outro lugar — te der uma data ou te assegurar um final, está inventando.',
 
   'terminos.suscripcion.titulo': 'A ASSINATURA',
+  /* MESMA CORRECAO DE 'privacidad.pago.cuerpo' (13/09/2026): a loja nomeada
+   * nao e a que cobra. No Cosmic Guide quem processa e a Hotmart, e o
+   * cancelamento se faz na area do comprador dela
+   * (HOTMART_BUYER_AREA_URL em lib/supportContact.js). */
   'terminos.suscripcion.cuerpo':
-    'Hoje não há cobrança nenhuma nesta versão, porque a loja ainda não está conectada. Quando a assinatura abrir, funciona assim: quem cobra é a loja — App Store ou Google Play — na sua moeda; ela se renova sozinha no fim de cada período, a menos que você cancele antes; e o cancelamento se faz pela sua conta da loja, sem falar com ninguém e sem explicar por quê. O que você já pagou fica ativo até o fim do período em curso. Os reembolsos são tratados pela loja, com as regras dela.',
+    'Hoje não há cobrança nenhuma nesta versão, porque a assinatura ainda não está conectada. Quando ela abrir, funciona assim: quem cobra é a plataforma de pagamento do Cosmic Guide, na sua moeda; ela se renova sozinha no fim de cada período, a menos que você cancele antes; e o cancelamento se faz na sua conta dessa plataforma, sem falar com ninguém e sem explicar por quê. O que você já pagou fica ativo até o fim do período em curso. Os reembolsos são tratados por ela, com as regras dela.',
 
   'terminos.datos.titulo': 'OS SEUS DADOS',
+  /* MUDOU EM 13/09/2026, pelo mesmo motivo de 'terminos.edad.cuerpo'. "Nao ha
+   * conta, nao ha servidor" era uma afirmacao sobre o APP, e o app hospedeiro
+   * tem os dois. Continua verdadeiro, e continua dito, que a Madre nao manda
+   * nada para fora — o que sai e a fronteira nomeada, nao a garantia apagada. */
   'terminos.datos.cuerpo':
-    'Tudo o que você escreve fica neste telefone — inclusive a sua data de nascimento: não há conta, não há servidor e não há cópia nossa. O detalhe completo está na tela de Privacidade.',
+    'O que você escreve para a Madre fica neste telefone, inclusive a sua data de nascimento: ela não abre conta, não manda nada para um servidor e não guarda cópia. A Madre mora dentro do Cosmic Guide, que tem conta e servidor próprios — o detalhe completo está nas telas de Privacidade das duas.',
 
   'terminos.apoyo.titulo': 'SE VOCÊ ESTÁ PASSANDO MAL',
   'terminos.apoyo.cuerpo':
@@ -1149,8 +1205,12 @@ export const PT = congelar({
     'A assinatura vive na sua conta da loja, não aqui. Naquela tela estão o preço, a data da próxima cobrança e o botão de cancelar, sem falar com ninguém e sem explicar por quê.',
   'ayuda.paso.tienda.apple': 'Abrir na App Store',
   'ayuda.paso.tienda.google': 'Abrir na Google Play',
+  /* 'ayuda.paso.tienda.web' (13/09/2026): no navegador quem cobra pelo Cosmic
+   * Guide e a Hotmart, nao as lojas — ver o comentario de TIENDAS_VISIBLES em
+   * screens/AyudaScreen.js. */
+  'ayuda.paso.tienda.web': 'Abrir a área do comprador',
   'ayuda.paso.tienda.error':
-    'Não deu para abrir a loja daqui. Ela está nos ajustes da sua conta da App Store ou da Google Play, na seção de assinaturas.',
+    'Não deu para abrir daqui. A assinatura fica na conta da plataforma onde você comprou, na seção de assinaturas.',
 
   'ayuda.paso.reembolso.titulo': 'Uma cobrança que você não reconhece',
   'ayuda.paso.reembolso.cuerpo':
@@ -1394,8 +1454,9 @@ export const PT = congelar({
   'ajustes.confirmar.todo.titulo': 'Apagar tudo?',
   'ajustes.confirmar.todo.borra':
     'O seu nome, as suas respostas — a sua data de nascimento junto —, Meu Fio completo — os nós e também o recorde —, o lembrete e estes ajustes. Não há cópia em nenhum outro lugar, então não há como desfazer.',
+  /* Mesma correcao de 'perfil.suscripcion.gestionar*' (13/09/2026). */
   'ajustes.confirmar.todo.queda':
-    'A sua assinatura: ela vive na sua conta da App Store ou da Google Play, não aqui. Se um dia você precisar dela, se recupera com "Restaurar compra".',
+    'A sua assinatura: ela vive na sua conta da plataforma onde você comprou, não aqui. Se um dia você precisar dela, se recupera com "Restaurar compra".',
   'ajustes.confirmar.todo.boton': 'Sim, apagar tudo',
 
   'ajustes.borrado.respuestas': 'Pronto. As suas respostas não estão mais neste telefone.',
@@ -1413,7 +1474,7 @@ export const PT = congelar({
    * Nota para quem mexer no linter de copy: o proibido e a conjugacao de futuro
    * ("... a persona X fara Y"), nao o infinitivo solto. O rotulo do botao de voltar
    * e 'Voltar' e assim continua — a regra tem de casar com o futuro, e por isso os
-   * padroes de test/copy.test.js exigem \b...[aá]\b: 'voltar' seco nao casa, 'voltara'
+   * padroes de test/copy-promessa-app-inteiro.test.js exigem \b...[aá]\b: 'voltar' seco nao casa, 'voltara'
    * casa. */
   'comunes.siguiente': 'Continuar',
   'comunes.empezar': 'Começar',
@@ -2055,7 +2116,7 @@ export const PT = congelar({
    * A copy de tela do arco de treze lunações. O motor mora em lib/ano.js, a tabela
    * dos temas em datos/lunacoes.js, os quatro tons de semana em datos/fases.js e os
    * três bancos do dia em datos/bancos.js. A lista fechada do que o motor emite é
-   * CLAVES_TEXTO_ANO (lib/ano.js), e é contra ela que test/ano.test.js confere que
+   * CLAVES_TEXTO_ANO (lib/ano.js), e é contra ela que test/madremaria-ano.test.js confere que
    * nenhuma destas chaves falta — sem isso a tela renderiza 'ano.lunacao.7.abertura'
    * como texto, que é o modo de falhar deste dicionário.
    *
@@ -2081,7 +2142,7 @@ export const PT = congelar({
    *
    * Os treze títulos e as treze perguntas saem verbatim de TEMAS (lib/ano.js) e de
    * LUNACOES (datos/lunacoes.js). Os dois arquivos são conferidos um contra o outro
-   * em test/ano.test.js: duas tabelas que podem discordar acabam discordando. */
+   * em test/madremaria-ano.test.js: duas tabelas que podem discordar acabam discordando. */
   'ano.lunacao.1.titulo': 'Nomear o que foi',
   'ano.lunacao.2.titulo': 'A rotina que sobrou',
   'ano.lunacao.3.titulo': 'O que já era meu',

@@ -72,7 +72,7 @@
 // sempre — número que mente, com uma lista de tarefas em cima dele. Cada `prova`
 // estava escrito e nenhum era verdade, porque comentário não é executável.
 //
-// `archivoProva` é: o portão em test/gamificacao.test.js abre o arquivo de cada
+// `archivoProva` é: o portão em test/madremaria-gamificacao.test.js abre o arquivo de cada
 // missão ATIVA e exige encontrar, no fonte, o id da missão e `completarMissao`.
 // Missão ativa que ninguém marca deixa o teste vermelho antes do commit sair da
 // máquina — que é o único lugar onde essa regra podia morar. E é por

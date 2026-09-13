@@ -120,7 +120,7 @@ export const BRIGA_POR_ELEMENTOS = Object.freeze({
 /* QUANDO HOUVER CONVERSA — o passo pratico, pelo ELEMENTO DA OUTRA PESSOA.
  *
  * Escrito nesta casa (nao veio do Cosmic Guide). As regras que estes quatro
- * paragrafos obedecem, e test/sinastria.test.js confere:
+ * paragrafos obedecem, e test/madremaria-sinastria.test.js confere:
  *   · condicional sempre — "quando houver conversa", nunca "va falar com";
  *   · descreve COMO falar, nunca o que a outra pessoa vai responder;
  *   · neutro de genero: fala do SIGNO, nunca de "ele" ou "ela". */

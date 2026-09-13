@@ -58,7 +58,7 @@
 // outro lado, alega saude ou vende nada por fora do app. O bloco 11 faz mais que
 // isso: ele RECUSA a promessa em voz alta ("ninguem pode te dizer isso, e quem
 // diz esta inventando"), e essa recusa e o que separa este produto de todo mundo
-// que promete. test/copy.test.js conhece essa frase pelo nome — ler o comentario
+// que promete. test/copy-promessa-app-inteiro.test.js conhece essa frase pelo nome — ler o comentario
 // de RECUSAS_LITERAIS la antes de reescreve-la.
 //
 // ===========================================================================
@@ -95,14 +95,14 @@ import TEMPOS_EN from './profunda-tempos.en.json' with { type: 'json' };
    a mesma pessoa".
 
    O QUE ISSO NAO MUDA: o genero de QUEM ESTA DO OUTRO LADO continua sem ser
-   assumido em lugar nenhum do produto ("essa pessoa"), e test/copy.test.js
+   assumido em lugar nenhum do produto ("essa pessoa"), e test/copy-promessa-app-inteiro.test.js
    segue vigiando. A pergunta de genero do onboarding continua existindo —
    outras partes do app a usam.
    =================================================================================== */
 const ID_BLOCO_11 = 'profunda-11';
 
 /* As cinco partes do bloco 11 que NAO mudam. A recusa da promessa abre a
- * primeira e mora numa LINHA SO de proposito: test/copy.test.js reconhece a
+ * primeira e mora numa LINHA SO de proposito: test/copy-promessa-app-inteiro.test.js reconhece a
  * recusa pelo texto literal, e uma quebra de linha no meio dela faria o portao
  * voltar a acusar a propria recusa como se fosse promessa (RECUSAS_LITERAIS). */
 const P11_RECUSA =
@@ -219,7 +219,7 @@ export const BLOQUES_PROFUNDA = Object.freeze([
       + 'E a terceira é a sua parte. Uma pergunta que só você responde, escrita aí dentro, que não sai desse telefone e ninguém mais lê.',  }),
 
   /* O CONVITE. A primeira frase deste bloco e a recusa da promessa, e ela esta
-   * numa LINHA SO de proposito: test/copy.test.js reconhece a recusa pelo texto
+   * numa LINHA SO de proposito: test/copy-promessa-app-inteiro.test.js reconhece a recusa pelo texto
    * literal, e uma quebra de linha no meio dela faria o portao voltar a acusar a
    * propria recusa como se fosse promessa. Ver RECUSAS_LITERAIS naquele arquivo.
    *
@@ -283,7 +283,7 @@ export function bloqueDe(id) {
    Este arquivo nao regenera nem corrige aquele JSON — ele so o COSE ao bloco:
 
     1. confere que o texto emendado das frases e, palavra por palavra, o `texto`
-       do bloco. test/profunda.test.js prova isso; aqui embaixo a checagem e de
+       do bloco. test/madremaria-profunda.test.js prova isso; aqui embaixo a checagem e de
        forma, para que um arquivo torto degrade em vez de desenhar errado.
     2. devolve a que PARAGRAFO cada frase pertence, para a tela nao perder o
        respiro do texto ao trocar de paragrafo por frase. Sem isso as 13 frases

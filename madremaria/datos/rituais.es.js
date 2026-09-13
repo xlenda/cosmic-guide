@@ -49,7 +49,7 @@
 // SEM ALEGACAO DE SAUDE, EM NENHUM IDIOMA
 // ===========================================================================
 // Nenhum destes gestos "calma", "alivia", "trata" nem "ordena la cabeza". O
-// texto descreve o gesto e para. Isso reprova em test/copy.test.js e reprova na
+// texto descreve o gesto e para. Isso reprova em test/copy-promessa-app-inteiro.test.js e reprova na
 // ficha da loja — e o escorregao mais facil e justo no respiro e na caminhada.
 // O `naoTemFonte` do canto diz, no PT, que "arrumar com as maos aquieta a
 // cabeca": e a frase do ORIGINAL e foi mantida como esta, sem aumentar.

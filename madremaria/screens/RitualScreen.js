@@ -75,7 +75,11 @@
 //   datos/ritual.js  DURACION, PACTO, getDia(n) — o conteudo dos sete dias.
 //   lib/hilo.js      atarNudo(), chamado ao fechar o dia.
 //   lib/mazo.js      sacarMayor(), a carta do dia.
-//   lib/lectura.js   guardaContacto/guardaFuturo sobre o conselho do baralho.
+//   lib/lectura.js   guardaContacto/guardaFuturo sobre o conselho do baralho
+//                    — rodam DENTRO de lib/lectura.js (proteger(), usada por
+//                    componerLectura) e em lib/plano.js. Esta tela nao os
+//                    chama desde que a carta do dia saiu (01/09/2026, ver o
+//                    bloco no JSX); o import morto foi removido em 13/09.
 //
 // RECOMECAR APAGA. reiniciarRitual() chama borrarSeguro: os sete registros saem
 // do aparelho. 'ritual.fin.guardado' diz exatamente isso na tela, porque prometer
@@ -128,7 +132,6 @@ import { Cuerpo, Micro, NombreCarta, Rotulo, Sobreceja, Titulo } from '../compon
 import { DURACION, getDia, pacto } from '../datos/ritual';
 import { t } from '../datos/textos';
 import { atarNudo } from '../lib/hilo';
-import { guardaContacto, guardaFuturo } from '../lib/lectura';
 import { MAX_NOTA, cierreDelRitual, concluirDia, reiniciarRitual, resumenRitual } from '../lib/ritual';
 import { colores, espacio, radio, tipo } from '../theme';
 

@@ -26,7 +26,6 @@ playwright/.cache/
 # Artefatos de verificação gerados por agentes (builds temporários e
 # scripts de depuração de navegação) — não são fonte, e 20MB de bundle
 # gerado não pertence ao histórico.
-dist-verify/
 verify-build/
 nav-audit.js
 nav-debug*.js
@@ -61,5 +60,11 @@ design/**/*.png
 _shot-tmp.js
 shot-lote.js
 _*-tmp.js
-dist-verifica/
-dist-pecas/
+# TODA pasta de build de agente, por PADRAO e nao por nome (13/09/2026).
+# Ate hoje isto era uma lista de nomes literais — dist-verify/, dist-verifica/,
+# dist-pecas/ — e cada agente novo inventava o proximo. A conta: dist-depois/
+# entrou no historico com 376 arquivos e 51,0 MB, sobreviveu a uma limpeza que
+# apagou o IRMAO dist-verifica/ na mesma listagem e se declarou resolvida, e
+# so saiu daqui. Fonte e `dist/` (ja ignorado na linha 2) e o deploy usa
+# deploy-vercel/ — nenhum `dist-<qualquer coisa>/` e fonte, nunca foi.
+dist-*/

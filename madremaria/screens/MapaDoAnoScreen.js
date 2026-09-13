@@ -27,7 +27,7 @@ import FaixaCurva from '../../components/FaixaCurva';
 import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { VersoDeCarta } from '../components/ScratchRevealCard';
-import { Cuerpo, Micro, Rotulo, Sobreceja, Titulo } from '../components/Texto';
+import { Cuerpo, Micro, Sobreceja } from '../components/Texto';
 import { t } from '../datos/textos';
 import { temaPorNumero } from '../lib/ano';
 import { diaLocal } from '../lib/ceu';
@@ -41,7 +41,7 @@ import { glifoDoSigno, luaNoSignoDela } from '../lib/luaNoSigno';
 import { ritualDoDia } from '../lib/rituaisRotativos';
 import { diasRaspados } from '../lib/veuDoDia';
 import { RUTAS } from '../routes';
-import { colores, espacio, radio, sombra } from '../theme';
+import { colores, espacio, sombra } from '../theme';
 
 export default function MapaDoAnoScreen({ navigation }) {
   const montado = useRef(true);
@@ -427,7 +427,7 @@ const TOPO_CASAS = 128;
  *   · casa FUTURA: so os marcos que nao sao segredo — sexta e o dia de Venus
  *     (o ritmo dos dois e anunciado no proprio app).
  * Nada aqui passa pela rede de contato porque nada aqui e passo de gesto —
- * e um icone. O guarda de test/plano.test.js vale para a PlanoScreen. */
+ * e um icone. O guarda de test/madremaria-plano.test.js vale para a PlanoScreen. */
 const GLIFO_DO_GESTO = Object.freeze({
   cafe: '\u2615',        // xicara
   caminhada: '\ud83d\udc63', // pegadas

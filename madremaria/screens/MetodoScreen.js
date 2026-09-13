@@ -167,7 +167,7 @@ function Lineas({ lineas, colorTraza }) {
  * A missao que ESTA tela comprova.
  *
  * O `prova` daquela entrada em lib/missoes.js aponta este arquivo, e o portao de
- * test/gamificacao.test.js abre o arquivo nomeado ali e exige achar este id
+ * test/madremaria-gamificacao.test.js abre o arquivo nomeado ali e exige achar este id
  * junto de `completarMissao`.
  *
  * A missao fecha na ABERTURA do Metodo, e nao "ao abrir a fonte de uma carta":

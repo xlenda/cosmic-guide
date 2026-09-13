@@ -22,7 +22,7 @@
 //      referencia a "dias desde a ultima conclusao". Quem sumiu tres semanas
 //      volta exatamente no dia em que parou: nada zera, nada expira, nao ha
 //      "recuperar" (nem pago nem de brinde) e nao ha aviso de ausencia nenhum.
-//      Isso e OMISSAO DELIBERADA, e test/ritual.test.js cobre a omissao para
+//      Isso e OMISSAO DELIBERADA, e test/madremaria-ritual.test.js cobre a omissao para
 //      que ninguem "melhore" a tela depois. Mesma doutrina de lib/hilo.js.
 //
 //   3. O QUE ELA ESCREVEU NAO SE TOCA. A nota do dia 1 e o dado mais sensivel
@@ -77,12 +77,12 @@ export { DURACION };
  * CLAVES_TEXTO_RITUAL — a lista fechada da copy DAS TELAS do ritual.
  *
  * POR QUE ELA EXISTE, e por que a falta dela era um buraco e nao um detalhe:
- * datos/ritual.js (os sete dias) ja era varrido pelo portao de test/ritual.test.js
+ * datos/ritual.js (os sete dias) ja era varrido pelo portao de test/madremaria-ritual.test.js
  * com sugiereContacto(), hablaDelFuturo() e a lista de culpa condicional. As
  * frases que a usuaria mais le — 'O dia {n} abre amanha', o rodape do espelho, o
  * fim do ritual — nao moram la: moram no bloco `ritual.*` de datos/textos.js, que
  * o comentario daquele bloco chama, com todas as letras, de "o lugar onde e facil
- * escorregar para o castigo". Esse bloco nao era varrido por nada: test/copy.test.js
+ * escorregar para o castigo". Esse bloco nao era varrido por nada: test/copy-promessa-app-inteiro.test.js
  * cobre o repositorio inteiro, mas so com padroes de desfecho, genero, saude,
  * streak e prova social — nenhum deles pega "so faltam tres dias", "voce
  * interrompeu" ou "nao desista agora".

@@ -75,7 +75,7 @@
 //     lugar mais doloroso que ela tem. Por construcao nao ha nada aqui para
 //     filtrar — todas as doze perguntas sao sobre ELA.
 //
-// E valem as gerais que test/copy.test.js cobra: sem prova social inventada,
+// E valem as gerais que test/copy-promessa-app-inteiro.test.js cobra: sem prova social inventada,
 // sem alegacao de saude, sem assumir genero de quem esta do outro lado, sem
 // punir falta, sem cor literal fora do theme.js.
 //

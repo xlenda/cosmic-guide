@@ -82,6 +82,7 @@ import { restaurar } from '../lib/suscripcion';
 import RUTAS from '../routes';
 import { space } from '../../theme';
 import { colores, espacio, radio } from '../theme';
+import { HOTMART_BUYER_AREA_URL } from '../../lib/supportContact.js';
 
 /* ===================================================================================
    CONSTANTES DE PLATAFORMA
@@ -106,9 +107,33 @@ const TIENDAS = Object.freeze([
   }),
 ]);
 
+// DEPOIS DA FUSAO, A WEB NAO E "AS DUAS LOJAS" (13/09/2026).
+//
+// A regra antiga era: no telefone mostra a loja da plataforma; no navegador
+// mostra AS DUAS, porque quem abriu no navegador pode ter comprado em
+// qualquer uma. Isso valia quando a Madre era um app avulso que so existia
+// nas lojas.
+//
+// Dentro do Cosmic Guide e falso: na WEB quem cobra e a Hotmart
+// (HOTMART_PAY_URLS em screens/PlanosScreen.js, e 'planos.currencyNote' do
+// lib/i18n.js diz "Cobranca em dolar americano (USD) pela Hotmart"). Quem
+// assinou pelo navegador NAO tem assinatura nenhuma na Apple nem no Google —
+// mandar essa pessoa pra "Abrir na App Store" e mandar pra uma tela vazia,
+// justo nesta tela, que existe pra resolver cobranca (29,1% das avaliacoes
+// negativas da categoria, medido no dossie acima).
+//
+// Entao: no telefone, a loja da plataforma (o nativo cobra por Play Billing —
+// lib/purchases.js); no navegador, a area do comprador da Hotmart, que e onde
+// a assinatura comprada pela web realmente vive.
+const TIENDA_WEB = Object.freeze({
+  id: 'web',
+  rotulo: 'ayuda.paso.tienda.web',
+  url: HOTMART_BUYER_AREA_URL,
+});
+
 const TIENDAS_VISIBLES = (() => {
   const dePlataforma = TIENDAS.filter((x) => x.id === Platform.OS);
-  return dePlataforma.length > 0 ? dePlataforma : TIENDAS;
+  return dePlataforma.length > 0 ? dePlataforma : [TIENDA_WEB];
 })();
 
 // Recarregar de verdade so existe no navegador. No telefone nao ha API de

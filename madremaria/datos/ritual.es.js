@@ -41,7 +41,7 @@
 //     diz isso com todas as letras, e ela e a linha que o funil esconde.
 //  4. Nenhum texto descreve EFEITO do gesto no corpo ou na mente. O funil diz
 //     "esto te va a calmar"; aqui se descreve o gesto e ponto. Alegacao de saude
-//     reprova em test/copy.test.js e reprova na ficha da loja.
+//     reprova em test/copy-promessa-app-inteiro.test.js e reprova na ficha da loja.
 //  5. O genero de quem esta do outro lado nunca se assume: 'esa persona'.
 //
 // ===========================================================================

@@ -163,7 +163,7 @@ import { space } from '../../theme';
 import HiloFondo from '../components/HiloFondo';
 import { Cuerpo, Micro, Sobreceja, Titulo } from '../components/Texto';
 import { t } from '../datos/textos';
-import { TOTAL_CARTAS, leerAlbum, resumenAlbum } from '../lib/album';
+import { leerAlbum, resumenAlbum } from '../lib/album';
 import { FICHAS_ACTIVAS, PRECO_LEITURA_EXTRA, leerFichas } from '../lib/fichas';
 import { leerHilo, resumenHilo } from '../lib/hilo';
 import { imagenDeCarta } from '../lib/imagenes';

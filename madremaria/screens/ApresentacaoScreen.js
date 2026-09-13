@@ -41,7 +41,7 @@ const POSTER_APRESENTACAO = require('../../assets/madremaria/video/madre-maria-p
 /* As frases, com a hora de cada uma, montadas UMA vez e congeladas: a
  * identidade estavel importa, useFraseAtual tem os trechos numa lista de
  * dependencias. Se o JSON nao bater com o texto, a tela cai para o texto
- * inteiro sem tempo — nada acende, nada some (test/apresentacao.test.js prova
+ * inteiro sem tempo — nada acende, nada some (test/madremaria-apresentacao.test.js prova
  * que bate). */
 const TEXTO = t('apresentacao.texto');
 const TRECHOS = Object.freeze(

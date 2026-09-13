@@ -236,7 +236,7 @@ export const EXPLICACAO_TECNICA = Object.freeze({
  * undefined para os temas 12 e 13 — a tela do arquivo e a do fechamento ficavam
  * sem nome de bloco e sem o `porque`, sem erro nenhum e so nos dois ultimos meses
  * do ano, que e onde ninguem testa. Duas tabelas que podem discordar acabam
- * discordando; test/ano.test.js confere as duas uma contra a outra. */
+ * discordando; test/madremaria-ano.test.js confere as duas uma contra a outra. */
 export const BLOCOS = Object.freeze({
   CHAO: 'chao',
   LACO: 'laco',

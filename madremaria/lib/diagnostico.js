@@ -42,7 +42,7 @@
 //    "essa pessoa me escreve". A diferenca parece cosmetica e nao e: com o texto
 //    da opcao entrando cru, a unica coisa que separaria este modulo de falar
 //    pela outra pessoa seria a sorte de ninguem ter escrito uma opcao pior.
-//    Com rotulo proprio, o portao de test/diagnostico.test.js pode ser cego e
+//    Com rotulo proprio, o portao de test/madremaria-diagnostico.test.js pode ser cego e
 //    absoluto — nenhuma linha contem 'ela', 'ele', 'essa pessoa' — e um portao
 //    absoluto e o unico que nao envelhece.
 //

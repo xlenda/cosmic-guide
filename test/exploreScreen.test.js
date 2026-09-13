@@ -188,3 +188,69 @@ test('todo o chrome de Explorar existe em PT, ES e EN', () => {
     assert.ok(EXPLORE.includes(`t('${key}')`) || ['explore.locked'].includes(key));
   }
 });
+
+// =====================================================================
+// A ARTE NÃO SAI DA CALHA DA TELA (13/09/2026 — acabamento)
+// =====================================================================
+//
+// O DEFEITO QUE ISTO IMPEDE, medido no navegador em 390pt antes do conserto:
+// o medalhão de cada porta começava em x=8 — metade da calha de 16 que todo o
+// resto da tela respeita (o título da seção mede x=16) —, e a ilustração
+// aparecia CORTADA pela borda esquerda do aparelho, em todas as linhas de
+// todas as seções.
+//
+// A origem foi uma conta que deixou de fechar: o medalhão é centrado na borda
+// do trilho, e o trilho estava a `space.ar - space.bloco + space.junto` (40)
+// da margem. Isso posicionava certo quando o medalhão media 42; quando ele foi
+// para 64 (10/09/2026, pra arte pintada caber), o CENTRO foi mantido e a BORDA
+// saiu da calha. Manter o centro era o invariante errado.
+//
+// Por isso o teste NÃO confere os números: confere a RELAÇÃO. Se amanhã o
+// medalhão virar 80, as três medidas têm que andar juntas sozinhas — e é
+// exatamente isso que falha aqui se alguém voltar a cravar um número na mão.
+test('o medalhão da constelação nasce na calha da tela, não cortado pela borda', () => {
+  const { space } = require('../theme');
+
+  const num = (re, nome) => {
+    const m = EXPLORE.match(re);
+    assert.ok(m, `não achei ${nome} em ExploreScreen.js`);
+    return m;
+  };
+
+  // O lado do medalhão é UMA constante, não um literal repetido pelo arquivo.
+  const lado = Number(num(/const MEDALHAO = (\d+);/, 'MEDALHAO')[1]);
+  assert.ok(lado > 0, 'MEDALHAO tem que ser um número positivo');
+
+  // 1. O medalhão usa a constante nos dois lados — nada de 64 cravado.
+  assert.match(
+    EXPLORE,
+    /constellationPoint:\s*\{[^}]*width:\s*MEDALHAO,[^}]*height:\s*MEDALHAO,/,
+    'o medalhão voltou a cravar a largura/altura em vez de usar MEDALHAO'
+  );
+
+  // 2. O trilho fica a meio medalhão da calha: é o que põe a borda esquerda
+  //    da arte EXATAMENTE em space.tela.
+  assert.match(
+    EXPLORE,
+    /sectionRail:\s*\{[^}]*marginLeft:\s*space\.tela \+ MEDALHAO \/ 2,/,
+    'o trilho deixou de ser derivado de MEDALHAO — a arte volta a sair da calha'
+  );
+
+  // 3. O recuo que centra o medalhão na borda do trilho também é derivado.
+  assert.match(
+    EXPLORE,
+    /marginLeft:\s*-\(space\.bloco \+ MEDALHAO \/ 2\),/,
+    'o recuo do medalhão voltou a ser número cravado'
+  );
+
+  // 4. E a conta fecha: a borda esquerda da arte pousa na calha da tela.
+  //    x = (trilho) + (paddingLeft do trilho) - (recuo do medalhão)
+  const trilho = space.tela + lado / 2;
+  const recuo = space.bloco + lado / 2;
+  const bordaDaArte = trilho + space.bloco - recuo;
+  assert.equal(
+    bordaDaArte,
+    space.tela,
+    `a arte nasceria em x=${bordaDaArte}, e a calha da tela é ${space.tela}`
+  );
+});

@@ -8,6 +8,7 @@ import { colors, space, type, zodiacSigns } from '../theme';
 import { ROUTES } from '../routes';
 import { useCouple } from '../context/CoupleContext';
 import { useLanguage } from '../context/LanguageContext';
+import { nomeDoSigno } from '../lib/synastry';
 import { funnel } from '../lib/funnel';
 import OrbiGuide from '../components/OrbiGuide';
 import OrbiIntro from '../components/OrbiIntro';
@@ -24,7 +25,7 @@ export default function OnboardingChoiceScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { saveSolo } = useCouple();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [fase, setFase] = useState('intro');
   const [retornoSigno, setRetornoSigno] = useState('intro');
   const [saving, setSaving] = useState(false);
@@ -132,7 +133,11 @@ export default function OnboardingChoiceScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.pickerGlyph, { color: z.color }]}>{z.icon}</Text>
-                <Text style={styles.pickerName}>{z.pt}</Text>
+                {/* z.pt e o campo CRAVADO em portugues de theme.js:zodiacSigns.
+                    Esta e a PRIMEIRA tela de quem chega, e quem abria em ES ou EN
+                    via "Aries, Touro, Gemeos…" com toda a interface traduzida em
+                    volta. Mesmo helper que HoroscopeScreen.js:285 ja usa. */}
+                <Text style={styles.pickerName}>{nomeDoSigno(z.name, lang)}</Text>
               </TouchableOpacity>
             ))}
           </View>

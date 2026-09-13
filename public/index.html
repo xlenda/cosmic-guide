@@ -1,7 +1,24 @@
 <!DOCTYPE html>
-<html lang="%LANG_ISO_CODE%">
+<html lang="%LANG_ISO_CODE%" translate="no" class="notranslate">
   <head>
     <meta charset="utf-8" />
+    <!-- GOOGLE TRADUTOR x REACT (13/09/2026). O Chrome traduz envolvendo
+         cada no de texto num <font> que ele mesmo cria. O React guarda a
+         referencia do no ORIGINAL; quando vai atualizar aquele texto, o no
+         que ele tem na mao ja nao e filho do pai que ele espera, e
+         removeChild estoura — a tela morre em silencio no meio do uso.
+         Mordeu o Celeste em 09/08/2026.
+         Aqui a blindagem e na RAIZ de proposito: `translate="no"` + a classe
+         `notranslate` no <html> cobrem as 70 telas, as 6 pecas de
+         components/ e os 17 arquivos com TextInput de uma vez — marcar tela
+         por tela deixa a proxima tela nova desprotegida por esquecimento.
+         As tres formas juntas porque o Chrome respeita o atributo, o
+         Firefox/Edge historicamente so a classe, e a meta desliga a OFERTA
+         de traduzir (a barrinha) em vez de so recusar o resultado.
+         O app ja se traduz sozinho em pt/es/en (context/LanguageContext.js):
+         nao ha nada que o tradutor do navegador acrescente aqui, so o risco.
+         Portao: test/notranslate.test.js. -->
+    <meta name="google" content="notranslate" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>%WEB_TITLE%</title>
@@ -230,6 +247,12 @@
           // que está escrito nele (leitor de tela pronuncia PT com fonética
           // inglesa). Aqui o atributo passa a ser o idioma de verdade.
           document.documentElement.setAttribute('lang', lang === 'pt' ? 'pt-BR' : lang);
+          // Segunda camada do notranslate (ver o comentario no <head>). O
+          // atributo e a classe ja nascem no HTML acima; reafirmar aqui e o
+          // que sobrevive a qualquer camada que reescreva o <html> no export
+          // ou na hospedagem — e custa duas linhas que rodam antes do bundle.
+          document.documentElement.setAttribute('translate', 'no');
+          document.documentElement.classList.add('notranslate');
           var copy = COPY[lang];
           if (!copy) return; // pt: o HTML já está certo, não toca em nada
           var promise = document.querySelector('#cosmic-splash .cosmic-splash-promise');

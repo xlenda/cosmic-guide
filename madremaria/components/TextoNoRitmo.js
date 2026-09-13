@@ -35,7 +35,7 @@
 // que mataria o acender.
 //
 // O texto nao muda, nao se perde e nao troca de ordem: emendadas, as frases dao
-// exatamente o `texto` do bloco (test/profunda.test.js prova palavra por
+// exatamente o `texto` do bloco (test/madremaria-profunda.test.js prova palavra por
 // palavra).
 //
 // ===========================================================================

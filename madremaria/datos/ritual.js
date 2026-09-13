@@ -50,7 +50,7 @@
 // dia 7. Sao coisas diferentes e nao se substituem.
 //
 // ===========================================================================
-// A LINHA QUE NAO SE ATRAVESSA (o portao e test/ritual.test.js)
+// A LINHA QUE NAO SE ATRAVESSA (o portao e test/madremaria-ritual.test.js)
 // ===========================================================================
 //  1. Nenhum texto promete desfecho nem fala do futuro de quem esta do outro
 //     lado. Varrido com hablaDelFuturo() de lib/lectura.js.
@@ -64,7 +64,7 @@
 //     fica do tamanho que ficou, esperando (mesma regra de lib/hilo.js).
 //  4. Nenhum texto descreve EFEITO do gesto no corpo ou na mente. O funil diz
 //     "isso vai te acalmar"; aqui se descreve o gesto e ponto. Alegacao de
-//     saude reprova em test/copy.test.js e reprova na ficha da loja.
+//     saude reprova em test/copy-promessa-app-inteiro.test.js e reprova na ficha da loja.
 //  5. O genero de quem esta do outro lado nunca e assumido: "essa pessoa".
 //
 // IDIOMA: portugues do Brasil, como datos/cartas.json. As strings moram aqui,

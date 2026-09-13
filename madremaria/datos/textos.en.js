@@ -62,6 +62,8 @@
 // foi escrita contra o portugues. Um verbo ingles de promessa pode passar por
 // ela e chegar na loja. Quem traduz e o ultimo portao desta linha.
 
+import { SUPPORT_EMAIL } from '../../lib/supportContact.js';
+
 export const EN = {
   /* ================================================================================
    * LOTE: THE THREAD · THE SYNTHESIS · THE RITUAL · ERRORS AND EMPTY STATES
@@ -481,8 +483,8 @@ export const EN = {
   "perfil.suscripcion.ver": "See what opens across the thirteen moons",
   "perfil.suscripcion.gestionar": "Manage",
   "perfil.suscripcion.gestionarNota": "Opens your store account: that is where the plan is changed or cancelled, without talking to anyone and without explaining why.",
-  "perfil.suscripcion.gestionarError": "The store would not open from here. It is in the settings of your App Store or Google Play account.",
-  "perfil.suscripcion.gestionarWeb": "The subscription is managed in the store where you bought it: App Store or Google Play.",
+  "perfil.suscripcion.gestionarError": "It would not open from here. Your subscription is in the account of the platform where you bought it.",
+  "perfil.suscripcion.gestionarWeb": "The subscription is managed where you bought it, in your payment platform account.",
   "perfil.restaurar.ok": "Done. Your purchase is active on this phone.",
   "perfil.restaurar.sinTienda": "No store is connected yet, so there is no purchase to restore. Nothing of yours changed.",
   "perfil.accesos.sobreceja": "MORE",
@@ -513,10 +515,10 @@ export const EN = {
   "paywall.boton": "Open the thirteen moons",
   "paywall.restaurar": "Restore purchase",
   "paywall.salida": "What you have already opened stays yours.",
-  "paywall.comoCancelar": "Cancel whenever you want, from your App Store or Google Play account, without talking to anyone and without explaining why. What you have already paid stays active until the end of the period.",
+  "paywall.comoCancelar": "Cancel whenever you want, from your account on the platform where you bought it, without talking to anyone and without explaining why. What you have already paid stays active until the end of the period.",
   "privacidad.sobreceja": "PRIVACY",
-  "privacidad.titulo": "Everything stays on this phone",
-  "privacidad.entrada": "Madre Maria has no account and no password. What you write stays on your device, and nothing leaves it.",
+  "privacidad.titulo": "What is Madre's stays on this phone",
+  "privacidad.entrada": "Madre Maria asks for no account and no password, and sends nothing out: what you write in her questions stays on your device. She lives inside Cosmic Guide, a larger app with its own account and server — whatever is his is described on the Cosmic Privacy screen.",
   "privacidad.guarda.titulo": "WHAT IS KEPT ON YOUR PHONE",
   "privacidad.guarda.lineas": [
     "The name you wrote in the first question.",
@@ -549,7 +551,7 @@ export const EN = {
   "privacidad.borrar.titulo": "HOW TO DELETE EVERYTHING",
   "privacidad.borrar.cuerpo": "In Settings there is a button, \"Delete everything\". It leaves the phone as it was on the first day: no name, no answers, no date of birth and no thread. It is immediate and it cannot be undone. And if you uninstall the app, the system takes whatever was left. We have no copy of anything, because we never had one.",
   "privacidad.pago.titulo": "WHEN THE SUBSCRIPTION EXISTS",
-  "privacidad.pago.cuerpo": "Today there is no charge inside the app. When there is, the store processes the payment — App Store or Google Play — with the details you already have there. Madre Maria does not see your card, does not receive it and does not keep it: on this side there is one single mark on the phone saying the subscription is active.",
+  "privacidad.pago.cuerpo": "Today there is no charge inside the app. When there is, the payment is processed by the platform that charges for Cosmic Guide, with the details you give it there. Madre Maria does not see your card, does not receive it and does not keep it: on this side there is one single mark on the phone saying the subscription is active.",
   "privacidad.cierre": "This screen describes the version you have installed today. If the app ever needs to send anything out, this is rewritten first and the change is in plain sight.",
   "terminos.sobreceja": "TERMS OF USE",
   "terminos.titulo": "What you accept by using the app",
@@ -557,13 +559,13 @@ export const EN = {
   "terminos.que.titulo": "WHAT THIS IS",
   "terminos.que.cuerpo": "Madre Maria is a symbolic tarot reading and a path of thirteen moons, made to entertain and to give you other words for something that keeps going around in your head. It is not prediction. It is not professional advice — not legal, not financial, not of any other kind —, it is not a diagnosis and it does not replace care from a mental health professional. The cards know nothing of your story: what they do is give you three fixed images so you can look at what is yours from the outside.",
   "terminos.edad.titulo": "MINIMUM AGE: 18",
-  "terminos.edad.cuerpo": "The app is for people over 18. We ask for your date of birth — your sign and your age come from it —, but we verify nothing: it stays on this phone and it is sent to no one. So this stays on your side: if you are under 18, this app is not for you yet.",
+  "terminos.edad.cuerpo": "The app is for people over 18. We ask for your date of birth — your sign and your age come from it —, but we verify nothing: here in Madre it stays on this phone. So this stays on your side: if you are under 18, this app is not for you yet.",
   "terminos.promesa.titulo": "WHAT THE APP DOES NOT PROMISE",
   "terminos.promesa.cuerpo": "No reading promises an outcome about your bond, and no card reads the other person: that end of the thread is not in this app. What you decide to do after reading is yours, and so is the responsibility for that decision. If anyone — here or anywhere else — gives you a date or assures you of an ending, they are making it up.",
   "terminos.suscripcion.titulo": "THE SUBSCRIPTION",
-  "terminos.suscripcion.cuerpo": "Today there is no charge at all in this version, because the store is not connected yet. When the subscription opens, it works like this: the store charges you — App Store or Google Play — in your currency; it renews on its own at the end of each period, unless you cancel first; and cancelling is done from your store account, without talking to anyone and without explaining why. What you have already paid stays active until the end of the current period. Refunds are handled by the store, under its rules.",
+  "terminos.suscripcion.cuerpo": "Today there is no charge at all in this version, because the subscription is not connected yet. When it opens, it works like this: the payment platform of Cosmic Guide charges you, in your currency; it renews on its own at the end of each period, unless you cancel first; and cancelling is done from your account on that platform, without talking to anyone and without explaining why. What you have already paid stays active until the end of the current period. Refunds are handled by it, under its rules.",
   "terminos.datos.titulo": "YOUR DATA",
-  "terminos.datos.cuerpo": "Everything you write stays on this phone — your date of birth included: there is no account, no server and no copy of ours. The full detail is on the Privacy screen.",
+  "terminos.datos.cuerpo": "What you write for Madre stays on this phone, your date of birth included: she opens no account, sends nothing to a server and keeps no copy. Madre lives inside Cosmic Guide, which has its own account and server — the full detail is on both Privacy screens.",
   "terminos.apoyo.titulo": "IF YOU ARE GOING THROUGH A HARD TIME",
   "terminos.apoyo.cuerpo": "A card keeps nobody company. If what you feel is truly weighing on you, look for people of flesh and blood: someone you trust, a professional, or the crisis line in your country. This app is not that place and does not pretend to be.",
   "terminos.cambios.titulo": "CHANGES AND CONTACT",
@@ -591,7 +593,8 @@ export const EN = {
   "ayuda.paso.tienda.cuerpo": "The subscription lives in your store account, not here. On that screen you will find the price, the date of the next charge and the cancel button, without talking to anyone and without explaining why.",
   "ayuda.paso.tienda.apple": "Open in the App Store",
   "ayuda.paso.tienda.google": "Open in Google Play",
-  "ayuda.paso.tienda.error": "The store would not open from here. It is in the settings of your App Store or Google Play account, in the subscriptions section.",
+  "ayuda.paso.tienda.web": "Open the buyer area",
+  "ayuda.paso.tienda.error": "It would not open from here. The subscription is in the account of the platform where you bought it, in the subscriptions section.",
   "ayuda.paso.reembolso.titulo": "A charge you do not recognise",
   "ayuda.paso.reembolso.cuerpo": "The store processes the charge: we do not see your card, we do not receive the payment and we cannot refund a charge from here. The refund is requested on that same store screen, and there it does reach someone who can sort it out. It is the short way, not a way of getting rid of you.",
   "ayuda.paso.recargar.titulo": "Close it and open it again",
@@ -721,7 +724,7 @@ export const EN = {
   "ajustes.confirmar.respuestas.boton": "Yes, delete my answers",
   "ajustes.confirmar.todo.titulo": "Delete everything?",
   "ajustes.confirmar.todo.borra": "Your name, your answers — your date of birth along with them —, all of My Thread — the knots and the record too —, the reminder and these settings. There is no copy anywhere else, so there is no way to undo it.",
-  "ajustes.confirmar.todo.queda": "Your subscription: it lives in your App Store or Google Play account, not here. If you ever need it, it comes back with \"Restore purchase\".",
+  "ajustes.confirmar.todo.queda": "Your subscription: it lives in your account on the platform where you bought it, not here. If you ever need it, it comes back with \"Restore purchase\".",
   "ajustes.confirmar.todo.boton": "Yes, delete everything",
   "ajustes.borrado.respuestas": "Done. Your answers are no longer on this phone.",
   "ajustes.borrado.todo": "Done. Nothing of yours was left on this phone.",
@@ -800,7 +803,8 @@ export const EN = {
   "barra.plano": "Today's plan",
   "barra.plano.pista": "Opens today's ritual, the question of the day and the action.",
   "barra.perfil": "Profile",
-  "legal.correo": "contato@fiovermelho.app",
+  // Host app's support channel — rationale lives in datos/textos.js.
+  "legal.correo": SUPPORT_EMAIL,
   "legal.version": "Madre Maria · version 2 · September 2026",
   "comunes.siguiente": "Continue",
   "comunes.empezar": "Start",

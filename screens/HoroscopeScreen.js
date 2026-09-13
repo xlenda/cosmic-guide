@@ -38,7 +38,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, gradients, zodiacSigns, space, type } from '../theme';
+import { colors, zodiacSigns, space, type } from '../theme';
 import CosmicScene from '../components/CosmicScene';
 import GradientHeader from '../components/GradientHeader';
 import WaveDivider from '../components/WaveDivider';

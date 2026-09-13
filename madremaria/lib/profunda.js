@@ -14,7 +14,7 @@
 //
 // A chave 'profunda' esta em CLAVES_HILO_ROJO. Sem essa linha ela sobrevive ao
 // "Apagar tudo" e a politica de privacidade da ficha de loja vira declaracao
-// falsa — e test/gamificacao.test.js varre este diretorio exatamente atras
+// falsa — e test/madremaria-gamificacao.test.js varre este diretorio exatamente atras
 // disso: toda `const CLAVE... = '...'` de lib/ tem de estar naquela lista.
 //
 // ===========================================================================

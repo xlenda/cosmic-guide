@@ -76,6 +76,26 @@ const MISSION_ROUTE = {
   'ritual-do-cafe': ROUTES.COFFEE,
   'leitura-de-sonho': ROUTES.DREAM,
   'insight-no-diario': ROUTES.DIARY,
+  // As tres fixas de 10/09/2026 entraram no pool e ficaram DE FORA daqui —
+  // `MISSION_ROUTE[mission.id]` devolvia undefined, o `if (route)` engolia em
+  // silencio e o toque nao fazia nada. Como sao fixas, apareciam pra todo
+  // mundo, todo dia: tres linhas mortas por dia. Os destinos sao os mesmos
+  // que os blocos do ceu usavam antes de virarem missao (HomeScreen).
+  'ceu-de-hoje': ROUTES.SKY_ALIGNMENT,
+  'proximos-dias': ROUTES.CALENDARIO_COSMICO,
+  'ver-compatibilidade': ROUTES.COMPATIBILITY,
+};
+
+// As duas missoes do ceu verificam por marcador de acao, e o comentario em
+// lib/missions.js prometia o disparo "no toque do proprio bloco na Home" —
+// disparo que nunca existiu: NENHUMA tela chamava recordMissionAction com
+// essas chaves, entao as duas eram impossiveis de completar e o bonus de
+// 3/3 (que exige TODAS as do dia) ficava inalcancavel pra sempre. Como as
+// telas de destino estao com outro time, a evidencia e o toque aqui: a
+// pessoa abriu a tela do ceu, que e exatamente o que a missao pede.
+const MISSION_ACTION_ON_TAP = {
+  'ceu-de-hoje': MISSION_ACTIONS.CEU_DE_HOJE_VISTO,
+  'proximos-dias': MISSION_ACTIONS.PROXIMOS_DIAS_VISTO,
 };
 
 // `children` entrou em 10/09/2026 (pedido do dono: "mas é para todos ficarem
@@ -244,6 +264,13 @@ export default function DailyMissionsCard({ children, mostrarMissoes = true }) {
       }
       return;
     }
+    const acao = MISSION_ACTION_ON_TAP[mission.id];
+    if (acao) {
+      await recordMissionAction(acao);
+      await completeMission(mission.id);
+      setMissions(await getTodaysMissions());
+      setProgress(await getMissionProgress());
+    }
     const route = MISSION_ROUTE[mission.id];
     if (route) navigation.navigate(route);
   }
@@ -325,7 +352,7 @@ export default function DailyMissionsCard({ children, mostrarMissoes = true }) {
             })()}
             <View style={{ flex: 1 }}>
               <Text style={[s.rowTitle, m.done && s.rowTitleDone]}>{m.titleKey ? t(m.titleKey) : m.title}</Text>
-              <Text style={s.rowDesc}>{m.done ? 'Concluída — tokens no seu saldo ✓' : m.descKey ? t(m.descKey) : m.desc}</Text>
+              <Text style={s.rowDesc}>{m.done ? t('missions.done') : m.descKey ? t(m.descKey) : m.desc}</Text>
             </View>
             <View style={[s.chip, m.done && s.chipDone]}>
               <Ionicons name={m.done ? 'checkmark' : 'diamond'} size={11} color={m.done ? colors.green : colors.gold} />

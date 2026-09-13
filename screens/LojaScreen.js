@@ -8,7 +8,7 @@ import { colors, gradients, setGoldThemeActive, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
 import FaixaCurva from '../components/FaixaCurva';
 import { getTokenBalance, spendTokens } from '../lib/tokens';
-import { addShield, getShieldCount } from '../lib/streakShield';
+import { addShield } from '../lib/streakShield';
 import {
   grantSeloCosmico,
   redeemBonusTarotReadingWithTokens,

@@ -13,7 +13,7 @@
 //
 // A defesa e a superficie: este modulo exporta UMA funcao que escreve
 // (`registrarEncuentro`) e um atalho que so a chama tres vezes
-// (`registrarTirada`). O portao em test/gamificacao.test.js trava a lista de
+// (`registrarTirada`). O portao em test/madremaria-gamificacao.test.js trava a lista de
 // exports exatamente por isso — no dia em que alguem acrescentar
 // `desbloquearTodo`, o teste fica vermelho antes de o commit sair da maquina.
 //

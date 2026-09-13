@@ -24,7 +24,7 @@
 //
 // UMA EXCECAO DECLARADA, e ela e importante: o audio do Cavaleiro termina em
 // "algo IRA VIR em sua direcao e voce precisa estar preparado". Isso e previsao
-// de futuro, que o produto inteiro nao faz e que test/copy.test.js aborta. O
+// de futuro, que o produto inteiro nao faz e que test/copy-promessa-app-inteiro.test.js aborta. O
 // texto escrito aqui guarda a FORCA da carta (movimento, velocidade, iniciativa)
 // sem a previsao. Enquanto o audio original nao for regravado, o app fica com as
 // duas versoes desencontradas nesse ponto — e isso esta anotado em
@@ -57,7 +57,7 @@
 // inicio do seculo XIX e circulou com esse nome depois da morte dela. NENHUMA
 // data entrou no texto das cartas: as tres gravadas nao citam nenhuma, e o
 // pedido explicito era que as 33 fossem indistinguiveis delas. O lugar do fato
-// datado neste projeto e datos/hechos.js, que test/contenido.test.js cobra com
+// datado neste projeto e datos/hechos.js, que test/madremaria-contenido.test.js cobra com
 // ano e fonte.
 
 // Uma so definicao por carta, na ordem canonica. LENORMAND, LENORMAND_36 e
@@ -477,7 +477,7 @@ const BARALHO = [
    * Na tradicao elas sao "o homem" e "a mulher", e representam quem consulta e o
    * par. Aqui o NOME fica (e o nome canonico do baralho, e trocar o nome seria
    * inventar um baralho diferente) mas o TEXTO nao assume genero nenhum de quem
-   * esta do outro lado — regra 4 da doutrina, a que test/copy.test.js vigia. As
+   * esta do outro lado — regra 4 da doutrina, a que test/copy-promessa-app-inteiro.test.js vigia. As
    * duas leituras funcionam nos dois sentidos: qual figura e quem se decide pelo
    * lugar em que a carta cai, nunca pelo nome dela. */
   {

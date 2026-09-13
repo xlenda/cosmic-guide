@@ -201,7 +201,20 @@ test('a aba Comunidade tem URLs estáveis para hub, Seguindo e diretrizes', () =
   const config = objectProperty(linking[0].init, 'config')?.value;
   const screens = objectProperty(config, 'screens')?.value;
   const community = computedRouteProperty(screens, 'COMMUNITY_TAB')?.value;
-  assert.equal(objectProperty(community, 'path')?.value?.value, 'comunidade');
+  // A BASE DO DEPLOY ENTRA NO PATH DA WEB (13/09/2026). Este assert conferia
+  // o literal 'comunidade' e passava enquanto as tres URLs da aba caiam na
+  // Home em producao: na web o useLinking recebe o PATHNAME INTEIRO e nao
+  // aplica `prefixes`, entao 'comunidade' nunca casava com
+  // '/cosmic-guide/comunidade'. Medido no navegador antes do conserto.
+  // Mesma forma do HOME_TAB (ver test/skyAlignmentNavigation.test.js), e o
+  // nativo continua sem a base porque la o `prefixes` ja a removeu.
+  const communityPath = objectProperty(community, 'path')?.value;
+  assert.equal(communityPath?.type, 'ConditionalExpression',
+    'o path da Comunidade precisa ser o ternario por plataforma — literal cru volta a matar as 3 URLs na web');
+  assert.equal(communityPath.consequent.value, 'cosmic-guide/comunidade',
+    'na web o path precisa carregar a base do deploy, senao o link morre na Home');
+  assert.equal(communityPath.alternate.value, 'comunidade',
+    'no nativo o `prefixes` ja removeu a base — o path fica sem ela');
 
   const nestedScreens = objectProperty(community, 'screens')?.value;
   assert.equal(computedRouteProperty(nestedScreens, 'COMMUNITY_MAIN')?.value?.value, '');

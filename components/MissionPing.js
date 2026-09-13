@@ -12,6 +12,13 @@
 // inofensivo se acontecer). O componente fica pra futuras missões de ação em
 // telas cujo consumo não deixa rastro persistido. Não renderiza nada e não
 // segura o foco.
+//
+// AINDA SEM CONSUMIDOR (13/09/2026). As duas missões do céu ('ceu-de-hoje' e
+// 'proximos-dias') eram a candidata óbvia — verificam por marcador de ação e
+// ninguém gravava o marcador, o que as tornava impossíveis de completar. O
+// conserto NÃO passou por aqui: as telas de destino estão com outro time, e
+// registrar no toque (MISSION_ACTION_ON_TAP, em components/DailyMissionsCard.js)
+// não exige tocar nelas. Este componente segue guardado de propósito.
 import { useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { recordMissionAction } from '../lib/missions';

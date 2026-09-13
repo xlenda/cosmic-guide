@@ -2587,7 +2587,7 @@ export const MISSOES_FDS = FDS;
    por `diaAbsoluto(dia) % pool.length`. Inserir ou remover uma missao no meio de um
    array desloca tudo depois dela e, com isso, as chaves dos vizinhos .es/.en. Quem
    mexer na ordem mexe nos tres arquivos na mesma passada; o portao de paridade
-   (test/madremaria-missoes-i18n.test.js) acusa o desencontro.
+   (test/madremaria-missoes-tres-idiomas.test.js) acusa o desencontro.
 
    FALLBACK, sem nunca lancar: idioma ativo -> PT -> a missao PT intacta. Traducao que
    falta mostra o portugues, que e verdadeiro — nunca texto inventado, nunca vazio.

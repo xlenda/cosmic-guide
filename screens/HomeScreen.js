@@ -2296,7 +2296,20 @@ const styles = StyleSheet.create({
   // Borda dourada sutil só enquanto a leitura de hoje NÃO foi lida — chama o
   // olho pro hábito diário sem gritar; depois de lida volta à borda padrão.
   thoughtCardUnread: { borderColor: colors.gold + '66' },
-  thoughtHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  // `flexWrap` + `alignItems:'flex-start'` (13/09/2026 — acabamento).
+  // MEDIDO em 390pt: o cabeçalho útil mede 240, e os dois textos não cabem
+  // lado a lado em NENHUM dos três idiomas ('Pensamento cósmico do dia' +
+  // '✨ Leia o de hoje', 'Pensamiento cósmico del día' + '✨ Lee el de hoy',
+  // 'Cosmic thought of the day' + "✨ Read today's"). Com nowrap os dois
+  // encolhiam JUNTOS e quebravam em duas linhas cada um — 153pt e 79pt de
+  // largura, 30pt de altura os dois —, e `alignItems:'center'` centralizava
+  // as duas colunas ragged uma contra a outra: lia como badge por cima do
+  // título. Deixar a linha QUEBRAR faz o badge descer inteiro pra linha de
+  // baixo quando não couber, que é o comportamento que o olho espera.
+  // `flex-start` porque, quando couberem lado a lado, é o topo das duas
+  // primeiras linhas que tem de alinhar — não o centro de blocos de alturas
+  // diferentes.
+  thoughtHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
   // flexShrink: 1 é obrigatório aqui: Text em row no RN não encolhe por
   // padrão (flexShrink 0) e o label uppercase (~27 chars em ES) + badge não
   // cabem lado a lado em telas de 320pt — sem isso o badge sai da tela.

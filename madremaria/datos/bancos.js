@@ -148,7 +148,7 @@ export const TOTAL_LUNACOES = LUNACAO_MAX - LUNACAO_MIN + 1;
  * A INVERSAO E O BUG, e ele e silencioso: sem esta lista, a lunacao 12 pergunta
  * "por onde você começaria" (uma pergunta da lunacao 1) em vez de MOSTRAR o que
  * ela escreveu na lunacao 1. O app vira entrevistador no mes em que prometeu ser
- * indice, e nada na tela denuncia. test/ano.test.js confere esta lista contra as
+ * indice, e nada na tela denuncia. test/madremaria-ano.test.js confere esta lista contra as
  * bandeiras de lib/ano.js. */
 export const LUNACOES_DE_ARQUIVO = Object.freeze([12, 13]);
 

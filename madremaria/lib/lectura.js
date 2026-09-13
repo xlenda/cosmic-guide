@@ -14,7 +14,7 @@
 //
 // A carta NAO e reescrita. O campo `amor` de datos/cartas.json entra VERBATIM
 // como corpo de cada posicao: aquela lente ja foi curada e passa pelo portao de
-// test/contenido.test.js. O que este motor faz e ENQUADRAR a lente:
+// test/madremaria-contenido.test.js. O que este motor faz e ENQUADRAR a lente:
 //
 //     pregunta  ->  a pergunta que a posicao responde   (tabela)
 //     cuerpo    ->  carta.amor, VERBATIM                 (nunca tocado)
@@ -510,7 +510,7 @@ export function esContactoDuro(respuestas) {
 
 /* =================================================================================
  * ALTERNATIVAS — o que entra no lugar da frase retirada.
- * Nenhuma delas pode casar com os proprios padroes (test/lectura.test.js cobra).
+ * Nenhuma delas pode casar com os proprios padroes (test/madremaria-lectura.test.js cobra).
  * ================================================================================= */
 
 export const ALTERNATIVAS = congelar({
@@ -537,7 +537,7 @@ export const ALTERNATIVAS = congelar({
 /* =================================================================================
  * TABLAS — toda a copy composta pelo motor.
  *
- * Exportadas de proposito: assim test/lectura.test.js consegue varrer CADA string
+ * Exportadas de proposito: assim test/madremaria-lectura.test.js consegue varrer CADA string
  * possivel contra a doutrina (promessa de desfecho, genero atribuido, voseo,
  * futuro na terceira posicao) sem ter de gerar as 625 combinacoes de respostas.
  * Tabela que nao e exportada e tabela que ninguem linta.

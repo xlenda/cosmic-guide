@@ -327,7 +327,7 @@ function indiceDaVolta(largo, giro) {
  * pelo avesso — afirmar sobre o ceu uma coisa que nao se sabe.
  *
  * ---------------------------------------------------------------------------
- * OS DOIS TIPOS QUE NASCERAM DE UM BUG MEDIDO (portao test/plano.test.js)
+ * OS DOIS TIPOS QUE NASCERAM DE UM BUG MEDIDO (portao test/madremaria-plano.test.js)
  * ---------------------------------------------------------------------------
  * Havia quatro tipos — exato, parcial, nenhum, naoDeclara — e eles conflavam
  * "medi e nao bate" com "nao consegui medir". Sem efemeride:
@@ -664,7 +664,7 @@ export function planoDoDia(respuestas, opciones = {}) {
      * alternativa quando a guarda dispara, e trocar a frase de um recibo faria o
      * recibo mentir sobre a propria conta. O que protege este bloco e a
      * construcao: os rotulos de diagnostico.js sao nossos e sao sem agente, e o
-     * portao de test/diagnostico.test.js varre as 1.875 combinacoes com as mesmas
+     * portao de test/madremaria-diagnostico.test.js varre as 1.875 combinacoes com as mesmas
      * guardas de lib/lectura.js. Se alguma linha daqui algum dia disparar, o
      * conserto e no rotulo — nunca no runtime reescrevendo um recibo.
      *

@@ -111,7 +111,7 @@
 // ===========================================================================
 // O audio da terceira carta termina em "algo ira vir em sua direcao e voce
 // precisa estar preparado". E previsao de futuro, que este produto nao faz e que
-// test/copy.test.js aborta. O campo `leitura` de datos/lenormand.js guarda a
+// test/copy-promessa-app-inteiro.test.js aborta. O campo `leitura` de datos/lenormand.js guarda a
 // forca da carta (movimento, iniciativa) SEM a previsao, e o desencontro esta
 // anotado la em `avisoDeAudio`.
 //
@@ -438,7 +438,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
    *
    * A `leitura` NAO passa pela guarda, do mesmo jeito que a lente `amor` do taro
    * nao passa: ela e a carta falando, vai verbatim, e ja e conferida pelo portao
-   * de test/copy.test.js. */
+   * de test/copy-promessa-app-inteiro.test.js. */
   const convites = useMemo(() => {
     const duro = esContactoDuro(respuestas);
     const alternativa = t('entrada.convite.alternativa');
@@ -515,7 +515,7 @@ export default function LeituraDeEntradaScreen({ navigation, route }) {
    * as abas seria ter duas verdades sobre onde o funil termina. (O portao la em
    * cima manda para as abas, sim — mas aquilo e expulsao, nao e o fim do funil.)
    * Se a rota do carrossel sumir do Stack, o React Navigation nao lanca — so
-   * avisa em __DEV__ —, e e por isso que test/profunda.test.js exige o registro
+   * avisa em __DEV__ —, e e por isso que test/madremaria-profunda.test.js exige o registro
    * dela em App.js. */
   const entrarNoApp = useCallback(async () => {
     await marcarLeituraDeEntrada();

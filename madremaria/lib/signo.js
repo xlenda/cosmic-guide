@@ -52,7 +52,7 @@
 //    APARENTE do Sol na data. E o caminho do aparelho.
 // 2. A formula do USNO: reserva para quando o require nao resolver — e o que
 //    acontece nos testes em Node ESM, onde `require` nem existe. E de proposito:
-//    o portao de test/signo.test.js compara os DOIS caminhos data a data, entao a
+//    o portao de test/madremaria-signo.test.js compara os DOIS caminhos data a data, entao a
 //    reserva e medida contra o motor real a cada `npm test`.
 //
 // O require e preguicoso e protegido por try/catch pelo mesmo motivo de
@@ -135,7 +135,7 @@ export function esFechaReal(dateStr) {
 // O motor astronomico. Mesmo padrao de lib/almacen.js: require preguicoso dentro
 // de try/catch. Em Node ESM (os testes) `require` nao existe, o catch pega o
 // ReferenceError e o calculo cai na formula do USNO — que e exatamente o caminho
-// que test/signo.test.js mede contra o motor.
+// que test/madremaria-signo.test.js mede contra o motor.
 let _Astronomia;
 function getAstronomia() {
   if (_Astronomia !== undefined) return _Astronomia;

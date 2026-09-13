@@ -1154,3 +1154,63 @@ test('o texto de compartilhar monta a moldura por chave quando recebe t()', () =
     `${r.titulo} — ritual de Amor, do Cosmic Guide.\nMomento ideal: ${resumoDoMomento(r)}.\n${AVISO_ETICO}\n${LINK_COMPARTILHAR}`
   );
 });
+
+// ---------------------------------------------------------------------------
+// O NÚMERO CRAVADO NA COPY (13/09/2026)
+// ---------------------------------------------------------------------------
+// A copy afirma o tamanho da biblioteca em seis lugares (2 chaves × 3 idiomas),
+// incluindo a variante POR EXTENSO: 'rituais.intro' abre com "Vinte e um
+// rituais" / "Veintiún rituales" / "Twenty-one rituals", e
+// 'explore.item.rituais.description' diz "21 práticas em sete objetivos".
+//
+// Hoje bate. O problema era o portão: a asserção acima é `RITUAIS.length >= 21`
+// — MAIOR OU IGUAL. Quem acrescentasse o 22º ritual passaria com verde total, e
+// o app passaria a dizer "Vinte e um rituais" numa tela que mostra 22. É o
+// padrão de número escrito à mão ao lado de dado que o código conhece — o mesmo
+// que já custou caro aqui antes.
+//
+// Este teste fecha o buraco pelos dois lados: o algarismo E o extenso. Se a
+// biblioteca crescer, ele diz exatamente quais chaves reescrever, nos três
+// idiomas, em vez de deixar a divergência viajar em triplicata.
+test('o número de rituais e de categorias que a copy afirma é o número REAL', () => {
+  const { LANGUAGES, _DICTS_FOR_TESTS } = require('../lib/i18n.js');
+
+  const EXTENSO = {
+    21: { pt: 'Vinte e um', es: 'Veintiún', en: 'Twenty-one' },
+  };
+  const EXTENSO_CATEGORIAS = { 7: { pt: 'sete', es: 'siete', en: 'seven' } };
+
+  const nRituais = RITUAIS.length;
+  const nCategorias = CATEGORIAS.length;
+
+  const extenso = EXTENSO[nRituais];
+  assert.ok(
+    extenso,
+    `a biblioteca tem ${nRituais} rituais e não há forma por extenso registrada ` +
+      "para esse número: reescreva 'rituais.intro' nos 3 idiomas e acrescente o " +
+      'número novo ao mapa EXTENSO deste teste.'
+  );
+  const extCat = EXTENSO_CATEGORIAS[nCategorias];
+  assert.ok(extCat, `há ${nCategorias} categorias e não há extenso registrado para esse número.`);
+
+  for (const lang of LANGUAGES) {
+    const intro = _DICTS_FOR_TESTS[lang]['rituais.intro'];
+    assert.ok(intro, `falta 'rituais.intro' em ${lang}`);
+    assert.ok(
+      intro.startsWith(extenso[lang]),
+      `'rituais.intro' em ${lang} deveria abrir com "${extenso[lang]}" ` +
+        `(são ${nRituais} rituais), e abre com: "${intro.slice(0, 24)}…"`
+    );
+
+    const desc = _DICTS_FOR_TESTS[lang]['explore.item.rituais.description'];
+    assert.ok(desc, `falta 'explore.item.rituais.description' em ${lang}`);
+    assert.ok(
+      desc.includes(String(nRituais)),
+      `'explore.item.rituais.description' em ${lang} não cita ${nRituais}: "${desc}"`
+    );
+    assert.ok(
+      desc.includes(extCat[lang]),
+      `'explore.item.rituais.description' em ${lang} não cita "${extCat[lang]}" categorias`
+    );
+  }
+});
