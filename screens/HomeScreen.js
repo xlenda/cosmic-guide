@@ -16,10 +16,13 @@ import HeroSection from '../components/HeroSection';
 // dependência.
 // planetaImagem (08/08/2026, última rodada): planeta pintado 256px ou null,
 // pras miniaturas do Céu de Hoje e do card de próximos eventos. Mesmo contrato.
-// CENAS não é importado aqui (12/09/2026): estava na lista de import sem um
-// único uso na tela. As cenas continuam vivas em outras telas (Compatibility,
-// LunarCalendar, Dream, Planos, Loja) — só não nesta.
-import { mascoteDoSigno, planetaImagem } from '../lib/ilustracoes';
+// CENAS VOLTOU AO IMPORT (13/09/2026). Ele saiu em 12/09 por estar na lista
+// sem um único uso na tela — e estava mesmo, porque o bloco que o usava tinha
+// sumido no commit 62c1db4 sem ninguém notar. Restaurada a Frase do Amor,
+// CENAS.amor volta a ser a CAMADA DE BAIXO da faixa do card (o fundo do dia
+// pinta por cima quando o servidor responde). Tirar este import de novo deixa
+// a faixa sem chão nenhum em 3G e em 404.
+import { mascoteDoSigno, planetaImagem, CENAS } from '../lib/ilustracoes';
 // O CENÁRIO CÓSMICO — céu gradiente + estrelas + ondas de silhueta. Entra como
 // PRIMEIRO filho do root (uso documentado no cabeçalho do próprio arquivo).
 import CosmicScene from '../components/CosmicScene';
@@ -1567,118 +1570,6 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* Missões de hoje (motor lib/missions.js) — na Home SÓ pra quem está
-            solo: casal vê o MESMO card dentro de Agir (a tela de "fazer"),
-            mas solo nunca chega lá (SoloTeaser na borda da rota, App.js) e
-            ficaria sem o loop missão→token→Loja pedido pelo dono. */}
-        {/* A CONDICIONAL SAIU DAQUI (10/09/2026) e foi PRA DENTRO do card.
-            Motivo: com as três seções agora filhas de DailyMissionsCard, um
-            `{!isCouple && (…)}` em volta apagaria o céu de hoje, os próximos
-            dias e a compatibilidade pra quem está EM CASAL — justamente quem
-            mais usa a última. Quem decide se as missões aparecem é o próprio
-            card (prop `mostrarMissoes`); as três seções aparecem sempre. */}
-        <View style={{ marginHorizontal: 20, marginBottom: 14 }}>
-            {/* AS TRÊS ENTRAM DENTRO DO CARD (10/09/2026, pedido do dono:
-                "mas é para todos ficarem EM missões"). Antes desciam pra
-                junto dele, mas como caixas separadas — três bordas, três
-                fundos. Agora são filhos: mesma caixa, separados por um
-                filete. É a diferença entre "embaixo de" e "dentro de". */}
-            {/* MISSÕES PRA TODO MUNDO NA HOME (10/09/2026, terceira correção).
-                Era `mostrarMissoes={!isCouple}`: casal não via a lista aqui,
-                porque veria a mesma dentro de Agir. Só que hoje o card virou o
-                CONTINENTE do céu de hoje e dos próximos dias — sem a lista ele
-                fica sem cabeçalho, e os dois blocos aparecem soltos, exatamente
-                o que o dono viu e apontou ("as coisas não estão juntas nas
-                missões de hoje"). Ele estava numa conta de casal; eu vinha
-                testando em solo, e por isso não reproduzia.
-
-                A duplicata que a prop evitava já foi resolvida na origem certa:
-                AgirScreen esconde o card quando está dentro de aba. */}
-            <DailyMissionsCard>
-  {/* OS BLOCOS DO CÉU SAÍRAM DAQUI (10/09/2026). Eles viraram as missões 4,
-                        5 e 6 logo acima — e ficar com os dois era dizer a mesma coisa duas
-                        vezes na mesma caixa: "Veja o céu de hoje" na lista de missões e,
-                        três centímetros abaixo, o bloco "CÉU DE HOJE PRA VOCÊ" repetindo.
-                        O dono apontou. A missão é a porta; o conteúdo mora na tela que ela
-                        abre (Mapa Astral, Calendário Cósmico, Compatibilidade).
-            
-                        O motor não foi tocado: personalSky, proximosCeu e o cálculo de
-                        compatibilidade seguem em HomeScreen, e as telas de destino
-                        mostram tudo com mais espaço do que cabia aqui. */}
-
-  
-            </DailyMissionsCard>
-        </View>
-
-        {/* ═══ TUDO O QUE É HOJE, NUM BLOCO SÓ ═══ (10/09/2026, pedido do
-            dono: "em missões deixar tudo junto: céu pra você hoje, céu nos
-            próximos dias, compatibilidade do casal — deixar tudo em missões
-            para ficar bem organizado").
-
-            Antes eram superfícies espalhadas pelo rolo, todas dizendo alguma
-            versão de "o que é hoje", e a pessoa não tinha como saber qual
-            olhar primeiro. Agora descem juntas, logo abaixo do card de
-            missões: o céu de hoje, o que vem nos próximos dias e vocês dois.
-
-            As duas BandaSection foram movidas INTEIRAS, com a condicional
-            {temZonaCeu && (…)} junto — limites tirados do parser, não de
-            recorte por texto (recortar só a BandaSection deixava a
-            condicional órfã e quebrava o arquivo). Os testIDs seguem
-            idênticos e as âncoras de test/quentePrimeiroNasTelas.test.js
-            não se moveram. */}
-
-
-
-
-        {/* A LINHA DE HOJE — encostada no card de MISSÕES, e não mais no card
-            de Sequência. Duas razões que se somam:
-
-            1. COLISÃO. Pra usuário solo (a maioria, e a única configuração em
-               que DailyMissionsCard aparece na Home) a dobra passava a ter DUAS
-               superfícies de "o que fazer hoje": esta linha lá em cima, texto
-               cinza de 13 px, e o card "Missões de hoje" logo abaixo — card
-               inteiro, checkboxes, contador, tokens, botão de bônus. A linha
-               perdia a disputa por construção. Encostada no card ela deixa de
-               competir e passa a ler como a quarta linha dele.
-            2. SALTO DE LAYOUT. A linha nasce `null` e só é preenchida depois do
-               import() dinâmico dos motores e do storage — ou seja, sempre
-               DEPOIS da primeira pintura. Como ela aparece em quase toda
-               abertura, era um pulo de ~28 pt empurrando o pensamento do dia e
-               as missões pra baixo enquanto a pessoa já estava lendo. Aqui o
-               salto acontece fora do campo de visão inicial.
-
-            Continua sendo uma LINHA e não um card: sem fundo, sem borda, sem
-            gradiente — cards novos na dobra de cima era exatamente o "fica
-            perdido no meio" que o dono mandou tirar. Ver o bloco no topo do
-            arquivo pra escolha entre trilha e ritual. */}
-        {mostrarTodayLine && (
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.todayLine}
-            onPress={() => {
-              // Medição antes de navegar (fire-and-forget: track() é síncrona).
-              // Era a única coisa nova na dobra sem evento nenhum — sem isto,
-              // "manter, mover ou matar a linha" continua sendo opinião em vez
-              // de número.
-              funnel.todayLineTap(ehTrilha ? 'jornada' : 'ritual');
-              navigation.navigate(ehTrilha ? ROUTES.JORNADA : ROUTES.RITUAIS);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`${todayLineText} — ${todayLineCta}`}
-            testID="home-today-line"
-          >
-            <Ionicons name={ehTrilha ? 'footsteps' : 'flame'} size={14} color={colors.teal} />
-            {/* numberOfLines={1}: o nome da trilha e o título do ritual vêm dos
-                motores e podem ser longos — a linha encolhe o texto com
-                reticências em vez de virar duas ou três linhas e deixar de ser
-                uma linha. */}
-            <Text style={styles.todayLineText} numberOfLines={1}>
-              {todayLineText}
-            </Text>
-            <Text style={styles.todayLineCta}>{todayLineCta}</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
-          </TouchableOpacity>
-        )}
         </FaixaCurva>
 
         {/* ═══ FAIXA 3 · EXPLORE O COSMOS ═══ (12/09/2026)
@@ -1781,6 +1672,257 @@ export default function HomeScreen() {
               </View>
             </>
           )}
+
+          {/* ═══ FRASE DO DIA DE AMOR — DE VOLTA À TELA ═══ (13/09/2026)
+
+              ELA NUNCA DEVIA TER SAÍDO. Sumiu como dano colateral do commit
+              62c1db4 ("Tira os blocos que viraram missão"), que removeu da Home
+              os blocos promovidos a missão do dia. A Frase do Amor NÃO virou
+              missão — saiu junto e não voltou por outra porta. O código ficou
+              inteiro e vivo: handleShareLovePhrase, todaysLovePhrase, os
+              estilos lovePhrase*, as 12 chaves nos três idiomas e
+              lib/shareCard.js. Só o JSX evaporou, e uma função sem chamador não
+              faz barulho nenhum — por isso passou despercebida até o dono
+              perguntar "onde gera um card não tem mais".
+
+              POR QUE AQUI, NO FIM DA GRADE DO CASAL. Ela é bloco de RETENÇÃO
+              (pedido do dono, 25/07/2026: "retenção via compartilhamento"), e
+              retenção quer o momento em que a pessoa JÁ está no assunto, não um
+              gancho jogado na porta de entrada. Três razões que se somam:
+
+                1. É DO CASAL. O rótulo do botão muda com quem olha ("meu amor"
+                   só existe com par cadastrado) e o card compartilhado é do tipo
+                   'casal'. Logo abaixo da grade Casal ela lê como a última coisa
+                   daquele assunto, e não como um card solto de tema nenhum.
+                2. CHÃO AMEIXA. A faixa "Explore o cosmos" é o trecho escuro do
+                   rolo, e a arte deste card é escura — o mesmo motivo que
+                   trouxe o catálogo pra cá. Solta entre duas faixas, a arte
+                   cairia no fundo cru da página.
+                3. NÃO DISPUTA COM AS MISSÕES. O bloco de missões acabou de ir
+                   pro FIM desta faixa (13/09). A frase entra ANTES dele: o
+                   convite de compartilhar não compete com a lista do que fazer
+                   hoje, e quem rolou até aqui já passou pelo catálogo inteiro.
+
+              A grade do Casal só aparece com coupleCardItems — por isso a
+              frase fica FORA daquela condicional: ela vale pros dois perfis
+              (o rótulo shareSolo existe exatamente pra isso). */}
+          <View style={styles.gutterWrap}>
+            {/* Frase do dia de amor — feita pra compartilhar de verdade com o
+                par, não só ler (ver handleShareLovePhrase acima). */}
+            <View style={styles.lovePhraseCard}>
+              {/* A FAIXA MOSTRA O QUE O COMPARTILHAR ENVIA (09/08/2026, relato do
+                  dono: "aparece a imagem nova mas compartilha a antiga"): o fundo
+                  exibido é o MESMO fundo do dia que compartilharFraseComoCard
+                  desenha (fonte única: fundoDoDia em lib/shareCard.js, tipo
+                  'casal' — o mesmo hard-coded do handleShareLovePhrase). Só cai
+                  na cena do pack quando o servidor não respondeu. */}
+              {/* AUDITORIA 09/08/2026: duas camadas, não um source trocado — o
+                  fundo remoto demora a baixar (3G) e pode falhar (404/rotação no
+                  servidor); trocando o source, a faixa ficava em BRANCO nesses
+                  dois casos. Agora a cena local fica SEMPRE por baixo e o fundo
+                  do dia pinta por cima quando (e se) carregar; onError volta pro
+                  local em vez de faixa vazia permanente. */}
+              <View style={styles.lovePhraseArte}>
+                <Image source={CENAS.amor} style={styles.lovePhraseArteCamada} resizeMode="cover" accessible={false} />
+                {!!fundoFraseDoDia && (
+                  <Image
+                    source={{ uri: fundoFraseDoDia }}
+                    style={styles.lovePhraseArteCamada}
+                    resizeMode="cover"
+                    accessible={false}
+                    onError={() => setFundoFraseDoDia(null)}
+                  />
+                )}
+              </View>
+              <LinearGradient colors={['#FF6BA0', '#B57BFF']} style={styles.lovePhraseInner}>
+                <View style={styles.lovePhraseHead}>
+                  <Ionicons name="heart" size={18} color="#fff" />
+                  <Text style={styles.lovePhraseLabel}>{t('home.lovePhrase.label')}</Text>
+                </View>
+                <Text style={styles.lovePhraseText}>{todaysLovePhrase}</Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.lovePhraseBtn}
+                  onPress={handleShareLovePhrase}
+                  accessibilityRole="button"
+                  testID="home-love-phrase-share"
+                >
+                  <Ionicons name="share-social" size={16} color={colors.accent} />
+                  {/* O card aparece pros dois perfis, então o rótulo muda com quem
+                      está olhando: "meu amor" só existe quando há par cadastrado.
+                      Chamar de "Compartilhar" nomeava o mecanismo do botão, não o
+                      que a pessoa quer fazer com ele. */}
+                  <Text style={styles.lovePhraseBtnText}>
+                    {t(isCouple ? 'home.lovePhrase.share' : 'home.lovePhrase.shareSolo')}
+                  </Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          </View>
+
+        {/* ═══ MISSÕES DE HOJE, DEPOIS DO CATÁLOGO ═══ (13/09/2026, pedido do
+            dono: "a parte de missões tem que ficar embaixo das leituras").
+
+            DEPOIS DA FAIXA INTEIRA, E NÃO SÓ DA GRADE "LEITURAS". O dono disse
+            "leituras"; o que existe no código é uma faixa "Explore o cosmos"
+            com CINCO grades (Leituras, Práticas, Datas, Curiosidades, Casal)
+            sob um título e um subtítulo únicos — o agrupamento de 12/09 que
+            impediu cinco viradas de assunto seguidas. Enfiar as missões entre
+            a primeira e a segunda grade partiria esse grupo ao meio outra vez,
+            que é exatamente o defeito que a faixa foi criada pra consertar.
+            Então o bloco entra no FIM da faixa: continua embaixo das leituras,
+            e o catálogo continua sendo um bloco só.
+
+            DENTRO DA FAIXA, E NÃO ENTRE DUAS. A faixa seguinte (epílogo)
+            declara grude="ameixa" — ela conta com chão ameixa logo acima pra
+            tapar a fresta da onda. Solto entre as duas, o bloco cairia no fundo
+            cru da página: uma tira escura estranha no meio do rolo E uma
+            costura mentindo sobre o que tem em cima. Como último filho da
+            faixa 3 ele fica no mesmo chão ameixa das grades, e a costura
+            ameixa→dourado continua verdadeira.
+
+            E A LEI DA CASA? "Quente primeiro, ficha depois" mede a ordem DENTRO
+            de um bloco — a leitura abre, o dado desce — e por isso a Home saiu
+            das listas de test/quentePrimeiroNasTelas.test.js em 10/09. Ainda
+            assim vale registrar a tensão pro dono decidir: o catálogo é vitrine
+            (o que EXISTE) e as missões são o que se FAZ hoje. Passar a vitrine
+            na frente do que se faz é a troca que ele pediu conhecendo o funil
+            dele — quem abre o app pra escolher acha o catálogo primeiro, e quem
+            já sabe o que quer rola até as missões. Nada foi apagado nem
+            reescrito: mesmo card, mesmos testIDs, mesmas condicionais.
+
+            Missões de hoje (motor lib/missions.js) — na Home SÓ pra quem está
+            solo: casal vê o MESMO card dentro de Agir (a tela de "fazer"),
+            mas solo nunca chega lá (SoloTeaser na borda da rota, App.js) e
+            ficaria sem o loop missão→token→Loja pedido pelo dono. */}
+        {/* A CONDICIONAL SAIU DAQUI (10/09/2026) e foi PRA DENTRO do card.
+            Motivo: com as três seções agora filhas de DailyMissionsCard, um
+            `{!isCouple && (…)}` em volta apagaria o céu de hoje, os próximos
+            dias e a compatibilidade pra quem está EM CASAL — justamente quem
+            mais usa a última. Quem decide se as missões aparecem é o próprio
+            card (prop `mostrarMissoes`); as três seções aparecem sempre. */}
+        {/* ESPAÇO NA POSIÇÃO NOVA (13/09/2026). Os números crus 20/14 vinham de
+            quando o vizinho de cima era o card do Pensamento do dia, na mesma
+            coluna de 20. Agora o vizinho é a última GRADE do catálogo, e a
+            relação mudou de "card e o próximo card" pra "fim de um assunto e
+            começo de outro": marginTop vira space.secao (32), o mesmo degrau
+            que styles.grupoRotulo já usa pra abrir cada grade desta faixa. O de
+            baixo vira space.dentro (12) porque o que vem logo abaixo é a LINHA
+            DE HOJE, que lê como a última linha deste card e não como bloco
+            novo. A coluna lateral segue 20 — é o gutter histórico da tela, o
+            mesmo que styles.todayLine e styles.topoCard usam; trocá-lo por um
+            degrau da escala desalinharia o card das grades ao lado. */}
+        <View style={{ marginHorizontal: 20, marginTop: space.secao, marginBottom: space.dentro }}>
+            {/* AS TRÊS ENTRAM DENTRO DO CARD (10/09/2026, pedido do dono:
+                "mas é para todos ficarem EM missões"). Antes desciam pra
+                junto dele, mas como caixas separadas — três bordas, três
+                fundos. Agora são filhos: mesma caixa, separados por um
+                filete. É a diferença entre "embaixo de" e "dentro de". */}
+            {/* MISSÕES PRA TODO MUNDO NA HOME (10/09/2026, terceira correção).
+                Era `mostrarMissoes={!isCouple}`: casal não via a lista aqui,
+                porque veria a mesma dentro de Agir. Só que hoje o card virou o
+                CONTINENTE do céu de hoje e dos próximos dias — sem a lista ele
+                fica sem cabeçalho, e os dois blocos aparecem soltos, exatamente
+                o que o dono viu e apontou ("as coisas não estão juntas nas
+                missões de hoje"). Ele estava numa conta de casal; eu vinha
+                testando em solo, e por isso não reproduzia.
+
+                A duplicata que a prop evitava já foi resolvida na origem certa:
+                AgirScreen esconde o card quando está dentro de aba. */}
+            <DailyMissionsCard>
+  {/* OS BLOCOS DO CÉU SAÍRAM DAQUI (10/09/2026). Eles viraram as missões 4,
+                        5 e 6 logo acima — e ficar com os dois era dizer a mesma coisa duas
+                        vezes na mesma caixa: "Veja o céu de hoje" na lista de missões e,
+                        três centímetros abaixo, o bloco "CÉU DE HOJE PRA VOCÊ" repetindo.
+                        O dono apontou. A missão é a porta; o conteúdo mora na tela que ela
+                        abre (Mapa Astral, Calendário Cósmico, Compatibilidade).
+            
+                        O motor não foi tocado: personalSky, proximosCeu e o cálculo de
+                        compatibilidade seguem em HomeScreen, e as telas de destino
+                        mostram tudo com mais espaço do que cabia aqui. */}
+
+  
+            </DailyMissionsCard>
+        </View>
+
+        {/* ═══ TUDO O QUE É HOJE, NUM BLOCO SÓ ═══ (10/09/2026, pedido do
+            dono: "em missões deixar tudo junto: céu pra você hoje, céu nos
+            próximos dias, compatibilidade do casal — deixar tudo em missões
+            para ficar bem organizado").
+
+            Antes eram superfícies espalhadas pelo rolo, todas dizendo alguma
+            versão de "o que é hoje", e a pessoa não tinha como saber qual
+            olhar primeiro. Agora descem juntas, logo abaixo do card de
+            missões: o céu de hoje, o que vem nos próximos dias e vocês dois.
+
+            As duas BandaSection foram movidas INTEIRAS, com a condicional
+            {temZonaCeu && (…)} junto — limites tirados do parser, não de
+            recorte por texto (recortar só a BandaSection deixava a
+            condicional órfã e quebrava o arquivo). Os testIDs seguem
+            idênticos e as âncoras de test/quentePrimeiroNasTelas.test.js
+            não se moveram. */}
+
+
+
+
+        {/* A LINHA DE HOJE — encostada no card de MISSÕES, e não mais no card
+            de Sequência. Duas razões que se somam:
+
+            1. COLISÃO. Pra usuário solo (a maioria, e a única configuração em
+               que DailyMissionsCard aparece na Home) a dobra passava a ter DUAS
+               superfícies de "o que fazer hoje": esta linha lá em cima, texto
+               cinza de 13 px, e o card "Missões de hoje" logo abaixo — card
+               inteiro, checkboxes, contador, tokens, botão de bônus. A linha
+               perdia a disputa por construção. Encostada no card ela deixa de
+               competir e passa a ler como a quarta linha dele.
+            2. SALTO DE LAYOUT. A linha nasce `null` e só é preenchida depois do
+               import() dinâmico dos motores e do storage — ou seja, sempre
+               DEPOIS da primeira pintura. Como ela aparece em quase toda
+               abertura, era um pulo de ~28 pt empurrando o pensamento do dia e
+               as missões pra baixo enquanto a pessoa já estava lendo. Aqui o
+               salto acontece fora do campo de visão inicial.
+
+            ELA DESCEU JUNTO em 13/09/2026, quando o bloco de missões foi pro fim
+            da faixa "Explore o cosmos". As duas razões mandaram descer, não
+            ficar: a (1) só vale se a linha continuar ENCOSTADA no card — deixada
+            pra trás, ela voltaria a ser a única superfície de "o que fazer hoje"
+            na dobra de cima, competindo com o que sobrou ali, e o -6 de
+            styles.todayLine (a puxada que a gruda no card) passaria a morder o
+            card de Sequência. A (2) só melhora: quanto mais pra baixo, mais
+            longe da primeira pintura o salto acontece.
+
+            Continua sendo uma LINHA e não um card: sem fundo, sem borda, sem
+            gradiente — cards novos na dobra de cima era exatamente o "fica
+            perdido no meio" que o dono mandou tirar. Ver o bloco no topo do
+            arquivo pra escolha entre trilha e ritual. */}
+        {mostrarTodayLine && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.todayLine}
+            onPress={() => {
+              // Medição antes de navegar (fire-and-forget: track() é síncrona).
+              // Era a única coisa nova na dobra sem evento nenhum — sem isto,
+              // "manter, mover ou matar a linha" continua sendo opinião em vez
+              // de número.
+              funnel.todayLineTap(ehTrilha ? 'jornada' : 'ritual');
+              navigation.navigate(ehTrilha ? ROUTES.JORNADA : ROUTES.RITUAIS);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`${todayLineText} — ${todayLineCta}`}
+            testID="home-today-line"
+          >
+            <Ionicons name={ehTrilha ? 'footsteps' : 'flame'} size={14} color={colors.teal} />
+            {/* numberOfLines={1}: o nome da trilha e o título do ritual vêm dos
+                motores e podem ser longos — a linha encolhe o texto com
+                reticências em vez de virar duas ou três linhas e deixar de ser
+                uma linha. */}
+            <Text style={styles.todayLineText} numberOfLines={1}>
+              {todayLineText}
+            </Text>
+            <Text style={styles.todayLineCta}>{todayLineCta}</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
 
         </FaixaCurva>
 
@@ -2267,7 +2409,15 @@ const styles = StyleSheet.create({
   // papel. Antes ela encostava no card de Sequência, que é o bloco errado.
   todayLine: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: 20, marginTop: -6, marginBottom: 14, paddingVertical: 2,
+    // marginTop -6 (a puxada que ENCOSTA a linha no card de missões) viajou
+    // junto com o bloco em 13/09/2026 — é ela que faz a linha ler como quarta
+    // linha do card em vez de bloco solto, e o card continua logo acima.
+    // marginBottom vira 0 (era 14): a linha agora é o ÚLTIMO filho da faixa
+    // "Explore o cosmos", e a própria FaixaCurva já fecha com
+    // paddingBottom: space.secao. Os 14 somavam por cima desse degrau — o
+    // mesmo "cobrar duas vezes pela mesma virada" que test/diagramacaoPecas
+    // trava na faixa 1.
+    marginHorizontal: 20, marginTop: -6, marginBottom: 0, paddingVertical: 2,
     minHeight: 44,
   },
   todayLineText: { color: colors.textSecondary, fontSize: 13, flex: 1 },

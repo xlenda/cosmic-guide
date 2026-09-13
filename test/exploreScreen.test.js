@@ -62,7 +62,27 @@ test('a primeira dobra preserva o caminho personalizado e as portas permanentes'
   // Céu e da porta do Explorar, que são o epílogo. O que passou à frente dele
   // foi só a linha de hoje: UMA linha de 28px sem fundo nem borda, não uma
   // superfície que disputa atenção.
-  assert.ok(daily < catalogo, 'a linha de hoje fecha o grupo "Seu caminho", antes do catálogo');
+  // E SE INVERTEU DE NOVO EM 13/09/2026 — terceira vez, mesmo motivo, mesmo
+  // dono. O pedido foi "a parte de missões tem que ficar embaixo das leituras".
+  // O bloco de Missões desceu pro FIM da faixa "Explore o cosmos" (depois das
+  // cinco grades, não entre a primeira e a segunda: partir o catálogo ao meio é
+  // o defeito que 12/09 consertou), e a LINHA DE HOJE desceu junto porque está
+  // acoplada a ele — styles.todayLine tem marginTop:-6, a puxada que a encosta
+  // no card de missões; deixada pra trás, ela voltaria a competir sozinha na
+  // dobra de cima e o -6 morderia o card de Sequência.
+  //
+  // POR QUE A AFIRMAÇÃO VIRA ESTA. O catálogo agora ABRE antes da linha de
+  // hoje e a CONTÉM: t('home.sectionExplore') é o título da faixa, e o bloco
+  // de missões + a linha são os últimos filhos dela. Travar `daily < catalogo`
+  // seria travar a tela de anteontem. O que o teste continua guardando é o que
+  // não mudou: o catálogo segue antes do epílogo, e a linha de hoje segue
+  // dentro do rolo e antes de Órbi.
+  //
+  // A TENSÃO COM "QUENTE PRIMEIRO, FICHA DEPOIS" fica registrada, não resolvida
+  // por mim: o catálogo é vitrine (o que existe) e as missões são o que se FAZ
+  // hoje. O dono pediu a vitrine primeiro conhecendo o funil dele. Se ele
+  // reverter, esta linha volta a ser `daily < catalogo` e o bloco sobe inteiro.
+  assert.ok(catalogo < daily, 'as missões e a linha de hoje fecham a faixa "Explore o cosmos" (13/09/2026)');
   assert.ok(catalogo < orbi, 'o catálogo vem antes do epílogo (Órbi, Alinhe seu Céu, porta do Explorar)');
   assert.ok(daily < orbi, 'Órbi fica depois da linha de hoje');
   // e as duas portas fecham o rolo
