@@ -539,7 +539,7 @@ export default function AyudaScreen({ navigation }) {
           {/* --- escrever: so depois dos passos, e so com categoria escolhida ----
               Chao PROPRIO (`ameixa`), que e o que substitui o fio reto de 1px
               que separava este bloco do acordeao. */}
-          <FaixaCurva tom="ameixa" semente="escrever" grude>
+          <FaixaCurva tom="ameixa" semente="escrever" grude="noite">
             <ColunaLeitura>
             <Sobreceja>{t('ayuda.escribir.sobreceja')}</Sobreceja>
             <Cuerpo style={estilos.escribirTitulo}>{t('ayuda.escribir.titulo')}</Cuerpo>

@@ -23,7 +23,7 @@ import GradientHeader from '../components/GradientHeader';
 // corria inteira sobre o mesmo chão com `gap: 16` pra tudo: o histórico da
 // tasseografia, o botão da câmera e a leitura da IA na MESMA distância uns dos
 // outros. As faixas dão o corte por ETAPA; a coluna tira o parágrafo da borda.
-import FaixaCurva from '../components/FaixaCurva';
+import FaixaCurva, { corDoTom } from '../components/FaixaCurva';
 import ColunaLeitura from '../components/ColunaLeitura';
 import {
   fetchAiCoffeeReading,
@@ -407,7 +407,7 @@ export default function CoffeeScreen() {
           <FaixaCurva
             tom="ameixa"
             semente="gesto"
-            grude
+            grude="noite"
             style={styles.faixa}
             estiloCorpo={[styles.faixaCorpo, styles.section]}
           >
@@ -551,7 +551,12 @@ export default function CoffeeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  // O CHAO DA TELA E O TOM DA ULTIMA FAIXA, nao o fundo cru (12/09/2026,
+  // medido em foto). Com colors.background aqui, o espaco que o conteudo nao
+  // preenche em tela curta vira #0B0712 — um buraco embaixo da ultima secao.
+  // A faixa e translucida sobre este chao, entao o mesmo tom faz a secao
+  // CONTINUAR ate o pe. Em tela cheia nada muda.
+  root: { flex: 1, backgroundColor: corDoTom('noite') },
   // `padding: 20` fica: é ele que a faixa anula com marginHorizontal:-20.
   //
   // O `gap` DO CONTAINER SAIU, e o motivo foi medido na foto (390x844,

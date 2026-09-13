@@ -492,7 +492,7 @@ export default function JornadaScreen() {
           <FaixaCurva
             tom="violeta"
             semente="jornada-arco"
-            grude
+            grude="ameixa"
             rasa={arco === null}
             estiloCorpo={arco === null ? styles.faixaVazia : styles.faixaCorpo}
           >
@@ -659,7 +659,7 @@ export default function JornadaScreen() {
           {/* AS TRILHAS — o terceiro chão. É onde a pessoa escolhe o que ler,
               e a lista sempre tem as quatro trilhas (vêm do motor), então não
               há estado vazio a proteger aqui. */}
-          <FaixaCurva tom="noite" semente="jornada-trilhas" grude estiloCorpo={styles.faixaCorpo}>
+          <FaixaCurva tom="noite" semente="jornada-trilhas" grude="violeta" estiloCorpo={styles.faixaCorpo}>
           <Text style={styles.grupo}>{t('jornada.trilhas.title')}</Text>
 
           {trilhas.map((tr) => {

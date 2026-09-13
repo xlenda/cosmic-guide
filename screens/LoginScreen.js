@@ -298,7 +298,7 @@ export default function LoginScreen() {
               faz o mesmo trabalho e não parece remendo. `rasa` porque o corpo
               é um botão e um link — onda cheia aqui seria mais chão que
               conteúdo (o defeito ALTO da Home). */}
-          <FaixaCurva tom="noite" semente="login-alternativas" grude rasa>
+          <FaixaCurva tom="noite" semente="login-alternativas" grude="ameixa" rasa>
             <ColunaLeitura>
               <Text style={styles.dividerText}>{t('login.divider')}</Text>
 

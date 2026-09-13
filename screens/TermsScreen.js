@@ -70,7 +70,7 @@ export default function TermsScreen() {
             da tela e precisa do chão que separa sem colorir. Violeta aqui
             lavaria a tela inteira — foi o que o lote da Home mediu em faixa
             longa. */}
-        <FaixaCurva tom="noite" semente="termos-regras" grude>
+        <FaixaCurva tom="noite" semente="termos-regras" grude="ameixa">
           <TermsSection title={t('terms.service.title')} primeira>
             {t('terms.service.body')}
           </TermsSection>
@@ -114,7 +114,7 @@ export default function TermsScreen() {
             linha desta tela que convida em vez de reger. `rasa` porque o corpo
             é um título e um parágrafo de duas linhas — onda cheia aqui seria
             mais chão que conteúdo. */}
-        <FaixaCurva tom="dourado" semente="termos-contato" grude rasa>
+        <FaixaCurva tom="dourado" semente="termos-contato" grude="noite" rasa>
           <ColunaLeitura>
             <Text style={styles.contatoTitulo}>{t('terms.contact.title')}</Text>
             <Text style={styles.paragraph}>{t('terms.contact.body', { email: SUPPORT_EMAIL })}</Text>

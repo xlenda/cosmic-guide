@@ -173,7 +173,7 @@ export default function ProgressoScreen() {
 
           {/* FAIXA 2 — O MÊS. */}
           {recap && (
-            <FaixaCurva tom="ameixa" semente="progresso-mes" grude estiloCorpo={styles.faixaCorpo}>
+            <FaixaCurva tom="ameixa" semente="progresso-mes" grude="noite" estiloCorpo={styles.faixaCorpo}>
               <ColunaLeitura>
                 <Text style={styles.etiqueta}>{t('progresso.monthSummary')}</Text>
                 <Text style={styles.tituloSecao}>{recap.mesLabel}</Text>
@@ -193,7 +193,7 @@ export default function ProgressoScreen() {
           )}
 
           {/* FAIXA 3 — O CAMINHO. */}
-          <FaixaCurva tom="violeta" semente="progresso-conquistas" grude estiloCorpo={styles.faixaCorpo}>
+          <FaixaCurva tom="violeta" semente="progresso-conquistas" grude="ameixa" estiloCorpo={styles.faixaCorpo}>
             <Text style={styles.etiqueta}>Conquistas ({desbloqueadas}/{badges.length})</Text>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${badges.length ? (desbloqueadas / badges.length) * 100 : 0}%` }]} />

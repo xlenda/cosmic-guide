@@ -266,7 +266,7 @@ export default function ReconectarScreen() {
             carregado não há faixa nenhuma, porque faixa em volta de nada é
             exatamente o bloco de cor vazio que o revisor pegou na Home. */}
         {loaded && (
-          <FaixaCurva tom="ameixa" semente="reconectar-placar" grude>
+          <FaixaCurva tom="ameixa" semente="reconectar-placar" grude="rosa">
           <View style={styles.card}>
             <Text style={styles.overline}>{t('reconectar.progress.overline')}</Text>
             <View style={styles.statRow}>
@@ -302,7 +302,7 @@ export default function ReconectarScreen() {
         {/* FAIXA 3 — O QUE HÁ PRA FAZER. Chão neutro (ardósia) porque é a
             faixa MAIS LONGA da tela: cor cromática numa faixa de nove cards
             lava a tela (foi a medida que segurou o violeta fora da Home). */}
-        <FaixaCurva tom="noite" semente="reconectar-trilhas" grude>
+        <FaixaCurva tom="noite" semente="reconectar-trilhas" grude="ameixa">
         <Text style={styles.pageSectionTitle}>{t('reconectar.tracksTitle')}</Text>
         {recomendada && (
           <Text style={[styles.mutedText, { marginBottom: space.dentro }]}>

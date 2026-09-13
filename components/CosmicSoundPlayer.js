@@ -420,6 +420,28 @@ function Painel({ aberto, aoFechar }) {
   );
 }
 
+// O DOCK ESTÁ NA TELA? — a pergunta que MOSTRAR e RESERVAR ESPAÇO têm de
+// responder igual (12/09/2026, achado fotografando a Home).
+//
+// O QUE ESTAVA ERRADO. Esta regra ("some enquanto um card embutido está na
+// tela e o som está parado: dois controles idênticos confundem") morava solta
+// dentro do render do dock, e App.js reservava ESPACO_DO_DOCK só olhando
+// audioDisponivel(). Na Home, que SEMPRE monta um card embutido, o dock
+// devolvia null e os 62px continuavam reservados: medido em 390x844, uma
+// faixa de #0B0712 de y=704 a y=765 na largura inteira, e o cartão do Diário
+// Cósmico cortado ao meio no pé do rolo por causa dela. O comentário de
+// App.js já dizia a lei — "reservar sem mostrar deixa uma faixa morta no pé
+// de toda tela" — mas a condição que ele checava era só metade dela.
+//
+// Exportada e recebendo o contexto por argumento (não um hook) porque o lado
+// que reserva vive DENTRO do provider e o lado que desenha também: uma função
+// pura serve aos dois e é a única forma de as duas respostas não divergirem
+// de novo.
+export function dockVisivel(som) {
+  if (!som || !som.suportado) return false;
+  return !(som.inlinesVisiveis > 0 && !som.tocando);
+}
+
 // ---------------------------------------------------------------------------
 export default function CosmicSoundPlayer({ variant = 'dock', style }) {
   const { t } = useLanguage();
@@ -488,10 +510,9 @@ export default function CosmicSoundPlayer({ variant = 'dock', style }) {
   }
 
   // dock — pílula flutuante, alinhada à direita pra não cobrir texto de leitura.
-  // Some enquanto um card embutido está na tela E o som está parado: dois
-  // controles idênticos na mesma tela confundem. Tocando, a pílula volta —
-  // pausar tem que ser possível de qualquer lugar, sempre.
-  if (som.inlinesVisiveis > 0 && !som.tocando) return null;
+  // A regra de ESCONDER mora em dockVisivel() (acima), porque App.js precisa
+  // da MESMA resposta pra decidir se reserva o espaço dele. Ver lá.
+  if (!dockVisivel(som)) return null;
 
   // ALTURA RESERVADA, NÃO SÓ POSIÇÃO (12/09/2026, achado de auditoria).
   //

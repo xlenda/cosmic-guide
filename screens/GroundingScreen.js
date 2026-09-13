@@ -292,7 +292,7 @@ export default function GroundingScreen() {
             {/* FAIXA 2 — A ESCOLHA E O COMEÇO. `grude` porque vem logo abaixo
                 da anterior (mata o fio de antialias). Aqui mora tudo que é
                 DECISÃO: qual padrão, quanto tempo, e o botão. */}
-            <FaixaCurva tom="ameixa" semente="escolha" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+            <FaixaCurva tom="ameixa" semente="escolha" grude="noite" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
             {/* ---- Escolha do padrão ---- */}
             <Text style={styles.groupLabel}>{t('grounding.section.pattern')}</Text>
             {PADROES.map((p) => {
@@ -373,7 +373,7 @@ export default function GroundingScreen() {
             {/* FAIXA 3 — A TRADIÇÃO. É outro assunto: nada aqui muda o que a
                 pessoa vai fazer, é o lastro. O chão muda pra dizer isso sem
                 precisar de um título de "referências". */}
-            <FaixaCurva tom="violeta" semente="tradicao" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+            <FaixaCurva tom="violeta" semente="tradicao" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
             {/* ---- O que a tradição associa a hoje ---- */}
             <View style={styles.card} testID="grounding-today">
               <Text style={styles.cardLabel}>{t('grounding.section.today')}</Text>

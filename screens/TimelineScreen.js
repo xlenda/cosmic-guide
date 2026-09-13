@@ -263,7 +263,7 @@ export default function TimelineScreen() {
 
         </FaixaCurva>
 
-        <FaixaCurva tom="noite" semente="timeline-capsulas" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="noite" semente="timeline-capsulas" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* Cápsulas do tempo */}
         <Text style={styles.sectionTitle}>{t('timeline.capsules.section')}</Text>
         {capsules.length === 0 ? (

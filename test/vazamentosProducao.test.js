@@ -97,10 +97,58 @@ test('quem mostra o dock é quem reserva o espaço dele — nunca um sem o outro
   );
   assert.match(
     appJs,
-    /paddingBottom: ESPACO_DO_DOCK, backgroundColor: colors\.background/,
-    'a faixa reservada precisa da cor do app, senão aparece como tira branca acima da barra de abas'
+    /paddingBottom: ESPACO_DO_DOCK/,
+    'sem reservar a altura, o dock volta a pousar sobre os últimos 46px do conteúdo'
   );
-  assert.match(appJs, /import CosmicSoundPlayer, \{ ESPACO_DO_DOCK \}/);
+  // SEM backgroundColor aqui (12/09/2026, medido em foto). A cor repetida no
+  // container das cenas virava um RETÂNGULO CHAPADO de #0B0712 por cima do
+  // céu do CosmicScene e do chão das FaixaCurva — medido no Horóscopo: 62px
+  // exatos de rgb(11,7,18) no pé contra rgb(14,8,29) do céu logo acima. Quem
+  // cobre a tira branca é o <View> pai, que já pinta colors.background.
+  assert.doesNotMatch(
+    appJs,
+    /paddingBottom: ESPACO_DO_DOCK, backgroundColor/,
+    'a cor de volta no container das cenas achata o céu num retângulo chapado no pé de toda tela'
+  );
+  assert.match(appJs, /import CosmicSoundPlayer, \{ ESPACO_DO_DOCK, dockVisivel \}/);
+
+  // A OUTRA METADE DO PAR (12/09/2026, medido fotografando a Home).
+  //
+  // `mostraDock` sozinho não era o par: ele só sabe de audioDisponivel() e da
+  // Madre. O dock ainda se esconde por conta própria quando a tela mostra um
+  // card de som embutido (dockVisivel, em CosmicSoundPlayer.js) — e a Home
+  // SEMPRE mostra um. Resultado medido em 390x844: dock invisível e 62px de
+  // #0B0712 reservados mesmo assim, de y=704 a y=765 na largura inteira, com
+  // o cartão do Diário Cósmico cortado ao meio por causa deles. A área de
+  // rolagem era 704px numa janela de 844.
+  //
+  // O par verdadeiro é `mostraDock && dockNaTela` — as DUAS perguntas que o
+  // dock faz pra se desenhar, feitas também por quem reserva.
+  assert.match(
+    appJs,
+    /mostraDock && dockNaTela/,
+    'reservar só com mostraDock deixa 62px de faixa morta em toda tela com card de som embutido (a Home inclusive)'
+  );
+});
+
+test('a regra de esconder o dock mora em UM lugar só', () => {
+  // Se a condição voltar a ser escrita à mão dentro do render, os dois lados
+  // (mostrar e reservar) podem divergir de novo — que foi o bug.
+  assert.match(
+    soundPlayer,
+    /export function dockVisivel\(som\)/,
+    'a regra precisa ser exportada pra App.js poder fazer a MESMA pergunta'
+  );
+  assert.match(
+    soundPlayer,
+    /if \(!dockVisivel\(som\)\) return null;/,
+    'o render do dock tem de usar a função exportada, não uma cópia da condição'
+  );
+  assert.doesNotMatch(
+    soundPlayer,
+    /if \(som\.inlinesVisiveis > 0 && !som\.tocando\) return null;/,
+    'a condição solta voltou pro render — é a cópia que faz os dois lados divergirem'
+  );
 });
 
 test('o espaço reservado cobre de fato a altura da pílula do dock', () => {

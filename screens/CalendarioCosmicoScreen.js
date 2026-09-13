@@ -1066,7 +1066,7 @@ export default function CalendarioCosmicoScreen() {
             defeito ALTO que o revisor fotografou la. Faixa sem conteudo nao
             existe. */}
         {temporada || (vocEstado && vocEstado.disponivel) || fases !== undefined ? (
-        <FaixaCurva tom="noite" semente="calendario-o-ceu-de-agora" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="noite" semente="calendario-o-ceu-de-agora" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* QUENTE PRIMEIRO, FICHA DEPOIS (04/08/2026) — o gancho deste bloco
             estava na QUARTA linha: "A gente ouve 'temporada de Leão' o ano
             inteiro e ninguém diz o que é. É isto: ...". Antes dele vinham o

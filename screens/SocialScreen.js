@@ -619,8 +619,14 @@ export default function SocialScreen() {
           <View style={styles.card}>
             <Ionicons name="lock-closed" size={30} color={colors.gold} />
             <Text style={styles.cardTitle}>{t('social.loginNeeded')}</Text>
+            {/* A seta agora e DESENHADA, nao digitada: `social.loginCta` perdeu
+                o "→" do texto em 12/09 porque o outro consumidor da chave
+                (CommunityHubScreen) ja desenhava um Ionicons ao lado e saia
+                "Fazer login →  →". Doutrina da casa (ver o comentario de
+                onboarding.*.cta em lib/i18n.js): quem desenha a seta e o icone. */}
             <TouchableOpacity style={styles.primaryBtnFlat} onPress={() => navigation.navigate(ROUTES.LOGIN)}>
               <Text style={styles.primaryBtnFlatText}>{t('social.loginCta')}</Text>
+              <Ionicons name="arrow-forward" size={17} color="#fff" />
             </TouchableOpacity>
           </View>
         </FaixaCurva>
@@ -754,7 +760,10 @@ const styles = StyleSheet.create({
   errorText: { ...type.apoio, color: colors.amber },
   primaryBtn: { paddingVertical: space.dentro, alignItems: 'center' },
   primaryBtnText: { ...type.botao, color: '#fff' },
-  primaryBtnFlat: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: space.dentro, paddingHorizontal: space.entre },
+  primaryBtnFlat: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.junto,
+    backgroundColor: colors.accent, borderRadius: 12, paddingVertical: space.dentro, paddingHorizontal: space.entre,
+  },
   primaryBtnFlatText: { ...type.botao, color: '#fff' },
 
   // ESTADO VAZIO. O marginTop de 40 saiu: quem separa agora e a faixa, e um

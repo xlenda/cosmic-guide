@@ -209,7 +209,7 @@ export default function CosmicMemoryScreen() {
         <FaixaCurva
           tom="noite"
           semente="memoria-lembrancas"
-          grude
+          grude="ameixa"
           rasa={semLembranca}
           estiloCorpo={styles.faixaLista}
         >

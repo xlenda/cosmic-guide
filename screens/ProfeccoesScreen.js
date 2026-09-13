@@ -370,7 +370,7 @@ export default function ProfeccoesScreen() {
             exatamente o defeito ALTO que o revisor fotografou lá. Faixa sem
             conteúdo não existe: o `&&` some com ela inteira, onda inclusive. */}
         {(disponivel && mensal && mensal.disponivel) || recado ? (
-        <FaixaCurva tom="noite" semente="profeccoes-mes" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="noite" semente="profeccoes-mes" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {disponivel && mensal && mensal.disponivel ? (
           <View style={styles.card} testID="profeccoes-mes">
             <Text style={styles.olho}>{rotulos.tituloMensal}</Text>
@@ -432,7 +432,7 @@ export default function ProfeccoesScreen() {
         {/* Mesma regra na faixa 3: enquanto carrega, só sobraria a marca do
             rodapé dentro dela — onda e chão pra uma linha de 10px. */}
         {!carregando ? (
-        <FaixaCurva tom="dourado" semente="profeccoes-camadas" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="dourado" semente="profeccoes-camadas" grude="noite" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
           <>
             <Bloco
               id="comoFunciona"

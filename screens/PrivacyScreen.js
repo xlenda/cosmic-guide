@@ -138,7 +138,7 @@ export default function PrivacyScreen() {
             medição de funil + a nota). As duas seções vivem no MESMO chão de
             propósito: são o mesmo assunto pra quem lê — dado que atravessa a
             rede. O chão mudou; o título de cada uma continua separando. */}
-        <FaixaCurva tom="noite" semente="privacidade-rede" grude>
+        <FaixaCurva tom="noite" semente="privacidade-rede" grude="ameixa">
           <Text style={styles.sectionTitle}>{t('privacy.ai.title')}</Text>
           <PrivacyRow icon="hand-left" text={t('privacy.ai.palm')} />
           <PrivacyRow icon="person" text={t('privacy.ai.face')} />
@@ -175,7 +175,7 @@ export default function PrivacyScreen() {
             precisa se destacar das vizinhas, porque é a única em PROSA — onze
             parágrafos seguidos, o trecho mais denso da tela. Coluna de leitura
             em todos, que é exatamente o caso que ela resolve. */}
-        <FaixaCurva tom="violeta" semente="privacidade-uso" grude>
+        <FaixaCurva tom="violeta" semente="privacidade-uso" grude="noite">
           <Text style={styles.sectionTitle}>{t('privacy.use.title')}</Text>
           <ColunaLeitura>
             <Text style={styles.paragraph}>{t('privacy.use.localFirst')}</Text>
@@ -201,7 +201,7 @@ export default function PrivacyScreen() {
         {/* FAIXA 4 — o contato e a exclusão da conta. Dourado: o chão quente do
             epílogo. Os dois botões (falar com a gente, apagar tudo) vivem aqui
             porque são a única AÇÃO da tela — o resto é leitura. */}
-        <FaixaCurva tom="dourado" semente="privacidade-contato" grude>
+        <FaixaCurva tom="dourado" semente="privacidade-contato" grude="violeta">
           <Text style={styles.sectionTitle}>{t('privacy.contact.title')}</Text>
           <ColunaLeitura>
             <Text style={styles.paragraph}>

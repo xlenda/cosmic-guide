@@ -200,7 +200,7 @@ export default function MitosScreen() {
               se destacar das vizinhas, porque é a foto que a pessoa tira.
               A história longa entra em ColunaLeitura: são 6 a 8 linhas, e de
               borda a borda o olho perde o começo da linha seguinte. */}
-          <FaixaCurva tom="violeta" semente="mito-fonte" grude>
+          <FaixaCurva tom="violeta" semente="mito-fonte" grude="ameixa">
             <Text style={styles.rotuloFonte}>{UI.fonteDiz}</Text>
             <Text style={styles.textoFonte} testID="mitos-fonte-diz">
               {mito.oQueAFonteDiz}
@@ -216,7 +216,7 @@ export default function MitosScreen() {
               é que ele agora tem chão próprio em vez de flutuar no fim do
               mesmo card da correção. `rasa` pelo mesmo motivo da faixa 1:
               187px de corpo medidos. */}
-          <FaixaCurva tom="dourado" semente="mito-recibo" grude rasa>
+          <FaixaCurva tom="dourado" semente="mito-recibo" grude="violeta" rasa>
             <View style={styles.recibo}>
               <Text style={styles.reciboRotulo}>{UI.recibo}</Text>
               <Text style={styles.reciboTexto} testID="mitos-recibo">

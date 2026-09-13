@@ -48,7 +48,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
-import FaixaCurva from '../components/FaixaCurva';
+import FaixaCurva, { corDoTom } from '../components/FaixaCurva';
 import ColunaLeitura from '../components/ColunaLeitura';
 import { useLanguage } from '../context/LanguageContext';
 import { localDayStr } from '../lib/localDay';
@@ -255,7 +255,7 @@ export default function QuizCosmicoScreen() {
                 A faixa só existe DEPOIS da resposta — nunca desenha moldura
                 vazia esperando toque. */}
             {escolhida !== null ? (
-              <FaixaCurva tom="violeta" semente="quiz-fecho" grude>
+              <FaixaCurva tom="violeta" semente="quiz-fecho" grude="ameixa">
                 <Text style={styles.feedbackTitulo}>
                   {escolhida === pergunta.certaIdx ? TXT.certo : TXT.errado}
                 </Text>
@@ -309,7 +309,7 @@ function Placar({ feita, totais, TXT, lang }) {
         </ColunaLeitura>
       </FaixaCurva>
 
-      <FaixaCurva tom="dourado" semente="quiz-amanha" grude estiloCorpo={styles.placarCorpo}>
+      <FaixaCurva tom="dourado" semente="quiz-amanha" grude="ameixa" estiloCorpo={styles.placarCorpo}>
         <Text style={styles.acumulado}>{TXT.acumulado(totais.respondidas, totais.acertos)}</Text>
         <Text style={styles.amanha}>{TXT.amanha}</Text>
       </FaixaCurva>
@@ -318,11 +318,22 @@ function Placar({ feita, totais, TXT, lang }) {
 }
 
 const styles = StyleSheet.create({
-  tela: { flex: 1, backgroundColor: colors.background },
+  // O CHÃO DA TELA É O TOM DA ÚLTIMA FAIXA, não o fundo cru (12/09/2026,
+  // medido em foto). Com `colors.background` aqui, todo espaço que o conteúdo
+  // não preenche vira #0B0712 — 128px de buraco abaixo das quatro opções, com
+  // a pergunta boiando. A faixa é translúcida sobre este chão, então pintá-lo
+  // com o mesmo tom faz a seção simplesmente CONTINUAR até o pé em tela curta.
+  // Em tela cheia nada muda: o conteúdo cobre o chão inteiro.
+  tela: { flex: 1, backgroundColor: corDoTom('ameixa') },
   corpo: { flex: 1 },
   // Sem padding lateral: as faixas sangram de ponta a ponta e trazem o
   // próprio space.tela por dentro.
-  corpoConteudo: { paddingBottom: space.ar },
+  // flexGrow 1: com conteúdo mais curto que a tela o container encolhia até o
+  // conteúdo e sobrava FUNDO CRU embaixo da última faixa — medido 128px aqui,
+  // e a pergunta ficava boiando num buraco. Crescendo, a faixa de baixo chega
+  // até o pé em tela curta e nada muda em tela cheia (flexGrow só age quando
+  // sobra espaço).
+  corpoConteudo: { flexGrow: 1, paddingBottom: space.ar },
   carregando: { marginTop: space.ar },
 
   topoRodada: {

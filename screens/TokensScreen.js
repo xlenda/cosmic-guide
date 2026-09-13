@@ -138,7 +138,9 @@ export default function TokensScreen() {
         <FaixaCurva
           tom="ameixa"
           semente="tokens-extrato"
-          grude
+          // O tom da faixa de CIMA (dourado): é o que tapa a fresta preta que
+          // a área transparente da onda deixava aparecer — medido 34px aqui.
+          grude="dourado"
           rasa={history.length === 0}
           estiloCorpo={styles.faixaCorpo}
         >

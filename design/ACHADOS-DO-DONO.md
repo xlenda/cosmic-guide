@@ -86,3 +86,29 @@ seguiram. Estes quatro escaparam.
 que outra sessão tinha escrito promessa no arquivo. Era a MUTAÇÃO do revisor 1
 sendo testada no mesmo instante. Conferido: a frase não está no arquivo
 (grep vazio) e o portão passa 4/4. Nada a fazer.
+
+## Investigação do "700px de vazio" (12/09, feita olhando a tela)
+
+O revisor final marcou como ALTO: "a tela depois de escolher o signo tem ~700px
+de vazio no topo, é a primeira impressão de todo usuário novo".
+
+**Reproduzi o caminho e a tela é outra**: não é `OnboardingPerguntasScreen`
+(cheguei a consertar lá e REVERTI — não era o arquivo). É o
+`components/StoriesReader.js`, o leitor em formato de stories.
+
+**E o vazio é DELIBERADO.** O comentário do próprio componente diz:
+
+    // O respiro empurra o texto pro terço inferior: ~55% de céu vazio em cima.
+    respiro: { flex: 1.4 },
+
+É o formato de story — texto embaixo, como Instagram. A camada do botão "Ouvir"
+espelha esse mesmo flex para o botão pousar exatamente acima da primeira linha.
+Mexer no `respiro` quebra esse alinhamento.
+
+**Então o que fazer?** Não é bug de layout, é decisão de produto:
+· se a ficha do signo DEVE ser um story, o vazio fica e está certo;
+· se ela deve ser uma tela comum, ela não deveria usar o StoriesReader.
+
+Deixo a decisão registrada em vez de "consertar" um formato intencional. O que
+é defeito de verdade nessa tela: o nome do signo em 13px no canto é pequeno
+demais para ser o título da primeira tela de um usuário novo.

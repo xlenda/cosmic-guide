@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, space, type } from '../theme';
 import GradientHeader from '../components/GradientHeader';
-import FaixaCurva from '../components/FaixaCurva';
+import FaixaCurva, { corDoTom } from '../components/FaixaCurva';
 import ColunaLeitura from '../components/ColunaLeitura';
 import { useLanguage } from '../context/LanguageContext';
 import { ROUTES } from '../routes';
@@ -157,7 +157,7 @@ export default function HelpSupportScreen() {
             tem função além de estética — é a linha "não achou a resposta? fala
             com a gente", e ela precisa ler como outra coisa, não como a quinta
             pergunta. `rasa`: o corpo é um título, uma linha e um botão. */}
-        <FaixaCurva tom="dourado" semente="ajuda-contato" grude rasa>
+        <FaixaCurva tom="dourado" semente="ajuda-contato" grude="ameixa" rasa>
           <Text style={styles.sectionTitle}>{t('help.contact.title')}</Text>
           <ColunaLeitura>
             <Text style={styles.paragraph}>
@@ -177,7 +177,12 @@ export default function HelpSupportScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  // O CHAO DA TELA E O TOM DA ULTIMA FAIXA, nao o fundo cru (12/09/2026,
+  // medido em foto). Com colors.background aqui, o espaco que o conteudo nao
+  // preenche em tela curta vira #0B0712 — um buraco embaixo da ultima secao.
+  // A faixa e translucida sobre este chao, entao o mesmo tom faz a secao
+  // CONTINUAR ate o pe. Em tela cheia nada muda.
+  root: { flex: 1, backgroundColor: corDoTom('dourado') },
   content: { paddingBottom: space.fimDaLista },
   faixaAbertura: { paddingTop: 0 },
   sectionTitle: { ...type.secao, color: colors.text, marginBottom: space.junto },

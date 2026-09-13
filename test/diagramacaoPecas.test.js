@@ -392,9 +392,41 @@ test('a Home usa a onda rasa JUSTAMENTE quando não tem identidade pra mostrar',
   const fonte = leia('screens/HomeScreen.js');
   const faixa = fonte.slice(fonte.indexOf('tom="ameixa"'), fonte.indexOf('testID="home-faixa-voce-hoje"'));
   assert.match(faixa, /rasa=\{!identidade\}/, 'a faixa 1 parou de acompanhar o conteúdo que tem');
+  // O DEGRAU DE BAIXO É `bloco`, COM OU SEM FICHA (12/09/2026, medido).
+  //
+  // A versão anterior alternava secao/entre conforme a ficha. Fotografando a
+  // Home em 390x844 o vão bolinhas-do-carrossel → Diário Cósmico media 149px
+  // — o "vão escuro gigante" que o dono apontou. O degrau de separação aqui
+  // NUNCA foi este padding: é a ONDA da faixa 2, cuja caixa encosta logo
+  // abaixo. Pagar `secao` por cima dela é cobrar duas vezes pela mesma
+  // virada de assunto.
   assert.match(
     faixa,
-    /paddingBottom: identidade \? space\.secao : space\.entre/,
-    'o degrau de baixo voltou a ser o mesmo com e sem ficha'
+    /paddingBottom: space\.bloco/,
+    'o degrau de baixo voltou a somar com a onda da faixa seguinte — é assim que o vão de 149px volta'
+  );
+  assert.doesNotMatch(
+    faixa,
+    /paddingBottom: [^}]*space\.secao/,
+    '`secao` embaixo desta faixa é o buraco medido em 12/09/2026'
+  );
+});
+
+test('a faixa não cobra DUAS VEZES pela entrada: a caixa da onda já é o padding de cima', () => {
+  // MEDIDO em 12/09/2026 na Home (390x844), cinco colunas (x = 5, 20, 100,
+  // 300, 385): a caixa da onda tem ONDA_ALTURA px e, abaixo da crista, é
+  // chão PREENCHIDO da cor da faixa — entrega entre 29 e 37px de piso liso
+  // antes de o corpo começar. Somar `secao` (32) em cima disso deu 74–82px
+  // de chão sem conteúdo entre duas seções.
+  //
+  // Embaixo NÃO há onda: lá `secao` continua certo. A assimetria é a regra.
+  const fonte = leia('components/FaixaCurva.js');
+  const corpo = fonte.slice(fonte.indexOf('corpo: {'), fonte.indexOf('grude: {'));
+  assert.match(corpo, /paddingTop: space\.bloco/, 'o topo da faixa voltou a cobrar por cima da onda');
+  assert.match(corpo, /paddingBottom: space\.secao/, 'o degrau de baixo sumiu — sem onda embaixo, é ele que separa');
+  assert.doesNotMatch(
+    corpo,
+    /paddingTop: space\.secao/,
+    'paddingTop `secao` + a caixa da onda é a cobrança dupla medida em 12/09/2026'
   );
 });

@@ -684,7 +684,7 @@ export default function LunarCalendarScreen() {
 
         </FaixaCurva>
 
-        <FaixaCurva tom="noite" semente="lunar-grade-do-mes" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="noite" semente="lunar-grade-do-mes" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         <Text style={styles.sectionTitle}>{monthLabel}</Text>
         {/* A grade: cada dia com a SUA luinha, desenhada pelo motor (o emoji
             de lib/lunarCalendar.js pra aquele dia — nunca inventada aqui). O

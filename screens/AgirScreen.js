@@ -350,7 +350,7 @@ export default function AgirScreen() {
             Desafio de 7 dias e gesto do dia sao o MESMO assunto (o gesto
             pequeno, repetido) e por isso dividem uma faixa so em vez de
             virarem dois blocos soltos. */}
-        <FaixaCurva tom="ameixa" semente="rotina" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="ameixa" semente="rotina" grude="noite" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* 2) Desafio de 7 dias */}
         <View style={styles.sectionHeadRow}>
           <Text style={styles.sectionTitle}>{t('agir.challenge.title')}</Text>
@@ -414,7 +414,7 @@ export default function AgirScreen() {
                                                 sem gritar)
             Fica na mesma familia cromatica da ameixa (339 graus contra 320),
             que e o que faz a tela parecer o mesmo app. */}
-        <FaixaCurva tom="rosa" semente="planos" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="rosa" semente="planos" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* 4) Meta da semana */}
         <Text style={styles.sectionTitle}>{t('agir.goal.title')}</Text>
         <View style={styles.card}>

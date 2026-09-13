@@ -303,7 +303,7 @@ export default function LojaScreen() {
             exclusiva) com entrega automática real — catálogo e regras em
             lib/brindes.js. Outro chão, outra onda: é outro tipo de coisa, e
             agora o olho vê isso sem precisar ler os dois títulos. */}
-        <FaixaCurva tom="noite" semente="loja-brindes" grude style={styles.faixaSangra} testID="loja-faixa-brindes">
+        <FaixaCurva tom="noite" semente="loja-brindes" grude="ameixa" style={styles.faixaSangra} testID="loja-faixa-brindes">
         <Text style={styles.sectionTitle}>{t('loja.sectionBrindes')}</Text>
         <Text style={styles.sectionSubtitle}>{t('loja.sectionBrindesSubtitle')}</Text>
         {getBrindesDisponiveis()

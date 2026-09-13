@@ -503,9 +503,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     gap: 4,
   },
+  // Sem serifa (12/09): a serifa da Comunidade e ACENTO de UM titulo por
+  // estado (o `title` do heroi logado, o `guestTitle` do deslogado). Num
+  // cabecalho de secao que se repete pela tela ela vira segunda tipografia —
+  // foi isso que fez o dono ler a aba como "outro app".
   sectionTitle: {
     color: colors.text,
-    fontFamily: DISPLAY_FONT,
     fontSize: 22,
     lineHeight: 27,
     letterSpacing: -0.25,
@@ -753,7 +756,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: colors.text,
-    fontFamily: DISPLAY_FONT,
     fontSize: 18,
     lineHeight: 23,
   },

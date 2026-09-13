@@ -84,7 +84,7 @@ export default function CommunityGuidelinesScreen() {
             agir, e o chão quente é o que a separa das regras. `rasa`: o corpo
             é um título e três linhas. O ícone de olho fica; a borda dourada em
             volta sai — o chão já faz o trabalho que a borda fazia. */}
-        <FaixaCurva tom="dourado" semente="diretrizes-aviso" grude rasa>
+        <FaixaCurva tom="dourado" semente="diretrizes-aviso" grude="ameixa" rasa>
           <View style={styles.notice}>
             <Ionicons name="eye-outline" size={20} color={colors.gold} />
             <View style={styles.noticeCopy}>
@@ -96,7 +96,7 @@ export default function CommunityGuidelinesScreen() {
 
         {/* FAIXA 3 — as regras. Noite (ardósia): é a faixa longa da tela, e o
             chão que separa sem colorir é o certo pra cinco itens seguidos. */}
-        <FaixaCurva tom="noite" semente="diretrizes-regras" grude>
+        <FaixaCurva tom="noite" semente="diretrizes-regras" grude="dourado">
           <Text style={styles.sectionTitle}>{t('community.guidelines.rules.title')}</Text>
           {RULES.map((rule) => (
             <GuidelineRow
@@ -112,7 +112,7 @@ export default function CommunityGuidelinesScreen() {
             se destacar do vizinho, porque é o que acontece quando a regra é
             quebrada — ler igual à regra é o defeito de antes. O contato fecha
             aqui em vez de virar um quinto chão: cinco faixas já é textura. */}
-        <FaixaCurva tom="violeta" semente="diretrizes-moderacao" grude>
+        <FaixaCurva tom="violeta" semente="diretrizes-moderacao" grude="noite">
           <Text style={styles.sectionTitle}>{t('community.guidelines.moderation.title')}</Text>
           {MODERATION.map((item) => (
             <GuidelineRow

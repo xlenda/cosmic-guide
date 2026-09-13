@@ -68,9 +68,13 @@ test('as telas que ganharam faixa usam a peça de verdade, não um card com bord
     if (!faixas) continue;
     const fonte = codigo(leia(arq));
     assert.match(fonte, /<FaixaCurva/, `${arq} deveria ter faixa curva e não tem`);
+    // O import default da peça, com ou sem nomeados ao lado. O `, { corDoTom }`
+    // é legítimo (12/09/2026): a tela que pinta o próprio chão com o tom da
+    // última faixa precisa da cor, e a versão anterior desta regex — que exigia
+    // `import FaixaCurva from` colado — reprovava esse import correto.
     assert.match(
       fonte,
-      /import FaixaCurva from '\.\.\/components\/FaixaCurva'/,
+      /import FaixaCurva(?:,\s*\{[^}]*\})? from '\.\.\/components\/FaixaCurva'/,
       `${arq} usa <FaixaCurva> sem importar a peça`
     );
   }

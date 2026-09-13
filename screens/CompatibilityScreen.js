@@ -541,7 +541,7 @@ export default function CompatibilityScreen() {
                 sem trocar de app. Aqui mora o texto longo, e e por isso que
                 ele entra numa COLUNA DE LEITURA — o unico bloco da tela com
                 paragrafo de sete linhas. */}
-            <FaixaCurva tom="ameixa" semente="compat-dimensoes" grude>
+            <FaixaCurva tom="ameixa" semente="compat-dimensoes" grude="rosa">
             <ColunaLeitura>
               {DIMENSOES_VIDA_REAL.map((d, i) => (
                 <View key={d.id} style={i === 0 ? null : styles.dimBlock}>
@@ -596,7 +596,7 @@ export default function CompatibilityScreen() {
                 longa lava a tela. O neutro tambem diz o que o bloco 2 e —
                 o recibo, nao a leitura.
                 ============================================================ */}
-            <FaixaCurva tom="noite" semente="compat-fonte" grude estiloCorpo={styles.faixaFonte}>
+            <FaixaCurva tom="noite" semente="compat-fonte" grude="ameixa" estiloCorpo={styles.faixaFonte}>
             <TouchableOpacity
               style={styles.sourceToggle}
               activeOpacity={0.85}
@@ -624,7 +624,7 @@ export default function CompatibilityScreen() {
             e onda repetida e papel de parede. Mesmo tom neutro do toggle, com
             `grude` — as duas leem como um chao so quando a fonte abre. */}
         {result && showSource && (
-          <FaixaCurva tom="noite" semente="compat-verbatins" grude>
+          <FaixaCurva tom="noite" semente="compat-verbatins" grude="noite">
           <>
             <View style={styles.resultCard}>
               <LinearGradient colors={gradients.card} style={styles.resultInner}>

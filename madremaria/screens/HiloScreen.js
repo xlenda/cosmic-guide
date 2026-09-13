@@ -780,7 +780,7 @@ export default function HiloScreen({ navigation }) {
               ela NAO compra: a leitura de hoje continua de graca. A ficha nunca e
               o portao da leitura diaria. */}
           {mostrarFichas ? (
-            <FaixaCurva tom="ameixa" semente="fichas" grude>
+            <FaixaCurva tom="ameixa" semente="fichas" grude="noite">
               <ColunaLeitura>
               <TituloSeccion etiqueta={t('hilo.panel.fichasTitulo')} />
               <Cuerpo tabular style={estilos.saldo}>
@@ -812,7 +812,7 @@ export default function HiloScreen({ navigation }) {
                toque), entao o retangulo tocavel continua sendo o do Pressable e
                nao encolhe nem cresce. O contrario — Pressable por fora — faria a
                onda inteira virar alvo de toque. */
-            <FaixaCurva tom="noite" semente="ritual-em-curso" grude>
+            <FaixaCurva tom="noite" semente="ritual-em-curso" grude="ameixa">
             <Pressable
               onPress={irAlRitual}
               accessibilityRole="button"

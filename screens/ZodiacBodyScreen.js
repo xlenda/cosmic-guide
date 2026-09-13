@@ -460,7 +460,7 @@ export default function ZodiacBodyScreen() {
         {/* FAIXA 2 — O CORPO. A figura, o verbete do signo tocado e o signo
             solar de quem lê: é o bloco INTERATIVO da tela, e ele ganha chão
             próprio pra não ler como continuação da Lua de hoje. */}
-        <FaixaCurva tom="ameixa" semente="corpo" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="ameixa" semente="corpo" grude="noite" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* ---- A figura ---- */}
         <Text style={styles.figureHint}>{t('zodiacBody.figure.hint')}</Text>
         <ZodiacBody
@@ -541,7 +541,7 @@ export default function ZodiacBodyScreen() {
         {/* FAIXA 3 — AS DUAS LISTAS. O assunto muda de vez: sai o corpo de
             quem lê e entra a comparação entre duas obras. O violeta é o chão
             do lastro nas outras telas deste lote. */}
-        <FaixaCurva tom="violeta" semente="duas-listas" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="violeta" semente="duas-listas" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {/* ================================================================
             AS DUAS LISTAS — Manílio × Sefer Yetzirah
             Tudo daqui para baixo sai de lib/melotesiaDupla.js e do bloco

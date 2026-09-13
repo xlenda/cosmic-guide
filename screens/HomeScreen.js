@@ -1354,7 +1354,13 @@ export default function HomeScreen() {
           tom="ameixa"
           semente="voce-hoje"
           rasa={!identidade}
-          estiloCorpo={{ paddingTop: 0, paddingBottom: identidade ? space.secao : space.entre }}
+          // paddingBottom `bloco` (12/09/2026, medido). O degrau de separação
+          // aqui NÃO é este padding: é a ONDA da faixa 2, cuja caixa de 56px
+          // encosta logo abaixo e já entrega 13px de céu + ~40px de chão novo.
+          // Com `secao` (32) o vão bolinhas→Diário media 149px — o buraco que
+          // o dono apontou. As bolinhas ainda trazem marginTop 10 próprio, e
+          // 16 é o que sobra pra elas não encostarem na crista da onda.
+          estiloCorpo={{ paddingTop: 0, paddingBottom: space.bloco }}
           testID="home-faixa-voce-hoje"
         >
           <CabecalhoIdentidade identidade={identidade} onMapa={() => navigation.navigate(ROUTES.BIRTH_CHART)} />
@@ -1413,7 +1419,15 @@ export default function HomeScreen() {
             TOM 'noite': um degrau mais neutro que a faixa de cima. O contraste
             entre ameixa e noite é o que marca a virada de assunto — de "o seu
             céu" pra "o seu caminho". */}
-        <FaixaCurva tom="noite" semente="seu-caminho" grude testID="home-faixa-seu-caminho">
+        {/* `rasa` (12/09/2026, medido). A caixa da onda cheia tem 56px e, abaixo da
+            crista, é chão LISO da cor da faixa: medido nesta tela, 40px de ardósia
+            vazia entre o fim do carrossel e a primeira palavra do Diário. Faixa 2
+            abre direto num CARTÃO — não tem título pra ocupar a entrada, então o
+            chão fica exposto e lê como a "faixa cinza clara" que o dono apontou.
+            Com `rasa` a caixa cai pra 28px: a MESMA onda (mesma semente, mesmo
+            `d` esticado no viewBox), só mais baixa — a seção não troca de
+            identidade, o vão fecha 28px. */}
+        <FaixaCurva tom="noite" semente="seu-caminho" rasa grude="ameixa" testID="home-faixa-seu-caminho">
         <LinearGradient colors={gradients.purple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.topoCard}>
           <TouchableOpacity
             testID="home-diary-bar"
@@ -1701,7 +1715,7 @@ export default function HomeScreen() {
             de assunto continua legível porque a faixa de cima é 'noite': a
             alternância noite→ameixa é a mesma do print 20.55.53, onde o
             catálogo do concorrente também mora em chão ESCURO. */}
-        <FaixaCurva tom="ameixa" semente="explore-cosmos" grude testID="home-faixa-explore">
+        <FaixaCurva tom="ameixa" semente="explore-cosmos" grude="noite" testID="home-faixa-explore">
           <ColunaLeitura centralizado>
             <Text style={styles.faixaTitulo}>{t('home.sectionExplore')}</Text>
             <Text style={styles.faixaApoio}>{t('home.sectionExploreSubtitle')}</Text>
@@ -1789,7 +1803,7 @@ export default function HomeScreen() {
             separar o conteúdo pessoal de um card de Evento Cósmico que foi
             removido em 10/09 e nunca foi substituído. Agora a virada é a borda
             desta faixa, que tem chão de verdade. */}
-        <FaixaCurva tom="dourado" semente="epilogo" grude testID="home-faixa-epilogo">
+        <FaixaCurva tom="dourado" semente="epilogo" grude="ameixa" testID="home-faixa-epilogo">
         {/* Órbi continua acessível, mas depois do bloco de hoje. Assim ele não
             disputa a primeira dobra com o caminho dominante, o alinhamento e
             a porta de Explore. */}
@@ -2203,7 +2217,11 @@ const styles = StyleSheet.create({
   // hero antigo fazia os dois cartões se sobreporem em telas estreitas.
   // O card único do topo (Diário + Sequência). Sobre gradiente roxo, então
   // bolinhas e rótulos em branco — os weekDot* antigos eram pra card escuro.
-  topoCard: { marginHorizontal: 20, marginTop: 14, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
+  // marginTop 0 (12/09/2026): a FaixaCurva acima já entrega o respiro de topo
+  // (a caixa da onda + paddingTop `bloco`). Os 14px daqui eram o terceiro
+  // pagamento pela mesma entrada e empurravam o cartão do Diário pra fora da
+  // dobra. marginBottom fica: embaixo dele vem o irmão seguinte, não a faixa.
+  topoCard: { marginHorizontal: 20, marginTop: 0, marginBottom: 14, borderRadius: 18, overflow: 'hidden' },
   topoLinha: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   topoDivisor: { height: 1, backgroundColor: 'rgba(255,255,255,0.18)', marginHorizontal: 16 },
   topoLinhaSeq: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 },

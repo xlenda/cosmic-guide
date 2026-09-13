@@ -62,12 +62,12 @@ import { LanguageProvider, useLanguage } from './context/LanguageContext';
 // o comentário no topo de context/CosmicSoundContext.js): trocar de aba
 // desmonta a tela, e se o áudio morasse dentro de uma tela o som cortaria no
 // meio, que é o oposto do que esta feature existe pra fazer.
-import { CosmicSoundProvider } from './context/CosmicSoundContext';
+import { CosmicSoundProvider, useCosmicSound } from './context/CosmicSoundContext';
 // A MESMA checagem que o dock usa pra decidir se aparece (o contexto a chama
 // no arranque). Pura e síncrona: dá pra perguntar aqui, fora do provider, sem
 // hook nenhum — e é o que permite reservar o espaço dele no mesmo render.
 import { audioDisponivel } from './lib/cosmicSound';
-import CosmicSoundPlayer, { ESPACO_DO_DOCK } from './components/CosmicSoundPlayer';
+import CosmicSoundPlayer, { ESPACO_DO_DOCK, dockVisivel } from './components/CosmicSoundPlayer';
 import PillPremium from './components/PillPremium';
 import HomeScreen from './screens/HomeScreen';
 import TarotScreen from './screens/TarotScreen';
@@ -262,6 +262,18 @@ function ChatTabScreen() {
 }
 
 const Tab = createBottomTabNavigator();
+
+// O DOCK ESTÁ VISÍVEL? — lido DENTRO do provider, entregue por render-prop.
+//
+// `mostraDock` lá embaixo é calculado FORA do CosmicSoundProvider (o provider
+// é filho do NavigationContainer, o estado da rota é pai dele), então não tem
+// como perguntar ao contexto se o dock escondeu por causa de um card embutido
+// na tela. Este componente de três linhas mora dentro do provider só pra fazer
+// essa pergunta e devolver a resposta pra quem monta o navegador — sem mover
+// as 160 linhas de <Tab.Navigator> de lugar.
+function ComDock({ children }) {
+  return children(dockVisivel(useCosmicSound()));
+}
 const Stack = createStackNavigator();
 
 // O PAN DE VOLTAR-POR-ARRASTO MATA A ROLAGEM POR TOQUE NA WEB (04/08/2026).
@@ -820,6 +832,8 @@ function Gate() {
           inclusive das telas de leitura, onde o som acompanha o momento.
           A <View> existe pra dar um pai com flex aos dois filhos. */}
       <CosmicSoundProvider>
+        <ComDock>{(dockNaTela) => (
+        <>
         {/* backgroundColor aqui porque a barra de abas virou pílula flutuante
             (margens + raio): o que aparece AO REDOR dela é este View — sem a
             cor, na web o vão sairia branco.
@@ -847,10 +861,21 @@ function Gate() {
         // branco por padrão no react-navigation, então a faixa reservada
         // aparecia como uma TIRA BRANCA entre o fim do texto e a barra de
         // abas (visto na foto). Com a cor do app ela some no fundo.
+        // RESERVA SÓ SE O DOCK ESTÁ MESMO NA TELA (12/09/2026). `mostraDock`
+        // sozinho reservava 62px em toda tela com card de som embutido — a
+        // Home inclusive, onde a faixa morta cortava o Diário Cósmico ao meio.
+        // `dockNaTela` é a MESMA resposta que o dock usa pra se desenhar (ver
+        // dockVisivel em components/CosmicSoundPlayer.js).
+        // E SEM backgroundColor (12/09/2026, medido em foto). A cor repetida
+        // aqui transformava a faixa reservada num RETÂNGULO CHAPADO de
+        // #0B0712 por cima do céu do CosmicScene e do chão colorido das
+        // FaixaCurva. Medido no Horóscopo: 62px (= ESPACO_DO_DOCK, exato) de
+        // rgb(11,7,18) no pé, contra rgb(14,8,29) do céu logo acima.
+        // A TIRA BRANCA continua coberta — quem a cobre é o <View> logo acima
+        // deste Tab.Navigator, que já pinta colors.background e é pai de tudo.
+        // A cor daqui nunca foi o que protegia, só o que achatava.
         sceneContainerStyle={
-          mostraDock
-            ? { paddingBottom: ESPACO_DO_DOCK, backgroundColor: colors.background }
-            : undefined
+          mostraDock && dockNaTela ? { paddingBottom: ESPACO_DO_DOCK } : undefined
         }
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -1026,6 +1051,8 @@ function Gate() {
             onPress={() => navRef.navigate(ROUTES.HOME_TAB, { screen: ROUTES.PLANOS })}
           />
         </View>
+        </>
+        )}</ComDock>
       </CosmicSoundProvider>
     </NavigationContainer>
   );

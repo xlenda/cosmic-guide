@@ -392,7 +392,7 @@ export default function DescobrirScreen() {
             enquanto carrega: com so um spinner dentro, a caixa cheia da onda
             seria mais chao de cor do que conteudo — que e exatamente o
             defeito de "faixa virando bloco de cor sem conteudo". */}
-        <FaixaCurva tom="ameixa" semente="quiz" grude rasa={!loaded} style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="ameixa" semente="quiz" grude="noite" rasa={!loaded} style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {!loaded ? (
           <ActivityIndicator color={colors.accent} />
         ) : tab === 'linguagem' ? (

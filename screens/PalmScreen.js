@@ -482,7 +482,7 @@ export default function PalmScreen() {
           <FaixaCurva
             tom="ameixa"
             semente="gesto"
-            grude
+            grude="noite"
             style={styles.faixa}
             estiloCorpo={[styles.faixaCorpo, styles.section]}
           >

@@ -1283,7 +1283,7 @@ export default function TarotScreen() {
         {/* FAIXA 2 — A TIRAGEM. Outro chão, outra onda: daqui pra baixo o
             assunto deixa de ser você e passa a ser as cartas. `grude` encosta
             esta faixa na de cima sem o fio de antialias no meio. */}
-        <FaixaCurva tom="noite" semente="tarot-tiragem" grude testID="tarot-faixa-tiragem">
+        <FaixaCurva tom="noite" semente="tarot-tiragem" grude="ameixa" testID="tarot-faixa-tiragem">
         {!drawn ? (
           <View style={styles.emptyWrap}>
             {/* `bonusReadings > 0` entrou em 10/09/2026, junto do TUDO_LIBERADO

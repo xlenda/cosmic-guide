@@ -119,7 +119,7 @@ export default function ComoVoceTaScreen() {
         <FaixaCurva
           tom="violeta"
           semente="emocoes-pontes"
-          grude
+          grude="ameixa"
           rasa={!estado}
           estiloCorpo={estado ? null : styles.faixaVazia}
         >

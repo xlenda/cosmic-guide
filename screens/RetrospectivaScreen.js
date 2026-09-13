@@ -156,7 +156,7 @@ export default function RetrospectivaScreen() {
 
               </FaixaCurva>
 
-              <FaixaCurva tom="noite" semente="retro-resumo" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+              <FaixaCurva tom="noite" semente="retro-resumo" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
               <View style={styles.sectionHead}>
                 <Text style={styles.sectionHeadTitle}>{t('retro.yearSummary')}</Text>
               </View>
@@ -210,7 +210,7 @@ export default function RetrospectivaScreen() {
 
               </FaixaCurva>
 
-              <FaixaCurva tom="dourado" semente="retro-compartilhar" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+              <FaixaCurva tom="dourado" semente="retro-compartilhar" grude="noite" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
               <View style={styles.sectionHead}>
                 <Text style={styles.sectionHeadTitle}>{t('retro.keepYear')}</Text>
               </View>

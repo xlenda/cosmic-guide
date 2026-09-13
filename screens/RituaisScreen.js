@@ -114,7 +114,7 @@ import GradientHeader from '../components/GradientHeader';
 //     Aqui NÃO entra faixa (cinco faixas viram textura, e a ordem dos campos
 //     não é negociável) — entra a escala de espaço e a coluna de leitura, que
 //     é o que faltava: o parágrafo da INTENÇÃO ia de borda a borda.
-import FaixaCurva from '../components/FaixaCurva';
+import FaixaCurva, { corDoTom } from '../components/FaixaCurva';
 import ColunaLeitura from '../components/ColunaLeitura';
 import OneTimeLock from '../components/OneTimeLock';
 import { useLanguage } from '../context/LanguageContext';
@@ -536,7 +536,7 @@ export default function RituaisScreen() {
 
                 FAIXA 3 — a última. É o recibo: outro assunto, outro chão.
             --------------------------------------------------------------- */}
-            <FaixaCurva tom="violeta" semente="lastro" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+            <FaixaCurva tom="violeta" semente="lastro" grude="noite" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
             <Text style={styles.groupLabel}>{t('rituais.lastro.title')}</Text>
             {Object.entries(lastroMomentoIdeal(lang)).map(([chave, bloco]) => (
               <Section key={chave} title={bloco.titulo}>
@@ -706,7 +706,12 @@ function DetalheRitual({ ritual, recado, onShare, onVoltar }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  // O CHAO DA TELA E O TOM DA ULTIMA FAIXA, nao o fundo cru (12/09/2026,
+  // medido em foto). Com colors.background aqui, o espaco que o conteudo nao
+  // preenche em tela curta vira #0B0712 — um buraco embaixo da ultima secao.
+  // A faixa e translucida sobre este chao, entao o mesmo tom faz a secao
+  // CONTINUAR ate o pe. Em tela cheia nada muda.
+  root: { flex: 1, backgroundColor: corDoTom('violeta') },
   // `padding: 20` fica: é ele que a faixa anula com marginHorizontal:-20.
   scroll: { padding: 20, paddingBottom: space.fimDaLista },
   //

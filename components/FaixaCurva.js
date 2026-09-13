@@ -131,7 +131,26 @@ export function corDoTom(tom) {
 export default function FaixaCurva({
   tom = 'noite',
   semente,           // identidade da onda; o nome da seção serve ('sobre', 'dados'…)
-  grude = false,     // true quando esta faixa vem logo abaixo de outra
+  // true quando esta faixa vem logo abaixo de outra. Pode ser o NOME DO TOM da
+  // faixa de cima ('ameixa', 'dourado'...) — e aí ela também tapa a fresta.
+  //
+  // A FRESTA PRETA ENTRE DUAS FAIXAS (medido 12/09/2026, telas Tokens e
+  // Termos). A caixa da onda tem ONDA_ALTURA px e é TRANSPARENTE acima da
+  // crista — de propósito, é o que deixa a curva recortada. Só que o que
+  // aparece por trás dessa parte transparente é o FUNDO DA TELA, não a faixa
+  // de cima: com `ondaPath` começando entre 28 e 62 no viewBox de 100, sobram
+  // até 34px de #0B0712 cru encaixados entre duas seções coloridas. Medido na
+  // coluna central: Tokens y 950-984 (34px) e Termos y 486-513 (27px) de preto
+  // entre dois ameixas. É a "faixa estranha no meio do vão" que o dono viu.
+  //
+  // `marginTop: -1` não resolvia nada disso: ele mata a meia-linha de
+  // antialias, que é outro problema (1px, não 34).
+  //
+  // O CONSERTO é pintar a cor da faixa DE CIMA atrás da caixa da onda. A curva
+  // continua recortada — só que agora ela recorta contra a vizinha, que é o
+  // que "faixas empilhadas" sempre quis dizer. Quem passa `grude` booleano
+  // segue funcionando igual (sem cor por trás, comportamento antigo).
+  grude = false,
   opaco = false,     // mata a translucidez (paywall, tela que não pode competir)
   // A ONDA BAIXA, pra seção FINA (12/09/2026, item 1 do conserto de
   // diagramação). A caixa da onda tem ONDA_ALTURA (56px) fixos, e acima da
@@ -160,8 +179,13 @@ export default function FaixaCurva({
 }) {
   const cor = TONS[tom] || TONS.noite;
   // opaco: reaproveita o mesmo tom sem alfa. rgba(...,a) -> rgb(...).
-  const fill = opaco ? cor.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgb($1)') : cor;
+  const semAlfa = (c) => c.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgb($1)');
+  const fill = opaco ? semAlfa(cor) : cor;
   const d = ondaPath(semente == null ? tom : semente);
+  // A cor que tapa a fresta: só quando `grude` nomeia um tom conhecido.
+  const corDeCima = typeof grude === 'string' && TONS[grude]
+    ? (opaco ? semAlfa(TONS[grude]) : TONS[grude])
+    : null;
 
   return (
     // box-none: a faixa é chão e nunca é alvo de toque, mas os filhos
@@ -170,15 +194,17 @@ export default function FaixaCurva({
       {/* A onda. preserveAspectRatio="none" faz o viewBox 100×100 esticar pra
           qualquer largura de tela — nada é recalculado por breakpoint, e a
           curva fica igualmente rasa em 390px e em 1200px. */}
-      <Svg
-        width="100%"
-        height={rasa ? ONDA_ALTURA / 2 : ONDA_ALTURA}
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        pointerEvents="none"
-      >
-        <Path d={d} fill={fill} />
-      </Svg>
+      <View pointerEvents="none" style={corDeCima ? { backgroundColor: corDeCima } : null}>
+        <Svg
+          width="100%"
+          height={rasa ? ONDA_ALTURA / 2 : ONDA_ALTURA}
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          pointerEvents="none"
+        >
+          <Path d={d} fill={fill} />
+        </Svg>
+      </View>
       {/* O corpo: mesma cor, encostado na onda. marginTop -1 mata a meia-linha
           de antialias entre o Path e a View. */}
       <View pointerEvents="box-none" style={[styles.corpo, { backgroundColor: fill }, estiloCorpo]}>
@@ -191,9 +217,29 @@ export default function FaixaCurva({
 const styles = StyleSheet.create({
   corpo: {
     marginTop: -1,
-    // O respiro DENTRO da faixa. `secao` em cima e embaixo é o degrau que faz
-    // a tela deles respirar — o degrau que o app quase não usava.
-    paddingTop: space.secao,
+    // O RESPIRO DE BAIXO É `secao`; O DE CIMA É `bloco` — E NÃO É ECONOMIA.
+    // (12/09/2026, medido fotografando a Home em 390x844.)
+    //
+    // A CAIXA DA ONDA JÁ É PADDING. Ela tem ONDA_ALTURA (56px) e, abaixo da
+    // crista, é CHÃO PREENCHIDO — a mesma cor do corpo, sem nada em cima.
+    // Medido nesta Home em cinco colunas (x = 5, 20, 100, 300, 385): a onda
+    // entrega entre 29 e 37px de chão liso antes de o corpo começar. Somar
+    // `secao` (32) em cima disso cobra DUAS VEZES pela mesma entrada: deu
+    // 74–82px de chão sem conteúdo entre o fim de uma seção e a primeira
+    // palavra da seguinte, que é o "vão escuro" que o dono apontou.
+    //
+    // O DEGRAU DE BAIXO NÃO MUDA. Embaixo não há onda nenhuma: o corpo encosta
+    // direto na faixa seguinte, e ali `secao` é o degrau certo — é ele que
+    // impede que a última linha de um assunto grude na crista do próximo.
+    // Assimetria de propósito, não descuido.
+    //
+    // POR QUE `bloco` (16) E NÃO ZERO. A onda entrega chão na maior parte da
+    // largura, mas perto da CRISTA ela entrega quase nada (medido: 16px em
+    // x=100 contra 37px em x=5). Com zero, um título que caísse sob a crista
+    // encostaria na curva. 16 é o piso que protege esse caso sem reabrir o
+    // buraco: 29+16 = 45px na borda, 16+16 = 32px sob a crista — a mesma
+    // ordem de grandeza em toda a largura, que é o que a faixa sempre quis.
+    paddingTop: space.bloco,
     paddingBottom: space.secao,
     paddingHorizontal: space.tela,
   },

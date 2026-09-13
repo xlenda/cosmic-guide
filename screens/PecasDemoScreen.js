@@ -70,7 +70,7 @@ export default function PecasDemoScreen() {
         </FaixaCurva>
 
         {/* 1 + 2 · FAIXA (onda B, outra curva) com a COLUNA DE LEITURA. */}
-        <FaixaCurva tom="noite" semente="sobre" grude>
+        <FaixaCurva tom="noite" semente="sobre" grude="ameixa">
           <ColunaLeitura>
             <Text style={styles.tituloSecao}>Como funciona?</Text>
             <Text style={styles.paragrafo}>
@@ -88,7 +88,7 @@ export default function PecasDemoScreen() {
             Repare: 'Hora de nasc.' aparece como CONVITE (não tem valor, tem
             convite) e 'Local de nasc.' NÃO APARECE (não tem nem um nem
             outro). É a lei de não fabricar desenhada. */}
-        <FaixaCurva tom="violeta" semente="dados" grude>
+        <FaixaCurva tom="violeta" semente="dados" grude="noite">
           <ColunaLeitura>
             <Text style={styles.tituloSecao}>Seus dados</Text>
           </ColunaLeitura>
@@ -106,7 +106,7 @@ export default function PecasDemoScreen() {
 
         {/* 1 + 4 · FAIXA (dourado, o acento) com a FILEIRA DE TRÊS.
             A quarta coluna não tem valor nem convite: não entra. */}
-        <FaixaCurva tom="dourado" semente="numeros" grude>
+        <FaixaCurva tom="dourado" semente="numeros" grude="violeta">
           <FileiraDeTres
             itens={[
               { chave: 'dias', valor: '12', rotulo: 'dias seguidos' },
@@ -118,7 +118,7 @@ export default function PecasDemoScreen() {
         </FaixaCurva>
 
         {/* 1 · FAIXA rosa, pra provar que a quinta onda ainda é outra curva. */}
-        <FaixaCurva tom="rosa" semente="fim" grude>
+        <FaixaCurva tom="rosa" semente="fim" grude="dourado">
           <ColunaLeitura centralizado>
             <Text style={styles.paragrafo}>
               Cinco faixas empilhadas, cinco ondas diferentes, o céu aparecendo

@@ -552,7 +552,7 @@ export default function SkyAlignmentScreen() {
             quente da casa — a prova de origem e o que a tela tem de mais
             valioso, e ela merece chao proprio. */}
         {revealed && receipt && hasSky && (
-          <FaixaCurva tom="dourado" semente="recibo" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+          <FaixaCurva tom="dourado" semente="recibo" grude="noite" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
               <View
                 accessibilityLiveRegion="polite"
                 style={styles.receipt}

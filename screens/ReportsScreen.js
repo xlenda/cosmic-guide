@@ -269,7 +269,7 @@ export default function ReportsScreen() {
 
         </FaixaCurva>
 
-        <FaixaCurva tom="noite" semente="reports-calendario" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="noite" semente="reports-calendario" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         <View style={styles.calendarCard}>
           <View style={styles.calendarHead}>
             <TouchableOpacity onPress={goPrevMonth} style={styles.navBtn} activeOpacity={0.7} accessibilityRole="button">
@@ -329,7 +329,7 @@ export default function ReportsScreen() {
             "faltou dado", não como "zero". */}
         </FaixaCurva>
 
-        <FaixaCurva tom="dourado" semente="reports-evolucao" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="dourado" semente="reports-evolucao" grude="noite" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         <View style={styles.evolucaoCard} testID="reports-evolucao">
           <Text style={styles.evolucaoTitulo}>{t('reports.evolutionTitle')}</Text>
           <Text style={styles.evolucaoDesc}>{t('reports.evolutionDesc')}</Text>

@@ -206,7 +206,7 @@ export default function IdadeRealScreen() {
         {/* ------------------------------------------------------------------
             A TABELA
         ------------------------------------------------------------------ */}
-        <FaixaCurva tom="noite" semente="idade-lista" grude style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
+        <FaixaCurva tom="noite" semente="idade-lista" grude="ameixa" style={styles.faixa} estiloCorpo={styles.faixaCorpo}>
         {grupos.map((grupo) => (
           <View key={grupo.tema || 'todos'} style={styles.grupo}>
             {grupo.nome ? (

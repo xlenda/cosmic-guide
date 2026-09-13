@@ -48,6 +48,11 @@ import {
   updateCommunityProfile,
 } from '../lib/socialClient';
 
+// A SERIFA DA COMUNIDADE. Um só uso: `guestTitle`, o título da primeira dobra
+// da tela deslogada. Foi o que sobrou depois de 12/09 — antes ela vestia seis
+// estilos (feed, modal, cabeçalho de conversa, post aberto, cartão de perfil) e
+// a tela inteira lia como um app diferente do resto, que é sem serifa.
+// Acento é uma vez. NÃO ESPALHE: se um título novo pedir serifa, ele não pede.
 const DISPLAY_FONT = Platform.select({
   ios: 'Georgia',
   android: 'serif',
@@ -1932,9 +1937,15 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   centerStateBody: { ...type.corpoCurto, color: colors.textSecondary },
+  // justifyContent:'center' AMPUTAVA o cartão (12/09): centrar um filho MAIOR
+  // que a janela empurra o excedente pros DOIS lados, e o de cima não volta com
+  // scroll nenhum — o cartão (overflow:'hidden') aparecia com a borda de baixo,
+  // o padding e o que vem depois do botão simplesmente cortados fora. Com
+  // justifyContent:'flex-start' o conteúdo começa no topo e o que passar da
+  // dobra ROLA, como manda a lei do "bloco que sai da primeira dobra DESCE".
   guestContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     padding: space.tela,
     paddingBottom: space.ar,
   },
@@ -1969,16 +1980,24 @@ const styles = StyleSheet.create({
   guestGlyphGold: { color: colors.background, backgroundColor: colors.gold, borderColor: '#A27543' },
   guestThread: { width: 54, height: 1, backgroundColor: '#9D744D', transform: [{ rotate: '-12deg' }] },
   eyebrow: { ...type.etiqueta, color: colors.gold },
-  // fontSize/lineHeight do degrau `display` (32/40) com a família DISPLAY_FONT
-  // preservada — a serifa é identidade desta tela e não é o que a escala
-  // governa. O fontWeight vem do degrau: não reponha nada depois do spread.
+  // A SERIFA FICA — É O ACENTO DESTA TELA, E SÓ AQUI (12/09). Era o único
+  // título de serifa que o dono viu e chamou de "outro app", mas a serifa não
+  // era o problema: o problema é que ela estava em SEIS lugares (título do
+  // feed, título do modal, cabeçalho da conversa, o post aberto, o cartão de
+  // perfil), e serifa em toda a moldura não é acento, é uma segunda tipografia.
+  // Aqui ela vira o que sempre devia ser: UM título, uma vez, na primeira dobra.
+  //
+  // `display` (32/40) -> `titulo` (24/30): em 390px o cartão tem ~310px de
+  // largura útil, e 32px de serifa quebravam a frase em QUATRO linhas — parede,
+  // não título. O maxWidth:330 não segurava nada (o cartão já é mais estreito
+  // que isso), então sai junto. Em `titulo` a mesma frase cabe em três linhas
+  // sem encurtar o texto, que é informação e não enfeite.
   guestTitle: {
-    ...type.display,
-    maxWidth: 330,
+    ...type.titulo,
     marginTop: space.dentro,
     color: colors.text,
     fontFamily: DISPLAY_FONT,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   guestColuna: { marginTop: space.bloco, paddingHorizontal: 0, alignSelf: 'flex-start' },
   // 17/27 no lugar de 14/22: é o parágrafo que vende a feature e estava no
@@ -2034,7 +2053,6 @@ const styles = StyleSheet.create({
     ...type.titulo,
     marginTop: space.bloco,
     color: colors.text,
-    fontFamily: DISPLAY_FONT,
     textAlign: 'center',
   },
   profileRequiredBody: {
@@ -2098,7 +2116,7 @@ const styles = StyleSheet.create({
   },
   feedHeadingRule: { width: 2, minHeight: 54, backgroundColor: colors.gold },
   feedHeadingCopy: { flex: 1, justifyContent: 'center', gap: 3 },
-  feedTitle: { ...type.secao, color: colors.text, fontFamily: DISPLAY_FONT },
+  feedTitle: { ...type.secao, color: colors.text },
   feedDescription: { ...type.apoio, color: colors.textMuted, marginTop: space.grudado },
   feedLoading: { minHeight: 124, alignItems: 'center', justifyContent: 'center' },
   errorCard: {
@@ -2234,7 +2252,6 @@ const styles = StyleSheet.create({
     ...type.titulo,
     marginTop: space.junto,
     color: colors.text,
-    fontFamily: DISPLAY_FONT,
     letterSpacing: -0.3,
   },
   modalBody: { ...type.corpoCurto, marginTop: space.dentro, color: colors.textSecondary },
@@ -2353,7 +2370,6 @@ const styles = StyleSheet.create({
     ...type.secao,
     marginTop: space.grudado,
     color: colors.text,
-    fontFamily: DISPLAY_FONT,
   },
   threadCloseButton: {
     width: 44,
@@ -2380,7 +2396,6 @@ const styles = StyleSheet.create({
     ...type.titulo,
     marginTop: space.bloco,
     color: colors.text,
-    fontFamily: DISPLAY_FONT,
   },
   // O post ABERTO e leitura longa: degrau de texto corrido (17/27).
   threadPostBody: { ...type.corpo, marginTop: space.dentro, color: colors.textSecondary },

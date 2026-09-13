@@ -595,7 +595,16 @@ const styles = StyleSheet.create({
   weeklyCardClose: { ...type.botao, color: colors.accent },
   weeklyCardEnd: { ...type.apoio, color: colors.gold, textAlign: 'center', marginTop: space.bloco, letterSpacing: 6, opacity: 0.7 },
 
-  filterRow: { paddingHorizontal: space.tela, paddingVertical: space.dentro, gap: space.junto },
+  // alignItems: 'center' é o que impede os chips de virarem COLUNAS (12/09/2026).
+  // Numa FlatList horizontal sem altura fixa, a web estica cada item para a
+  // altura da linha inteira: medidos 161px onde a pílula tem 34. Vira três
+  // colunas altas e vazias com o texto no topo — parece defeito de carregamento.
+  filterRow: {
+    paddingHorizontal: space.tela,
+    paddingVertical: space.dentro,
+    gap: space.junto,
+    alignItems: 'center',
+  },
   chip: {
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
     borderRadius: 20, paddingHorizontal: space.bloco, paddingVertical: space.junto, marginRight: space.junto,
