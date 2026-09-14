@@ -43,9 +43,9 @@ import ReconectarScreen from './ReconectarScreen';
 import DescobrirScreen from './DescobrirScreen';
 
 const ABAS = [
-  { key: 'agir', icone: 'flash', tituloKey: 'home.card.agir.title', Tela: AgirScreen },
-  { key: 'reconectar', icone: 'heart-circle', tituloKey: 'home.card.reconectar.title', Tela: ReconectarScreen },
-  { key: 'descobrir', icone: 'telescope', tituloKey: 'home.card.descobrir.title', Tela: DescobrirScreen },
+  { key: 'agir', icone: 'flash', tituloKey: 'aba.agir', Tela: AgirScreen },
+  { key: 'reconectar', icone: 'heart-circle', tituloKey: 'aba.reconectar', Tela: ReconectarScreen },
+  { key: 'descobrir', icone: 'telescope', tituloKey: 'aba.descobrir', Tela: DescobrirScreen },
 ];
 
 export default function NosHojeScreen({ route }) {

@@ -71,3 +71,6 @@ dist-*/
 # Mesmo motivo, outro prefixo: deploy-icones/ apareceu em 13/09 — o padrao
 # so cobria dist-*, e a pasta de montagem de deploy de agente escapou.
 deploy-*/
+# E o terceiro prefixo: pub-final/ escapou em 14/09 porque nao comeca com
+# dist- nem deploy-. 391 arquivos de build entraram num commit de 4 arquivos.
+pub-final/

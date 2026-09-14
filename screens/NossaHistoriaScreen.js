@@ -33,9 +33,9 @@ import ProgressoScreen from './ProgressoScreen';
 import RetrospectivaScreen from './RetrospectivaScreen';
 
 const ABAS = [
-  { key: 'timeline', icone: 'time', tituloKey: 'home.card.timeline.title', Tela: TimelineScreen },
-  { key: 'progresso', icone: 'trophy', tituloKey: 'home.card.progresso.title', Tela: ProgressoScreen },
-  { key: 'retrospectiva', icone: 'gift', tituloKey: 'home.card.retrospectiva.title', Tela: RetrospectivaScreen },
+  { key: 'timeline', icone: 'time', tituloKey: 'aba.timeline', Tela: TimelineScreen },
+  { key: 'progresso', icone: 'trophy', tituloKey: 'aba.progresso', Tela: ProgressoScreen },
+  { key: 'retrospectiva', icone: 'gift', tituloKey: 'aba.retrospectiva', Tela: RetrospectivaScreen },
 ];
 
 export default function NossaHistoriaScreen({ route }) {
